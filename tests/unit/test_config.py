@@ -66,9 +66,10 @@ class TestKISConfig(unittest.TestCase):
         self.assertEqual(config.ACCOUNT_NO, '9876543210')
         self.assertEqual(config.ACCOUNT_CODE, '02')
 
+    @patch('os.path.exists', return_value=True)
     @patch('builtins.open', new_callable=mock_open)
     @patch('yaml.safe_load')
-    def test_init_with_file(self, mock_yaml_load, mock_file):
+    def test_init_with_file(self, mock_yaml_load, mock_file, mock_exists):
         """
         설정 파일을 사용한 초기화를 테스트합니다.
         """
@@ -83,9 +84,10 @@ class TestKISConfig(unittest.TestCase):
         self.assertEqual(config.ACCOUNT_NO, '1234567890')
         self.assertEqual(config.ACCOUNT_CODE, '01')
 
+    @patch('os.path.exists', return_value=True)
     @patch('builtins.open', new_callable=mock_open)
     @patch('yaml.safe_load')
-    def test_validate_config(self, mock_yaml_load, mock_file):
+    def test_validate_config(self, mock_yaml_load, mock_file, mock_exists):
         """
         설정 유효성 검증을 테스트합니다.
         """
@@ -96,9 +98,10 @@ class TestKISConfig(unittest.TestCase):
         with self.assertRaises(Exception):
             KISConfig()
 
+    @patch('os.path.exists', return_value=True)
     @patch('builtins.open', new_callable=mock_open)
     @patch('yaml.safe_load')
-    def test_init_with_custom_path(self, mock_yaml_load, mock_file):
+    def test_init_with_custom_path(self, mock_yaml_load, mock_file, mock_exists):
         """
         사용자 정의 경로로 초기화를 테스트합니다.
         """

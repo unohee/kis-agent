@@ -20,6 +20,10 @@ import unittest
 import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import pytest
+
+if not os.getenv('RUN_LIVE_TESTS'):
+    pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
 from program.trade import ProgramTradeAPI
 from core.client import KISClient

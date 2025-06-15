@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List, Optional, Any
-from core.client import KISClient, API_ENDPOINTS
+from kis.core.client import KISClient, API_ENDPOINTS
 import pandas as pd
 
 """

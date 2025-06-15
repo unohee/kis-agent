@@ -21,6 +21,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import json
 import requests
+import os
 
 from kis.core.client import KISClient
 from kis.core.config import KISConfig
@@ -36,6 +37,11 @@ class TestKISClient(unittest.TestCase):
         """
         테스트 케이스 실행 전에 호출되는 메서드입니다.
         """
+        os.environ.setdefault('KIS_APP_KEY', 'k')
+        os.environ.setdefault('KIS_APP_SECRET', 's')
+        os.environ.setdefault('KIS_BASE_URL', 'http://test')
+        os.environ.setdefault('KIS_ACCOUNT_NO', '11111111')
+        os.environ.setdefault('KIS_ACCOUNT_CODE', '01')
         self.config = KISConfig()
         self.client = KISClient(self.config)
 
@@ -50,6 +56,7 @@ class TestKISClient(unittest.TestCase):
             'access_token': 'test_token',
             'expires_in': 86400
         }
+        mock_response.status_code = 200
         mock_post.return_value = mock_response
 
         # 토큰 갱신 테스트
@@ -64,6 +71,7 @@ class TestKISClient(unittest.TestCase):
         # Mock 응답 설정
         mock_response = MagicMock()
         mock_response.json.return_value = {'rt_cd': '0', 'msg1': '성공'}
+        mock_response.status_code = 200
         mock_request.return_value = mock_response
 
         # API 요청 테스트

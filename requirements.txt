@@ -7,4 +7,5 @@ pytest-cov>=3.0.0
 black>=22.0.0
 isort>=5.10.0
 flake8>=4.0.0
-mypy>=0.910 
+mypy>=0.910
+pycryptodome>=3.23

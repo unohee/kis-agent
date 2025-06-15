@@ -2,8 +2,12 @@
 조건검색식 종목 조회 테스트
 """
 import pytest
+import os
 from kis.core.client import KISClient
 from kis.stock.condition import ConditionAPI
+
+if not os.getenv('RUN_LIVE_TESTS'):
+    pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
 def test_condition_stocks():
     """조건검색식 종목 조회 테스트"""

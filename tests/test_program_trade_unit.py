@@ -2,8 +2,12 @@
 프로그램매매 정보 조회 테스트
 """
 import pytest
+import os
 from kis.core.client import KISClient
 from kis.program.trade import ProgramTradeAPI
+
+if not os.getenv('RUN_LIVE_TESTS'):
+    pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
 def test_program_trade_info(test_stock_code):
     """프로그램매매 정보 조회 테스트"""

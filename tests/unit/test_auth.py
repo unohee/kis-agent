@@ -36,6 +36,11 @@ class TestAuth(unittest.TestCase):
         """
         테스트 케이스 실행 전에 호출되는 메서드입니다.
         """
+        os.environ.setdefault('KIS_APP_KEY', 'k')
+        os.environ.setdefault('KIS_APP_SECRET', 's')
+        os.environ.setdefault('KIS_BASE_URL', 'http://test')
+        os.environ.setdefault('KIS_ACCOUNT_NO', '11111111')
+        os.environ.setdefault('KIS_ACCOUNT_CODE', '01')
         self.config = KISConfig()
         self.test_token = {
             'access_token': 'test_token',
@@ -50,7 +55,11 @@ class TestAuth(unittest.TestCase):
         """
         # Mock 응답 설정
         mock_response = MagicMock()
-        mock_response.json.return_value = self.test_token
+        mock_response.json.return_value = {
+            'access_token': 'test_token',
+            'access_token_token_expired': '2099-01-01 00:00:00'
+        }
+        mock_response.status_code = 200
         mock_post.return_value = mock_response
 
         # 토큰 발급 테스트
@@ -64,7 +73,11 @@ class TestAuth(unittest.TestCase):
         """
         # Mock 응답 설정
         mock_response = MagicMock()
-        mock_response.json.return_value = self.test_token
+        mock_response.json.return_value = {
+            'access_token': 'test_token',
+            'access_token_token_expired': '2099-01-01 00:00:00'
+        }
+        mock_response.status_code = 200
         mock_post.return_value = mock_response
 
         # 토큰 갱신 테스트
@@ -82,7 +95,7 @@ class TestAuth(unittest.TestCase):
 
         try:
             # 토큰 읽기 테스트
-            token = read_token()
+            token = read_token(token_path)
             self.assertEqual(token['access_token'], 'test_token')
         finally:
             # 테스트 토큰 파일 삭제

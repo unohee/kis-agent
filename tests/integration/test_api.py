@@ -19,6 +19,10 @@ API 통합 테스트 모듈입니다.
 import unittest
 import os
 from dotenv import load_dotenv
+import pytest
+
+if not os.getenv('RUN_LIVE_TESTS'):
+    pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
 from core.agent import KIS_Agent
 from core.config import KISConfig

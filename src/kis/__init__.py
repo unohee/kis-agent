@@ -24,7 +24,7 @@ agent = KIS_Agent()
 balance = agent.get_account_balance()
 """
 
-from .core import KIS_Agent, KISClient, API_ENDPOINTS, auth, Config
+from .core import KIS_Agent, KISClient, API_ENDPOINTS, auth, KISConfig
 from .account import AccountAPI, AccountBalance
 from .program import ProgramAPI, ProgramTrade
 from .stock import StockData, StockAPI, ConditionAPI, MarketAPI, ProgramTradeAPI
@@ -34,7 +34,7 @@ __all__ = [
     'KISClient',
     'API_ENDPOINTS',
     'auth',
-    'Config',
+    'KISConfig',
     'AccountAPI',
     'AccountBalance',
     'ProgramAPI',

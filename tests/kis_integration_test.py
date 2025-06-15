@@ -13,10 +13,14 @@ KIS(한국투자증권) API 통합 테스트
 """
 
 import pytest
+import os
 from kis.core.client import KISClient
 from kis.agent import KIS_Agent
 from kis.stock.market import StockAPI
 from kis.program.trade import ProgramTradeAPI
+
+if not os.getenv('RUN_LIVE_TESTS'):
+    pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
 def safe_call(name, func, *args, **kwargs):
     """안전한 함수 호출을 위한 헬퍼 함수"""
