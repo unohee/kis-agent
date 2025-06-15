@@ -25,7 +25,7 @@ if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
 from account.api import AccountAPI
-from core.client import KISClient
+from pykis.core.agent import Agent
 from core.config import KISConfig
 
 class TestAccount(unittest.TestCase):
@@ -61,7 +61,7 @@ class TestAccount(unittest.TestCase):
             "CANO": config.account_stock,
             "ACNT_PRDT_CD": config.account_product
         }
-        client = KISClient(config)
+        client = Agent(config)
         cls.api = AccountAPI(client, account_info)
 
     def test_get_account_balance(self):

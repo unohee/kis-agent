@@ -5,8 +5,8 @@ import pytest
 import os
 from pykis import Agent
 from pykis.stock import market
-from kis.core.client import KISClient
-from kis.stock.condition import ConditionAPI
+from pykis.core.client import KISClient
+from pykis.stock.condition import ConditionAPI
 
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)

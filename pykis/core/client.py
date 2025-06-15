@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 
 import requests
 
-from kis.core.auth import auth
-from kis.core.config import KISConfig
+from .auth import auth
+from .config import KISConfig
 
 # 로깅 설정
 logging.basicConfig(

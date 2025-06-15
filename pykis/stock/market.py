@@ -30,7 +30,8 @@
 
 import logging
 from typing import Dict, List, Optional, Any
-from kis.core.client import KISClient, API_ENDPOINTS
+from ..core.client import KISClient, API_ENDPOINTS
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -605,7 +606,7 @@ class StockAPI:
                 tr_id="FHKST03030100",
                 params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
             )
-                    except Exception as e:
+        except Exception as e:
             logger.error(f"해외주식 종목/지수/환율기간별시세 조회 실패: {e}")
             return None
 
@@ -625,7 +626,7 @@ class StockAPI:
                 tr_id="HHPSTH60100C1",
                 params={}
             )
-            except Exception as e:
+        except Exception as e:
             logger.error(f"해외뉴스종합 조회 실패: {e}")
             return None
 
@@ -883,27 +884,74 @@ class StockAPI:
             tr_id="FHKST01010700"
         )
 
-    def get_member_transaction(self, code: str) -> Optional[Dict]:
+    def get_member_transaction(self, code: str, mem_code: str) -> Optional[pd.DataFrame]:
         """
         회원사 거래 정보를 조회합니다.
 
         Args:
             code (str): 종목 코드
+            mem_code (str): 회원사 코드
 
         Returns:
-            Optional[Dict]: 회원사 거래 정보
+            Optional[pd.DataFrame]: 회원사 거래 정보 DataFrame
 
         Example:
-            >>> transaction = market.get_member_transaction("005930")
+            >>> transaction = market.get_member_transaction("005930", "99999")
         """
-        return self.client.make_request(
-            endpoint=API_ENDPOINTS['MEMBER_TRANSACTION'],
-            tr_id="FHKST01010800",
-            params={
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": code
+        from datetime import datetime, timedelta
+        today = datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
+        
+        try:
+            response = self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/quotations/inquire-member-daily",
+                tr_id="FHPST04540000",
+                params={
+                    "FID_COND_MRKT_DIV_CODE": "J",
+                    "FID_INPUT_ISCD": code,
+                    "FID_INPUT_ISCD_2": mem_code,
+                    "FID_INPUT_DATE_1": start_date,
+                    "FID_INPUT_DATE_2": today,
+                    "FID_SCTN_CLS_CODE": ""
+                }
+            )
+            
+            if not response or response.get('rt_cd') != '0':
+                logging.error(f"회원사 매매 데이터 조회 실패: {response}")
+                return None
+                
+            output = response.get('output', [])
+            if not output:
+                logging.warning(f"회원사 매매 데이터가 없습니다: {code}")
+                return None
+                
+            # DataFrame 변환
+            df = pd.DataFrame(output)
+            
+            # 컬럼명 한글로 변경
+            column_mapping = {
+                'stck_bsop_date': '거래일자',
+                'mbrn_nm': '회원사명',
+                'shnu_qty': '매수수량',
+                'seln_qty': '매도수량',
+                'ntby_qty': '순매수수량',
+                'shnu_amt': '매수금액',
+                'seln_amt': '매도금액',
+                'ntby_amt': '순매수금액'
             }
-        )
+            df = df.rename(columns=column_mapping)
+            
+            # 숫자형 컬럼 변환
+            numeric_columns = ['매수수량', '매도수량', '순매수수량', '매수금액', '매도금액', '순매수금액']
+            for col in numeric_columns:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+            return df
+            
+        except Exception as e:
+            logging.error(f"회원사 매매 데이터 처리 중 오류 발생: {e}")
+            return None
 
     def get_expected_closing_price(self, code: str, scr_div_code: str = "11173", blng_cls_code: str = "0", rank_sort_cls_code: str = "0") -> Optional[Dict]:
         """
@@ -968,7 +1016,7 @@ if __name__ == "__main__":
     import json
     import logging
     import pandas as pd
-    from kis.core.client import KISClient
+    from ..core.client import KISClient
 
     logging.basicConfig(level=logging.INFO)
     test_code = "005930"  # 삼성전자
@@ -1032,7 +1080,7 @@ if __name__ == "__main__":
         test_and_log("get_volume_power_ranking", lambda: stock.get_volume_power_ranking())
         test_and_log("get_market_fluctuation", lambda: stock.get_market_fluctuation())
         test_and_log("get_market_rankings", lambda: stock.get_market_rankings())
-        test_and_log("get_member_transaction", lambda: stock.get_member_transaction(test_code))
+        test_and_log("get_member_transaction", lambda: stock.get_member_transaction(test_code, "99999"))
         test_and_log("get_expected_closing_price", lambda: stock.get_expected_closing_price(test_code))
         test_and_log("get_minute_price", lambda: stock.get_minute_price(test_code))
         print("\n📊 테스트 요약")

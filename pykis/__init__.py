@@ -19,18 +19,18 @@ kis - 한국투자증권 OpenAPI 모듈
 - utils: 유틸리티 기능
 
 💡 사용 예시:
-from kis import KIS_Agent
-agent = KIS_Agent()
+from kis import Agent
+agent = Agent()
 balance = agent.get_account_balance()
 """
 
-from .core import KIS_Agent, KISClient, API_ENDPOINTS, auth, KISConfig
+from .core import Agent, KISClient, API_ENDPOINTS, auth, KISConfig
 from .account import AccountAPI, AccountBalance
 from .program import ProgramAPI, ProgramTrade
 from .stock import StockData, StockAPI, ConditionAPI, MarketAPI, ProgramTradeAPI
 
 __all__ = [
-    'KIS_Agent',
+    'Agent',
     'KISClient',
     'API_ENDPOINTS',
     'auth',

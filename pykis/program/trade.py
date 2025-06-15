@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Any
-from kis.core.client import KISClient, API_ENDPOINTS
+from ..core.client import KISClient, API_ENDPOINTS
 """
 program_trade_api.py - 프로그램 매매 정보 조회 전용 모듈
 

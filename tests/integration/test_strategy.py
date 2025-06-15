@@ -27,6 +27,7 @@ if not os.getenv('RUN_LIVE_TESTS'):
 from strategy.trigger import StrategyTrigger
 from core.client import KISClient
 from core.config import KISConfig
+from pykis.core.agent import Agent
 
 class TestStrategy(unittest.TestCase):
     """

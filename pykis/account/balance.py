@@ -22,7 +22,7 @@
 
 from typing import Optional, Dict, Any
 import pandas as pd
-from kis.core.client import KISClient, API_ENDPOINTS
+from ..core.client import KISClient, API_ENDPOINTS
 
 class AccountAPI:
     """

@@ -1,5 +1,5 @@
 import pandas as pd
-from kis.core.client import KISClient
+from ..core.client import KISClient
 from typing import Optional, Dict, Any
 import logging
 

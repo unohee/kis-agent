@@ -10,8 +10,8 @@ KISClient 클래스의 단위 테스트 모듈입니다.
 의존성:
 - unittest: 테스트 프레임워크
 - unittest.mock: 모킹
-- kis.core.client: 테스트 대상
-- kis.core.config: 설정 관리
+- pykis.core.client: 테스트 대상
+- pykis.core.config: 설정 관리
 
 사용 예시:
     >>> python -m unittest tests/unit/test_client.py
@@ -23,8 +23,8 @@ import json
 import requests
 import os
 
-from kis.core.client import KISClient
-from kis.core.config import KISConfig
+from pykis.core.client import KISClient
+from pykis.core.config import KISConfig
 
 class TestKISClient(unittest.TestCase):
     """

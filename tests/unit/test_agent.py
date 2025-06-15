@@ -9,94 +9,104 @@ agent 모듈의 단위 테스트 모듈입니다.
 의존성:
 - unittest: 테스트 프레임워크
 - unittest.mock: 모킹
-- kis.core.agent: 테스트 대상
-- kis.core.client: API 클라이언트
+- pykis.core.agent: 테스트 대상
+- pykis.core.client: API 클라이언트
 
 사용 예시:
     >>> python -m unittest tests/unit/test_agent.py
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+from pykis.core.agent import Agent
+from pykis.core.client import KISClient
+from pykis.core.config import KISConfig
+from pykis.core.auth import auth
+from pykis.account.api import AccountAPI
+from pykis.stock.api import StockAPI
+from pykis.program.api import ProgramTradeAPI
 
-from kis.core.agent import KIS_Agent
-from kis.core.client import KISClient
-
-class TestKISAgent(unittest.TestCase):
+class TestAgent(unittest.TestCase):
     """
-    KIS_Agent 클래스의 단위 테스트 클래스입니다.
+    Agent 클래스의 단위 테스트 클래스입니다.
 
-    이 클래스는 KIS_Agent의 각 메서드를 테스트합니다.
+    이 클래스는 Agent의 각 메서드를 테스트합니다.
     """
 
     def setUp(self):
-        """
-        테스트 케이스 실행 전에 호출되는 메서드입니다.
-        """
-        self.client = MagicMock(spec=KISClient)
-        self.agent = KIS_Agent(self.client)
-
-    @patch('kis.stock.market.StockMarketAPI.get_stock_price')
-    def test_get_stock_price(self, mock_get_price):
-        """
-        get_stock_price 메서드를 테스트합니다.
-        """
-        # Mock 응답 설정
-        mock_get_price.return_value = {
-            'stck_prpr': '70000',
-            'stck_oprc': '69000',
-            'stck_hgpr': '71000',
-            'stck_lwpr': '68000'
-        }
-
-        # 주식 시세 조회 테스트
-        price = self.agent.get_stock_price('005930')
-        self.assertEqual(price['stck_prpr'], '70000')
-        mock_get_price.assert_called_once_with('005930')
-
-    @patch('kis.account.balance.AccountBalanceAPI.get_account_balance')
-    def test_get_account_balance(self, mock_get_balance):
-        """
-        get_account_balance 메서드를 테스트합니다.
-        """
-        # Mock 응답 설정
-        mock_get_balance.return_value = {
-            'prvs_rcdl_excc_amt': '1000000',
-            'thdt_buyamt': '500000',
-            'thdt_sllamt': '300000'
-        }
-
-        # 계좌 잔고 조회 테스트
-        balance = self.agent.get_account_balance()
-        self.assertEqual(balance['prvs_rcdl_excc_amt'], '1000000')
-        mock_get_balance.assert_called_once()
-
-    @patch('kis.program.trade.ProgramTradeAPI.get_program_trade_summary')
-    def test_get_program_trade_summary(self, mock_get_summary):
-        """
-        get_program_trade_summary 메서드를 테스트합니다.
-        """
-        # Mock 응답 설정
-        mock_get_summary.return_value = {
-            'today_trend': '매수세',
-            'net_buy_amount': 1000000000,
-            'buy_ratio': 0.6,
-            'momentum_score': 0.8,
-            'volume_trend': '증가'
-        }
-
-        # 프로그램 매매 분석 테스트
-        summary = self.agent.get_program_trade_summary('005930')
-        self.assertEqual(summary['today_trend'], '매수세')
-        mock_get_summary.assert_called_once_with('005930')
+        """테스트 설정"""
+        # [변경 이유] 테스트용 설정 파일 경로 지정
+        self.config = KISConfig('tests/config/test_config.yaml')
+        # [변경 이유] 테스트용 인증 정보 설정
+        self.auth = auth(self.config)
+        # [변경 이유] 테스트용 클라이언트 생성
+        self.client = KISClient(config=self.config)
+        # [변경 이유] 테스트용 Agent 인스턴스 생성
+        self.agent = Agent(self.client)
 
     def test_init_without_client(self):
-        """
-        클라이언트 없이 초기화하는 것을 테스트합니다.
-        """
-        with patch('kis.core.agent.KISClient') as mock_client:
-            agent = KIS_Agent()
-            mock_client.assert_called_once()
+        """클라이언트 없이 초기화 테스트"""
+        # [변경 이유] 클라이언트 없이 Agent 생성
+        agent = Agent()
+        # [변경 이유] 내부적으로 KISClient가 생성되었는지 확인
+        self.assertIsInstance(agent.client, KISClient)
+
+    def test_get_account_balance(self):
+        """계좌 잔고 조회 테스트"""
+        # [변경 이유] 테스트용 계좌 잔고 데이터 설정
+        expected = {
+            'output': {
+                'tot_evlu_amt': '1000000',
+                'scts_evlu_amt': '800000',
+                'tot_loan_amt': '0'
+            }
+        }
+        # [변경 이유] MagicMock을 사용하여 account_api의 get_account_balance 메서드 모킹
+        self.agent.account_api = MagicMock()
+        self.agent.account_api.get_account_balance.return_value = expected
+        # [변경 이유] 실제 메서드 호출 및 결과 검증
+        result = self.agent.get_account_balance()
+        self.assertEqual(result, expected)
+        # [변경 이유] 메서드가 올바른 인자로 호출되었는지 확인
+        self.agent.account_api.get_account_balance.assert_called_once()
+
+    def test_get_program_trade_summary(self):
+        """프로그램 매매 요약 정보 조회 테스트"""
+        # [변경 이유] 테스트용 프로그램 매매 요약 데이터 설정
+        expected = {
+            'output': {
+                'tot_buy_amt': '1000000',
+                'tot_sell_amt': '500000'
+            }
+        }
+        # [변경 이유] MagicMock을 사용하여 program_api의 get_program_trade_summary 메서드 모킹
+        self.agent.program_api = MagicMock()
+        self.agent.program_api.get_program_trade_summary.return_value = expected
+        # [변경 이유] 실제 메서드 호출 및 결과 검증
+        result = self.agent.get_program_trade_summary('005930')
+        self.assertEqual(result, expected)
+        # [변경 이유] 메서드가 올바른 인자로 호출되었는지 확인
+        self.agent.program_api.get_program_trade_summary.assert_called_once_with('005930')
+
+    def test_get_stock_price(self):
+        """주식 현재가 조회 테스트"""
+        # [변경 이유] 테스트용 주식 현재가 데이터 설정
+        expected = {
+            'output': {
+                'stck_prpr': '50000',
+                'stck_oprc': '49000',
+                'stck_hgpr': '51000',
+                'stck_lwpr': '48000'
+            }
+        }
+        # [변경 이유] MagicMock을 사용하여 stock_api의 get_stock_price 메서드 모킹
+        self.agent.stock_api = MagicMock()
+        self.agent.stock_api.get_stock_price.return_value = expected
+        # [변경 이유] 실제 메서드 호출 및 결과 검증
+        result = self.agent.get_stock_price('005930')  # 삼성전자
+        self.assertEqual(result, expected)
+        # [변경 이유] 메서드가 올바른 인자로 호출되었는지 확인
+        self.agent.stock_api.get_stock_price.assert_called_once_with('005930')
 
 if __name__ == '__main__':
     unittest.main() 

@@ -22,7 +22,7 @@
 
 import logging
 from typing import Dict, List, Optional, Any
-from kis.core.client import KISClient, API_ENDPOINTS
+from ..core.client import KISClient, API_ENDPOINTS
 
 class ConditionAPI:
     """

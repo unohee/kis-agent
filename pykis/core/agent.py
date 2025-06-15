@@ -1,9 +1,9 @@
-import kis.core.client as core_client
-from kis.core.client import API_ENDPOINTS
-from kis.account.balance import AccountBalanceAPI as AccountAPI
-from kis.stock.market import StockMarketAPI as StockAPI
-from kis.program.trade import ProgramTradeAPI
-from kis.strategy.trigger import StrategyTrigger
+from . import client as core_client
+from .client import API_ENDPOINTS
+from ..account.balance import AccountBalanceAPI as AccountAPI
+from ..stock.market import StockMarketAPI as StockAPI
+from ..program.trade import ProgramTradeAPI
+from ..strategy.trigger import StrategyTrigger
 from typing import Optional, Dict
 import logging
 import datetime
@@ -14,13 +14,13 @@ from datetime import timedelta
 import json
 import time
 from dotenv import load_dotenv
-from kis.core.auth import auth
-from kis.core.client import KISClient
+from .auth import auth
+from .client import KISClient
 
 # .env 파일 로드
 load_dotenv()
 
-class KIS_Agent:
+class Agent:
     """
     Facade for Korean Investment Securities APIs.
     Delegates to specialized modules:
@@ -30,7 +30,7 @@ class KIS_Agent:
       - StrategyTrigger
     """
     def __init__(self, client: Optional[KISClient] = None, account_info: Optional[Dict] = None):
-        """KIS_Agent 초기화"""
+        """Agent 초기화"""
         self.client = client or KISClient()
         self.account_info = account_info or {}
         
@@ -50,8 +50,10 @@ class KIS_Agent:
         for api in (self.account_api, self.stock_api, self.program_api, self.strategy_api):
             if hasattr(api, name):
                 attr = getattr(api, name)
-                if callable(attr):
-                    return lambda *args, **kwargs: attr(*args, **kwargs)
+                # 속성인 경우 직접 반환
+                if not callable(attr):
+                    return attr
+                # 메서드인 경우 원본 메서드 반환 (람다로 감싸지 않음)
                 return attr
                 
         raise AttributeError(f"{self.__class__.__name__} object has no attribute '{name}'")
@@ -310,7 +312,8 @@ class KIS_Agent:
             )
             
             if response and response.get('rt_cd') == '0':
-                logging.info(f"조건검색 종목 조회 성공: {response}")
+                # 로그 메시지 제거
+                pass
             else:
                 logging.error(f"조건검색 종목 조회 실패: {response}")
             
@@ -350,4 +353,4 @@ class KIS_Agent:
 
 
 # Expose facade class for flat import
-__all__ = ['KIS_Agent'] 
+__all__ = ['Agent'] 

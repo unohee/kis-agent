@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List, Optional
-from kis.core.client import KISClient
+from ..core.client import KISClient
 
 """
 program.py - 프로그램 매매 API 모듈

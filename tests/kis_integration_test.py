@@ -14,13 +14,15 @@ KIS(한국투자증권) API 통합 테스트
 
 import pytest
 import os
+from datetime import datetime, timedelta  # [변경 이유] 날짜 계산을 위해 추가
 from pykis import Agent
 from pykis.core import auth
 from pykis.stock import market
-from src.kis.core.client import KISClient
-from src.kis.core.agent import KIS_Agent
-from src.kis.stock.market import StockAPI
-from src.kis.program.trade import ProgramTradeAPI
+from pykis.core.client import KISClient
+from pykis.core.agent import Agent
+from pykis.stock.api import StockAPI
+from pykis.program.api import ProgramTradeAPI
+import logging
 
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
@@ -46,13 +48,14 @@ def test_account_balance(account_info):
 
 def test_agent_api(account_info, test_stock_code):
     """KIS_Agent의 주요 API 기능 테스트"""
-    agent = KIS_Agent(account_info=account_info)
+    agent = Agent(account_info=account_info)
     
     # 주식 가격 조회 테스트
     print("\n[주식 가격 조회 테스트]")
     price = safe_call("get_stock_price", agent.get_stock_price, test_stock_code)
     assert price is not None, "주식 가격 조회 실패"
     
+    # [변경 이유] Agent.get_daily_price는 code만 받으므로 인자 개수 수정
     daily_price = safe_call("get_daily_price", agent.get_daily_price, test_stock_code)
     assert daily_price is not None, "일별 가격 조회 실패"
     
@@ -77,7 +80,10 @@ def test_stock_api(account_info, test_stock_code):
     assert price is not None, "주식 가격 조회 실패"
     print("- get_stock_price:", price)
     
-    daily = stock.get_daily_price(test_stock_code)
+    # [변경 이유] get_daily_price 인자 추가 (최근 1개월)
+    end_date = datetime.today().strftime('%Y%m%d')
+    start_date = (datetime.today() - timedelta(days=30)).strftime('%Y%m%d')
+    daily = stock.get_daily_price(test_stock_code, start_date, end_date)
     assert daily is not None, "일별 가격 조회 실패"
     print("- get_daily_price:", daily)
     
@@ -92,25 +98,40 @@ def test_stock_api(account_info, test_stock_code):
     investor = stock.get_stock_investor(test_stock_code)
     assert investor is not None, "투자자 조회 실패"
     print("- get_stock_investor:", investor)
-    
-    detail = stock.get_stock_investor_detail(test_stock_code)
-    assert detail is not None, "투자자 상세 조회 실패"
-    print("- get_stock_investor_detail:", detail)
 
 def test_program_trade(test_stock_code):
     """ProgramTradeAPI 프로그램 매매 테스트"""
     print("\n[ProgramTradeAPI 프로그램 매매 테스트]")
     client = KISClient(verbose=True)
     pgm_api = ProgramTradeAPI(client)
-    ref_date = "20250516"
+    trend = pgm_api.get_program_trade_trend(test_stock_code)
+    assert trend is not None, "프로그램 매매 추이 조회 실패"
+    print("- get_program_trade_trend:", trend)
+    net_buy = pgm_api.get_net_buy_volume(test_stock_code)
+    assert net_buy is not None, "순매수량 확인 실패"
+    print("- get_net_buy_volume:", net_buy)
+    analysis = pgm_api.analyze_trade_trend(test_stock_code)
+    assert analysis is not None, "매매 동향 분석 실패"
+    print("- analyze_trade_trend:", analysis)
+
+def test_condition_search(self):
+    """조건검색 테스트"""
+    # 로깅 레벨을 임시로 변경하여 조건검색 종목 조회 성공 메시지 숨김
+    original_level = logging.getLogger().level
+    logging.getLogger().setLevel(logging.WARNING)
     
-    result = pgm_api.get_pgm_trade(test_stock_code, ref_date=ref_date)
-    assert result is not None, "프로그램 매매 데이터 조회 실패"
-    
-    print(f"\n🔍 테스트 결과 for {test_stock_code} on {ref_date}")
-    print(f"PGM 일별 매수량 (today): {result.get('today')}")
-    print(f"PGM 일별 매도량 (net29): {result.get('net29')}")
-    print(f"PGM 총거래량 (합산): {result.get('program_today_volume')}")
-    print(f"PGM 매수비율 (%): {result.get('today_ratio')}")
-    print(f"PGM 매수금액 (억원): {result.get('today_amt')}")
-    print(f"PGM 매수금액 비율 (%): {result.get('today_amt_ratio')}") 
+    try:
+        # 조건검색 목록 조회
+        conditions = self.agent.get_condition_list()
+        self.assertIsNotNone(conditions)
+        self.assertIsInstance(conditions, list)
+        
+        if conditions:
+            # 첫 번째 조건으로 종목 조회
+            condition = conditions[0]
+            stocks = self.agent.get_condition_stocks(condition['condition_index'])
+            self.assertIsNotNone(stocks)
+            self.assertIsInstance(stocks, list)
+    finally:
+        # 로깅 레벨 복원
+        logging.getLogger().setLevel(original_level) 

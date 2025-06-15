@@ -9,7 +9,7 @@ config 모듈의 단위 테스트 모듈입니다.
 의존성:
 - unittest: 테스트 프레임워크
 - unittest.mock: 모킹
-- kis.core.config: 테스트 대상
+- pykis.core.config: 테스트 대상
 - os: 환경 변수 관리
 
 사용 예시:
@@ -21,7 +21,7 @@ from unittest.mock import patch, mock_open
 import os
 import yaml
 
-from kis.core.config import KISConfig
+from pykis.core.config import KISConfig
 
 class TestKISConfig(unittest.TestCase):
     """

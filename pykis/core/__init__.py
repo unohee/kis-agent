@@ -11,13 +11,13 @@ KIS Core 모듈
     client = KISClient()
 """
 
-from .agent import KIS_Agent
+from .agent import Agent
 from .client import KISClient, API_ENDPOINTS
 from .auth import auth
 from .config import KISConfig
 
 __all__ = [
-    'KIS_Agent',
+    'Agent',
     'KISClient',
     'API_ENDPOINTS',
     'auth',

@@ -22,8 +22,8 @@ import json
 import os
 import requests
 
-from kis.core.auth import auth, reAuth, read_token
-from kis.core.config import KISConfig
+from pykis.core.auth import auth, reAuth, read_token
+from pykis.core.config import KISConfig
 
 class TestAuth(unittest.TestCase):
     """
