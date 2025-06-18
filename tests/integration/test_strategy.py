@@ -9,8 +9,7 @@
 
 의존성:
 - unittest: 테스트 프레임워크
-- strategy.trigger: 테스트 대상
-- core.config: 설정 관리
+- pykis.Agent: 테스트 대상
 
 사용 예시:
     >>> python -m unittest tests/integration/test_strategy.py
@@ -24,10 +23,7 @@ import pytest
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
-from strategy.trigger import StrategyTrigger
-from core.client import KISClient
-from core.config import KISConfig
-from pykis.core.agent import Agent
+from pykis import Agent
 
 class TestStrategy(unittest.TestCase):
     """
@@ -56,21 +52,15 @@ class TestStrategy(unittest.TestCase):
         if missing_vars:
             raise ValueError(f"필수 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
 
-        # API 클라이언트 초기화
-        config = KISConfig()
-        account_info = {
-            "CANO": config.account_stock,
-            "ACNT_PRDT_CD": config.account_product
-        }
-        client = KISClient(config)
-        cls.trigger = StrategyTrigger(client, account_info)
+        # Agent 인스턴스 생성 (Agent 중심 설계)
+        cls.agent = Agent()
 
     def test_check_entry_condition(self):
         """
         매수 진입 조건 체크 API를 테스트합니다.
         """
         # 삼성전자 매수 진입 조건 체크
-        result = self.trigger.check_entry_condition('005930')
+        result = self.agent.check_entry_condition('005930')
         
         # 응답 검증
         self.assertIsNotNone(result)
@@ -83,7 +73,7 @@ class TestStrategy(unittest.TestCase):
         매수 주문 실행 API를 테스트합니다.
         """
         # 삼성전자 매수 주문 실행 (1주)
-        result = self.trigger.execute_buy_order('005930', 1)
+        result = self.agent.execute_buy_order('005930', 1)
         
         # 응답 검증
         self.assertIsNotNone(result)
@@ -96,7 +86,7 @@ class TestStrategy(unittest.TestCase):
         전략 모니터링 API를 테스트합니다.
         """
         # 삼성전자 전략 모니터링
-        result = self.trigger.monitor_strategy('005930')
+        result = self.agent.monitor_strategy('005930')
         
         # 응답 검증
         self.assertIsNotNone(result)
@@ -110,7 +100,7 @@ class TestStrategy(unittest.TestCase):
         매도 진출 조건 체크 API를 테스트합니다.
         """
         # 삼성전자 매도 진출 조건 체크
-        result = self.trigger.check_exit_condition('005930')
+        result = self.agent.check_exit_condition('005930')
         
         # 응답 검증
         self.assertIsNotNone(result)
@@ -124,7 +114,7 @@ class TestStrategy(unittest.TestCase):
         """
         # 잘못된 종목코드로 매수 진입 조건 체크
         with self.assertRaises(Exception):
-            self.trigger.check_entry_condition('000000')
+            self.agent.check_entry_condition('000000')
 
 if __name__ == '__main__':
     unittest.main() 

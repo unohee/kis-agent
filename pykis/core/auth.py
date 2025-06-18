@@ -236,7 +236,7 @@ def auth(config=None, svr='prod', product=None, url=None):
     }
 
     # 기존 발급된 토큰이 있는지 확인
-    saved_token = None if config is not None else read_token()
+    saved_token = read_token()
 
     if saved_token is None:  # 기존 발급 토큰 확인이 안되면 발급처리
         # config.BASE_URL이 비어 있으면 환경 변수에서 직접 가져옴 (이중 안전장치)

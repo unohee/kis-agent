@@ -9,8 +9,7 @@
 
 의존성:
 - unittest: 테스트 프레임워크
-- stock.market: 테스트 대상
-- core.config: 설정 관리
+- pykis.Agent: 테스트 대상
 
 사용 예시:
     >>> python -m unittest tests/integration/test_stock_market.py
@@ -25,9 +24,7 @@ import pytest
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
-from stock.market import StockMarketAPI
-from core.client import KISClient
-from core.config import KISConfig
+from pykis import Agent
 
 class TestStockMarket(unittest.TestCase):
     """
@@ -56,21 +53,15 @@ class TestStockMarket(unittest.TestCase):
         if missing_vars:
             raise ValueError(f"필수 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
 
-        # API 클라이언트 초기화
-        config = KISConfig()
-        account_info = {
-            "CANO": config.account_stock,
-            "ACNT_PRDT_CD": config.account_product
-        }
-        client = KISClient(config)
-        cls.api = StockMarketAPI(client, account_info)
+        # Agent 인스턴스 생성 (Agent 중심 설계)
+        cls.agent = Agent()
 
     def test_get_stock_price(self):
         """
         현재가 조회 API를 테스트합니다.
         """
         # 삼성전자 현재가 조회
-        price = self.api.get_stock_price('005930')
+        price = self.agent.get_stock_price('005930')
         
         # 응답 검증
         self.assertIsNotNone(price)
@@ -88,7 +79,7 @@ class TestStockMarket(unittest.TestCase):
         start_date = end_date - timedelta(days=7)
 
         # 삼성전자 일별 시세 조회
-        daily_data = self.api.get_daily_price(
+        daily_data = self.agent.get_daily_price(
             '005930',
             start_date.strftime('%Y%m%d'),
             end_date.strftime('%Y%m%d')
@@ -109,7 +100,7 @@ class TestStockMarket(unittest.TestCase):
         분봉 시세 조회 API를 테스트합니다.
         """
         # 삼성전자 분봉 시세 조회
-        minute_data = self.api.get_minute_price('005930')
+        minute_data = self.agent.get_minute_price('005930')
         
         # 응답 검증
         self.assertIsNotNone(minute_data)
@@ -126,7 +117,7 @@ class TestStockMarket(unittest.TestCase):
         거래원 조회 API를 테스트합니다.
         """
         # 삼성전자 거래원 조회
-        member_data = self.api.get_member('005930')
+        member_data = self.agent.get_member('005930')
         
         # 응답 검증
         self.assertIsNotNone(member_data)
@@ -142,7 +133,7 @@ class TestStockMarket(unittest.TestCase):
         """
         # 잘못된 종목코드로 현재가 조회
         with self.assertRaises(Exception):
-            self.api.get_stock_price('000000')
+            self.agent.get_stock_price('000000')
 
 if __name__ == '__main__':
     unittest.main() 

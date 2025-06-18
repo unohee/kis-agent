@@ -9,8 +9,7 @@
 
 의존성:
 - unittest: 테스트 프레임워크
-- account.api: 테스트 대상
-- core.config: 설정 관리
+- pykis.Agent: 테스트 대상
 
 사용 예시:
     >>> python -m unittest tests/integration/test_account.py
@@ -24,9 +23,7 @@ import pytest
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
-from account.api import AccountAPI
-from pykis.core.agent import Agent
-from core.config import KISConfig
+from pykis import Agent
 
 class TestAccount(unittest.TestCase):
     """
@@ -55,21 +52,15 @@ class TestAccount(unittest.TestCase):
         if missing_vars:
             raise ValueError(f"필수 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
 
-        # API 클라이언트 초기화
-        config = KISConfig()
-        account_info = {
-            "CANO": config.account_stock,
-            "ACNT_PRDT_CD": config.account_product
-        }
-        client = Agent(config)
-        cls.api = AccountAPI(client, account_info)
+        # Agent 인스턴스 생성 (Agent 중심 설계)
+        cls.agent = Agent()
 
     def test_get_account_balance(self):
         """
         계좌 잔고 조회 API를 테스트합니다.
         """
         # 계좌 잔고 조회
-        balance = self.api.get_account_balance()
+        balance = self.agent.get_account_balance()
         
         # 응답 검증
         self.assertIsNotNone(balance)
@@ -83,7 +74,7 @@ class TestAccount(unittest.TestCase):
         주문 가능 금액 조회 API를 테스트합니다.
         """
         # 주문 가능 금액 조회
-        amount = self.api.get_possible_order_amount()
+        amount = self.agent.get_possible_order_amount()
         
         # 응답 검증
         self.assertIsNotNone(amount)
@@ -96,7 +87,7 @@ class TestAccount(unittest.TestCase):
         총 평가 금액 조회 API를 테스트합니다.
         """
         # 총 평가 금액 조회
-        evaluation = self.api.get_total_evaluation()
+        evaluation = self.agent.get_total_evaluation()
         
         # 응답 검증
         self.assertIsNotNone(evaluation)
@@ -109,7 +100,7 @@ class TestAccount(unittest.TestCase):
         계좌별 주문 수량 조회 API를 테스트합니다.
         """
         # 삼성전자 계좌별 주문 수량 조회
-        quantity = self.api.get_account_order_quantity('005930')
+        quantity = self.agent.get_account_order_quantity('005930')
         
         # 응답 검증
         self.assertIsNotNone(quantity)
@@ -123,7 +114,7 @@ class TestAccount(unittest.TestCase):
         """
         # 잘못된 종목코드로 계좌별 주문 수량 조회
         with self.assertRaises(Exception):
-            self.api.get_account_order_quantity('000000')
+            self.agent.get_account_order_quantity('000000')
 
 if __name__ == '__main__':
     unittest.main() 

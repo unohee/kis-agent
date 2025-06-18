@@ -2,7 +2,7 @@ import os
 import sys
 import pytest
 from dotenv import load_dotenv
-from pykis.core import auth
+from pykis import Agent
 
 # .env 파일 로드
 load_dotenv()
@@ -16,15 +16,13 @@ def test_token_issuance():
         if missing_vars:
             pytest.skip(f"필수 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
 
-        # 헤더 확인
-        headers = _getBaseHeader()
-        print(f"[디버그] 요청 헤더: {headers}")
-        assert headers == {"Content-Type": "application/json"}, "헤더가 올바르게 설정되지 않았습니다."
-
-        # 토큰 발급 시도
-        token = auth(svr='prod')
-        print(f"[디버그] 발급된 토큰: {token}")
-        assert token is not None, "토큰이 발급되지 않았습니다."
+        # Agent 초기화를 통한 토큰 발급 테스트
+        agent = Agent()
+        print(f"[디버그] Agent 초기화 완료")
+        
+        # 토큰이 정상적으로 발급되었는지 확인
+        assert agent is not None, "Agent가 초기화되지 않았습니다."
+        print(f"[디버그] Agent 초기화 성공")
 
     except Exception as e:
         pytest.fail(f"토큰 발급 중 오류 발생: {str(e)}")

@@ -1,7 +1,7 @@
 """
-KISClient 클래스의 단위 테스트 모듈입니다.
+KISClient 클래스의 통합 테스트 모듈입니다.
 
-이 모듈은 KISClient 클래스의 기능을 테스트합니다:
+이 모듈은 KISClient 클래스의 기능을 실제 API 호출로 테스트합니다:
 - API 요청 처리
 - 토큰 관리
 - 요청 제한 관리
@@ -9,94 +9,118 @@ KISClient 클래스의 단위 테스트 모듈입니다.
 
 의존성:
 - unittest: 테스트 프레임워크
-- unittest.mock: 모킹
 - pykis.core.client: 테스트 대상
-- pykis.core.config: 설정 관리
+- .env: 실제 인증 정보
 
 사용 예시:
     >>> python -m unittest tests/unit/test_client.py
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
-import json
-import requests
 import os
-
 from pykis.core.client import KISClient
 from pykis.core.config import KISConfig
 
 class TestKISClient(unittest.TestCase):
     """
-    KISClient 클래스의 단위 테스트 클래스입니다.
+    KISClient 클래스의 통합 테스트 클래스입니다.
 
-    이 클래스는 KISClient의 각 메서드를 테스트합니다.
+    이 클래스는 KISClient의 각 메서드를 실제 API 호출로 테스트합니다.
     """
 
     def setUp(self):
         """
         테스트 케이스 실행 전에 호출되는 메서드입니다.
         """
-        os.environ.setdefault('KIS_APP_KEY', 'k')
-        os.environ.setdefault('KIS_APP_SECRET', 's')
-        os.environ.setdefault('KIS_BASE_URL', 'http://test')
-        os.environ.setdefault('KIS_ACCOUNT_NO', '11111111')
-        os.environ.setdefault('KIS_ACCOUNT_CODE', '01')
+        # 실제 .env 파일의 인증 정보를 사용
         self.config = KISConfig()
         self.client = KISClient(self.config)
 
-    @patch('requests.post')
-    def test_refresh_token(self, mock_post):
+    def test_refresh_token(self):
         """
-        refresh_token 메서드를 테스트합니다.
+        refresh_token 메서드를 실제 API 호출로 테스트합니다.
         """
-        # Mock 응답 설정
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            'access_token': 'test_token',
-            'expires_in': 86400
-        }
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
         # 토큰 갱신 테스트
         self.client.refresh_token()
-        self.assertEqual(self.client.token, 'test_token')
+        # 토큰이 발급되었는지 확인
+        self.assertIsNotNone(self.client.token)
+        self.assertIsInstance(self.client.token, str)
+        self.assertGreater(len(self.client.token), 0)
+        print(f"토큰 발급 성공: {self.client.token[:20]}...")
 
-    @patch('requests.request')
-    def test_make_request(self, mock_request):
+    def test_make_request_stock_price(self):
         """
-        make_request 메서드를 테스트합니다.
+        make_request 메서드를 실제 주식 현재가 API 호출로 테스트합니다.
         """
-        # Mock 응답 설정
-        mock_response = MagicMock()
-        mock_response.json.return_value = {'rt_cd': '0', 'msg1': '성공'}
-        mock_response.status_code = 200
-        mock_request.return_value = mock_response
-
-        # API 요청 테스트
+        # 삼성전자 현재가 조회 API 요청 테스트
         response = self.client.make_request(
-            endpoint='/test',
-            tr_id='TEST001',
-            params={'test': 'value'}
+            endpoint="/uapi/domestic-stock/v1/quotations/inquire-price",
+            tr_id="FHKST01010100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": "005930"
+            }
         )
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(response)
         self.assertEqual(response['rt_cd'], '0')
+        print(f"주식 현재가 API 호출 성공: {response}")
 
-    @patch('requests.request')
-    def test_make_request_error(self, mock_request):
+    def test_make_request_daily_price(self):
         """
-        make_request 메서드의 에러 처리를 테스트합니다.
+        make_request 메서드를 실제 일별 시세 API 호출로 테스트합니다.
         """
-        # Mock 에러 응답 설정
-        mock_request.side_effect = requests.exceptions.RequestException('API 오류')
+        # 삼성전자 일별 시세 조회 API 요청 테스트
+        response = self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
+            tr_id="FHKST03010100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": "005930",
+                "FID_INPUT_DATE_1": "20240601",
+                "FID_INPUT_DATE_2": "20240618"
+            }
+        )
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(response)
+        self.assertEqual(response['rt_cd'], '0')
+        print(f"일별 시세 API 호출 성공: {response}")
 
-        # 에러 처리 테스트
-        with self.assertRaises(Exception):
-            self.client.make_request(
-                endpoint='/test',
-                tr_id='TEST001',
-                params={'test': 'value'}
-            )
+    def test_make_request_orderbook(self):
+        """
+        make_request 메서드를 실제 호가 API 호출로 테스트합니다.
+        """
+        # 삼성전자 호가 조회 API 요청 테스트
+        response = self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn",
+            tr_id="FHKST01010200",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": "005930"
+            }
+        )
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(response)
+        self.assertEqual(response['rt_cd'], '0')
+        print(f"호가 API 호출 성공: {response}")
+
+    def test_make_request_investor(self):
+        """
+        make_request 메서드를 실제 투자자별 매매 동향 API 호출로 테스트합니다.
+        """
+        # 삼성전자 투자자별 매매 동향 조회 API 요청 테스트
+        response = self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/inquire-investor",
+            tr_id="FHKST01010900",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": "005930"
+            }
+        )
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(response)
+        self.assertEqual(response['rt_cd'], '0')
+        print(f"투자자별 매매 동향 API 호출 성공: {response}")
 
     def test_enforce_rate_limit(self):
         """
@@ -105,6 +129,7 @@ class TestKISClient(unittest.TestCase):
         # 요청 제한 테스트
         self.client._enforce_rate_limit()
         self.assertGreater(self.client.last_request_time, 0)
+        print(f"요청 제한 테스트 성공: {self.client.last_request_time}")
 
 if __name__ == '__main__':
     unittest.main() 

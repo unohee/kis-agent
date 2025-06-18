@@ -75,7 +75,7 @@ class ProgramTradeAPI:
             >>> api.get_program_trade_hourly_trend("005930")
         """
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/program-trade-by-stock",
+            endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK'],
             tr_id="FHPPG04650101", # 종목별프로그램매매추이(체결)
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
@@ -107,7 +107,7 @@ class ProgramTradeAPI:
             >>> api.get_program_trade_daily_summary("005930", "20240726")
         """
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily",
+            endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK_DAILY'],
             tr_id="FHPPG04650200", # 종목별 프로그램매매추이(일별)
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
@@ -133,7 +133,7 @@ class ProgramTradeAPI:
             >>> api.get_program_trade_period_detail("20240701", "20240726")
         """
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",
+            endpoint=API_ENDPOINTS['PROGRAM_TRADE_PERIOD'],
             tr_id="FHPPG04600000", # 프로그램매매종합추이(기간)
             params={
                 "FID_MRKT_CLS_CODE": "", # 시장 분류 코드 (전체는 공백)

@@ -4,9 +4,6 @@
 import pytest
 import os
 from pykis import Agent
-from pykis.stock import market
-from pykis.core.client import KISClient
-from pykis.stock.condition import ConditionAPI
 
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
@@ -14,18 +11,17 @@ if not os.getenv('RUN_LIVE_TESTS'):
 def test_condition_stocks():
     """조건검색식 종목 조회 테스트"""
     print("\n[조건검색식 종목 조회 테스트]")
-    client = KISClient(verbose=True)
-    condition = ConditionAPI(client)
+    agent = Agent()
     
     # 조건검색식 목록 조회
-    conditions = condition.get_condition_list()
+    conditions = agent.get_condition_list()
     assert conditions is not None, "조건검색식 목록 조회 실패"
     print("조건검색식 목록:", conditions)
     
     if conditions and len(conditions) > 0:
         # 첫 번째 조건검색식으로 종목 조회
         first_condition = conditions[0]
-        stocks = condition.get_condition_stocks(first_condition["condition_name"])
+        stocks = agent.get_condition_stocks(first_condition["condition_name"])
         assert stocks is not None, "조건검색식 종목 조회 실패"
         print(f"\n{first_condition['condition_name']} 조건검색식 종목:")
         print(stocks) 

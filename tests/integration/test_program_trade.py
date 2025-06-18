@@ -9,8 +9,7 @@
 
 의존성:
 - unittest: 테스트 프레임워크
-- program.trade: 테스트 대상
-- core.config: 설정 관리
+- pykis.Agent: 테스트 대상
 
 사용 예시:
     >>> python -m unittest tests/integration/test_program_trade.py
@@ -25,9 +24,7 @@ import pytest
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
-from program.trade import ProgramTradeAPI
-from core.client import KISClient
-from core.config import KISConfig
+from pykis import Agent
 
 class TestProgramTrade(unittest.TestCase):
     """
@@ -56,21 +53,15 @@ class TestProgramTrade(unittest.TestCase):
         if missing_vars:
             raise ValueError(f"필수 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
 
-        # API 클라이언트 초기화
-        config = KISConfig()
-        account_info = {
-            "CANO": config.account_stock,
-            "ACNT_PRDT_CD": config.account_product
-        }
-        client = KISClient(config)
-        cls.api = ProgramTradeAPI(client, account_info)
+        # Agent 인스턴스 생성 (Agent 중심 설계)
+        cls.agent = Agent()
 
     def test_get_hourly_trade(self):
         """
         시간별 프로그램 매매 조회 API를 테스트합니다.
         """
         # 삼성전자 시간별 프로그램 매매 조회
-        hourly_data = self.api.get_hourly_trade('005930')
+        hourly_data = self.agent.get_program_trade_hourly_trend('005930')
         
         # 응답 검증
         self.assertIsNotNone(hourly_data)
@@ -85,7 +76,7 @@ class TestProgramTrade(unittest.TestCase):
         일별 프로그램 매매 조회 API를 테스트합니다.
         """
         # 삼성전자 일별 프로그램 매매 조회
-        daily_data = self.api.get_daily_trade('005930')
+        daily_data = self.agent.get_program_trade_daily_summary('005930', '20250516')
         
         # 응답 검증
         self.assertIsNotNone(daily_data)
@@ -100,7 +91,7 @@ class TestProgramTrade(unittest.TestCase):
         프로그램 매매 분석 API를 테스트합니다.
         """
         # 삼성전자 프로그램 매매 분석
-        summary = self.api.get_program_trade_summary('005930')
+        summary = self.agent.get_program_trade_summary('005930')
         
         # 응답 검증
         self.assertIsNotNone(summary)
@@ -119,8 +110,7 @@ class TestProgramTrade(unittest.TestCase):
         start_date = end_date - timedelta(days=7)
 
         # 삼성전자 기간별 프로그램 매매 조회
-        period_data = self.api.get_program_trade_period(
-            '005930',
+        period_data = self.agent.get_program_trade_period_detail(
             start_date.strftime('%Y%m%d'),
             end_date.strftime('%Y%m%d')
         )
@@ -139,7 +129,7 @@ class TestProgramTrade(unittest.TestCase):
         """
         # 잘못된 종목코드로 프로그램 매매 조회
         with self.assertRaises(Exception):
-            self.api.get_hourly_trade('000000')
+            self.agent.get_program_trade_hourly_trend('000000')
 
 if __name__ == '__main__':
     unittest.main() 

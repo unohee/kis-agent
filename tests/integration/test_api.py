@@ -9,8 +9,7 @@ API 통합 테스트 모듈입니다.
 
 의존성:
 - unittest: 테스트 프레임워크
-- pykis.core.agent: 테스트 대상
-- core.config: 설정 관리
+- pykis.Agent: 테스트 대상
 
 사용 예시:
     >>> python -m unittest tests/integration/test_api.py
@@ -24,8 +23,7 @@ import pytest
 if not os.getenv('RUN_LIVE_TESTS'):
     pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
 
-from pykis.core.agent import Agent
-from core.config import KISConfig
+from pykis import Agent
 
 class TestKISAPI(unittest.TestCase):
     """
@@ -54,13 +52,8 @@ class TestKISAPI(unittest.TestCase):
         if missing_vars:
             raise ValueError(f"필수 환경 변수가 설정되지 않았습니다: {', '.join(missing_vars)}")
 
-        # API 클라이언트 초기화
-        config = KISConfig()
-        account_info = {
-            "CANO": config.account_stock,
-            "ACNT_PRDT_CD": config.account_product
-        }
-        cls.agent = Agent(account_info=account_info)
+        # Agent 인스턴스 생성 (Agent 중심 설계)
+        cls.agent = Agent()
 
     def test_get_stock_price(self):
         """

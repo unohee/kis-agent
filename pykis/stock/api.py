@@ -27,8 +27,7 @@ price = stock.get_stock_price("005930")
 from typing import Optional, Dict, Any, List
 import pandas as pd
 import logging
-from ..core.client import KISClient
-from ..core.client import API_ENDPOINTS
+from ..core.client import KISClient, API_ENDPOINTS
 
 class StockAPI:
     def __init__(self, client: KISClient, account_info: Dict[str, str]):
@@ -49,55 +48,82 @@ class StockAPI:
         return None
 
     def get_stock_price(self, code: str) -> Optional[Dict[str, Any]]:
+        """주식 현재가 조회"""
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-price",
+            endpoint=API_ENDPOINTS['STOCK_PRICE'],
             tr_id="FHKST01010100",
-            params={"fid_cond_mrkt_div_code": "J", "fid_input_iscd": code}
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
         )
 
-    def get_daily_price(self, code: str) -> Optional[pd.DataFrame]:
-        response = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
+    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[Dict]:
+        """
+        일별 시세 조회 (Postman 검증된 방식)
+        
+        Args:
+            code: 종목코드 (6자리)
+            period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
+            org_adj_prc: 수정주가구분 (0: 수정주가 미사용, 1: 수정주가 사용)
+        """
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['STOCK_DAILY'],
             tr_id="FHKST01010400",
             params={
-                "fid_cond_mrkt_div_code": 'J',
-                "fid_input_iscd": code,
-                "fid_period_div_code": 'D',
-                "fid_org_adj_prc": '1'
-            }
-        )
-        if response and response.get('rt_cd') == '0':
-            return pd.DataFrame(response.get('output', []))
-        return None
-
-    def get_minute_chart(self, code: str, time: str) -> Optional[Dict[str, Any]]:
-        return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
-            tr_id="FHKST03010200",
-            params={
-                "fid_etc_cls_code": "",
                 "fid_cond_mrkt_div_code": "J",
                 "fid_input_iscd": code,
-                "fid_input_hour_1": time,
-                "fid_pw_data_incu_yn": "N"
+                "fid_period_div_code": period,
+                "fid_org_adj_prc": org_adj_prc
             }
         )
 
-    def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[pd.DataFrame]:
-        """주식 회원사 정보 조회"""
-        params = {
-            "FID_COND_MRKT_DIV_CODE": "J",
-            "FID_INPUT_ISCD": ticker
-        }
-        response = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-member",
-            tr_id="FHKST01010600",
-            params=params,
-            retries=retries
+    def get_minute_chart(self, code: str, time: str) -> Optional[Dict[str, Any]]:
+        """분봉 차트 조회"""
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['MINUTE_CHART'],
+            tr_id="FHKST03010200",
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code, "FID_INPUT_HOUR_1": time}
         )
-        if response and response.get('rt_cd') == '0':
-            output = response.get('output', [])
-            return pd.DataFrame([output]) if isinstance(output, dict) else pd.DataFrame(output)
+
+    def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[Dict]:
+        """
+        주식 회원사 정보 조회 (Postman 검증된 방식)
+        
+        Args:
+            ticker: 종목코드 (6자리)
+            retries: 재시도 횟수
+        """
+        for attempt in range(retries):
+            try:
+                response = self.client.make_request(
+                    endpoint=API_ENDPOINTS['STOCK_MEMBER'],
+                    tr_id="FHKST01010600",
+                    params={
+                        "FID_COND_MRKT_DIV_CODE": "J",
+                        "FID_INPUT_ISCD": ticker
+                    }
+                )
+                
+                if response and response.get('rt_cd') == '0':
+                    return response
+                elif response and response.get('rt_cd') != '0':
+                    logging.warning(f"주식 회원사 조회 실패 (시도 {attempt+1}/{retries}): {response.get('msg1', '알 수 없는 오류')}")
+                    if attempt < retries - 1:
+                        continue
+                    else:
+                        return response
+                else:
+                    logging.error(f"주식 회원사 조회 응답 없음 (시도 {attempt+1}/{retries})")
+                    if attempt < retries - 1:
+                        continue
+                    else:
+                        return None
+                        
+            except Exception as e:
+                logging.error(f"주식 회원사 조회 예외 발생 (시도 {attempt+1}/{retries}): {e}")
+                if attempt < retries - 1:
+                    continue
+                else:
+                    return None
+        
         return None
     
     def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[pd.DataFrame]:
@@ -225,7 +251,7 @@ class StockAPI:
             "CTX_AREA_NK100": ""
         }
         res = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",
+            endpoint=API_ENDPOINTS['ACCOUNT_BALANCE'],
             tr_id="TTTC8434R",
             params=params,
             retries=5
@@ -253,7 +279,7 @@ class StockAPI:
         }
         # print("[DEBUG][잔고조회 요청 파라미터]", params)  # 요청 파라미터 출력
         res = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",
+            endpoint=API_ENDPOINTS['ACCOUNT_BALANCE'],
             tr_id="TTTC8434R",
             params=params,
             retries=3
@@ -265,7 +291,7 @@ class StockAPI:
 
     def get_possible_order(self, code: str, price: str, order_type: str = "01") -> Optional[Dict[str, Any]]:
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
+            endpoint=API_ENDPOINTS['POSSIBLE_ORDER'],
             tr_id="TTTC8908R",
             params={
                 "CANO": self.account['CANO'],
@@ -280,7 +306,7 @@ class StockAPI:
 
     def order_stock_cash(self, code: str, price: str, quantity: str, order_type: str = "01") -> Optional[Dict[str, Any]]:
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/trading/order-cash",
+            endpoint=API_ENDPOINTS['ORDER_CASH'],
             tr_id="TTTC0802U",
             params={
                 "CANO": self.account['CANO'],
@@ -295,7 +321,7 @@ class StockAPI:
 
     def get_overtime(self, code: str) -> Optional[Dict[str, Any]]:
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-overtimeprice",
+            endpoint=API_ENDPOINTS['OVERTIME'],
             tr_id="FHKST663400C0",
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
@@ -307,29 +333,45 @@ class StockAPI:
     def inquire_ccnl(self, code: str) -> Optional[Dict[str, Any]]:
         """주식 체결 조회"""
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-ccnl",
+            endpoint=API_ENDPOINTS['CCNL'],
             tr_id="FHKST01010300",
             params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
         )
 
     def get_volume_power(self, volume: int = 0) -> Optional[Dict[str, Any]]:
-        """체결강도 순위 조회"""
-        params = {
-            "fid_cond_mrkt_div_code": "J",
-            "fid_cond_scr_div_code": "20168",
-            "fid_input_iscd": "0000",
-            "fid_div_cls_code": "0",
-            "fid_input_price_1": "",
-            "fid_input_price_2": "",
-            "fid_vol_cnt": str(volume),
-            "fid_trgt_cls_code": "0",
-            "fid_trgt_exls_cls_code": "0"
-        }
-        return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/ranking/volume-power",
-            tr_id="FHPST01680000",
-            params=params
-        )
+        """
+        체결강도 순위 조회
+        
+        Args:
+            volume (int): 거래량 기준 (기본값: 0)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 체결강도 순위 정보
+        """
+        try:
+            params = {
+                "FID_RSFL_RATE1": "",
+                "FID_RSFL_RATE2": "",
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_SCR_DIV_CODE": "20170",
+                "FID_INPUT_ISCD": "0000",
+                "FID_DIV_CLS_CODE": "0",
+                "FID_BLNG_CLS_CODE": "0",
+                "FID_TRGT_CLS_CODE": "111111111",
+                "FID_TRGT_EXLS_CLS_CODE": "000000",
+                "FID_INPUT_PRICE_1": "",
+                "FID_INPUT_PRICE_2": "",
+                "FID_VOL_CNT": str(volume)
+            }
+            
+            return self.client.make_request(
+                endpoint=API_ENDPOINTS['STOCK_FLUCTUATION'],
+                tr_id="FHPST01710000",
+                params=params
+            )
+        except Exception as e:
+            logging.error(f"체결강도 순위 조회 실패: {e}")
+            return None
 
     def get_market_fluctuation(self) -> Optional[Dict[str, Any]]:
         """등락률 순위 조회"""
@@ -350,7 +392,7 @@ class StockAPI:
             "FID_RSFL_RATE2": ""
         }
         response = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/ranking/fluctuation",
+            endpoint=API_ENDPOINTS['MARKET_FLUCTUATION'],
             tr_id="FHPST01700000",
             params=params
         )
@@ -372,7 +414,7 @@ class StockAPI:
             "FID_INPUT_DATE_1": ""
         }
         response = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/volume-rank",
+            endpoint=API_ENDPOINTS['MARKET_RANKINGS'],
             tr_id="FHPST01710000",
             params=params
         )
@@ -381,7 +423,7 @@ class StockAPI:
     def get_stock_info(self, ticker: str) -> Optional[pd.DataFrame]:
         """주식 기본 정보 조회"""
         response = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/search-stock-info",
+            endpoint=API_ENDPOINTS['STOCK_INFO'],
             tr_id="CTPF1002R",
             params={"PRDT_TYPE_CD": "300", "PDNO": ticker}
         )
@@ -404,7 +446,7 @@ class StockAPI:
             "fid_sctn_cls_code": ""
         }
         return self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/quotations/inquire-member-daily",
+            endpoint=API_ENDPOINTS['MEMBER_TRANSACTION'],
             tr_id="FHPST04540000",
             params=params
         )
@@ -520,8 +562,8 @@ class StockAPI:
         """거래원 조회"""
         try:
             return self.client.make_request(
-                endpoint="/uapi/domestic-stock/v1/quotations/inquire-member",
-                tr_id="FHKST03010000",
+                endpoint=API_ENDPOINTS['STOCK_MEMBER'],
+                tr_id="FHKST01010600",
                 params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
             )
         except Exception as e:
@@ -543,7 +585,7 @@ class StockAPI:
         """
         try:
             response = self.client.make_request(
-                endpoint="/uapi/domestic-stock/v1/quotations/inquire-price",
+                endpoint=API_ENDPOINTS['STOCK_PRICE'],
                 tr_id="FHKST01010100",
                 params={
                     "FID_COND_MRKT_DIV_CODE": "J",
@@ -563,33 +605,28 @@ class StockAPI:
             logging.error(f"매물대 거래비중 조회 실패: {e}")
             return None
 
-    def get_minute_price(self, code: str) -> Optional[Dict]:
-        """분봉 시세 조회"""
+    def get_minute_price(self, code: str, hour: str = "153000") -> Optional[Dict]:
+        """
+        주식당일분봉조회 (Postman 검증된 방식)
+        
+        Args:
+            code: 종목코드 (6자리)
+            hour: 시간 (HHMMSS 형식, 기본값: 153000)
+        """
         try:
             return self.client.make_request(
-                endpoint="/uapi/domestic-stock/v1/quotations/inquire-minute-price",
+                endpoint=API_ENDPOINTS['MINUTE_PRICE'],
                 tr_id="FHKST03010200",
-                params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
-            )
-        except Exception as e:
-            logging.error(f"분봉 시세 조회 실패: {e}")
-            return None
-
-    def get_daily_price(self, code: str, start_date: str, end_date: str) -> Optional[Dict]:
-        """일별 시세 조회"""
-        try:
-            return self.client.make_request(
-                endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
-                tr_id="FHKST03010100",
                 params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
-                    "FID_INPUT_ISCD": code,
-                    "FID_INPUT_DATE_1": start_date,
-                    "FID_INPUT_DATE_2": end_date
+                    "FID_ETC_CLS_CODE": "",  # 기타분류코드 (빈값)
+                    "FID_COND_MRKT_DIV_CODE": "J",  # 시장구분코드(J: 주식)
+                    "FID_INPUT_ISCD": code,  # 종목코드
+                    "FID_INPUT_HOUR_1": hour,  # 시간 (HHMMSS)
+                    "FID_PW_DATA_INCU_YN": "Y"  # 시간외데이터포함여부(Y: 포함)
                 }
             )
         except Exception as e:
-            logging.error(f"일별 시세 조회 실패: {e}")
+            logging.error(f"주식당일분봉조회 실패: {e}")
             return None
 
 def load_account_info(yaml_path: str = "credit/kis_devlp.yaml") -> dict:

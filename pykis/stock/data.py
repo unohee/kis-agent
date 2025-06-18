@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from ..core.client import KISClient, API_ENDPOINTS
 import pandas as pd
+from datetime import datetime, timedelta
 
 """
 stock.py - 주식 관련 API 모듈
@@ -39,15 +40,19 @@ class StockData:
             logging.error(f"주식 시세 조회 실패: {e}")
             return None
 
-    def get_daily_price(self, code: str) -> Optional[pd.DataFrame]:
+    def get_daily_price(self, code: str, start_date: str = None, end_date: str = None) -> Optional[pd.DataFrame]:
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+        if end_date is None:
+            end_date = datetime.now().strftime('%Y%m%d')
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
             tr_id="FHKST01010400",
             params={
                 "FID_COND_MRKT_DIV_CODE": 'J',
                 "FID_INPUT_ISCD": code,
-                "FID_PERIOD_DIV_CODE": 'D',
-                "FID_ORG_ADJ_PRC": '0'
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date
             }
         )
         if response and response.get('rt_cd') == '0':
@@ -340,15 +345,19 @@ class StockAPI:
             logging.error(f"주문 내역 조회 실패: {e}")
             return None
 
-    def get_daily_price(self, code: str) -> Optional[pd.DataFrame]:
+    def get_daily_price(self, code: str, start_date: str = None, end_date: str = None) -> Optional[pd.DataFrame]:
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+        if end_date is None:
+            end_date = datetime.now().strftime('%Y%m%d')
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
             tr_id="FHKST01010400",
             params={
                 "FID_COND_MRKT_DIV_CODE": 'J',
                 "FID_INPUT_ISCD": code,
-                "FID_PERIOD_DIV_CODE": 'D',
-                "FID_ORG_ADJ_PRC": '0'
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date
             }
         )
         if response and response.get('rt_cd') == '0':

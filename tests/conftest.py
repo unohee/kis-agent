@@ -5,7 +5,6 @@ import os
 import sys
 import pytest
 from pykis import Agent
-from pykis.core import auth
 
 # src 디렉토리를 파이썬 경로에 추가하여 패키지를 임포트합니다.
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

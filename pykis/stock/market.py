@@ -88,27 +88,29 @@ class StockAPI:
             }
         )
 
-    def get_daily_price(self, code: str) -> Optional[Dict]:
+    def get_daily_price(self, code: str, start_date: str = None, end_date: str = None) -> Optional[Dict]:
         """
         주식 일별 시세를 조회합니다.
-
         Args:
             code (str): 종목 코드
-
+            start_date (str, optional): 조회 시작일(YYYYMMDD). 기본값: 최근 30일 전
+            end_date (str, optional): 조회 종료일(YYYYMMDD). 기본값: 오늘
         Returns:
             Optional[Dict]: 일별 시세 정보
-
-        Example:
-            >>> daily = market.get_daily_price("005930")
         """
+        from datetime import datetime, timedelta
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+        if end_date is None:
+            end_date = datetime.now().strftime('%Y%m%d')
         return self.client.make_request(
             endpoint=API_ENDPOINTS['STOCK_DAILY'],
-            tr_id="FHKST03010100",
+            tr_id="FHKST01010400",
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code,
-                "FID_PERIOD_DIV_CODE": "D",
-                "FID_ORG_ADJ_PRC": "1"
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date
             }
         )
 
@@ -981,9 +983,9 @@ class StockAPI:
             }
         )
 
-    def get_minute_price(self, code: str) -> Optional[Dict]:
+    def fetch_minute_data(self, code: str) -> Optional[Dict]:
         """
-        분봉 시세 정보를 조회합니다.
+        분봉 시세를 조회합니다.
 
         Args:
             code (str): 종목 코드
@@ -992,16 +994,95 @@ class StockAPI:
             Optional[Dict]: 분봉 시세 정보
 
         Example:
-            >>> price = market.get_minute_price("005930")
+            >>> minute_data = market.fetch_minute_data("005930")
         """
         return self.client.make_request(
-            endpoint=API_ENDPOINTS['MINUTE_PRICE'],
-            tr_id="FHKST01011000",
+            endpoint=API_ENDPOINTS['STOCK_MINUTE'],
+            tr_id="FHKST03010200",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_INPUT_HOUR_1": "0900",
+                "FID_PW_DATA_INCU_YN": "N"
+            }
+        )
+
+    def get_program_trade_hourly_trend(self, code: str) -> Optional[Dict]:
+        """
+        시간별 프로그램 매매 추이를 조회합니다.
+
+        Args:
+            code (str): 종목 코드
+
+        Returns:
+            Optional[Dict]: 시간별 프로그램 매매 추이 정보
+
+        Example:
+            >>> trend = market.get_program_trade_hourly_trend("005930")
+        """
+        return self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/program-trade-by-stock",
+            tr_id="FHPPG04650101",
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code
             }
         )
+
+    def get_pgm_trade(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict]:
+        """
+        프로그램 매매 정보를 조회합니다.
+
+        Args:
+            code (str): 종목 코드
+            ref_date (Optional[str]): 기준일자 (YYYYMMDD)
+
+        Returns:
+            Optional[Dict]: 프로그램 매매 정보
+
+        Example:
+            >>> pgm_trade = market.get_pgm_trade("005930")
+        """
+        if ref_date is None:
+            from datetime import datetime
+            ref_date = datetime.now().strftime("%Y%m%d")
+
+        response = self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/program-trade-by-stock",
+            tr_id="FHPPG04650100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_INPUT_DATE_1": ref_date
+            }
+        )
+
+        if not response or 'output' not in response:
+            return None
+
+        return response
+
+    def is_holiday(self, date: str) -> bool:
+        """
+        휴장일 여부를 확인합니다.
+
+        Args:
+            date (str): 확인할 날짜 (YYYYMMDD)
+
+        Returns:
+            bool: 휴장일 여부
+
+        Example:
+            >>> is_holiday = market.is_holiday("20240615")
+        """
+        try:
+            holiday_info = self.get_holiday_info()
+            if not holiday_info or 'output' not in holiday_info:
+                return False
+            return date in holiday_info['output']
+        except Exception as e:
+            logging.error(f"휴장일 확인 중 오류 발생: {e}")
+            return False
 
 def load_account_info(yaml_path: str = "credit/kis_devlp.yaml") -> dict:
     import yaml
@@ -1082,7 +1163,10 @@ if __name__ == "__main__":
         test_and_log("get_market_rankings", lambda: stock.get_market_rankings())
         test_and_log("get_member_transaction", lambda: stock.get_member_transaction(test_code, "99999"))
         test_and_log("get_expected_closing_price", lambda: stock.get_expected_closing_price(test_code))
-        test_and_log("get_minute_price", lambda: stock.get_minute_price(test_code))
+        test_and_log("fetch_minute_data", lambda: stock.fetch_minute_data(test_code))
+        test_and_log("get_program_trade_hourly_trend", lambda: stock.get_program_trade_hourly_trend(test_code))
+        test_and_log("get_pgm_trade", lambda: stock.get_pgm_trade(test_code))
+        test_and_log("is_holiday", lambda: stock.is_holiday("20240615"))
         print("\n📊 테스트 요약")
         for name, success, error in results:
             flag = "✅" if success else "❌"

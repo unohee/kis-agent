@@ -8,7 +8,6 @@ import os
 import logging
 import pytest
 from pykis import Agent
-from pykis.stock import market
 
 # 로깅 설정
 logging.basicConfig(

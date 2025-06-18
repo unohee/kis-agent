@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 import requests
 
-from .auth import auth
+from .auth import auth, getTREnv
 from .config import KISConfig
 
 # 로깅 설정
@@ -19,57 +19,77 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 API_ENDPOINTS = {
-    # 기존 엔드포인트
+    # === 주식 기본 API ===
     'STOCK_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-price',
     'STOCK_DAILY': '/uapi/domestic-stock/v1/quotations/inquire-daily-price',
     'STOCK_MINUTE': '/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice',
     'STOCK_MEMBER': '/uapi/domestic-stock/v1/quotations/inquire-member',
     'STOCK_INVESTOR': '/uapi/domestic-stock/v1/quotations/inquire-investor',
-    'PBAR_TRATIO': '/uapi/domestic-stock/v1/quotations/inquire-price-by-time',
-    'ORDERBOOK': '/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn',
+    'STOCK_INFO': '/uapi/domestic-stock/v1/quotations/search-stock-info',
+    'STOCK_BASIC': '/uapi/domestic-stock/v1/quotations/inquire-basic-info',
+    
+    # === 프로그램매매 API ===
+    'PROGRAM_TRADE_BY_STOCK_DAILY': '/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily',  # 종목별 프로그램매매추이(일별)
+    'PROGRAM_TRADE_BY_STOCK': '/uapi/domestic-stock/v1/quotations/program-trade-by-stock',  # 종목별 프로그램매매추이(체결)
+    'PROGRAM_TRADE_SUMMARY': '/uapi/domestic-stock/v1/quotations/inquire-program-trade',  # 프로그램매매 요약
+    'PROGRAM_TRADE_PERIOD': '/uapi/domestic-stock/v1/quotations/comp-program-trade-daily',  # 프로그램매매종합추이(기간)
+    'NET_BUY_VOLUME': '/uapi/domestic-stock/v1/quotations/inquire-net-buy-volume',  # 순매수량
+    
+    # === 거래/주문 API ===
     'ACCOUNT_BALANCE': '/uapi/domestic-stock/v1/trading/inquire-balance',
     'POSSIBLE_ORDER': '/uapi/domestic-stock/v1/trading/inquire-psbl-order',
     'ORDER_CASH': '/uapi/domestic-stock/v1/trading/order-cash',
+    'MEMBER_TRANSACTION': '/uapi/domestic-stock/v1/quotations/inquire-member-daily',
+    
+    # === 기타 시세 API ===
+    'PBAR_TRATIO': '/uapi/domestic-stock/v1/quotations/inquire-price-by-time',
+    'ORDERBOOK': '/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn',
     'OVERTIME': '/uapi/domestic-stock/v1/quotations/inquire-daily-overtimeprice',
     'CCNL': '/uapi/domestic-stock/v1/quotations/inquire-ccnl',
-    'VOLUME_POWER': '/uapi/domestic-stock/v1/quotations/volume-rank',
+    'MINUTE_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-minute-price',
+    'TIME_CONCLUSION': '/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion',
+    'OVERTIME_CONCLUSION': '/uapi/domestic-stock/v1/quotations/inquire-time-overtimeconclusion',
+    'DAILY_CHART': '/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice',
+    'INDEX_CHART': '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',
+    'EXPECTED_CLOSING_PRICE': '/uapi/domestic-stock/v1/quotations/exp-closing-price',
+    
+    # === 시장 정보 API ===
     'MARKET_FLUCTUATION': '/uapi/domestic-stock/v1/quotations/inquire-market-index',
     'MARKET_RANKINGS': '/uapi/domestic-stock/v1/quotations/volume-rank',
-    'STOCK_INFO': '/uapi/domestic-stock/v1/quotations/search-stock-info',
-    'MEMBER_TRANSACTION': '/uapi/domestic-stock/v1/quotations/inquire-member-daily',
+    'VOLUME_RANK': '/uapi/domestic-stock/v1/quotations/inquire-volume-rank',
+    'PRICE_RANK': '/uapi/domestic-stock/v1/quotations/inquire-price-rank',
+    'PROFIT_RANK': '/uapi/domestic-stock/v1/quotations/inquire-profit-rank',
+    'MARKET_MONEY': '/uapi/domestic-stock/v1/quotations/inquire-market-money',
+    
+    # === 투자자별 API ===
+    'DOMESTIC_INVESTOR': '/uapi/domestic-stock/v1/quotations/inquire-domestic-investor',
+    'FOREIGN_INVESTOR': '/uapi/domestic-stock/v1/quotations/inquire-foreign-investor',
+    'FOREIGN_TRADE': '/uapi/domestic-stock/v1/quotations/inquire-foreign-trade',
+    'FOREIGN_NET_BUY': '/uapi/domestic-stock/v1/quotations/inquire-foreign-net-buy',
+    
+    # === 재무 정보 API ===
+    'STOCK_INCOME': '/uapi/domestic-stock/v1/quotations/inquire-income-statement',
+    'STOCK_FINANCIAL': '/uapi/domestic-stock/v1/quotations/inquire-financial-ratio',
+    'STOCK_STABILITY': '/uapi/domestic-stock/v1/quotations/inquire-stability-ratio',
+    'STOCK_GROWTH': '/uapi/domestic-stock/v1/quotations/inquire-growth-ratio',
+    'STOCK_ESTIMATE': '/uapi/domestic-stock/v1/quotations/inquire-estimate',
+    'STOCK_BROKER_OPINION': '/uapi/domestic-stock/v1/quotations/inquire-broker-opinion',
+    'STOCK_OPINION': '/uapi/domestic-stock/v1/quotations/inquire-stock-opinion',
+    
+    # === 기타 ===
     'HOLIDAY_CHECK': '/uapi/domestic-stock/v1/quotations/chk-holiday',
+    'HOLIDAY_INFO': '/uapi/domestic-stock/v1/quotations/chk-holiday',
     'CONDITIONED_STOCK': '/uapi/domestic-stock/v1/quotations/psearch-result',
-
-    # 새로운 엔드포인트
-    'HOLIDAY_INFO': '/uapi/domestic-stock/v1/quotations/chk-holiday',  # 국내휴장일조회
-    'STOCK_BASIC': '/uapi/domestic-stock/v1/quotations/inquire-basic-info',  # 상품기본조회
-    'STOCK_INCOME': '/uapi/domestic-stock/v1/quotations/inquire-income-statement',  # 손익계산서
-    'STOCK_FINANCIAL': '/uapi/domestic-stock/v1/quotations/inquire-financial-ratio',  # 재무비율
-    'STOCK_STABILITY': '/uapi/domestic-stock/v1/quotations/inquire-stability-ratio',  # 안정성비율
-    'STOCK_GROWTH': '/uapi/domestic-stock/v1/quotations/inquire-growth-ratio',  # 성장성비율
-    'STOCK_ESTIMATE': '/uapi/domestic-stock/v1/quotations/inquire-estimate',  # 종목추정실적
-    'STOCK_BROKER_OPINION': '/uapi/domestic-stock/v1/quotations/inquire-broker-opinion',  # 증권사별 투자의견
-    'STOCK_OPINION': '/uapi/domestic-stock/v1/quotations/inquire-stock-opinion',  # 종목투자의견
-    'DOMESTIC_INVESTOR': '/uapi/domestic-stock/v1/quotations/inquire-domestic-investor',  # 국내기관/외국인 매매종목가집계
-    'FOREIGN_INVESTOR': '/uapi/domestic-stock/v1/quotations/inquire-foreign-investor',  # 종목별 외인기관 추정가집계
-    'FOREIGN_TRADE': '/uapi/domestic-stock/v1/quotations/inquire-foreign-trade',  # 외국계 매매종목 가집계
-    'FOREIGN_NET_BUY': '/uapi/domestic-stock/v1/quotations/inquire-foreign-net-buy',  # 종목별 외국계 순매수추이
-    'MARKET_MONEY': '/uapi/domestic-stock/v1/quotations/inquire-market-money',  # 국내 증시자금 종합
-    'VOLUME_RANK': '/uapi/domestic-stock/v1/quotations/inquire-volume-rank',  # 거래량순위
-    'PRICE_RANK': '/uapi/domestic-stock/v1/quotations/inquire-price-rank',  # 등락률 순위
-    'PROFIT_RANK': '/uapi/domestic-stock/v1/quotations/inquire-profit-rank',  # 수익자산지표 순위
-    'OVERSEAS_PRICE': '/uapi/overseas-price/v1/quotations/inquire-price',  # 해외주식 기간별시세
-    'OVERSEAS_PRICE_DETAIL': '/uapi/overseas-price/v1/quotations/inquire-price-detail',  # 해외주식 종목/지수/환율기간별시세
-    'OVERSEAS_NEWS': '/uapi/overseas-price/v1/quotations/inquire-news',  # 해외뉴스종합
-    'OVERSEAS_RIGHT': '/uapi/overseas-price/v1/quotations/inquire-right',  # 해외주식 권리종합
-    'BOND_PRICE': '/uapi/domestic-bond/v1/quotations/inquire-price',  # 장내채권 기간별시세
-    'STOCK_PRICE_2': '/uapi/domestic-stock/v1/quotations/inquire-price-2',  # 종목 상세 정보
-    'TIME_CONCLUSION': '/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion',  # 시간별 체결
-    'OVERTIME_CONCLUSION': '/uapi/domestic-stock/v1/quotations/inquire-time-overtimeconclusion',  # 시간외 체결
-    'DAILY_CHART': '/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice',  # 일별 차트
-    'INDEX_CHART': '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',  # 지수 차트
-    'EXPECTED_CLOSING_PRICE': '/uapi/domestic-stock/v1/quotations/exp-closing-price',  # 예상 종가
-    'MINUTE_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-minute-price',  # 분봉 시세
+    'STOCK_PRICE_2': '/uapi/domestic-stock/v1/quotations/inquire-price-2',
+    
+    # === 해외 API ===
+    'OVERSEAS_PRICE': '/uapi/overseas-price/v1/quotations/inquire-price',
+    'OVERSEAS_PRICE_DETAIL': '/uapi/overseas-price/v1/quotations/inquire-price-detail',
+    'OVERSEAS_NEWS': '/uapi/overseas-price/v1/quotations/inquire-news',
+    'OVERSEAS_RIGHT': '/uapi/overseas-price/v1/quotations/inquire-right',
+    
+    # === 채권 API ===
+    'BOND_PRICE': '/uapi/domestic-bond/v1/quotations/inquire-price',
 }
 
 _shared_rate_limit_lock = threading.Lock()
@@ -119,10 +139,14 @@ class KISClient:
 
         try:
             if self.config is None:
+                # config가 없으면 환경 변수로 토큰 발급
                 token_data = auth(svr=svr)
                 self.token = token_data['access_token'] if token_data else None
                 self.base_url = os.getenv('KIS_BASE_URL', 'https://openapi.koreainvestment.com:9443')
             else:
+                # config가 있으면 config로 토큰 발급
+                token_data = auth(config=self.config, svr=svr)
+                self.token = token_data['access_token'] if token_data else None
                 self.base_url = self.config.BASE_URL
         except Exception as e:
             logger.error(f"인증 실패: {e}", exc_info=True)
@@ -185,11 +209,13 @@ class KISClient:
         """
         url = f"{self.base_url}{endpoint}"
         
+        # getTREnv()를 사용하여 올바른 헤더 설정
+        env = getTREnv()
         headers = headers or {}
-        headers["authorization"] = f"Bearer {self.token}"
+        headers["authorization"] = env.my_token
         headers["content-type"] = "application/json"
-        headers["appkey"] = self.config.APP_KEY if self.config else os.getenv('KIS_APP_KEY', '')
-        headers["appsecret"] = self.config.APP_SECRET if self.config else os.getenv('KIS_APP_SECRET', '')
+        headers["appkey"] = env.my_app
+        headers["appsecret"] = env.my_sec
         headers["tr_id"] = tr_id
         
         if self.verbose:

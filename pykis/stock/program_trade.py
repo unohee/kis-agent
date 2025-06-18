@@ -133,6 +133,28 @@ class ProgramTradeAPI:
             'program_day_buy_ratio': round(buy_ratio, 2) if buy_ratio is not None else None
         }
 
+    def get_program_trade_summary(self, code: str) -> Optional[Dict]:
+        """
+        프로그램 매매 요약 정보를 조회합니다.
+
+        Args:
+            code (str): 종목 코드
+
+        Returns:
+            Optional[Dict]: 프로그램 매매 요약 정보
+
+        Example:
+            >>> summary = program.get_program_trade_summary("005930")
+        """
+        return self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/program-trade-by-stock",
+            tr_id="FHPPG04650100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code
+            }
+        )
+
 # 주석 처리된 get_program_trade_summary는 삭제 또는 실제 API 명세에 맞게 재구현 필요
 # class ProgramTradeAPI:
 # ... (기존 get_program_trade_detail -> get_program_trade_period_detail 로 변경)
