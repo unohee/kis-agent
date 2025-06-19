@@ -76,7 +76,7 @@ class Agent:
         self.stock_api = StockAPI(self.client, self.account_info)
         self.program_api = ProgramTradeAPI(self.client, self.account_info)
         self.strategy_api = StrategyTrigger(self.client, self.account_info)
-    
+        
     # ============================================================================
     # 주식 시세 관련 메서드들 (StockAPI 위임)
     # ============================================================================
@@ -110,9 +110,9 @@ class Agent:
         """거래원 조회"""
         return self.stock_api.get_member(code)
     
-    def get_program_trade_summary(self, code: str):
-        """프로그램 매매 요약 조회"""
-        return self.program_api.get_program_trade_summary(code)
+    def get_program_trade_by_stock(self, code: str):
+        """종목별 프로그램매매추이(체결) 조회"""
+        return self.program_api.get_program_trade_by_stock(code)
     
     def get_member_transaction(self, code: str, mem_code: str = "99999"):
         """회원사 매매 정보 조회"""
@@ -384,7 +384,7 @@ class Agent:
                     return df
             except Exception as e:
                 logging.warning(f"DB 조회 실패: {e}")
-        
+
         # API에서 조회
         def fetch_data_for_time(time_str):
             try:
@@ -398,7 +398,7 @@ class Agent:
                         "FID_INPUT_HOUR_1": time_str,
                         "FID_PW_DATA_INCU_YN": "Y"
                     }
-                )
+                        )
                 return response
             except Exception as e:
                 logging.error(f"API 호출 실패 ({time_str}): {e}")

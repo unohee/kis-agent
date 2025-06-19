@@ -231,10 +231,31 @@ class ProgramTradeAPI:
             'program_day_buy_ratio': round(buy_ratio, 2) if buy_ratio is not None else None
         }
 
-    # 기존 인터페이스 호환용 메서드
-    def get_program_trade_summary(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """get_pgm_trade의 기존 명칭을 유지하기 위한 래퍼"""
-        return self.get_pgm_trade(code, ref_date)
+    def get_program_trade_by_stock(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        종목별 프로그램매매추이(체결) 조회
+        
+        Args:
+            code (str): 종목 코드 (예: "005930")
+            ref_date (Optional[str]): 기준 일자 (YYYYMMDD 형식, 기본값: 현재 일자)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 종목별 프로그램매매추이(체결) 정보
+        """
+        if ref_date is None:
+            from datetime import datetime
+            ref_date = datetime.now().strftime("%Y%m%d")
+            
+        # 실제 종목별프로그램매매추이(체결) API 직접 호출
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK'],
+            tr_id="FHPPG04650101",  # 종목별프로그램매매추이(체결) TR ID
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",  # 시장구분코드(J: 주식)
+                "FID_INPUT_ISCD": code,         # 종목코드
+                "FID_INPUT_DATE_1": ref_date    # 기준일
+            }
+        )
 
 # 주석 처리된 get_program_trade_summary는 삭제 또는 실제 API 명세에 맞게 재구현 필요
 # class ProgramTradeAPI:

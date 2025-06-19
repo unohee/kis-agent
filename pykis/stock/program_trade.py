@@ -1,3 +1,15 @@
+"""
+⚠️ DEPRECATED: 이 파일은 더 이상 사용되지 않습니다.
+대신 pykis.program.trade 모듈의 ProgramTradeAPI를 사용하세요.
+
+from pykis.program.trade import ProgramTradeAPI
+"""
+
+# 기존 호환성을 위한 재수출
+from ..program.trade import ProgramTradeAPI
+
+__all__ = ['ProgramTradeAPI']
+
 import logging
 from typing import Dict, List, Optional, Any
 from ..core.client import KISClient, API_ENDPOINTS
@@ -133,22 +145,22 @@ class ProgramTradeAPI:
             'program_day_buy_ratio': round(buy_ratio, 2) if buy_ratio is not None else None
         }
 
-    def get_program_trade_summary(self, code: str) -> Optional[Dict]:
+    def get_program_trade_by_stock(self, code: str) -> Optional[Dict]:
         """
-        프로그램 매매 요약 정보를 조회합니다.
+        종목별 프로그램매매추이(체결) 조회
 
         Args:
             code (str): 종목 코드
 
         Returns:
-            Optional[Dict]: 프로그램 매매 요약 정보
+            Optional[Dict]: 프로그램 매매 추이 정보
 
         Example:
-            >>> summary = program.get_program_trade_summary("005930")
+            >>> summary = program.get_program_trade_by_stock("005930")
         """
         return self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/program-trade-by-stock",
-            tr_id="FHPPG04650100",
+            tr_id="FHPPG04650101",  # 종목별프로그램매매추이(체결) TR ID
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code
