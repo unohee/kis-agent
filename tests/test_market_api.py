@@ -35,32 +35,12 @@ def test_market_api():
         price = agent.get_stock_price(test_code)
         logger.info(f"현재가 조회 결과: {price}")
         
-        # 종목 상세 정보 조회
-        detail = agent.get_stock_price_detail(test_code)
-        logger.info(f"종목 상세 정보 조회 결과: {detail}")
-        
-        # 시간별 체결 정보 조회
-        time_conclusion = agent.get_time_conclusion(test_code)
-        logger.info(f"시간별 체결 정보 조회 결과: {time_conclusion}")
-        
-        # 시간외 체결 정보 조회
-        overtime_conclusion = agent.get_overtime_conclusion(test_code)
-        logger.info(f"시간외 체결 정보 조회 결과: {overtime_conclusion}")
-        
         # 일별 차트 정보 조회
-        daily_chart = agent.get_daily_chart(test_code, "20240101", "20240615")
+        daily_chart = agent.get_daily_price(test_code, "20240101", "20240615")
         logger.info(f"일별 차트 정보 조회 결과: {daily_chart}")
         
-        # 지수 차트 정보 조회 (KOSPI)
-        index_chart = agent.get_index_chart("2001")
-        logger.info(f"지수 차트 정보 조회 결과: {index_chart}")
-
         # 2. 시세분석 관련 API 테스트
         logger.info("\n=== 시세분석 관련 API 테스트 ===")
-        
-        # 거래량 파워 정보 조회
-        # volume_power = agent.get_volume_power(test_code)
-        # logger.info(f"거래량 파워 정보 조회 결과: {volume_power}")
         
         # 시장 변동성 정보 조회
         market_fluctuation = agent.get_market_fluctuation()
@@ -77,10 +57,6 @@ def test_market_api():
         # 3. 순위분석 관련 API 테스트
         logger.info("\n=== 순위분석 관련 API 테스트 ===")
         
-        # 예상 종가 정보 조회
-        expected_price = agent.get_expected_closing_price(test_code)
-        logger.info(f"예상 종가 정보 조회 결과: {expected_price}")
-
         # 4. 기본시세 관련 API 테스트
         logger.info("\n=== 기본시세 관련 API 테스트 ===")
         
@@ -91,7 +67,7 @@ def test_market_api():
         # 5. 기타 정보 조회 API 테스트
         logger.info("\n=== 기타 정보 조회 API 테스트 ===")
         
-        # 휴장일 정보 조회
+        # 휴��일 정보 조회
         holiday_info = agent.get_holiday_info()
         logger.info(f"휴장일 정보 조회 결과: {holiday_info}")
         
@@ -102,22 +78,6 @@ def test_market_api():
         # 투자자별 매매 동향 조회
         investor_info = agent.get_stock_investor(test_code)
         logger.info(f"투자자별 매매 동향 조회 결과: {investor_info}")
-        
-        # 외국인 보유 정보 조회
-        foreign_info = agent.get_foreign_investor(test_code)
-        logger.info(f"외국인 보유 정보 조회 결과: {foreign_info}")
-        
-        # 국내기관/외국인 매매종목 가집계 조회
-        domestic_investor = agent.get_domestic_investor(test_code)
-        logger.info(f"국내기관/외국인 매매종목 가집계 조회 결과: {domestic_investor}")
-        
-        # 외국계 매매종목 가집계 조회
-        foreign_trade = agent.get_foreign_trade(test_code)
-        logger.info(f"외국계 매매종목 가집계 조회 결과: {foreign_trade}")
-        
-        # 종목별 외국계 순매수추이 조회
-        foreign_net_buy = agent.get_foreign_net_buy(test_code)
-        logger.info(f"종목별 외국계 순매수추이 조회 결과: {foreign_net_buy}")
         
         # 국내 증시자금 종합 조회
         market_money = agent.get_market_money()

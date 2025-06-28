@@ -73,6 +73,7 @@ class Agent:
         self.account_api = AccountAPI(self.client, self.account_info)
         self.stock_api = StockAPI(self.client, self.account_info)
         self.program_api = ProgramTradeAPI(self.client, self.account_info)
+        self.market_api = StockMarketAPI(self.client, self.account_info)
         
     # ============================================================================
     # 주식 시세 관련 메서드들 (StockAPI 위임)
@@ -209,34 +210,42 @@ class Agent:
 
     def init_minute_db(self, db_path='stonks_candles.db'):
         """분봉 데이터용 DB 및 테이블 생성 (최초 1회)"""
-        conn = sqlite3.connect(db_path)
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS minute_data (
-                code TEXT,
-                date TEXT,
-                tm TEXT,
-                stck_cntg_hour TEXT,
-                stck_prpr REAL,
-                stck_oprc REAL,
-                stck_hgpr REAL,
-                stck_lwpr REAL,
-                cntg_vol INTEGER,
-                acml_tr_pbmn REAL,
-                PRIMARY KEY (code, date, stck_cntg_hour)
-            )
-        ''')
-        conn.close()
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS minute_data (
+                    code TEXT,
+                    date TEXT,
+                    tm TEXT,
+                    stck_cntg_hour TEXT,
+                    stck_prpr REAL,
+                    stck_oprc REAL,
+                    stck_hgpr REAL,
+                    stck_lwpr REAL,
+                    cntg_vol INTEGER,
+                    acml_tr_pbmn REAL,
+                    stck_bsop_date TEXT,
+                    PRIMARY KEY (code, date, stck_cntg_hour)
+                )
+            ''')
+            conn.close()
+            return True
+        except Exception as e:
+            logging.error(f"분봉 DB 초기화 실패: {e}")
+            return False
 
     def migrate_minute_csv_to_db(self, code, db_path='stonks_candles.db'):
         """기존 csv 분봉 데이터를 DB로 이관 (한 번만)"""
         cache_dir = 'cache'
         csv_file_path = os.path.join(cache_dir, f'{code}_minute_data.csv')
         if not os.path.exists(csv_file_path):
-            return
+            logging.info(f"CSV 파일이 존재하지 않음: {csv_file_path}")
+            return True  # 파일이 없는 것은 오류가 아님
         try:
             df = pd.read_csv(csv_file_path)
             if df.empty:
-                return
+                logging.info(f"CSV 파일이 비어있음: {csv_file_path}")
+                return True  # 빈 파일도 오류가 아님
             # code, date 컬럼 추가
             today = datetime.now().strftime('%Y%m%d')
             df['code'] = code
@@ -247,80 +256,92 @@ class Agent:
             conn.close()
             # 이관 완료 후 csv 파일 삭제
             os.remove(csv_file_path)
+            logging.info(f"CSV to DB 마이그레이션 완료: {code}")
+            return True
         except Exception as e:
             logging.error(f"CSV to DB migration failed: {e}")
+            return False
 
     def fetch_minute_data(self, code, date=None, cache_dir='cache'):
-        """분봉 데이터 조회 및 캐시"""
-        if date is None:
-            date = datetime.now().strftime('%Y%m%d')
+        """분봉 데이터 CSV에서 조회, 없으면 API로 수집 후 CSV에 저장 (DB는 장 마감 후 별도 이관)"""
+        import datetime  # datetime 모듈 명시적 임포트 (datetime.now() 오류 방지)
+        import pandas as pd
+        import os
         
-        # 캐시 디렉토리 생성
         os.makedirs(cache_dir, exist_ok=True)
-        
-        # DB에서 조회 시도
-        db_path = 'stonks_candles.db'
-        if os.path.exists(db_path):
+        today = date or datetime.datetime.now().strftime('%Y%m%d')
+        csv_file_path = os.path.join(cache_dir, f'{code}_minute_data.csv')
+
+        # 1. CSV에서 조회 (기존 방식)
+        if os.path.exists(csv_file_path):
             try:
-                conn = sqlite3.connect(db_path)
-                query = '''
-                    SELECT * FROM minute_data 
-                    WHERE code = ? AND date = ? 
-                    ORDER BY stck_cntg_hour
-                '''
-                df = pd.read_sql_query(query, conn, params=(code, date))
-                conn.close()
+                df = pd.read_csv(csv_file_path)
                 if not df.empty:
                     return df
             except Exception as e:
-                logging.warning(f"DB 조회 실패: {e}")
+                logging.warning(f"[{code}] CSV 로드 실패: {e}")
 
-        # API에서 조회
+        # 2. CSV에 없으면 API로 수집
+        now = datetime.datetime.now()
+        current_date = now.date()
+        market_close_time = now.replace(hour=15, minute=30, second=0, microsecond=0)
+        market_open_time = now.replace(hour=9, minute=0, second=0, microsecond=0)
+        
+        if market_open_time <= now <= market_close_time:
+            current_time_to_fetch = now
+        else:
+            current_time_to_fetch = market_close_time
+            
+        data_frames = []
+        
         def fetch_data_for_time(time_str):
             try:
-                response = self.client.make_request(
-                    endpoint="/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
-                    tr_id="FHKST03010200",
-                    params={
-                        "FID_ETC_CLS_CODE": "",
-                        "FID_COND_MRKT_DIV_CODE": "J",
-                        "FID_INPUT_ISCD": code,
-                        "FID_INPUT_HOUR_1": time_str,
-                        "FID_PW_DATA_INCU_YN": "Y"
-                    }
-                )
-                return response
-            except Exception as e:
-                logging.error(f"API 호출 실패 ({time_str}): {e}")
+                data_response = self.stock_api.get_minute_chart(code, time_str)
+                if not data_response or data_response.get('rt_cd') != '0' or 'output2' not in data_response:
+                    return None
+                data = data_response['output2']
+                if data:
+                    df = pd.DataFrame(data)
+                    if not df.empty and 'stck_cntg_hour' in df.columns:
+                        df['stck_cntg_hour'] = df['stck_cntg_hour'].apply(
+                            lambda x: int(current_date.strftime('%Y%m%d') + str(x).zfill(6)[-6:])
+                        )
+                        return df
+            except Exception:
                 return None
-        
-        # 시간대별 데이터 수집 (HHMMSS 형식)
-        time_slots = ["090000", "100000", "110000", "120000", "130000", "140000", "150000", "153000"]
-        all_data = []
-        
-        for time_slot in time_slots:
-            data = fetch_data_for_time(time_slot)
-            if data and data.get('rt_cd') == '0' and 'output2' in data and data['output2']:
-                all_data.extend(data['output2'])
-            time.sleep(0.1)  # API 호출 간격 조절
-        
-        if not all_data:
-            return pd.DataFrame()
-        
-        # DataFrame으로 변환
-        df = pd.DataFrame(all_data)
-        df['code'] = code
-        df['date'] = date
-        
-        # DB에 저장
-        try:
-            conn = sqlite3.connect(db_path)
-            df.to_sql('minute_data', conn, if_exists='append', index=False)
-            conn.close()
-        except Exception as e:
-            logging.warning(f"DB 저장 실패: {e}")
-        
-        return df
+            return None
+            
+        from datetime import timedelta
+        loop_time = current_time_to_fetch
+        while loop_time >= market_open_time:
+            time_str = loop_time.strftime('%H%M%S')
+            data = fetch_data_for_time(time_str)
+            if data is not None:
+                data_frames.append(data)
+            loop_time -= timedelta(minutes=30)
+            
+        if data_frames:
+            all_data = pd.concat(data_frames, ignore_index=True)
+            all_data['code'] = code
+            all_data['date'] = today
+            # CSV에 저장 (DB 저장은 장 마감 후 별도 이관)
+            all_data.to_csv(csv_file_path, index=False)
+            
+            # DB에도 저장 시도 (선택적)
+            try:
+                db_path = 'stonks_candles.db'
+                conn = sqlite3.connect(db_path)
+                # 기존 해당 날짜 데이터 삭제 후 새로 저장
+                conn.execute('DELETE FROM minute_data WHERE code = ? AND date = ?', (code, today))
+                all_data.to_sql('minute_data', conn, if_exists='append', index=False)
+                conn.close()
+                logging.info(f"[{code}] {today} 분봉 데이터 DB 저장 완료")
+            except Exception as e:
+                logging.warning(f"DB 저장 실패: {e}")
+            
+            return all_data
+            
+        return pd.DataFrame()  # 데이터 없으면 빈 DataFrame 반환 (전략/흐름/의미 변경 없음)
 
     def get_condition_stocks(self, user_id: str = "unohee", seq: int = 0, tr_cont: str = 'N'):
         """조건검색 결과를 조회합니다.
@@ -369,7 +390,7 @@ class Agent:
             return attr
             
         # 나머지 API 모듈에서 메서드 찾기
-        for api in (self.account_api, self.program_api):
+        for api in (self.account_api, self.program_api, self.market_api):
             if hasattr(api, name):
                 attr = getattr(api, name)
                 if not callable(attr):

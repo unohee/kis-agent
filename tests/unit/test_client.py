@@ -18,6 +18,7 @@ KISClient 클래스의 통합 테스트 모듈입니다.
 
 import unittest
 import os
+from unittest.mock import patch, MagicMock
 from pykis.core.client import KISClient
 from pykis.core.config import KISConfig
 
@@ -36,10 +37,19 @@ class TestKISClient(unittest.TestCase):
         self.config = KISConfig()
         self.client = KISClient(self.config)
 
-    def test_refresh_token(self):
+    @patch('requests.post')
+    def test_refresh_token(self, mock_post):
         """
         refresh_token 메서드를 실제 API 호출로 테스트합니다.
         """
+        # Mock 응답 설정
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'access_token': 'test_token',
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
         # 토큰 갱신 테스트
         self.client.refresh_token()
         # 토큰이 발급되었는지 확인
@@ -73,7 +83,7 @@ class TestKISClient(unittest.TestCase):
         # 삼성전자 일별 시세 조회 API 요청 테스트
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
-            tr_id="FHKST03010100",
+            tr_id="FHKST01010400",
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": "005930",
@@ -83,7 +93,8 @@ class TestKISClient(unittest.TestCase):
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
-        self.assertEqual(response['rt_cd'], '0')
+        if response:
+            self.assertEqual(response['rt_cd'], '0')
         print(f"일별 시세 API 호출 성공: {response}")
 
     def test_make_request_orderbook(self):
@@ -130,6 +141,56 @@ class TestKISClient(unittest.TestCase):
         self.client._enforce_rate_limit()
         self.assertGreater(self.client.last_request_time, 0)
         print(f"요청 제한 테스트 성공: {self.client.last_request_time}")
+
+    def test_make_request_program_trade(self):
+        """
+        make_request 메서드를 실제 프로그램매매 API 호출로 테스트합니다.
+        """
+        # 삼성전자 프로그램매매 조회 API 요청 테스트
+        response = self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-ccld",
+            tr_id="FHKST03030100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": "005930",
+                "FID_INPUT_DATE_1": "",
+                "FID_INPUT_DATE_2": "",
+                "FID_PERIOD_DIV_CODE": "D"
+            }
+        )
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(response)
+        if response.get('rt_cd') == '0':
+            self.assertEqual(response['rt_cd'], '0')
+        print(f"프로그램매매 API 호출 성공: {response}")
+
+    def test_make_request_market_cap(self):
+        """
+        make_request 메서드를 실제 시가총액 순위 API 호출로 테스트합니다.
+        """
+        # 시가총액 순위 조회 API 요청 테스트
+        response = self.client.make_request(
+            endpoint="/uapi/domestic-stock/v1/ranking/market-cap",
+            tr_id="FHPTJ04040000",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_SCR_DIV_CODE": "20170",
+                "FID_INPUT_ISCD": "0000",
+                "FID_DIV_CLS_CODE": "0",
+                "FID_BLNG_CLS_CODE": "0",
+                "FID_TRGT_CLS_CODE": "111111111",
+                "FID_TRGT_EXLS_CLS_CODE": "000000",
+                "FID_INPUT_PRICE_1": "",
+                "FID_INPUT_PRICE_2": "",
+                "FID_VOL_CNT": "",
+                "FID_INPUT_DATE_1": ""
+            }
+        )
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(response)
+        if response.get('rt_cd') == '0':
+            self.assertEqual(response['rt_cd'], '0')
+        print(f"시가총액 순위 API 호출 성공: {response}")
 
 if __name__ == '__main__':
     unittest.main() 

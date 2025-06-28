@@ -298,8 +298,8 @@ def getEnv():
 
 
 def getTREnv():
-    # 디버깅용: 반환 객체 타입과 내용 출력
-    print(f"[디버그] getTREnv() 반환 타입: {type(_TRENV)}, 값: {_TRENV}")
+    # 디버깅용: 반환 객체 타입과 내용 출력 - 디버그 메시지 비활성화
+    # print(f"[디버그] getTREnv() 반환 타입: {type(_TRENV)}, 값: {_TRENV}")
     return _TRENV
 
 # 주문 API에서 사용할 hash key값을 받아 header에 설정해 주는 함수

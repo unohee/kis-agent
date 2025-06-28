@@ -48,12 +48,15 @@ class TestAuth(unittest.TestCase):
             'expires_at': 1234567890
         }
 
+    @patch('pykis.core.auth.save_token')
+    @patch('pykis.core.auth.read_token')
     @patch('requests.post')
-    def test_auth(self, mock_post):
+    def test_auth(self, mock_post, mock_read_token, mock_save_token):
         """
         auth 함수를 테스트합니다.
         """
         # Mock 응답 설정
+        mock_read_token.return_value = None
         mock_response = MagicMock()
         mock_response.json.return_value = {
             'access_token': 'test_token',
@@ -64,14 +67,21 @@ class TestAuth(unittest.TestCase):
 
         # 토큰 발급 테스트
         token = auth(self.config)
-        self.assertEqual(token['access_token'], 'test_token')
+        self.assertEqual(token, {
+            'access_token': 'test_token',
+            'access_token_token_expired': '2099-01-01 00:00:00'
+        })
+        mock_save_token.assert_called_once()
 
+    @patch('pykis.core.auth.save_token')
+    @patch('pykis.core.auth.read_token')
     @patch('requests.post')
-    def test_reAuth(self, mock_post):
+    def test_reAuth(self, mock_post, mock_read_token, mock_save_token):
         """
         reAuth 함수를 테스트합니다.
         """
         # Mock 응답 설정
+        mock_read_token.return_value = None
         mock_response = MagicMock()
         mock_response.json.return_value = {
             'access_token': 'test_token',
@@ -82,7 +92,11 @@ class TestAuth(unittest.TestCase):
 
         # 토큰 갱신 테스트
         token = reAuth(self.config)
-        self.assertEqual(token['access_token'], 'test_token')
+        self.assertEqual(token, {
+            'access_token': 'test_token',
+            'access_token_token_expired': '2099-01-01 00:00:00'
+        })
+        mock_save_token.assert_called_once()
 
     def test_read_token(self):
         """
@@ -102,17 +116,21 @@ class TestAuth(unittest.TestCase):
             if os.path.exists(token_path):
                 os.remove(token_path)
 
+    @patch('pykis.core.auth.save_token')
+    @patch('pykis.core.auth.read_token')
     @patch('requests.post')
-    def test_auth_error(self, mock_post):
+    def test_auth_error(self, mock_post, mock_read_token, mock_save_token):
         """
         auth 함수의 에러 처리를 테스트합니다.
         """
         # Mock 에러 응답 설정
+        mock_read_token.return_value = None
         mock_post.side_effect = requests.exceptions.RequestException('API 오류')
 
         # 에러 처리 테스트
-        with self.assertRaises(Exception):
-            auth(self.config)
+        token = auth(self.config)
+        self.assertIsNone(token)
+        mock_save_token.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main() 

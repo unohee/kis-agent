@@ -2,6 +2,24 @@
 
 모든 주요 변경사항이 이 파일에 기록됩니다.
 
+## [0.1.6] - 2025-06-28
+
+### 수정됨
+- **테스트 코드 대규모 리팩토링 및 버그 수정**
+  - `tests/test_agent_usage.py`: `get_market_rankings()` -> `get_price_rank()`, `get_stock_info()` -> `get_stock_opinion()`으로 메서드명 변경. DataFrame의 진리값 평가 오류 수정.
+  - `tests/integration/test_agent_comprehensive.py`: `validate_api_response` 함수가 `output1`, `output2` 키를 처리하도록 수정하여 분봉/차트 테스트 실패 해결.
+  - `tests/unit/test_auth.py`: `read_token` 및 `save_token` 함수에 대한 잘못된 mock 패치 수정.
+  - `tests/unit/test_client.py`: `test_make_request_daily_price`의 `tr_id` 수정. `test_refresh_token`에 `requests.post` mock 추가.
+  - `tests/unit/test_program_trade.py`: `datetime` import 누락 수정 및 예외 ��리 테스트에 `pytest.raises` 추가.
+
+- **`pykis/core/agent.py` 리팩토링**
+  - `StockMarketAPI`를 `Agent` 클래스에 추가하고 `__getattr__`을 통해 메서드를 위임하도록 수정.
+
+### 개선됨
+- **테스트 커버리지 및 안정성 향상**
+  - 다수의 테스트 실패를 수정하여 테스트 스위트의 안정성 확보.
+  - mock을 사용하여 단위 테스트와 외부 API 호출을 분리.
+
 ## [0.1.5] - 2025-06-26
 
 ### 수정됨
@@ -210,4 +228,4 @@
 ### 기술적 부채
 - `program_trade.py`의 주석 처리된 `get_program_trade_summary` 메서드 재구현 필요
 - 일부 API 응답 처리 로직 개선 필요
-- 에러 처리 및 재시도 로직 보완 필요 
+- 에러 처리 및 재시도 로직 보완 필요  

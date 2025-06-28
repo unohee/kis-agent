@@ -49,15 +49,15 @@ class TestAgent(unittest.TestCase):
             self.assertEqual(result['rt_cd'], '0')
         print(f"계좌 잔고 조회 결과: {result}")
 
-    def test_get_program_trade_summary(self):
-        """프로그램 매매 요약 정보 조회 테스트 - 실제 API 호출"""
-        result = self.agent.get_program_trade_summary(self.test_stock_code)
+    def test_get_program_trade_by_stock(self):
+        """종목별 프로그램 매매 추이 조회 테스트 - 실제 API 호출"""
+        result = self.agent.get_program_trade_by_stock(self.test_stock_code)
         # API 응답이 정상인지 확인
         self.assertIsNotNone(result)
         # rt_cd가 0이면 정상 응답
         if isinstance(result, dict) and 'rt_cd' in result:
             self.assertEqual(result['rt_cd'], '0')
-        print(f"프로그램 매매 요약 조회 결과: {result}")
+        print(f"종목별 프로그램 매매 추이 조회 결과: {result}")
 
     def test_get_stock_price(self):
         """주식 현재가 조회 테스트 - 실제 API 호출"""
@@ -86,22 +86,29 @@ class TestAgent(unittest.TestCase):
 
     def test_get_orderbook(self):
         """호가 정보 조회 테스트 - 실제 API 호출"""
-        result = self.agent.get_orderbook(self.test_stock_code)
-        # API 응답이 정상인지 확인
+        result = self.agent.stock_api.get_orderbook(self.test_stock_code)
+        # API 응답이 정상인지 확인 (DataFrame 또는 dict 형태로 반환될 수 있음)
         self.assertIsNotNone(result)
-        # rt_cd가 0이면 정상 응답
-        if isinstance(result, dict) and 'rt_cd' in result:
+        # DataFrame이면 성공으로 간주
+        if hasattr(result, 'shape'):
+            self.assertGreater(len(result), 0)
+        # dict 형태면 rt_cd 확인
+        elif isinstance(result, dict) and 'rt_cd' in result:
             self.assertEqual(result['rt_cd'], '0')
         print(f"호가 정보 조회 결과: {result}")
 
     def test_get_stock_investor(self):
         """투자자별 매매 동향 조회 테스트 - 실제 API 호출"""
-        result = self.agent.get_stock_investor(self.test_stock_code)
-        # API 응답이 정상인지 확인
+        result = self.agent.stock_api.get_stock_investor(self.test_stock_code)
+        # API 응답이 정상인지 확인 (DataFrame 또는 dict 형태로 반환될 수 있음)
         self.assertIsNotNone(result)
         print(f"투자자별 매매 동향 조회 결과: {result}")
-        # rt_cd가 0이면 정상 응답, 빈 문자열이어도 응답이 있으면 통과
-        if isinstance(result, dict) and 'rt_cd' in result:
+        
+        # DataFrame이면 성공으로 간주
+        if hasattr(result, 'shape'):
+            self.assertGreater(len(result), 0)
+        # dict 형태면 rt_cd 확인
+        elif isinstance(result, dict) and 'rt_cd' in result:
             if result['rt_cd'] != '0':
                 print(f"API 오류: rt_cd={result['rt_cd']}, msg1={result.get('msg1', 'N/A')}")
                 # API 응답이 있으면 테스트 통과 (권한 문제일 수 있음)
@@ -109,25 +116,67 @@ class TestAgent(unittest.TestCase):
             else:
                 self.assertEqual(result['rt_cd'], '0')
 
-    def test_get_volume_rank(self):
-        """거래량 순위 조회 테스트 - 실제 API 호출"""
-        result = self.agent.get_volume_rank()
+    def test_get_volume_power(self):
+        """체결강도 순위 조회 테스트 - 실제 API 호출"""
+        result = self.agent.get_volume_power(0)  # 파라미터 추가
         # API 응답이 정상인지 확인
         self.assertIsNotNone(result)
         # rt_cd가 0이면 정상 응답
         if isinstance(result, dict) and 'rt_cd' in result:
             self.assertEqual(result['rt_cd'], '0')
-        print(f"거래량 순위 조회 결과: {result}")
+        print(f"체결강도 순위 조회 결과: {result}")
 
-    def test_get_price_rank(self):
-        """등락률 순위 조회 테스트 - 실제 API 호출"""
-        result = self.agent.get_price_rank()
+    def test_get_top_gainers(self):
+        """상위 상승주 조회 테스트 - 실제 API 호출"""
+        result = self.agent.get_top_gainers()
         # API 응답이 정상인지 확인
         self.assertIsNotNone(result)
         # rt_cd가 0이면 정상 응답
         if isinstance(result, dict) and 'rt_cd' in result:
             self.assertEqual(result['rt_cd'], '0')
-        print(f"등락률 순위 조회 결과: {result}")
+        print(f"상위 상승주 조회 결과: {result}")
+    
+    def test_get_member(self):
+        """거래원 정보 조회 테스트 - 실제 API 호출"""
+        result = self.agent.get_member(self.test_stock_code)
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(result)
+        # rt_cd가 0이면 정상 응답
+        if isinstance(result, dict) and 'rt_cd' in result:
+            self.assertEqual(result['rt_cd'], '0')
+        print(f"거래원 정보 조회 결과: {result}")
+    
+    def test_get_member_transaction(self):
+        """회원사 매매 정보 조회 테스트 - 실제 API 호출"""
+        result = self.agent.get_member_transaction(self.test_stock_code)
+        # API 응답이 정상인지 확인
+        self.assertIsNotNone(result)
+        # rt_cd가 0이면 정상 응답
+        if isinstance(result, dict) and 'rt_cd' in result:
+            self.assertEqual(result['rt_cd'], '0')
+        print(f"회원사 매매 정보 조회 결과: {result}")
+    
+    def test_fetch_minute_data(self):
+        """분봉 데이터 수집 테스트 - 실제 API 호출"""
+        from datetime import datetime
+        test_date = datetime.now().strftime('%Y%m%d')
+        result = self.agent.fetch_minute_data(self.test_stock_code, test_date)
+        # API 응답이 정상인지 확인 (DataFrame으로 반환)
+        self.assertIsNotNone(result)
+        if hasattr(result, 'shape'):
+            print(f"분봉 데이터 수집 결과: {result.shape} 형태의 DataFrame")
+        else:
+            print(f"분봉 데이터 수집 결과: {result}")
+    
+    def test_get_condition_stocks(self):
+        """조건검색 종목 조회 테스트 - 실제 API 호출"""
+        result = self.agent.get_condition_stocks()
+        # API 응답이 정상인지 확인 (list로 반환)
+        self.assertIsNotNone(result)
+        if isinstance(result, list):
+            print(f"조건검색 결과: {len(result)}개 종목")
+        else:
+            print(f"조건검색 결과: {result}")
 
 if __name__ == '__main__':
     unittest.main() 

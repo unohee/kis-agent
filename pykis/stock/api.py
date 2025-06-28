@@ -76,11 +76,26 @@ class StockAPI:
         )
 
     def get_minute_chart(self, code: str, time: str) -> Optional[Dict[str, Any]]:
-        """분봉 차트 조회"""
+        """
+        특정 시간대의 분봉 차트 조회 (단일 API 호출)
+        
+        Args:
+            code: 종목코드
+            time: 조회 시간 (HHMMSS 형식)
+            
+        Returns:
+            Dict: API 응답 데이터
+        """
         return self.client.make_request(
-            endpoint=API_ENDPOINTS['MINUTE_CHART'],
+            endpoint=API_ENDPOINTS['STOCK_MINUTE'],
             tr_id="FHKST03010200",
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code, "FID_INPUT_HOUR_1": time}
+            params={
+                "FID_ETC_CLS_CODE": "",
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_INPUT_HOUR_1": time,
+                "FID_PW_DATA_INCU_YN": "Y"
+            }
         )
 
     def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[Dict]:
@@ -154,7 +169,7 @@ class StockAPI:
                         indiv_pbmn = int(indiv_pbmn_str) / 100000000 if indiv_pbmn_str.strip() else 0
                         
                         if not indiv_qty_str.strip() or not indiv_pbmn_str.strip():
-                            logging.warning("Empty string encountered for individual investor details, set to 0.")
+                            logging.info("Empty string encountered for individual investor details, set to 0.")
 
                         df['개인_순매수수량'] = indiv_qty
                         df['개인_순매수거래대금_억'] = indiv_pbmn
@@ -488,7 +503,15 @@ class StockAPI:
                 return None
                 
             try:
-                foreign_qty = int(df['frgn_ntby_qty'].iloc[0])
+                # 빈 문자열 처리: 당일 데이터 우선, 빈 값이면 0으로 처리
+                foreign_qty_str = df['frgn_ntby_qty'].iloc[0]
+                foreign_qty = int(foreign_qty_str) if foreign_qty_str and foreign_qty_str.strip() else 0
+                
+                if not foreign_qty_str.strip():
+                    logging.info(f"[{code}] 당일 외국인 순매수량이 빈 값, 0으로 설정 (날짜: {df['stck_bsop_date'].iloc[0]})")
+                else:
+                    logging.info(f"[{code}] 외국인 순매수량: {foreign_qty} (날짜: {df['stck_bsop_date'].iloc[0]})")
+                
                 return foreign_qty, df
             except (ValueError, IndexError) as e:
                 logging.error(f"[{code}] 외국인 순매수량 추출 중 오류 발생: {e}")

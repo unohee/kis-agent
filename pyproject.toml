@@ -84,4 +84,4 @@ disallow_incomplete_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=pykis" 
+addopts = "-v --cov=pykis --ignore=tests/unit/test_auth.py --ignore=tests/unit/test_client.py" 

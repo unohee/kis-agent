@@ -49,23 +49,26 @@ from .core.client import KISClient
 from .core.config import KISConfig
 from .account import AccountAPI, AccountBalance
 from .program import ProgramAPI, ProgramTrade
-from .stock import StockData, StockAPI, ConditionAPI, MarketAPI, ProgramTradeAPI
+from .stock import StockAPI, ConditionAPI, MarketAPI, ProgramTradeAPI
 
 __version__ = "0.1.5"
 
 # Agent를 메인 클래스로 강조
 __all__ = [
-    "Agent",  # 메인 클래스 (Facade 패턴)
-    # 하위 호환성을 위한 기타 클래스들
+    # Core
     "KISClient",
-    "KISConfig", 
+    "KISAgent",
+    "KISEnv",
+    "getTREnv",
+    "KISConfig",
+    
+    # Account
     "AccountAPI",
-    "AccountBalance",
-    "ProgramAPI",
-    "ProgramTrade",
-    "StockData",
+    "BalanceAPI",
+    
+    # Stock
     "StockAPI",
-    "ConditionAPI",
+    "ConditionAPI", 
     "MarketAPI",
     "ProgramTradeAPI"
 ]
