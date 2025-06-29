@@ -1,6 +1,6 @@
 # pykis API 메서드 레퍼런스
 
-> **pykis v0.1.5** - 한국투자증권 OpenAPI Python 래퍼 라이브러리
+> **pykis v0.1.8** - 한국투자증권 OpenAPI Python 래퍼 라이브러리
 
 이 문서는 pykis 라이브러리의 모든 사용 가능한 메서드를 정리한 완전한 API 레퍼런스입니다.  
 후임자나 다른 에이전트 LLM이 pykis를 활용할 때 참고할 수 있도록 작성되었습니다.
@@ -620,4 +620,4 @@ for code in stock_codes:
 
 문의사항이나 버그 신고는 GitHub Issues를 통해 연락주세요.
 
-**pykis v0.1.5** - 한국투자증권 OpenAPI를 쉽고 안전하게! 🚀 
+**pykis v0.1.8** - 한국투자증권 OpenAPI를 쉽고 안전하게! 🚀 

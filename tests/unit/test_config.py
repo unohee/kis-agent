@@ -1,116 +1,77 @@
-"""
-config 모듈의 단위 테스트 모듈입니다.
-
-이 모듈은 config 모듈의 기능을 테스트합니다:
-- 설정 로드
-- 환경 변수 처리
-- 설정 유효성 검증
-
-의존성:
-- unittest: 테스트 프레임워크
-- unittest.mock: 모킹
-- pykis.core.config: 테스트 대상
-- os: 환경 변수 관리
-
-사용 예시:
-    >>> python -m unittest tests/unit/test_config.py
-"""
-
 import unittest
 from unittest.mock import patch, mock_open
 import os
-import yaml
-
 from pykis.core.config import KISConfig
 
 class TestKISConfig(unittest.TestCase):
     """
     KISConfig 클래스의 단위 테스트 클래스입니다.
-
-    이 클래스는 KISConfig의 각 메서드를 테스트합니다.
     """
 
     def setUp(self):
         """
         테스트 케이스 실행 전에 호출되는 메서드입니다.
         """
-        self.test_config = {
-            'app_key': 'test_app_key',
-            'app_secret': 'test_app_secret',
-            'base_url': 'https://test.api.com',
-            'account_no': '1234567890',
-            'account_code': '01'
+        self.test_env_vars = {
+            'KIS_APP_KEY': 'test_app_key',
+            'KIS_APP_SECRET': 'test_app_secret',
+            'KIS_BASE_URL': 'https://test.api.com',
+            'KIS_ACCOUNT_NO': '1234567890',
+            'KIS_ACCOUNT_CODE': '01'
         }
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('yaml.safe_load')
-    @patch.dict(os.environ, {
-        'KIS_APP_KEY': 'env_app_key',
-        'KIS_APP_SECRET': 'env_app_secret',
-        'KIS_BASE_URL': 'https://env.api.com',
-        'KIS_ACCOUNT_NO': '9876543210',
-        'KIS_ACCOUNT_CODE': '02'
-    })
-    def test_init_with_env(self, mock_yaml_load, mock_file):
-        """
-        환경 변수를 사용한 초기화를 테스트합니다.
-        """
-        # Mock YAML 로드 설정
-        mock_yaml_load.return_value = self.test_config
-
-        # 설정 초기화 테스트
-        config = KISConfig()
-        self.assertEqual(config.APP_KEY, 'env_app_key')
-        self.assertEqual(config.APP_SECRET, 'env_app_secret')
-        self.assertEqual(config.BASE_URL, 'https://env.api.com')
-        self.assertEqual(config.ACCOUNT_NO, '9876543210')
-        self.assertEqual(config.ACCOUNT_CODE, '02')
-
     @patch('os.path.exists', return_value=True)
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('yaml.safe_load')
-    def test_init_with_file(self, mock_yaml_load, mock_file, mock_exists):
+    @patch('dotenv.load_dotenv')
+    @patch.dict(os.environ, {}, clear=True)
+    def test_init_with_env_file(self, mock_load_dotenv, mock_exists):
         """
-        설정 파일을 사용한 초기화를 테스트합니다.
+        .env 파일을 사용한 초기화를 테스트합니다.
         """
-        # Mock YAML 로드 설정
-        mock_yaml_load.return_value = self.test_config
+        # .env 파일이 로드될 때 환경 변수를 설정하도록 mock_load_dotenv를 설정
+        def side_effect(*args, **kwargs):
+            os.environ.update(self.test_env_vars)
+        mock_load_dotenv.side_effect = side_effect
 
-        # 설정 초기화 테스트
         config = KISConfig()
+
         self.assertEqual(config.APP_KEY, 'test_app_key')
         self.assertEqual(config.APP_SECRET, 'test_app_secret')
         self.assertEqual(config.BASE_URL, 'https://test.api.com')
         self.assertEqual(config.ACCOUNT_NO, '1234567890')
         self.assertEqual(config.ACCOUNT_CODE, '01')
+        mock_load_dotenv.assert_called_once_with(dotenv_path=".env")
 
-    @patch('os.path.exists', return_value=True)
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('yaml.safe_load')
-    def test_validate_config(self, mock_yaml_load, mock_file, mock_exists):
+    @patch('os.path.exists', return_value=False)
+    def test_init_without_env_file(self, mock_exists):
         """
-        설정 유효성 검증을 테스트합니다.
+        .env 파일이 없을 때 FileNotFoundError를 발생하는지 테스트합니다.
         """
-        # Mock YAML 로드 설정
-        mock_yaml_load.return_value = {}
-
-        # 유효성 검증 테스트
-        with self.assertRaises(Exception):
+        with self.assertRaises(FileNotFoundError):
             KISConfig()
 
     @patch('os.path.exists', return_value=True)
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('yaml.safe_load')
-    def test_init_with_custom_path(self, mock_yaml_load, mock_file, mock_exists):
+    @patch('dotenv.load_dotenv')
+    @patch.dict(os.environ, {}, clear=True)
+    def test_validate_config_missing_values(self, mock_load_dotenv, mock_exists):
         """
-        사용자 정의 경로로 초기화를 테스트합니다.
+        필수 설정 값이 누락되었을 때 예외를 발생하는지 테스트합니다.
         """
-        # Mock YAML 로드 설정
-        mock_yaml_load.return_value = self.test_config
+        # .env 파일이 로드될 때 일부 환경 변수만 설정하도록 mock_load_dotenv를 설정
+        def side_effect(*args, **kwargs):
+            os.environ.update({'KIS_APP_KEY': 'test_app_key'})
+        mock_load_dotenv.side_effect = side_effect
 
-        # 사용자 정의 경로로 초기화 테스트
-        config = KISConfig(config_path='/custom/path/config.yaml')
-        mock_file.assert_called_with('/custom/path/config.yaml', 'r')
+        with self.assertRaisesRegex(Exception, "필수 설정 값이 누락되었습니다"):
+            KISConfig()
+
+    @patch('os.path.exists', return_value=True)
+    @patch('dotenv.load_dotenv')
+    def test_init_with_custom_path(self, mock_load_dotenv, mock_exists):
+        """
+        사용자 정의 .env 파일 경로로 초기화를 테스트합니다.
+        """
+        config = KISConfig(env_path='/custom/path/.env')
+        mock_load_dotenv.assert_called_with(dotenv_path='/custom/path/.env')
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

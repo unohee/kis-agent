@@ -13,7 +13,7 @@ pip install pykis
 ```python
 from pykis import Agent
 
-# Agent 인스턴스 생성
+# .env 파일에 설정된 정보를 바탕으로 Agent 인스턴스 생성
 agent = Agent()
 
 # 계좌 잔고 조회
@@ -110,10 +110,10 @@ is_holiday = agent.is_holiday("20241225")  # 크리스마스 휴장일 여부
 - `get_program_trade_market_daily(start_date, end_date)`: 시장 전체 프로그램 매매 현황 조회
 - `get_program_trade_period_detail(start_date, end_date)`: 기간별 프로그램 매매 상세 조회
 
-### 조건검색 (v0.1.5에서 통일됨)
+### 조건검색 (v0.1.8에서 통일됨)
 - `get_condition_stocks(user_id, seq, tr_cont)`: 조건검색 결과 조회 (통일된 API 방식)
 
-### 휴장일 정보 (v0.1.5에서 새로 추가됨)
+### 휴장일 정보 (v0.1.8에서 새로 추가됨)
 - `get_holiday_info()`: 휴장일 정보 조회 (직접 API 접근)
 - `is_holiday(date)`: 특정 날짜 휴장일 여부 확인 (편의 메서드)
 
@@ -132,11 +132,8 @@ is_holiday = agent.is_holiday("20241225")  # 크리스마스 휴장일 여부
 ```python
 from pykis import Agent
 
-# Agent 초기화
-agent = Agent(account_info={
-    'CANO': '계좌번호',
-    'ACNT_PRDT_CD': '계좌상품코드'
-})
+# .env 파일을 통해 자동으로 인증 정보가 로드됩니다.
+agent = Agent()
 
 # 주식 가격 조회
 price = agent.get_stock_price("005930")  # 삼성전자
@@ -159,10 +156,10 @@ program_trade_market = agent.get_program_trade_market_daily("20240601", "2024063
 income = agent.get_stock_income("005930")  # 손익계산서
 financial = agent.get_stock_financial("005930")  # 재무비율
 
-# 조건검색 (v0.1.5에서 통일된 방식)
+# 조건검색 (v0.1.8에서 통일된 방식)
 condition_stocks = agent.get_condition_stocks("unohee", 0, "N")
 
-# 휴장일 정보 (v0.1.5에서 새로 추가됨)
+# 휴장일 정보 (v0.1.8에서 새로 추가됨)
 holiday_info = agent.get_holiday_info()  # 휴장일 정보 조회
 is_xmas_holiday = agent.is_holiday("20241225")  # 크리스마스 휴장일 여부
 is_today_holiday = agent.is_holiday("20240625")  # 오늘이 휴장일인지 확인
@@ -202,7 +199,7 @@ pip install -r requirements.txt
 ```
 
 4. API 인증 정보 설정
-- `credit/kis_devlp.yaml` 파일에 API 인증 정보를 설정합니다.
+- `.env.example` 파일을 복사하여 `.env` 파일을 만들고, API 인증 정보를 설정합니다.
 
 ## 테스트 실행
 

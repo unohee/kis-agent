@@ -12,7 +12,7 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from pykis.core.agent import Agent
-from pykis.core.config import Config
+from pykis.core.config import KISConfig as Config
 
 # 로깅 설정
 logging.basicConfig(
@@ -25,14 +25,11 @@ logging.basicConfig(
 )
 
 class StockMonitor:
-    def __init__(self, config_path: str = "credit/kis_devlp.yaml"):
+    def __init__(self):
         """
         주식 모니터링 클래스 초기화
-
-        Args:
-            config_path (str): 설정 파일 경로
         """
-        self.config = Config.from_yaml(config_path)
+        self.config = Config()
         self.agent = Agent(self.config)
         self.monitored_stocks: Dict[str, Dict] = {}
         self.last_check_time: Dict[str, datetime] = {}
