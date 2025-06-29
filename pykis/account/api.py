@@ -173,24 +173,134 @@ class AccountAPI:
             logging.error(f"주문 가능 금액 조회 실패: {e}")
             return None
 
-    def get_possible_order_amount(self) -> Optional[Dict]:
-        """주문 가능 금액 조회"""
+    def order_credit(self, code: str, qty: int, price: int, order_type: str) -> Optional[Dict]:
+        """주식주문(신용)"""
         try:
             return self.client.make_request(
-                endpoint=API_ENDPOINTS['INQUIRE_PSBL_ORDER'],
-                tr_id="TTTC8908R",
+                endpoint="/uapi/domestic-stock/v1/trading/order-credit",
+                tr_id="TTTC0852U",
+                params={
+                    "CANO": self.account['CANO'],
+                    "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                    "PDNO": code,
+                    "CRDT_TYPE": "21",
+                    "LOAN_DT": "",
+                    "ORD_DVSN": order_type,
+                    "ORD_QTY": str(qty),
+                    "ORD_UNPR": str(price)
+                }
+            )
+        except Exception as e:
+            logging.error(f"신용 주문 실패: {e}")
+            return None
+
+    def order_rvsecncl(self, org_order_no: str, qty: int, price: int, order_type: str, cncl_type: str) -> Optional[Dict]:
+        """주식주문(정정취소)"""
+        try:
+            return self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/trading/order-rvsecncl",
+                tr_id="TTTC0803U",
+                params={
+                    "CANO": self.account['CANO'],
+                    "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                    "KRX_FWDG_ORD_ORGNO": "",
+                    "ORGN_ODNO": org_order_no,
+                    "ORD_DVSN": order_type,
+                    "RVSE_CNCL_DVSN_CD": cncl_type,
+                    "ORD_QTY": str(qty),
+                    "ORD_UNPR": str(price),
+                    "QTY_ALL_ORD_YN": "Y"
+                }
+            )
+        except Exception as e:
+            logging.error(f"정정/취소 주문 ��패: {e}")
+            return None
+
+    def inquire_psbl_rvsecncl(self) -> Optional[Dict]:
+        """주식정정취소가능주문조회"""
+        try:
+            return self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",
+                tr_id="TTTC8036R",
+                params={
+                    "CANO": self.account['CANO'],
+                    "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                    "CTX_AREA_FK100": "",
+                    "CTX_AREA_NK100": "",
+                    "INQR_DVSN_1": "1",
+                    "INQR_DVSN_2": "0"
+                }
+            )
+        except Exception as e:
+            logging.error(f"정정/취소 가능 주문 조회 실패: {e}")
+            return None
+
+    def order_resv(self, code: str, qty: int, price: int, order_type: str) -> Optional[Dict]:
+        """주식예약주문"""
+        try:
+            return self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/trading/order-resv",
+                tr_id="CTSC0008U",
+                params={
+                    "CANO": self.account['CANO'],
+                    "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                    "PDNO": code,
+                    "ORD_QTY": str(qty),
+                    "ORD_UNPR": str(price),
+                    "SLL_BUY_DVSN_CD": "02",
+                    "ORD_DVSN_CD": order_type,
+                    "ORD_OBJT_CBLC_DVSN_CD": "10"
+                }
+            )
+        except Exception as e:
+            logging.error(f"예약 주문 실패: {e}")
+            return None
+
+    def order_resv_rvsecncl(self, seq: int, qty: int, price: int, order_type: str) -> Optional[Dict]:
+        """주식예약주문정정취소"""
+        try:
+            return self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
+                tr_id="CTSC0013U",
                 params={
                     "CANO": self.account['CANO'],
                     "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
                     "PDNO": "",
-                    "ORD_UNPR": "0",
-                    "ORD_DVSN": "00",
-                    "CMA_EVLU_AMT_ICLD_YN": "Y",
-                    "OVRS_ICLD_YN": "N"
+                    "ORD_QTY": str(qty),
+                    "ORD_UNPR": str(price),
+                    "SLL_BUY_DVSN_CD": "02",
+                    "ORD_DVSN_CD": order_type,
+                    "ORD_OBJT_CBLC_DVSN_CD": "10",
+                    "RSVN_ORD_SEQ": str(seq)
                 }
             )
         except Exception as e:
-            logging.error(f"주문 가능 금액 조회 실패: {e}")
+            logging.error(f"예약 주문 정정/취소 실패: {e}")
+            return None
+
+    def order_resv_ccnl(self) -> Optional[Dict]:
+        """주식예약주문조회"""
+        try:
+            return self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/trading/order-resv-ccnl",
+                tr_id="CTSC0004R",
+                params={
+                    "RSVN_ORD_ORD_DT": "",
+                    "RSVN_ORD_END_DT": "",
+                    "RSVN_ORD_SEQ": "",
+                    "TMNL_MDIA_KIND_CD": "00",
+                    "CANO": self.account['CANO'],
+                    "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                    "PRCS_DVSN_CD": "0",
+                    "CNCL_YN": "Y",
+                    "PDNO": "",
+                    "SLL_BUY_DVSN_CD": "",
+                    "CTX_AREA_FK200": "",
+                    "CTX_AREA_NK200": ""
+                }
+            )
+        except Exception as e:
+            logging.error(f"예약 주문 조회 실패: {e}")
             return None
 
 

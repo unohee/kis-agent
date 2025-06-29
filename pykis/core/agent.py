@@ -128,9 +128,9 @@ class Agent:
         """계좌 잔고 조회"""
         return self.account_api.get_account_balance()
     
-    def get_possible_order_amount(self):
+    def get_possible_order_amount(self, code: str, price: str, order_type: str = "01"):
         """주문 가능 금액 조회"""
-        return self.account_api.get_possible_order_amount()
+        return self.stock_api.get_possible_order(code, price, order_type)
     
 
     

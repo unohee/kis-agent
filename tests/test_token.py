@@ -18,11 +18,9 @@ def test_token_issuance():
 
         # Agent 초기화를 통한 토큰 발급 테스트
         agent = Agent()
-        print(f"[디버그] Agent 초기화 완료")
         
         # 토큰이 정상적으로 발급되었는지 확인
         assert agent is not None, "Agent가 초기화되지 않았습니다."
-        print(f"[디버그] Agent 초기화 성공")
 
     except Exception as e:
         pytest.fail(f"토큰 발급 중 오류 발생: {str(e)}")

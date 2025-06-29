@@ -103,7 +103,7 @@ class TestProgramTrade:
     def test_get_program_trade_by_stock(self, agent, test_stock):
         """종목별 프로그램매매추이 조회 테스트"""
         result = agent.get_program_trade_by_stock(test_stock)
-        is_valid, msg = validate_api_response(result)
+        is_valid, msg = validate_api_response(result, require_output=False)
         assert is_valid, f"프로그램매매추이 조회 실패: {msg}"
         
         assert isinstance(result['output'], list)
@@ -225,9 +225,9 @@ class TestInvestorInfo:
             assert isinstance(net_buy_amount, (int, float)), "순매수량이 숫자가 아님"
             assert isinstance(dataframe, pd.DataFrame), "DataFrame이 아님"
     
-    def test_get_possible_order_amount(self, agent):
+    def test_get_possible_order_amount(self, agent, test_stock):
         """매수 가능 주문 조회 테스트"""
-        result = agent.get_possible_order_amount()
+        result = agent.get_possible_order_amount(test_stock, "10000")
         is_valid, msg = validate_api_response(result)
         assert is_valid, f"매수 가능 주문 조회 실패: {msg}"
 

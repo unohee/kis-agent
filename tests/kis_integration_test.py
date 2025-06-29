@@ -33,11 +33,9 @@ def safe_call(name, func, *args, **kwargs):
 
 def test_account_balance(account_info):
     """계좌 잔고 조회 테스트"""
-    print("\n[잔고 조회 테스트]")
     agent = Agent()
     df = agent.get_account_balance_df()
     assert df is not None and not df.empty, "잔고 데이터가 없거나 오류가 발생했습니다."
-    print(df)
 
 def test_agent_api(account_info, test_stock_code):
     """Agent의 주요 API 기능 테스트"""
@@ -65,45 +63,35 @@ def test_agent_api(account_info, test_stock_code):
 
 def test_stock_api(account_info, test_stock_code):
     """Agent 시세/투자자/호가 테스트"""
-    print("\n[Agent 시세/투자자/호가 테스트]")
     agent = Agent()
     
     price = agent.get_stock_price(test_stock_code)
     assert price is not None, "주식 가격 조회 실패"
-    print("- get_stock_price:", price)
     
     # [변경 이유] get_daily_price 인자 추가 (최근 1개월)
     end_date = datetime.today().strftime('%Y%m%d')
     start_date = (datetime.today() - timedelta(days=30)).strftime('%Y%m%d')
     daily = agent.get_daily_price(test_stock_code, start_date, end_date)
     assert daily is not None, "일별 가격 조회 실패"
-    print("- get_daily_price:", daily)
     
     orderbook = agent.get_orderbook(test_stock_code)
     assert orderbook is not None, "호가 조회 실패"
-    print("- get_orderbook:", orderbook)
     
     member = agent.get_stock_member(test_stock_code)
     assert member is not None, "회원사 조회 실패"
-    print("- get_stock_member:", member)
     
     investor = agent.get_stock_investor(test_stock_code)
     assert investor is not None, "투자자 조회 실패"
-    print("- get_stock_investor:", investor)
 
 def test_program_trade(test_stock_code):
     """Agent 프로그램 매매 테스트"""
-    print("\n[Agent 프로그램 매매 테스트]")
     agent = Agent()
     trend = agent.get_program_trade_trend(test_stock_code)
     assert trend is not None, "프로그램 매매 추이 조회 실패"
-    print("- get_program_trade_trend:", trend)
     net_buy = agent.get_net_buy_volume(test_stock_code)
     assert net_buy is not None, "순매수량 확인 실패"
-    print("- get_net_buy_volume:", net_buy)
     analysis = agent.analyze_trade_trend(test_stock_code)
     assert analysis is not None, "매매 동향 분석 실패"
-    print("- analyze_trade_trend:", analysis)
 
 def test_condition_search():
     """조건검색 테스트"""

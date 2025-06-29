@@ -33,26 +33,21 @@ def test_market_api():
         
         # 현재가 조회
         price = agent.get_stock_price(test_code)
-        logger.info(f"현재가 조회 결과: {price}")
         
         # 일별 차트 정보 조회
         daily_chart = agent.get_daily_price(test_code, "20240101", "20240615")
-        logger.info(f"일별 차트 정보 조회 결과: {daily_chart}")
         
         # 2. 시세분석 관련 API 테스트
         logger.info("\n=== 시세분석 관련 API 테스트 ===")
         
         # 시장 변동성 정보 조회
         market_fluctuation = agent.get_market_fluctuation()
-        logger.info(f"시장 변동성 정보 조회 결과: {market_fluctuation}")
         
         # 시장 순위 정보 조회
         market_rankings = agent.get_market_rankings()
-        logger.info(f"시장 순위 정보 조회 결과: {market_rankings}")
         
         # 회원사 거래 정보 조회
         member_transaction = agent.get_member_transaction(test_code)
-        logger.info(f"회원사 거래 정보 조회 결과: {member_transaction}")
 
         # 3. 순위분석 관련 API 테스트
         logger.info("\n=== 순위분석 관련 API 테스트 ===")
@@ -62,38 +57,30 @@ def test_market_api():
         
         # 분봉 시세 정보 조회
         minute_price = agent.get_minute_price(test_code)
-        logger.info(f"분봉 시세 정보 조회 결과: {minute_price}")
 
         # 5. 기타 정보 조회 API 테스트
         logger.info("\n=== 기타 정보 조회 API 테스트 ===")
         
         # 휴��일 정보 조회
         holiday_info = agent.get_holiday_info()
-        logger.info(f"휴장일 정보 조회 결과: {holiday_info}")
         
         # 기본 정보 조회
         basic_info = agent.get_stock_info(test_code)
-        logger.info(f"기본 정보 조회 결과: {basic_info}")
         
         # 투자자별 매매 동향 조회
         investor_info = agent.get_stock_investor(test_code)
-        logger.info(f"투자자별 매매 동향 조회 결과: {investor_info}")
         
         # 국내 증시자금 종합 조회
         market_money = agent.get_market_rankings()
-        logger.info(f"국내 증시자금 종합 조회 결과: {market_money}")
         
         # 거래량 순위 조회
         volume_rank = agent.get_volume_power()
-        logger.info(f"거래량 순위 조회 결과: {volume_rank}")
         
         # 등락률 순위 조회
         price_rank = agent.get_market_fluctuation()
-        logger.info(f"등락률 순위 조회 결과: {price_rank}")
         
         # 수익자산지표 순위 조회
         profit_rank = agent.get_market_rankings()
-        logger.info(f"수익자산지표 순위 조회 결과: {profit_rank}")
 
         logger.info("\n✅ 모든 API 테스트가 성공적으로 완료되었습니다.")
 

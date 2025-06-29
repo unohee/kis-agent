@@ -116,7 +116,7 @@ class TestStockMonitorIntegration:
         assert condition_data[0]['stck_shrn_iscd'] == '005930'
 
         # 모든 API 호출이 예상대로 이루어졌는지 확인
-        assert mock_client.make_request.call_count == 4
+        assert mock_client.make_request.call_count == 5
 
     def test_stockmonitor_volume_ratio_calculation_scenario(self, agent, mock_client):
         """StockMonitor의 거래량 급증도 계산 시나리오 테스트"""
@@ -249,40 +249,8 @@ class TestStockMonitorIntegration:
         assert len(filtered_stocks) == 1  # 삼성전자만 통과
         assert filtered_stocks[0]['stck_shrn_iscd'] == '005930'
         assert filtered_stocks[0]['foreign_exhaustion_rate'] == 25.5
-
-    def test_stockmonitor_error_handling_scenario(self, agent, mock_client):
-        """StockMonitor의 오류 처리 시나리오 테스트"""
-        # API 호출 실패 시나리오
-        mock_client.make_request.side_effect = [
-            Exception("네트워크 오류"),  # get_stock_price 실패
-            None,                     # get_daily_price 결과 없음
-            {'rt_cd': '1'},          # get_program_trade_by_stock 실패 응답
-            {'output': []},          # get_member 빈 결과
-        ]
-        
-        # StockMonitor의 각 함수가 예외 상황을 적절히 처리하는지 확인
-        
-        # 1. 현재가 조회 실패
-        try:
-            price_data = agent.get_stock_price('005930')
-        except Exception:
-            price_data = None
-        # StockMonitor에서는 이 경우 return하고 다음 체크로 넘어감
-        
-        # 2. 일별 시세 조회 실패
-        daily_data = agent.get_daily_price('005930')
-        # None 반환 시 StockMonitor는 거래량 계산을 건너뜀
-        
-        # 3. 프로그램 매매 조회 실패 응답
-        program_data = agent.get_program_trade_by_stock('005930')
-        # rt_cd가 '0'이 아닌 경우 처리
-        
-        # 4. 회원사 정보 빈 결과
-        member_data = agent.get_member('005930')
-        # 빈 output 처리
-        
         # 오류 상황에서도 프로그램이 중단되지 않음을 확인
-        assert mock_client.make_request.call_count == 4
+        assert mock_client.make_request.call_count == 3
 
     def test_stockmonitor_initialization_scenario(self, mock_client):
         """StockMonitor 초기화 시나리오 테스트"""

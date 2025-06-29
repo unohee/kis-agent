@@ -74,7 +74,6 @@ class TestKISClient(unittest.TestCase):
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
         self.assertEqual(response['rt_cd'], '0')
-        print(f"주식 현재가 API 호출 성공: {response}")
 
     def test_make_request_daily_price(self):
         """
@@ -95,7 +94,6 @@ class TestKISClient(unittest.TestCase):
         self.assertIsNotNone(response)
         if response:
             self.assertEqual(response['rt_cd'], '0')
-        print(f"일별 시세 API 호출 성공: {response}")
 
     def test_make_request_orderbook(self):
         """
@@ -113,7 +111,6 @@ class TestKISClient(unittest.TestCase):
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
         self.assertEqual(response['rt_cd'], '0')
-        print(f"호가 API 호출 성공: {response}")
 
     def test_make_request_investor(self):
         """
@@ -131,7 +128,6 @@ class TestKISClient(unittest.TestCase):
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
         self.assertEqual(response['rt_cd'], '0')
-        print(f"투자자별 매매 동향 API 호출 성공: {response}")
 
     def test_enforce_rate_limit(self):
         """
@@ -140,7 +136,6 @@ class TestKISClient(unittest.TestCase):
         # 요청 제한 테스트
         self.client._enforce_rate_limit()
         self.assertGreater(self.client.last_request_time, 0)
-        print(f"요청 제한 테스트 성공: {self.client.last_request_time}")
 
     def test_make_request_program_trade(self):
         """
@@ -162,7 +157,6 @@ class TestKISClient(unittest.TestCase):
         self.assertIsNotNone(response)
         if response.get('rt_cd') == '0':
             self.assertEqual(response['rt_cd'], '0')
-        print(f"프로그램매매 API 호출 성공: {response}")
 
     def test_make_request_market_cap(self):
         """
@@ -190,7 +184,6 @@ class TestKISClient(unittest.TestCase):
         self.assertIsNotNone(response)
         if response.get('rt_cd') == '0':
             self.assertEqual(response['rt_cd'], '0')
-        print(f"시가총액 순위 API 호출 성공: {response}")
 
 if __name__ == '__main__':
     unittest.main() 
