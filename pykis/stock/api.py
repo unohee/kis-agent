@@ -342,7 +342,7 @@ class StockAPI:
 
     def get_foreign_broker_net_buy(self, code: str, foreign_brokers=None, date: str = None) -> Optional[tuple]:
         """
-        투자자별 매매 동향 API를 활용해 외국계 브로커의 순매수(매수-매도) 합계를 집계합니다.
+        투자자별 매매 동향 API를 활용해 외국계 브로커의 ��매수(매수-매도) 합계를 집계합니다.
         code: 종목코드
         foreign_brokers: 외국계 브로커명 리스트 (기본값 제공)
         date: 조회일자(YYYYMMDD), None이면 오늘
@@ -375,16 +375,16 @@ class StockAPI:
             return None
 
     def get_pbar_tratio(self, code: str, retries: int = 10) -> Optional[dict]:
-        """시간대별 체결강도 조회"""
+        """매물대/거래비중 조회"""
         params = {
             "fid_cond_mrkt_div_code": "J",
             "fid_input_iscd": code,
+            "fid_cond_scr_div_code": "20113",
             "fid_input_hour_1": "",
-            "fid_pw_data_incu_yn": "N"
         }
         return self.client.make_request(
             endpoint=API_ENDPOINTS['PBAR_TRATIO'],
-            tr_id="FHPTJ04040000",
+            tr_id="FHPST01130000",
             params=params,
             retries=retries
         )
@@ -559,5 +559,3 @@ class StockAPI:
         except Exception as e:
             logging.error(f"Error checking holiday status for {date}: {e}")
             return None
-
-
