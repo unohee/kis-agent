@@ -91,4 +91,7 @@ env/
 src/kis/core/credit/KIS_Token.json
 
 # Development config
-kis_devlp.yaml 
+kis_devlp.yaml
+stonks_candles.db
+test_api_call.py
+test_token.py 

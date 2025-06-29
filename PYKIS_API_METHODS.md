@@ -78,18 +78,77 @@ quantity = agent.get_account_order_quantity("005930")
 possible = agent.get_possible_order("005930", "75000", "01")
 ```
 
-### `order_stock_cash(code, price, quantity, order_type="01")`
-**설명**: 현금 주식 주문  
+### `order_credit(code, qty, price, order_type)`
+**설���**: 신용 주문  
 **매개변수**:
 - `code` (str) - 종목코드
-- `price` (str) - 주문가격
-- `quantity` (str) - 주문수량
+- `qty` (int) - 주문수량
+- `price` (int) - 주문가격
 - `order_type` (str) - 주문구분
 
 **반환**: `Dict` - 주문 결과  
 **예시**:
 ```python
-order_result = agent.order_stock_cash("005930", "75000", "10", "01")
+order_result = agent.order_credit("005930", 10, 75000, "00")
+```
+
+### `order_rvsecncl(org_order_no, qty, price, order_type, cncl_type)`
+**설명**: 주문 정정/취소  
+**매개변수**:
+- `org_order_no` (str) - 원주문번호
+- `qty` (int) - 주문수량
+- `price` (int) - 주문가격
+- `order_type` (str) - 주문구분
+- `cncl_type` (str) - 취소구분
+
+**반환**: `Dict` - 주문 결과  
+**예시**:
+```python
+order_result = agent.order_rvsecncl("12345", 10, 75000, "00", "02")
+```
+
+### `inquire_psbl_rvsecncl()`
+**설명**: 정정/취소 가능 주문 조회  
+**반환**: `Dict` - 주문 가능 정보  
+**예시**:
+```python
+possible_orders = agent.inquire_psbl_rvsecncl()
+```
+
+### `order_resv(code, qty, price, order_type)`
+**설명**: 예약 주문  
+**매개변수**:
+- `code` (str) - 종목코드
+- `qty` (int) - 주문수량
+- `price` (int) - 주문가격
+- `order_type` (str) - 주문구분
+
+**반환**: `Dict` - 주문 결과  
+**예시**:
+```python
+order_result = agent.order_resv("005930", 10, 75000, "00")
+```
+
+### `order_resv_rvsecncl(seq, qty, price, order_type)`
+**설명**: 예약 주문 정정/취소  
+**매개변수**:
+- `seq` (int) - 예약주문순번
+- `qty` (int) - 주문수량
+- `price` (int) - 주문가격
+- `order_type` (str) - 주문구분
+
+**반환**: `Dict` - 주문 결과  
+**예시**:
+```python
+order_result = agent.order_resv_rvsecncl(12345, 10, 75000, "00")
+```
+
+### `order_resv_ccnl()`
+**설명**: 예약 주문 조회  
+**반환**: `Dict` - 주문 정보  
+**예시**:
+```python
+reserved_orders = agent.order_resv_ccnl()
 ```
 
 ---

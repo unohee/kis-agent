@@ -1,0 +1,2554 @@
+{
+    "info": {
+        "name": "실전투자(실전Env) - [국내주식] 주문/계좌",
+        "schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "[국내주식] 주문/계좌",
+            "item": [
+                {
+                    "name": "J_주식주문(현금)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "pm.sendRequest({\r",
+                                    "    url: pm.environment.get('PROD')+'/uapi/hashkey',\r",
+                                    "    method: 'POST',\r",
+                                    "    header: {\r",
+                                    "    'Content-Type': 'application/json',\r",
+                                    "    'appKey': pm.environment.get('PROD_APPKEY'),\r",
+                                    "    'appSecret': pm.environment.get('PROD_APPSECRET')\r",
+                                    "    },\r",
+                                    "    body: {mode: 'raw', raw: request.data}\r",
+                                    "    \r",
+                                    "}, function (err, res) {\r",
+                                    "    res_data = res.json();\r",
+                                    "    console.log(res_data);\r",
+                                    "\r",
+                                    "    // 환경변수 값 세팅 \r",
+                                    "    pm.environment.set(\"PROD_HASH\", res.json().HASH);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC0802U",
+                                "description": "[실전투자]\nTTTC0802U : 주식 현금 매수 주문\nTTTC0801U : 주식 현금 매도 주문\n[모의투자]\nVTTC0802U : 주식 현금 매수 주문\nVTTC0801U : 주식 현금 매도 주문",
+                                "type": "text"
+                            },
+                            {
+                                "key": "hashkey",
+                                "value": "{{PROD_HASH}}",
+                                "description": "[POST API 대상] Client가 요청하는 Request Body를 hashkey api로 생성한 Hash값\n* API문서 > hashkey 참조",
+                                "type": "default",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"CANO\": \"{{CANO_REAL}}\",\r\n    \"ACNT_PRDT_CD\": \"01\",\r\n    \"PDNO\": \"136480\",\r\n    \"ORD_DVSN\": \"00\",\r\n    \"ORD_QTY\": \"1\",\r\n    \"ORD_UNPR\": \"2500\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{PROD}}/uapi/domestic-stock/v1/trading/order-cash"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식주문(신용)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "pm.sendRequest({\r",
+                                    "    url: pm.environment.get('PROD')+'/uapi/hashkey',\r",
+                                    "    method: 'POST',\r",
+                                    "    header: {\r",
+                                    "    'Content-Type': 'application/json',\r",
+                                    "    'appKey': pm.environment.get('PROD_APPKEY'),\r",
+                                    "    'appSecret': pm.environment.get('PROD_APPSECRET')\r",
+                                    "    },\r",
+                                    "    body: {mode: 'raw', raw: request.data}\r",
+                                    "    \r",
+                                    "}, function (err, res) {\r",
+                                    "    res_data = res.json();\r",
+                                    "    console.log(res_data);\r",
+                                    "\r",
+                                    "    // 환경변수 값 세팅 \r",
+                                    "    pm.environment.set(\"PROD_HASH\", res.json().HASH);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC0852U",
+                                "description": "[실전투자]\nTTTC0852U : 주식 신용매수 주문\nTTTC0851U : 주식 신용매도 주문\n* 모의투자 사용 불가",
+                                "type": "text"
+                            },
+                            {
+                                "key": "hashkey",
+                                "value": "{{PROD_HASH}}",
+                                "description": "[POST API 대상] Client가 요청하는 Request Body를 hashkey api로 생성한 Hash값\n* API문서 > hashkey 참조",
+                                "type": "default",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"CANO\": \"{{CANO_REAL}}\",\r\n    \"ACNT_PRDT_CD\": \"01\",\r\n    \"PDNO\": \"005930\",\r\n    \"CRDT_TYPE\": \"21\",\r\n    \"LOAN_DT\": \"20220810\",\r\n    \"ORD_DVSN\": \"00\",\r\n    \"ORD_QTY\": \"1\",\r\n    \"ORD_UNPR\": \"55000\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{PROD}}/uapi/domestic-stock/v1/trading/order-credit"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식주문(정정취소)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "pm.sendRequest({\r",
+                                    "    url: pm.environment.get('PROD')+'/uapi/hashkey',\r",
+                                    "    method: 'POST',\r",
+                                    "    header: {\r",
+                                    "    'Content-Type': 'application/json',\r",
+                                    "    'appKey': pm.environment.get('PROD_APPKEY'),\r",
+                                    "    'appSecret': pm.environment.get('PROD_APPSECRET')\r",
+                                    "    },\r",
+                                    "    body: {mode: 'raw', raw: request.data}\r",
+                                    "\r",
+                                    "}, function (err, res) {\r",
+                                    "    res_data = res.json();\r",
+                                    "    console.log(res_data);\r",
+                                    "\r",
+                                    "    // 환경변수 값 세팅 \r",
+                                    "    pm.environment.set(\"PROD_HASH\", res.json().HASH);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC0803U",
+                                "description": "[실전투자]\nTTTC0803U : 주식 정정 취소 주문\n[모의투자]\nVTTC0803U : 주식 정정 취소 주문",
+                                "type": "text"
+                            },
+                            {
+                                "key": "hashkey",
+                                "value": "{{PROD_HASH}}",
+                                "description": "[POST API 대상] Client가 요청하는 Request Body를 hashkey api로 생성한 Hash값\n* API문서 > hashkey 참조",
+                                "type": "default",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"CANO\": \"{{CANO_REAL}}\",\r\n    \"ACNT_PRDT_CD\": \"01\",\r\n    \"KRX_FWDG_ORD_ORGNO\": \"06010\",\r\n    \"ORGN_ODNO\": \"0000002101\",\r\n    \"ORD_DVSN\": \"00\",\r\n    \"RVSE_CNCL_DVSN_CD\": \"02\",\r\n    \"ORD_QTY\": \"1\",\r\n    \"ORD_UNPR\": \"55000\",\r\n    \"QTY_ALL_ORD_YN\": \"Y\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{PROD}}/uapi/domestic-stock/v1/trading/order-rvsecncl"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식정정취소가능주문조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8036R",
+                                "description": "[실전투자]\nTTTC8036R : 주식 정정 취소 가능 주문 조회\n* 모의투자 사용 불가",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&CTX_AREA_FK100=&CTX_AREA_NK100=&INQR_DVSN_1=1&INQR_DVSN_2=0",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-psbl-rvsecncl"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_NK100 값 : 다음페이지 조회시(2번째부터)"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_NK100 값 : 다음페이지 조회시(2번째부터)"
+                                },
+                                {
+                                    "key": "INQR_DVSN_1",
+                                    "value": "1",
+                                    "description": "조회구분1\n0 : 조회순서\n1 : 주문순\n2 : 종목순"
+                                },
+                                {
+                                    "key": "INQR_DVSN_2",
+                                    "value": "0",
+                                    "description": "조회구분2\n0 : 전체\n1 : 매도\n2 : 매수"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식일별주문체결조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8001R",
+                                "description": "[실전투자]\nTTTC8001R : 주식 일별 주문 체결 조회(3개월이내)\nCTSC9115R : 주식 일별 주문 체결 조회(3개월이전)\n\n[모의투자]\nVTTC8001R : 주식 일별 주문 체결 조회(3개월이내)\nVTSC9115R : 주식 일별 주문 체결 조회(3개월이전)\n* 일별 조회로, 당일 주문내역은 지연될 수 있습니다.",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-daily-ccld?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&INQR_STRT_DT=20220810&INQR_END_DT=20220810&SLL_BUY_DVSN_CD=00&INQR_DVSN=00&PDNO=005930&CCLD_DVSN=00&ORD_GNO_BRNO=&ODNO=&INQR_DVSN_3=00&INQR_DVSN_1=&CTX_AREA_FK100=&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-daily-ccld"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "INQR_STRT_DT",
+                                    "value": "20220810",
+                                    "description": "조회시작일자(YYYYMMDD)"
+                                },
+                                {
+                                    "key": "INQR_END_DT",
+                                    "value": "20220810",
+                                    "description": "조회종료일자(YYYYMMDD)"
+                                },
+                                {
+                                    "key": "SLL_BUY_DVSN_CD",
+                                    "value": "00",
+                                    "description": "매도매수구분코드\n00 : 전체\n01 : 매도\n02 : 매수"
+                                },
+                                {
+                                    "key": "INQR_DVSN",
+                                    "value": "00",
+                                    "description": "조회구분\n00 : 역순\n01 : 정순"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "005930",
+                                    "description": "종목번호(6자리)"
+                                },
+                                {
+                                    "key": "CCLD_DVSN",
+                                    "value": "00",
+                                    "description": "체결구분\n00 : 전체\n01 : 체결\n02 : 미체결"
+                                },
+                                {
+                                    "key": "ORD_GNO_BRNO",
+                                    "value": "",
+                                    "description": "주문시 한국투자증권 시스템에서 지정된 영업점코드"
+                                },
+                                {
+                                    "key": "ODNO",
+                                    "value": "",
+                                    "description": "주문시 한국투자증권 시스템에서 채번된 주문번호"
+                                },
+                                {
+                                    "key": "INQR_DVSN_3",
+                                    "value": "00",
+                                    "description": "조회구분3\n00 : 전체\n01 : 현금\n02 : 융자\n03 : 대출\n04 : 대주"
+                                },
+                                {
+                                    "key": "INQR_DVSN_1",
+                                    "value": "",
+                                    "description": "조회구분1\n공란 : 전체\n1 : ELW\n2 : 프리보드"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_FK100 값 : 다음페이지 조회시(2번째부터)"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_NK100 값 : 다음페이지 조회시(2번째부터)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식잔고조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8434R",
+                                "description": "[실전투자]\nTTTC8434R : 주식 잔고 조회\n\n[모의투자]\nVTTC8434R : 주식 잔고 조회",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "text"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-balance?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&AFHR_FLPR_YN=N&OFL_YN=&INQR_DVSN=01&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=00&CTX_AREA_FK100&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-balance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "AFHR_FLPR_YN",
+                                    "value": "N",
+                                    "description": "시간외단일가여부\nN : 기본값\nY : 시간외단일가"
+                                },
+                                {
+                                    "key": "OFL_YN",
+                                    "value": "",
+                                    "description": "공란(Default)"
+                                },
+                                {
+                                    "key": "INQR_DVSN",
+                                    "value": "01",
+                                    "description": "조회구분\n01 : 대출일별\n02 : 종목별"
+                                },
+                                {
+                                    "key": "UNPR_DVSN",
+                                    "value": "01",
+                                    "description": "단가구분\n01 : 기본값"
+                                },
+                                {
+                                    "key": "FUND_STTL_ICLD_YN",
+                                    "value": "N",
+                                    "description": "펀드결제분포함여부\nN : 포함하지 않음\nY : 포함"
+                                },
+                                {
+                                    "key": "FNCG_AMT_AUTO_RDPT_YN",
+                                    "value": "N",
+                                    "description": "융자금액자동상환여부\nN : 기본값"
+                                },
+                                {
+                                    "key": "PRCS_DVSN",
+                                    "value": "00",
+                                    "description": "처리구분\n00 : 전일매매포함\n01 : 전일매매미포함"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": null,
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_FK100 값 : 다음페이지 조회시(2번째부터)"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_NK100 값 : 다음페이지 조회시(2번째부터)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_매수가능조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8908R",
+                                "description": "[실전투자]\nTTTC8908R : 매수 가능 조회\n\n[모의투자]\nVTTC8908R : 매수 가능 조회",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-psbl-order?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&PDNO=205470&ORD_UNPR=2000&ORD_DVSN=00&OVRS_ICLD_YN=N&CMA_EVLU_AMT_ICLD_YN=N",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-psbl-order"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "205470",
+                                    "description": "종목번호 (6자리)"
+                                },
+                                {
+                                    "key": "ORD_UNPR",
+                                    "value": "2000",
+                                    "description": "주문단가(1주당 가격)"
+                                },
+                                {
+                                    "key": "ORD_DVSN",
+                                    "value": "00",
+                                    "description": "주문구분\n00 : 지정가\n01 : 시장가\n02 : 조건부지정가\n03 : 최유리지정가\n04 : 최우선지정가\n05 : 장전 시간외\n06 : 장후 시간외\n07 : 시간외 단일가\n08 : 자기주식\n09 : 자기주식S-Option\n10 : 자기주식금전신탁\n11 : IOC지정가 (즉시체결,잔량취소)\n12 : FOK지정가 (즉시체결,전량취소)\n13 : IOC시장가 (즉시체결,잔량취소)\n14 : FOK시장가 (즉시체결,전량취소)\n15 : IOC최유리 (즉시체결,잔량취소)\n16 : FOK최유리 (즉시체결,전량취소)\n51 : 장중대량\n52 : 장중바스켓\n62 : 장개시전 시간외대량\n63 : 장개시전 시간외바스켓\n67 : 장개시전 금전신탁자사주\n69 : 장개시전 자기주식\n72 : 시간외대량\n77 : 시간외자사주신탁\n79 : 시간외대량자기주식\n80 : 바스켓"
+                                },
+                                {
+                                    "key": "OVRS_ICLD_YN",
+                                    "value": "N",
+                                    "description": "CMA평가금액포함여부\nY : 포함\nN : 포함하지 않음"
+                                },
+                                {
+                                    "key": "CMA_EVLU_AMT_ICLD_YN",
+                                    "value": "N",
+                                    "description": "해외포함여부\nY : 포함\nN : 포함하지 않음"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식예약주문",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "pm.sendRequest({\r",
+                                    "    url: pm.environment.get('PROD')+'/uapi/hashkey',\r",
+                                    "    method: 'POST',\r",
+                                    "    header: {\r",
+                                    "    'Content-Type': 'application/json',\r",
+                                    "    'appKey': pm.environment.get('PROD_APPKEY'),\r",
+                                    "    'appSecret': pm.environment.get('PROD_APPSECRET')\r",
+                                    "    },\r",
+                                    "    body: {mode: 'raw', raw: request.data}\r",
+                                    "    \r",
+                                    "}, function (err, res) {\r",
+                                    "    res_data = res.json();\r",
+                                    "    console.log(res_data);\r",
+                                    "\r",
+                                    "    // 환경변수 값 세팅 \r",
+                                    "    pm.environment.set(\"PROD_HASH\", res.json().HASH);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "CTSC0008U",
+                                "description": "[실전투자]\nCTSC0008U : 국내예약매수입력/주문예약매도입력",
+                                "type": "text"
+                            },
+                            {
+                                "key": "hashkey",
+                                "value": "{{PROD_HASH}}",
+                                "type": "default",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"CANO\": \"{{CANO_REAL}}\",\r\n    \"ACNT_PRDT_CD\": \"01\",\r\n    \"PDNO\": \"005930\",\r\n    \"ORD_QTY\": \"1\",\r\n    \"ORD_UNPR\": \"55000\",\r\n    \"SLL_BUY_DVSN_CD\": \"02\",\r\n    \"ORD_DVSN_CD\": \"00\",\r\n    \"ORD_OBJT_CBLC_DVSN_CD\": \"10\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{PROD}}/uapi/domestic-stock/v1/trading/order-resv"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식예약주문정정취소(취소)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "pm.sendRequest({\r",
+                                    "    url: pm.environment.get('PROD')+'/uapi/hashkey',\r",
+                                    "    method: 'POST',\r",
+                                    "    header: {\r",
+                                    "    'Content-Type': 'application/json',\r",
+                                    "    'appKey': pm.environment.get('PROD_APPKEY'),\r",
+                                    "    'appSecret': pm.environment.get('PROD_APPSECRET')\r",
+                                    "    },\r",
+                                    "    body: {mode: 'raw', raw: request.data}\r",
+                                    "    \r",
+                                    "}, function (err, res) {\r",
+                                    "    res_data = res.json();\r",
+                                    "    console.log(res_data);\r",
+                                    "\r",
+                                    "    // 환경변수 값 세팅 \r",
+                                    "    pm.environment.set(\"PROD_HASH\", res.json().HASH);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "CTSC0009U",
+                                "description": "[실전투자]\nCTSC0009U : 국내주식예약취소주문\nCTSC0013U : 국내주식예약정정주문\n* 모의투자 사용 불가",
+                                "type": "text"
+                            },
+                            {
+                                "key": "hashkey",
+                                "value": "{{PROD_HASH}}",
+                                "type": "default",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"CANO\": \"{{CANO_REAL}}\",\r\n    \"ACNT_PRDT_CD\": \"01\",\r\n    \"RSVN_ORD_SEQ\": \"94877\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{PROD}}/uapi/domestic-stock/v1/trading/order-resv-rvsecncl"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식예약주문정정취소(정정)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "pm.sendRequest({\r",
+                                    "    url: pm.environment.get('PROD')+'/uapi/hashkey',\r",
+                                    "    method: 'POST',\r",
+                                    "    header: {\r",
+                                    "    'Content-Type': 'application/json',\r",
+                                    "    'appKey': pm.environment.get('PROD_APPKEY'),\r",
+                                    "    'appSecret': pm.environment.get('PROD_APPSECRET')\r",
+                                    "    },\r",
+                                    "    body: {mode: 'raw', raw: request.data}\r",
+                                    "    \r",
+                                    "}, function (err, res) {\r",
+                                    "    res_data = res.json();\r",
+                                    "    console.log(res_data);\r",
+                                    "\r",
+                                    "    // 환경변수 값 세팅 \r",
+                                    "    pm.environment.set(\"PROD_HASH\", res.json().HASH);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "CTSC0013U",
+                                "description": "[실전투자]\nCTSC0009U : 국내주식예약취소주문\nCTSC0013U : 국내주식예약정정주문\n* 모의투자 사용 불가",
+                                "type": "text"
+                            },
+                            {
+                                "key": "hashkey",
+                                "value": "{{PROD_HASH}}",
+                                "type": "default",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"CANO\": \"{{CANO_REAL}}\",\r\n    \"ACNT_PRDT_CD\": \"01\",\r\n    \"PDNO\": \"005930\",\r\n    \"ORD_QTY\": \"2\",\r\n    \"ORD_UNPR\": \"55000\",\r\n    \"SLL_BUY_DVSN_CD\": \"02\",\r\n    \"ORD_DVSN_CD\": \"00\",\r\n    \"ORD_OBJT_CBLC_DVSN_CD\": \"10\",\r\n    \"RSVN_ORD_SEQ\": \"88793\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{PROD}}/uapi/domestic-stock/v1/trading/order-resv-rvsecncl"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식예약주문조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "CTSC0004R",
+                                "description": "[실전투자]\nCTSC0004R : 국내주식예약주문조회\n* 모의투자 사용 불가",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/order-resv-ccnl?RSVN_ORD_ORD_DT=20220729&RSVN_ORD_END_DT=20220810&RSVN_ORD_SEQ&TMNL_MDIA_KIND_CD=00&CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&PRCS_DVSN_CD=0&CNCL_YN=Y&PDNO=&SLL_BUY_DVSN_CD&CTX_AREA_FK200=&CTX_AREA_NK200=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "order-resv-ccnl"
+                            ],
+                            "query": [
+                                {
+                                    "key": "RSVN_ORD_ORD_DT",
+                                    "value": "20220729",
+                                    "description": "예약주문종료일자(YYYYMMDD)"
+                                },
+                                {
+                                    "key": "RSVN_ORD_END_DT",
+                                    "value": "20220810",
+                                    "description": "예약주문종료일자(YYYYMMDD)"
+                                },
+                                {
+                                    "key": "RSVN_ORD_SEQ",
+                                    "value": null,
+                                    "description": "예약주문순번(공백 입력)"
+                                },
+                                {
+                                    "key": "TMNL_MDIA_KIND_CD",
+                                    "value": "00",
+                                    "description": "단말매체종류코드(\"00\" 입력)"
+                                },
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "PRCS_DVSN_CD",
+                                    "value": "0",
+                                    "description": "처리구분코드(\"0\" 입력)"
+                                },
+                                {
+                                    "key": "CNCL_YN",
+                                    "value": "Y",
+                                    "description": "취소여부(\"Y\" 입력, 유효한 주문만 조회)"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "",
+                                    "description": "종목코드(6자리) (공백 입력 시 전체 조회)"
+                                },
+                                {
+                                    "key": "SLL_BUY_DVSN_CD",
+                                    "value": null,
+                                    "description": "매도매수구분코드(공백 입력)"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK200",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_FK100 값 : 다음페이지 조회시(2번째부터)"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK200",
+                                    "value": "",
+                                    "description": "공란 : 최초 조회시\n이전 조회 Output CTX_AREA_NK100 값 : 다음페이지 조회시(2번째부터)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_퇴직연금체결기준잔고",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC2202R",
+                                "description": "TTTC2202R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "custtype",
+                                "value": "P",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/pension/inquire-present-balance?CANO={{CANO_REAL}}&ACNT_PRDT_CD=29&USER_DVSN_CD=00&CTX_AREA_FK100=&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "pension",
+                                "inquire-present-balance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "종합계좌번호"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "29",
+                                    "description": "계좌상품코드"
+                                },
+                                {
+                                    "key": "USER_DVSN_CD",
+                                    "value": "00",
+                                    "description": "사용자구분코드"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "연속조회검색조건100"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "연속조회키100"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_퇴직연금 미체결내역",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC2201R",
+                                "description": "TTTC2201R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "custtype",
+                                "value": "P",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/pension/inquire-daily-ccld?CANO={{CANO_REAL}}&ACNT_PRDT_CD=29&USER_DVSN_CD=%%&SLL_BUY_DVSN_CD=00&CCLD_NCCS_DVSN=%%&INQR_DVSN_3=00&CTX_AREA_FK100=&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "pension",
+                                "inquire-daily-ccld"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "종합계좌번호"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "29",
+                                    "description": "계좌상품코드"
+                                },
+                                {
+                                    "key": "USER_DVSN_CD",
+                                    "value": "%%",
+                                    "description": "사용자구분코드"
+                                },
+                                {
+                                    "key": "SLL_BUY_DVSN_CD",
+                                    "value": "00",
+                                    "description": "매도매수구분코드\n00 : 전체 / 01 : 매도 / 02 : 매수"
+                                },
+                                {
+                                    "key": "CCLD_NCCS_DVSN",
+                                    "value": "%%",
+                                    "description": "체결미체결구분\n%% : 전체 / 01 : 체결 / 02 : 미체결"
+                                },
+                                {
+                                    "key": "INQR_DVSN_3",
+                                    "value": "00",
+                                    "description": "조회구분3\n00 : 전체"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "연속조회검색조건100"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "연속조회키100"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_퇴직연금 매수가능조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC0503R",
+                                "description": "TTTC2201R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "custtype",
+                                "value": "P",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order?CANO={{CANO_REAL}}&ACNT_PRDT_CD=29&PDNO=069500&ORD_UNPR=30800&ORD_DVSN=00&CMA_EVLU_AMT_ICLD_YN=Y&ACCA_DVSN_CD=00",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "pension",
+                                "inquire-psbl-order"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "종합계좌번호"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "29",
+                                    "description": "계좌상품코드"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "069500",
+                                    "description": "상품번호"
+                                },
+                                {
+                                    "key": "ORD_UNPR",
+                                    "value": "30800",
+                                    "description": "주문단가"
+                                },
+                                {
+                                    "key": "ORD_DVSN",
+                                    "value": "00",
+                                    "description": "주문구분\n00 : 지정가 / 01 : 시장가"
+                                },
+                                {
+                                    "key": "CMA_EVLU_AMT_ICLD_YN",
+                                    "value": "Y",
+                                    "description": "CMA평가금액포함여부"
+                                },
+                                {
+                                    "key": "ACCA_DVSN_CD",
+                                    "value": "00",
+                                    "description": "적립금구분코드"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_퇴직연금 예수금조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC0506R",
+                                "description": "TTTC2201R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "custtype",
+                                "value": "P",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/pension/inquire-deposit?CANO={{CANO_REAL}}&ACNT_PRDT_CD=29&ACCA_DVSN_CD=00",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "pension",
+                                "inquire-deposit"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "종합계좌번호"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "29",
+                                    "description": "계좌상품코드"
+                                },
+                                {
+                                    "key": "ACCA_DVSN_CD",
+                                    "value": "00",
+                                    "description": "적립금구분코드"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_퇴직연금 잔고조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC2208R",
+                                "description": "TTTC2208R",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/pension/inquire-balance?CANO={{CANO_REAL}}&ACNT_PRDT_CD=29&ACCA_DVSN_CD=00&INQR_DVSN=00&CTX_AREA_FK100&CTX_AREA_NK100",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "pension",
+                                "inquire-balance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "종합계좌번호"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "29",
+                                    "description": "계좌상품코드"
+                                },
+                                {
+                                    "key": "ACCA_DVSN_CD",
+                                    "value": "00",
+                                    "description": "적립금구분코드"
+                                },
+                                {
+                                    "key": "INQR_DVSN",
+                                    "value": "00",
+                                    "description": "조회구분\n00 : 전체"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": null,
+                                    "description": "연속조회검색조건100"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": null,
+                                    "description": "연속조회키100"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_주식잔고조회_실현손익",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8494R",
+                                "description": "[실전투자]\nTTTC8494R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "custtype",
+                                "value": "P",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-balance-rlz-pl?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&AFHR_FLPR_YN=N&OFL_YN=&INQR_DVSN=02&UNPR_DVSN=01&FUND_STTL_ICLD_YN=N&FNCG_AMT_AUTO_RDPT_YN=N&PRCS_DVSN=01&COST_ICLD_YN=N&CTX_AREA_FK100=&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-balance-rlz-pl"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "종합계좌번호\n계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌상품코드\n계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "AFHR_FLPR_YN",
+                                    "value": "N",
+                                    "description": "시간외단일가여부\nN : 기본값\nY : 시간외단일가"
+                                },
+                                {
+                                    "key": "OFL_YN",
+                                    "value": "",
+                                    "description": "오프라인여부(공란)"
+                                },
+                                {
+                                    "key": "INQR_DVSN",
+                                    "value": "02",
+                                    "description": "조회구분(00 : 전체)"
+                                },
+                                {
+                                    "key": "UNPR_DVSN",
+                                    "value": "01",
+                                    "description": "단가구분(01 : 기본값)"
+                                },
+                                {
+                                    "key": "FUND_STTL_ICLD_YN",
+                                    "value": "N",
+                                    "description": "펀드결제포함여부\nN : 포함하지 않음\nY : 포함"
+                                },
+                                {
+                                    "key": "FNCG_AMT_AUTO_RDPT_YN",
+                                    "value": "N",
+                                    "description": "융자금액자동상환여부\nN : 기본값"
+                                },
+                                {
+                                    "key": "PRCS_DVSN",
+                                    "value": "01",
+                                    "description": "처리구분코드\n00 : 전일매매포함\n01 : 전일매매미포함"
+                                },
+                                {
+                                    "key": "COST_ICLD_YN",
+                                    "value": "N",
+                                    "description": "비용포함여부\nN : 포함하지 않음\nY : 포함"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "연속조회검색조건100\n공란 : 최초 조회시\n이전 조회 Output CTX_AREA_FK100 값 : 다음페이지 조회시(2번째부터\n"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "연속조회키100\n공란 : 최초 조회시\n이전 조회 Output CTX_AREA_NK100 값 : 다음페이지 조회시(2번째부터)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_신용매수가능조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8909R",
+                                "description": "[실전투자]\nTTTC8909R",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-credit-psamount?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&PDNO=005930&ORD_UNPR=60000&ORD_DVSN=01&CRDT_TYPE=21&OVRS_ICLD_YN=N&CMA_EVLU_AMT_ICLD_YN=N",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-credit-psamount"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "005930",
+                                    "description": "종목번호 (6자리)"
+                                },
+                                {
+                                    "key": "ORD_UNPR",
+                                    "value": "60000",
+                                    "description": "주문단가(1주당 가격)"
+                                },
+                                {
+                                    "key": "ORD_DVSN",
+                                    "value": "01",
+                                    "description": "주문구분\n00 : 지정가\n01 : 시장가\n02 : 조건부지정가\n03 : 최유리지정가\n04 : 최우선지정가\n05 : 장전 시간외\n06 : 장후 시간외\n07 : 시간외 단일가\n08 : 자기주식\n09 : 자기주식S-Option\n10 : 자기주식금전신탁\n11 : IOC지정가 (즉시체결,잔량취소)\n12 : FOK지정가 (즉시체결,전량취소)\n13 : IOC시장가 (즉시체결,잔량취소)\n14 : FOK시장가 (즉시체결,전량취소)\n15 : IOC최유리 (즉시체결,잔량취소)\n16 : FOK최유리 (즉시체결,전량취소)\n51 : 장중대량\n52 : 장중바스켓\n62 : 장개시전 시간외대량\n63 : 장개시전 시간외바스켓\n67 : 장개시전 금전신탁자사주\n69 : 장개시전 자기주식\n72 : 시간외대량\n77 : 시간외자사주신탁\n79 : 시간외대량자기주식\n80 : 바스켓"
+                                },
+                                {
+                                    "key": "CRDT_TYPE",
+                                    "value": "21",
+                                    "description": "신용유형\n21 : 자기융자신규\n23 : 유통융자신규\n26 : 유통대주상환\n28 : 자기대주상환\n25 : 자기융자상환\n27 : 유통융자상환\n22 : 유통대주신규\n24 : 자기대주신규"
+                                },
+                                {
+                                    "key": "OVRS_ICLD_YN",
+                                    "value": "N",
+                                    "description": "CMA평가금액포함여부\nY : 포함\nN : 포함하지 않음"
+                                },
+                                {
+                                    "key": "CMA_EVLU_AMT_ICLD_YN",
+                                    "value": "N",
+                                    "description": "해외포함여부\nY : 포함\nN : 포함하지 않음"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_투자계좌자산현황조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "CTRP6548R",
+                                "description": "[실전투자]\nCTRP6548R",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "text"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-account-balance?CANO={{CANO_REAL}}&ACNT_PRDT_CD=21&INQR_DVSN_1&BSPR_BF_DT_APLY_YN",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-account-balance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "21",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "INQR_DVSN_1",
+                                    "value": null,
+                                    "description": "조회구분1(공백입력)"
+                                },
+                                {
+                                    "key": "BSPR_BF_DT_APLY_YN",
+                                    "value": null,
+                                    "description": "기준가이전일자적용여부(공백입력)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_기간별매매손익현황조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8715R",
+                                "description": "[실전투자]\nTTTC8715R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_cont",
+                                "value": "",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "text"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-period-trade-profit?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&PDNO=&INQR_STRT_DT=20230216&INQR_END_DT=20240301&SORT_DVSN=02&CBLC_DVSN=00&CTX_AREA_FK100=&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-period-trade-profit"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "",
+                                    "description": "상품번호(\"\"공란입력 시, 전체)"
+                                },
+                                {
+                                    "key": "INQR_STRT_DT",
+                                    "value": "20230216",
+                                    "description": "조회시작일자"
+                                },
+                                {
+                                    "key": "INQR_END_DT",
+                                    "value": "20240301",
+                                    "description": "조회종료일자"
+                                },
+                                {
+                                    "key": "SORT_DVSN",
+                                    "value": "02",
+                                    "description": "정렬구분\n00: 최근 순, 01: 과거 순, 02: 최근 순"
+                                },
+                                {
+                                    "key": "CBLC_DVSN",
+                                    "value": "00",
+                                    "description": "잔고구분(00: 전체)"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "연속조회검색조건100"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "연속조회키100"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_기간별손익일별합산조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    },
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8708R",
+                                "description": "[실전투자]\nTTTC8708R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_cont",
+                                "value": "",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "",
+                            "options": {
+                                "raw": {
+                                    "language": "text"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-period-profit?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&PDNO=&INQR_STRT_DT=20230101&INQR_END_DT=20240301&SORT_DVSN=00&INQR_DVSN=00&CBLC_DVSN=00&CTX_AREA_FK100=&CTX_AREA_NK100=",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-period-profit"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "",
+                                    "description": "상품번호(\"\"공란입력 시, 전체)"
+                                },
+                                {
+                                    "key": "INQR_STRT_DT",
+                                    "value": "20230101",
+                                    "description": "조회시작일자"
+                                },
+                                {
+                                    "key": "INQR_END_DT",
+                                    "value": "20240301",
+                                    "description": "조회종료일자"
+                                },
+                                {
+                                    "key": "SORT_DVSN",
+                                    "value": "00",
+                                    "description": "정렬구분\n00: 최근 순, 01: 과거 순, 02: 최근 순"
+                                },
+                                {
+                                    "key": "INQR_DVSN",
+                                    "value": "00",
+                                    "description": "조회구분(00 입력)"
+                                },
+                                {
+                                    "key": "CBLC_DVSN",
+                                    "value": "00",
+                                    "description": "잔고구분(00: 전체)"
+                                },
+                                {
+                                    "key": "CTX_AREA_FK100",
+                                    "value": "",
+                                    "description": "연속조회검색조건100"
+                                },
+                                {
+                                    "key": "CTX_AREA_NK100",
+                                    "value": "",
+                                    "description": "연속조회키100"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "J_매도가능수량조회",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json",
+                                "description": "application/json; charset=utf-8",
+                                "type": "text"
+                            },
+                            {
+                                "key": "authorization",
+                                "value": "Bearer {{PROD_TOKEN}}",
+                                "description": "OAuth 토큰이 필요한 API 경우 발급한 Access token\n일반고객(Access token 유효기간 1일, OAuth 2.0의 Client Credentials Grant 절차를 준용)\n법인(Access token 유효기간 3개월, Refresh token 유효기간 1년, OAuth 2.0의 Authorization Code Grant 절차를 준용)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appkey",
+                                "value": "{{PROD_APPKEY}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appkey (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "appsecret",
+                                "value": "{{PROD_APPSECRET}}",
+                                "description": "한국투자증권 홈페이지에서 발급받은 appsecret (절대 노출되지 않도록 주의해주세요.)",
+                                "type": "text"
+                            },
+                            {
+                                "key": "tr_id",
+                                "value": "TTTC8408R",
+                                "description": "[실전투자]\nTTTC8408R",
+                                "type": "text"
+                            },
+                            {
+                                "key": "custtype",
+                                "value": "P",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{PROD}}/uapi/domestic-stock/v1/trading/inquire-psbl-sell?CANO={{CANO_REAL}}&ACNT_PRDT_CD=01&PDNO=136480",
+                            "host": [
+                                "{{PROD}}"
+                            ],
+                            "path": [
+                                "uapi",
+                                "domestic-stock",
+                                "v1",
+                                "trading",
+                                "inquire-psbl-sell"
+                            ],
+                            "query": [
+                                {
+                                    "key": "CANO",
+                                    "value": "{{CANO_REAL}}",
+                                    "description": "계좌번호 체계(8-2)의 앞 8자리"
+                                },
+                                {
+                                    "key": "ACNT_PRDT_CD",
+                                    "value": "01",
+                                    "description": "계좌번호 체계(8-2)의 뒤 2자리"
+                                },
+                                {
+                                    "key": "PDNO",
+                                    "value": "136480",
+                                    "description": "종목번호 (6자리)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

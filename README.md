@@ -17,13 +17,13 @@ from pykis import Agent
 agent = Agent()
 
 # 계좌 잔고 조회
-balance = agent.get_balance()
+balance = agent.get_account_balance()
 
 # 현재가 조회
 price = agent.get_stock_price("005930")  # 삼성전자
 
 # 분봉 데이터 조회
-minute_data = agent.get_minute_chart("005930", "093000")  # 9시 30분 데이터
+minute_data = agent.get_minute_price("005930", "093000")  # 9시 30분 데이터
 
 # 조건검색 결과 조회 (통일된 방식)
 condition_stocks = agent.get_condition_stocks("unohee", 0, "N")
@@ -35,7 +35,7 @@ is_holiday = agent.is_holiday("20241225")  # 크리스마스 휴장일 여부
 
 ## 주요 기능
 
-- **계좌 관리**: 잔고 조회, 주문 가능 금액, 총 자산 조회
+- **계좌 관리**: 잔고 조회, 주문 가능 금액, 총 자산 조회, 신용 주문, 주문 정정/취소, 예약 주문
 - **주식 시세**: 국내/해외 주식 현재가, 일별/분봉 시세, 호가 정보
 - **시장 분석**: 체결강도 순위, 등락률 순위, 거래량 순위, 투자자별 매매 동향
 - **재무 정보**: 손익계산서, 재무비율, 성장성/안정성 지표
@@ -44,60 +44,40 @@ is_holiday = agent.is_holiday("20241225")  # 크리스마스 휴장일 여부
 - **휴장일 정보**: 휴장일 조회 및 특정 날짜 휴장일 여부 확인
 - **실시간 데이터**: 실시간 시세 조회
 
-## 최신 업데이트 (v0.1.5)
+## 최신 업데이트 (v0.1.9)
 
-### 🔧 조건검색 API 통일
-- **모든 조건검색 통일**: `condition.py`의 정확한 방식(`tr_id="HHKST03900400"`) 사용
-- **매개변수 통일**: 모든 호출 지점에서 `user_id="unohee"` 사용
-- **응답 처리 개선**: `rt_cd='1'` ("조회가 계속 됩니다") 응답을 정상 처리
-- **Facade 패턴 강화**: Agent를 통한 통합 접근 방식 확립
+### ✨ 새로운 기능
+- **계좌 API 확장**: `pykis.account.api`에 신용 주문, 주문 정정/취소, 예약 주문 등 Postman 컬렉션에 명시된 모든 계좌 관련 API를 구현했습니다.
+- **신규 계좌 API 테스트**: 새로 추가된 계좌 API 메서드에 대한 단위 테스트를 추가하여 안정성을 검증했습니다.
 
-### 📅 휴장일 기능 추가
-- **직접 API 접근**: `get_holiday_info()` 메서드로 휴장일 정보 조회
-- **편의 메서드**: `is_holiday(date)` 메서드로 특정 날짜 휴장일 여부 확인
-- **안정적인 구현**: 기준일 계산 로직 개선 및 재시도 메커니즘 포함
-- **Agent 통합**: 모든 휴장일 기능을 Agent 클래스를 통해 접근
+### 🔧 개선됨
+- **테스트 스크립트 정리**: 모든 테스트 파일에서 불필요한 `print`문과 로깅 호출을 제거하여 테스트 코드의 가독성과 명확성을 높였습니다.
 
-### 🏗️ 아키텍처 개선
-- **일관된 인터페이스**: 모든 기능을 Agent를 통해 접근하도록 통일
-- **적절한 캡슐화**: 내부 API 클래스는 숨기되 기능별 책임 분리 유지
-- **사용자 친화적**: 복잡한 내부 구현을 숨기고 간단한 메서드 제공
+## 이전 업데이트 (v0.1.8)
 
-## 이전 업데이트 (v0.1.4)
-
-### 🔧 API 정확성 향상
-- **체결강도 API**: 올바른 엔드포인트 적용 (`/uapi/domestic-stock/v1/ranking/volume-power`)
-- **등락률 순위**: 국내주식 전용 API로 수정 (`/uapi/domestic-stock/v1/ranking/fluctuation`)
-- **프로그램 매매**: 종목별/시장별 API 명확히 분리
-
-### 🐛 버그 수정
-- 조건검색 무한 재귀 호출 문제 해결
-- 로깅 관련 `logger` 미정의 오류 수정
-- 중복 메서드 제거 및 통합
-
-### 🚀 기능 개선
-- 프로그램 매매 분석 로직을 독립 스크립트로 분리 (`examples/program_trade_analysis.py`)
-- Strategy 모듈 완전 제거 (deprecated)
-- 50개 이상 메서드에 대한 종합 테스트 추가
+### 🗑️ 제거됨
+- `pykis/program/api.py`: 더 이상 사용되지 않는 deprecated 파일 제거.
 
 ## API 메서드 목록
 
 ### 계좌 관련
-- `get_balance()`: 계좌 잔고 조회
+- `get_account_balance()`: 계좌 잔고 조회
 - `get_cash_available()`: 주문 가능 현금 조회
 - `get_total_asset()`: 총 자산 조회
-- `get_possible_order(code, price)`: 주문 가능 수량 조회
-- `order_stock_cash(code, price, quantity, order_type)`: 현금 주식 주문
-- `cancel_order(order_id)`: 주문 취소
-- `get_order_history()`: 주문 내역 조회
+- `get_possible_order_amount(code, price)`: ���문 가능 수량 조회
+- `order_credit(code, qty, price, order_type)`: 신용 주문
+- `order_rvsecncl(org_order_no, qty, price, order_type, cncl_type)`: 주문 정정/취소
+- `inquire_psbl_rvsecncl()`: 정정/취소 가능 주문 조회
+- `order_resv(code, qty, price, order_type)`: 예약 주문
+- `order_resv_rvsecncl(seq, qty, price, order_type)`: 예약 주문 정정/취소
+- `order_resv_ccnl()`: 예약 주문 조회
 
 ### 국내주식 관련
 - `get_stock_price(code)`: 현재가 조회
 - `get_daily_price(code)`: 일별 시세 조회
 - `get_orderbook(code)`: 호가 정보 조회
-- `get_minute_chart(code, time)`: 특정 시간 분봉 데이터 조회
+- `get_minute_price(code, time)`: 특정 시간 분봉 데이터 조회
 - `fetch_minute_data(code, date, cache_dir)`: 당일 전체 분봉 데이터 조회 (캐시 활용)
-- `get_minute_price(code)`: 분봉 시세 정보 조회
 - `get_stock_income(code)`: 손익계산서 조회
 - `get_stock_financial(code)`: 재무비율 조회
 - `get_price_volume_ratio(code)`: 매물대 거래비중 조회
@@ -162,7 +142,7 @@ agent = Agent(account_info={
 price = agent.get_stock_price("005930")  # 삼성전자
 
 # 계좌 잔고 조회
-balance = agent.get_balance()
+balance = agent.get_account_balance()
 
 # 해외주식 시세 조회
 overseas_price = agent.get_overseas_price("AAPL")  # 애플
