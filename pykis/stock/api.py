@@ -525,8 +525,14 @@ class StockAPI:
         from datetime import datetime
         
         try:
-            # 기준일 계산: 입력 날짜가 포함된 월의 첫 번째 날
             target_date = datetime.strptime(date, '%Y%m%d')
+            
+            # 1. 주말(토요일, 일요일) 여부 확인
+            if target_date.weekday() >= 5:  # 5: 토요일, 6: 일요일
+                return True
+
+            # 2. API를 통해 공휴일 정보 확인
+            # 기준일 계산: 입력 날짜가 포함된 월의 첫 번째 날
             base_date_str = target_date.replace(day=1).strftime('%Y%m%d')
             
             holiday_info = self.get_holiday_info(base_date_str)
@@ -538,14 +544,16 @@ class StockAPI:
             output = holiday_info.get('output', [])
             if not output:
                 logging.warning("휴장일 데이터가 비어있습니다")
-                return None
+                # API 응답이 비어있으면 주말이 아닌 이상 거래일로 간주
+                return False
 
             for day_info in output:
                 if day_info.get('bass_dt') == date:
                     is_open = day_info.get('opnd_yn', 'N') == 'Y'
+                    # opnd_yn이 'Y'가 아니면 휴장일
                     return not is_open
 
-            logging.warning(f"날짜 {date}에 대한 정보를 찾을 수 없습니다")
+            # 해당 날짜 정보가 없으면 거래일로 간주
             return False
             
         except Exception as e:
