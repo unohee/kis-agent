@@ -342,7 +342,7 @@ class StockAPI:
 
     def get_foreign_broker_net_buy(self, code: str, foreign_brokers=None, date: str = None) -> Optional[tuple]:
         """
-        투자자별 매매 동향 API를 활용해 외국계 브로커의 ��매수(매수-매도) 합계를 집계합니다.
+        투자자별 매매 동향 API를 활용해 외국계 브로커의 순매수(매수-매도) 합계를 집계합니다.
         code: 종목코드
         foreign_brokers: 외국계 브로커명 리스트 (기본값 제공)
         date: 조회일자(YYYYMMDD), None이면 오늘
@@ -385,6 +385,29 @@ class StockAPI:
         return self.client.make_request(
             endpoint=API_ENDPOINTS['PBAR_TRATIO'],
             tr_id="FHPST01130000",
+            params=params,
+            retries=retries
+        )
+
+    def get_hourly_conclusion(self, code: str, hour: str = "115959", retries: int = 10) -> Optional[dict]:
+        """시간대별 체결 조회
+        
+        Args:
+            code: 종목코드 (6자리)
+            hour: 기준시간-이전체결처리 (6자리, HHMMSS 형식, 기본값: 115959)
+            retries: 재시도 횟수
+            
+        Returns:
+            Optional[dict]: 시간대별 체결 정보
+        """
+        params = {
+            "fid_cond_mrkt_div_code": "J",
+            "fid_input_iscd": code,
+            "fid_input_hour_1": hour,
+        }
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['INQUIRE_TIME_ITEMCONCLUSION'],
+            tr_id="FHPST01060000",
             params=params,
             retries=retries
         )

@@ -85,7 +85,8 @@ is_holiday = agent.is_holiday("20241225")  # 크리스마스 휴장일 여부
 - `get_stock_basic(code)`: 주식 기본 정보 조회
 - `get_stock_investor(ticker)`: 투자자별 매매 동향 조회
 - `get_foreign_broker_net_buy(code, foreign_brokers, date)`: 외국계 증권사 순매수 조회
-- `get_pbar_tratio(code)`: 시간대별 체결강도 조회
+- `get_pbar_tratio(code)`: 매물대/거래비중 조회
+- `get_hourly_conclusion(code, hour)`: 시간대별 체결 조회
 - `get_overtime(code)`: 시간외 체결 정보 조회
 - `get_daily_chart(code, start_date, end_date)`: 일별 차트 정보 조회
 

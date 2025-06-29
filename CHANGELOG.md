@@ -7,7 +7,14 @@
 ### 수정됨
 - **`get_pbar_tratio` 메서드 수정**
   - `get_pbar_tratio` 메서드의 docstring, `tr_id`, 파라미터를 수정하여 "매물대/거래비중 조회" 기능이 올바르게 동작하도록 수정했습니다.
-  - `get_hourly_conclusion` 메서드를 추가하여 "시간대별 체결 조회" 기능을 분리했습니다.
+  
+### 추가됨
+- **`get_hourly_conclusion` 메서드 추가**
+  - `StockAPI`에 `get_hourly_conclusion` 메서드를 추가하여 "시간대별 체결 조회" 기능을 구현했습니다.
+  - API 엔드포인트: `/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion` (TR: FHPST01060000)
+  - 기준시간 설정 가능 (HHMMSS 형식, 기본값: "115959")
+  - 응답 데이터: 시간대별 체결가, 등락률, 누적거래량, 체결량 등 30개 항목 제공
+  - Agent 클래스를 통해 `agent.get_hourly_conclusion(code, hour)` 형태로 접근 가능
 
 ## [0.1.11] - 2025-06-29
 

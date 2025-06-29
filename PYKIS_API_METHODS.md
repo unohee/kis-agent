@@ -289,12 +289,27 @@ investor = agent.get_stock_investor("005930")
 ```
 
 ### `get_pbar_tratio(code)`
-**설명**: 시간대별 체결강도 조회  
+**설명**: 매물대/거래비중 조회  
 **매개변수**: `code` (str) - 종목코드  
-**반환**: `Dict` - 시간대별 체결강도  
+**반환**: `Dict` - 매물대/거래비중 정보  
 **예시**:
 ```python
 pbar = agent.get_pbar_tratio("005930")
+```
+
+### `get_hourly_conclusion(code, hour)`
+**설명**: 시간대별 체결 조회  
+**매개변수**: 
+- `code` (str) - 종목코드
+- `hour` (str) - 기준시간 (HHMMSS 형식, 기본값: "115959")
+**반환**: `Dict` - 시간대별 체결 정보  
+**예시**:
+```python
+# 기본값 사용 (11시59분59초 기준)
+hourly = agent.get_hourly_conclusion("005930")
+
+# 특정 시간 지정 (14시30분00초 기준)
+hourly = agent.get_hourly_conclusion("005930", "143000")
 ```
 
 ---
