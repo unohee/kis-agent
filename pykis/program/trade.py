@@ -83,6 +83,18 @@ class ProgramTradeAPI:
             params=params
         )
 
+    def get_program_trade_hourly_trend(self, code: str) -> Optional[Dict[str, Any]]:
+        """
+        시간별 프로그램 매매 추이를 조회합니다. `get_program_trade_by_stock` 메서드를 호출하여 당일 데이터를 가져옵니다.
+
+        Args:
+            code (str): 종목 코드 (예: "005930")
+
+        Returns:
+            Optional[Dict[str, Any]]: API 응답 데이터
+        """
+        return self.get_program_trade_by_stock(code, ref_date=None)
+
     def get_program_trade_daily_summary(self, code: str, date_str: str) -> Optional[Dict[str, Any]]:
         """
         종목별 프로그램매매추이(일별) - 일별 프로그램 매매 집계를 조회합니다.

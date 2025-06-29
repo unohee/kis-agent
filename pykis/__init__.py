@@ -51,7 +51,7 @@ from .account import AccountAPI, AccountBalance
 from .program import ProgramAPI, ProgramTrade
 from .stock import StockAPI, ConditionAPI, MarketAPI
 
-__version__ = "0.1.8"
+__version__ = "0.1.10"
 
 # Agent를 메인 클래스로 강조
 __all__ = [
