@@ -31,19 +31,39 @@ from ..core.client import KISClient, API_ENDPOINTS
 from datetime import datetime
 
 def get_kospi200_futures_code(today=None):
+    """
+    현재 날짜 기준으로 거래되고 있는 가장 활발한 KOSPI200 선물 종목코드를 반환합니다.
+    
+    Args:
+        today: 기준 날짜 (기본값: 현재 날짜)
+        
+    Returns:
+        str: KOSPI200 선물 종목코드 (예: 101W09)
+        
+    Note:
+        - KOSPI200 선물은 3, 6, 9, 12월 만기
+        - 종목코드 패턴: 101W + MM (MM: 03, 06, 09, 12)
+        - 현재 월이 만기월인 경우, 다음 만기월을 반환
+        - 만기월이 지난 경우 다음 만기월을 반환
+    """
     if today is None:
         today = datetime.now()
-    year = today.year % 100  # 2자리 연도
+    
     month = today.month
     expiry_months = [3, 6, 9, 12]
+    
+    # 현재 월이 만기월인 경우, 다음 만기월을 반환
+    # 만기월이 지난 경우에도 다음 만기월을 반환
     for m in expiry_months:
         if month <= m:
             expiry = m
             break
     else:
-        year += 1
+        # 현재 월이 12월 이후인 경우, 다음 해 3월물 반환
         expiry = 3
-    return f"101S{expiry:02d}"
+    
+    # 101W + MM 형태로 종목코드 생성 (MM은 2자리)
+    return f"101W{expiry:02d}"
 
 class StockAPI:
     def __init__(self, client: KISClient, account_info: Dict[str, str]):

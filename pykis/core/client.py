@@ -415,4 +415,21 @@ class KISClient:
             logger.error(f"토큰 갱신 실패: {e}")
             raise
 
+    def get_kospi200_index(self, futures_month: str = "202409") -> Optional[Dict[str, Any]]:
+        """
+        KOSPI 200 지수 시세 조회 (기초자산)
+        
+        Args:
+            futures_month (str): 조회할 선물의 만기년월 (YYYYMM 형식).
+                                 이 값에 따라 관련된 기초자산(KOSPI 200)의 시세가 조회됩니다.
+        """
+        return self.make_request(
+            endpoint=API_ENDPOINTS['INQUIRE_INDEX_PRICE'],
+            tr_id="FHMIF10100000",
+            params={
+                "fid_cond_mrkt_cls_code": "K21",
+                "fid_input_iscd": futures_month,
+            }
+        )
+
 __all__ = ['KISClient', 'API_ENDPOINTS']
