@@ -2,6 +2,16 @@
 
 모든 주요 변경사항이 이 파일에 기록됩니다.
 
+## [0.1.19] - 2025-07-07
+
+### 추가됨
+- **웹소켓 모듈 통합**: `KIS_WS.py`를 `pykis.websocket` 서브모듈로 통합하고 `Agent`에서 쉽게 접근할 수 있도록 `websocket()` 메서드를 추가했습니다.
+- **문서 업데이트**: 웹소켓 통합에 맞춰 `README.md`, `PYKIS_API_METHODS.md` 등 관련 문서를 모두 업데이트했습니다.
+
+### 수정됨
+- `pykis/websocket/client.py`: 기존 `KIS_WS.py` 코드를 `pykis` 라이브러리 구조에 맞게 리팩토링하고, 내부 모듈 의존성을 수정했습니다.
+- `pykis/__init__.py`: `KisWebSocket` 클래스를 `pykis` 네임스페이스에 노출했습니다.
+
 ## [0.1.18] - 2025-06-29
 
 ### 수정됨
@@ -136,7 +146,7 @@ futures_price = agent.get_future_option_price()  # 자동으로 최신 KOSPI200 
     - API 엔드포인트: `/uapi/domestic-stock/v1/quotations/inquire-ccnl` (TR: FHKST01010300)
     - **핵심 장점**: 당일 체결강도(`tday_rltv`)를 별도 계산 없이 바로 확인 가능
     - 기존 `get_volume_power`는 체결강도 순위에서만 확인 가능했던 한계 해결
-    - 응답 데이터: 최근 30건의 체결시간, 체결가격, 등락률, 체결량, 체결강도 등
+    - 응답 데이터: 최��� 30건의 체결시간, 체결가격, 등락률, 체결량, 체결강도 등
     - 특정 종목의 체결강도를 즉시 확인할 수 있어 매매 전략 수립에 유용
 
 - **Agent 클래스 자동 위임**: 두 메서드 모두 Agent 클래스를 통해 자동으로 접근 가능
@@ -184,7 +194,7 @@ futures_price = agent.get_future_option_price()  # 자동으로 최신 KOSPI200 
 - **예외 처리**: `.env` 파일이 없을 경우 `FileNotFoundError`를 발생시켜 사용자에게 명확한 피드백을 제공합니다.
 
 ### 제거됨
-- **YAML 관련 코드**: `pykis/core/config.py` 및 테스트 코드에서 YAML 관련 로직을 모두 제거했습니다.
+- **YAML 관련 코드**: `pykis/core/config.py` 및 테스트 ���드에서 YAML 관련 로직을 모두 제거했습니다.
 - **`load_account_info` 함수**: `pykis/stock/api.py`에서 더 이상 사용되지 않는 `load_account_info` 함수를 제거했습니다.
 
 ## [0.1.8] - 2025-06-29
@@ -210,7 +220,7 @@ futures_price = agent.get_future_option_price()  # 자동으로 최신 KOSPI200 
 
 ### 개선됨
 - **코드 일관성 및 가독성 향상**
-  - 중복 코드 제거 및 API 호출 방식 표준화.
+  - 중��� 코드 제거 및 API 호출 방식 표준화.
 - **안정성 향상**
   - 순환 참조 문제 해결 및 테스트 코드 수정으로 라이브러리 안정성 강화.
 
@@ -230,7 +240,7 @@ futures_price = agent.get_future_option_price()  # 자동으로 최신 KOSPI200 
 ### 개선됨
 - **테스트 커버리지 및 안정성 향상**
   - 다수의 테스트 실패를 수정하여 테스트 스위트의 안정성 확보.
-  - mock을 사용하여 단위 테스트와 외부 API 호출을 분리.
+  - mock��� 사용하여 단위 테스트와 외부 API 호출을 분리.
 
 ## [0.1.5] - 2025-06-26
 
@@ -325,7 +335,7 @@ futures_price = agent.get_future_option_price()  # 자동으로 최신 KOSPI200 
   - `logger` 미정의 오류 수정: `logger` → `logging`으로 변경
   - 무한 재귀 호출 문제 해결: `get_condition_stocks_dict`에서 직접 API 호출하도록 수정
 
-- Strategy 모듈 완전 제거
+- Strategy 모듈 완전 제��
   - deprecated된 strategy 관련 import 및 메서드 모두 제거
   - `pykis/core/agent.py`에서 strategy 관련 코드 정리
   - `tests/integration/test_strategy.py` 파일 삭제
@@ -434,7 +444,7 @@ futures_price = agent.get_future_option_price()  # 자동으로 최신 KOSPI200 
 
 ### 문서화
 - 각 모듈의 README.md 파일 추가
-- API 사용 예시 및 설명 추가
+- API 사용 예시 및 설��� 추가
 - 코드 주석 개선 및 한글화
 
 ### 기술적 부채

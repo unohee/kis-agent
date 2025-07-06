@@ -1,6 +1,6 @@
 # pykis API 메서드 레퍼런스
 
-> **pykis v0.1.16** - 한국투자증권 OpenAPI Python 래퍼 라이브러리
+> **pykis v0.1.19** - 한국투자증권 OpenAPI Python 래퍼 라이브러리
 
 이 문서는 pykis 라이브러리의 모든 사용 가능한 메서드를 정리한 완전한 API 레퍼런스입니다.  
 후임자나 다른 에이전트 LLM이 pykis를 활용할 때 참고할 수 있도록 작성되었습니다.
@@ -8,13 +8,14 @@
 ## 📋 목차
 
 - [기본 사용법](#기본-사용법)
+- [실시간 시세 (웹소켓)](#실시간-시세-웹소켓)
 - [계좌 관련 메서드](#계좌-관련-메서드)
 - [주식 시세 관련 메서드](#주식-시세-관련-메서드)
 - [시장 분석 메서드](#시장-분석-메서드)
 - [프로그램 매매 메서드](#프로그램-매매-메서드)
 - [조건검색 메서드](#조건검색-메서드)
 - [휴장일 정보 메서드](#휴장일-정보-메서드)
-- [거래원/회원사 관련 메서드](#거래원회원사-관련-메서드)
+- [거래원/���원사 관련 메서드](#거래원회원사-관련-메서드)
 - [해외주식 관련 메서드](#해외주식-관련-메서드)
 - [선물옵션 관련 메서드](#선물옵션-관련-메서드)
 - [유틸리티 메서드](#유틸리티-메서드)
@@ -36,6 +37,35 @@ agent = Agent(account_info={
     'ACNT_PRDT_CD': '계좌상품코드'
 })
 ```
+
+---
+
+## 실시간 시세 (웹소켓)
+
+### `agent.websocket(stock_codes, purchase_prices)`
+**설명**: 실시간 시세 수신을 위한 웹소켓 클라이언트를 생성합니다.  
+**매개변수**:
+- `stock_codes` (list, optional) - 구독할 종목코드 리스트
+- `purchase_prices` (dict, optional) - 매수 정보 딕셔너리 `{'종목코드': (매입가, 보유수량)}`
+**반환**: `KisWebSocket` - 웹소켓 클라이언트 객체  
+**예시**:
+```python
+import asyncio
+
+agent = Agent()
+ws_client = agent.websocket()
+
+async def main():
+    await ws_client.connect(["005930", "000660"])
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### `ws_client.connect(stock_codes)`
+**설명**: 지정된 종목의 실시간 시세 구독을 시작합니다.  
+**매개변수**: `stock_codes` (list) - 구독할 종목코드 리스트  
+**참고**: 이 메서드는 `asyncio` 이벤트 루프 내에서 실행되어야 합니다.
 
 ---
 
@@ -81,7 +111,7 @@ possible = agent.get_possible_order("005930", "75000", "01")
 
 ### `order_credit(code, qty, price, order_type)`
 **설명**: 신용 주문  
-**매개변수**:
+**매개���수**:
 - `code` (str) - 종목코드
 - `qty` (int) - 주문수량
 - `price` (int) - 주문가격
@@ -314,7 +344,7 @@ gainers = agent.get_top_gainers()
 
 ### `get_stock_investor(ticker)`
 **설명**: 투자자별 매매 동향 조회  
-**매개변수**: `ticker` (str) - 종목코드  
+**��개변수**: `ticker` (str) - 종목코드  
 **반환**: `DataFrame` - 투자자별 매매 동향  
 **예시**:
 ```python
@@ -511,7 +541,7 @@ transaction = agent.get_member_transaction("005930", "99999")
 **반환**: `tuple` - 순매수 정보  
 **예시**:
 ```python
-net_buy = agent.get_foreign_broker_net_buy("005930", ["모간", "골드만"], "20240625")
+net_buy = agent.get_foreign_broker_net_buy("005930", ["모간", "골��만"], "20240625")
 ```
 
 ### `classify_broker(name)` (정적 메서드)

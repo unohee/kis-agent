@@ -4,6 +4,7 @@ from ..account.balance import AccountBalanceAPI as AccountAPI
 from ..stock.api import StockAPI
 from ..stock import StockMarketAPI
 from ..program.trade import ProgramTradeAPI
+from ..websocket.client import KisWebSocket
 from typing import Optional, Dict
 import logging
 from datetime import datetime, timedelta
@@ -75,6 +76,24 @@ class Agent:
         self.program_api = ProgramTradeAPI(self.client, self.account_info)
         self.market_api = StockMarketAPI(self.client, self.account_info)
         
+    def websocket(self, stock_codes: list = None, purchase_prices: dict = None) -> KisWebSocket:
+        """
+        실시간 웹소켓 클라이언트를 생성합니다.
+
+        Args:
+            stock_codes (list, optional): 구독할 종목코드 리스트. Defaults to None.
+            purchase_prices (dict, optional): 매수 정보 딕셔너리 {'종목코드': (매입가격, 보유 수량)}. Defaults to None.
+
+        Returns:
+            KisWebSocket: 웹소켓 클라이언트 객체
+        """
+        return KisWebSocket(
+            client=self.client,
+            account_info=self.account_info,
+            stock_codes=stock_codes,
+            purchase_prices=purchase_prices
+        )
+
     # ============================================================================
     # 주식 시세 관련 메서드들 (StockAPI 위임)
     # ============================================================================
@@ -399,3 +418,4 @@ class Agent:
 
 # Expose facade class for flat import
 __all__ = ['Agent'] 
+ 
