@@ -22,15 +22,16 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from base64 import b64decode
 
-# .env 파일 로드
-load_dotenv(override=True)
+# 항상 프로젝트 루트의 .env 파일을 명시적으로 읽도록 경로 지정 (작업 디렉토리와 무관하게 환경설정 일관성 보장)
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+load_dotenv(dotenv_path=os.path.join(ROOT_DIR, '.env'), override=True)  # [변경 이유] 어떤 위치에서 실행해도 루트의 .env를 읽도록 명시
 
 clearConsole = lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
 key_bytes = 32
 
-# 토큰 저장 경로 설정 - 패키지 폴더 내 tokens 디렉토리 사용
-config_root = os.path.join(os.path.dirname(__file__), '../../tokens')
+# 토큰 저장 경로 설정 - pykis/core/credit 디렉토리 사용
+config_root = os.path.join(os.path.dirname(__file__), 'credit')
 token_tmp = os.getenv('KIS_TOKEN_PATH', os.path.join(config_root, 'KIS_Token.json'))
 
 # 디렉토리가 없으면 생성

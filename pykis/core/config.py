@@ -1,6 +1,10 @@
 import os
 from dataclasses import dataclass
-from dotenv import dotenv_values
+from dotenv import dotenv_values, load_dotenv
+
+# 항상 프로젝트 루트의 .env 파일을 명시적으로 읽도록 경로 지정 (작업 디렉토리와 무관하게 환경설정 일관성 보장)
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+load_dotenv(dotenv_path=os.path.join(ROOT_DIR, '.env'), override=True)  # [변경 이유] 어떤 위치에서 실행해도 루트의 .env를 읽도록 명시
 
 @dataclass
 class KISConfig:

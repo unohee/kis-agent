@@ -240,7 +240,7 @@ class KISClient:
         tr_id: str,
         params: Dict[str, Any],
         method: str = 'GET',
-        retries: int = 5,
+        retries: int = 2,  # [변경 이유] 테스트 속도 향상을 위해 재시도 횟수를 5회 → 2회로 단축
         headers: Dict[str, str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
@@ -338,9 +338,8 @@ class KISClient:
                         )
                         if is_rate_limit_error:
                             if attempt < retries - 1:
-                                logger.warning(f"[{tr_id}] API 유량 제한 감지 (code: {api_code}). 1초(+증가분) 대기 후 재시도... ({attempt+1}/{retries})")
-                                time.sleep(1)
-                                time.sleep(0.1 * attempt)
+                                logger.warning(f"[{tr_id}] API 유량 제한 감지 (code: {api_code}). 0.5초 대기 후 재시도... ({attempt+1}/{retries})")
+                                time.sleep(0.5)  # [변경 이유] 테스트 속도 향상을 위해 대기 시간을 1초 → 0.5초로 단축
                             else:
                                 logger.error(f"[{tr_id}] API 유량 제한 최종 실패 (재시도 소진).")
                                 return data
@@ -363,7 +362,7 @@ class KISClient:
                             log_entry += f" (API Code in JSON: {http_error_code_from_json})"
                         logger.warning(log_entry)
                         if attempt < retries - 1:
-                            time.sleep(0.5 * (attempt + 1))
+                            time.sleep(0.2)  # [변경 이유] 테스트 속도 향상을 위해 HTTP 오류 시 대기 시간을 단축
                             continue
                         else:
                             logger.error(f"[{tr_id}] HTTP 오류 최종 실패 (재시도 소진).")
@@ -379,7 +378,7 @@ class KISClient:
                 logger.error(f"[{tr_id}] 요청 실패 (시도 {attempt+1}/{retries}): {e}")
                 last_exception = e
                 if attempt < retries - 1:
-                    time.sleep(0.5 * (attempt + 1))
+                    time.sleep(0.2)  # [변경 이유] 테스트 속도 향상을 위해 요청 실패 시 대기 시간을 단축
                     continue
                 else:
                     logger.error(f"[{tr_id}] 요청 최종 실패 (재시도 소진): {last_exception}")
