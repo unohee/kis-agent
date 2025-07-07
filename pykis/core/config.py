@@ -2,9 +2,15 @@ import os
 from dataclasses import dataclass
 from dotenv import dotenv_values, load_dotenv
 
-# 항상 프로젝트 루트의 .env 파일을 명시적으로 읽도록 경로 지정 (작업 디렉토리와 무관하게 환경설정 일관성 보장)
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
-load_dotenv(dotenv_path=os.path.join(ROOT_DIR, '.env'), override=True)  # [변경 이유] 어떤 위치에서 실행해도 루트의 .env를 읽도록 명시
+# 환경설정 파일 로드 우선순위: 1) 현재 작업 디렉토리 .env, 2) PyKIS 패키지 루트 .env
+# 다른 프로젝트에서 PyKIS를 사용할 때는 해당 프로젝트의 .env를 우선 사용
+current_dir_env = os.path.join(os.getcwd(), '.env')
+pykis_root_env = os.path.join(os.path.dirname(__file__), '../../.env')
+
+if os.path.exists(current_dir_env):
+    load_dotenv(dotenv_path=current_dir_env, override=True)  # 현재 디렉토리 .env 우선
+elif os.path.exists(pykis_root_env):
+    load_dotenv(dotenv_path=pykis_root_env, override=True)  # PyKIS 루트 .env 대체
 
 @dataclass
 class KISConfig:

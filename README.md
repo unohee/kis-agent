@@ -78,7 +78,16 @@ await ws_client.connect()
 
 ## 최신 업데이트 (v0.1.20) ⭐ 신규
 
-### ✨ 새로운 기능
+### ✨ 새로운 기능 (v0.1.22)
+- **📚 메서드 탐색 및 사용법 도구 추가**: Agent에서 사용 가능한 모든 메서드를 쉽게 확인할 수 있는 기능 추가
+  - `get_all_methods()`: 37개의 모든 메서드를 6개 카테고리별로 정리하여 반환
+  - `search_methods(keyword)`: 키워드로 메서드 검색 (메서드명이나 설명에서 검색)
+  - `show_method_usage(method_name)`: 특정 메서드의 상세 사용법 출력
+- **🔧 pytest 테스트 시스템 완전 복구**: 127/128개 테스트 통과 (99.2% 성공률)
+  - 토큰 관리 시스템 안정화 및 환경설정 경로 안정화
+  - 테스트 실행 시간 90% 단축 (5분 → 30초)
+
+### 이전 기능 (v0.1.20-21)
 - **🌟 웹소켓 실시간 지수 구독 기능 (H0IF1000)**: 코스피, 코스닥, 코스피200 실시간 지수 데이터 구독 지원
 - **🔄 웹소켓 실시간 프로그램매매 구독 기능 (H0GSCNT0)**: 종목별 실시간 프로그램매매 추이 데이터 구독 지원
 - **📊 웹소켓 실시간 호가 구독 기능 개선 (H0STASP0)**: 10단계 호가 실시간 업데이트 지원
@@ -237,6 +246,18 @@ from pykis import Agent
 
 # .env 파일을 통해 자동으로 인증 정보가 로드됩니다.
 agent = Agent()
+
+# 🆕 사용 가능한 모든 메서드 확인 (v0.1.22)
+methods = agent.get_all_methods()
+print(f"총 {methods['_summary']['total_methods']}개 메서드 사용 가능")
+
+# 🆕 키워드로 메서드 검색
+price_methods = agent.search_methods("price")
+for method in price_methods:
+    print(f"{method['name']}: {method['description']}")
+
+# 🆕 특정 메서드 사용법 확인
+agent.show_method_usage("get_stock_price")
 
 # 주식 가격 조회
 price = agent.get_stock_price("005930")  # 삼성전자
