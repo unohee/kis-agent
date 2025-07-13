@@ -46,16 +46,32 @@ def analyze_stock_volume_profile(code: str):
         
         print("✅ 매물대 데이터 조회 성공")
         
-        # 2. 현재가 조회
-        print("🔍 현재가 조회 중...")
-        price_result = agent.get_stock_price(code)
+        # 2. 현재가 정보 (pbar_tratio API의 output1에서 가져오기)
+        print("🔍 현재가 정보 확인 중...")
         
-        if not price_result or price_result.get('rt_cd') != '0':
-            print(f"❌ 현재가 조회 실패: {price_result.get('msg1', '알 수 없는 오류') if price_result else '결과 없음'}")
-            return
-        
-        current_price = int(price_result['output']['stck_prpr'])
-        print(f"✅ 현재가: {current_price:,}원")
+        if 'output1' in pbar_result:
+            current_price_info = pbar_result['output1']
+            current_price = int(current_price_info.get('stck_prpr', '0'))
+            stock_name = current_price_info.get('hts_kor_isnm', code)
+            prdy_vrss = current_price_info.get('prdy_vrss', '0')
+            prdy_ctrt = current_price_info.get('prdy_ctrt', '0')
+            acml_vol = current_price_info.get('acml_vol', '0')
+            
+            print(f"✅ 종목명: {stock_name}")
+            print(f"✅ 현재가: {current_price:,}원")
+            print(f"✅ 전일 대비: {prdy_vrss}원 ({prdy_ctrt}%)")
+            print(f"✅ 누적 거래량: {acml_vol}")
+        else:
+            # 기존 방식 (fallback)
+            print("🔍 현재가 조회 중...")
+            price_result = agent.get_stock_price(code)
+            
+            if not price_result or price_result.get('rt_cd') != '0':
+                print(f"❌ 현재가 조회 실패: {price_result.get('msg1', '알 수 없는 오류') if price_result else '결과 없음'}")
+                return
+            
+            current_price = int(price_result['output']['stck_prpr'])
+            print(f"✅ 현재가: {current_price:,}원")
         
         # 3. 매물대 데이터 분석
         volume_profile = pbar_result.get('output2', [])
@@ -65,16 +81,15 @@ def analyze_stock_volume_profile(code: str):
         
         print(f"📊 매물대 레벨: {len(volume_profile)}개")
         
-        # 거래량 키 찾기
+        # 실제 API 응답 구조에 맞는 키 사용
         first_item = volume_profile[0]
-        volume_key = None
-        for key in ['tday_rltv_vol', 'rltv_vol', 'vol_rate', 'tday_rltv']:
-            if key in first_item:
-                volume_key = key
-                break
+        volume_key = 'cntg_vol'      # 거래량 데이터
+        price_key = 'stck_prpr'      # 주식 가격
+        ratio_key = 'acml_vol_rlim'  # 누적 거래량 비율
         
-        if not volume_key:
-            print("❌ 거래량 데이터를 찾을 수 없습니다.")
+        if volume_key not in first_item:
+            print(f"❌ 거래량 데이터 키 '{volume_key}'를 찾을 수 없습니다.")
+            print(f"📋 사용 가능한 키: {list(first_item.keys())}")
             return
         
         # 4. 매물대 분석

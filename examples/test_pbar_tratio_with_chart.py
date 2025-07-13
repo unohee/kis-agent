@@ -152,18 +152,17 @@ class PbarTratioVisualizer:
         
         # 거래량 기준 키 확인
         first_item = volume_profile[0]
-        volume_keys = [key for key in first_item.keys() if 'vol' in key.lower() or 'rltv' in key.lower()]
+        volume_keys = [key for key in first_item.keys() if 'vol' in key.lower()]
         print(f"📊 거래량 관련 키: {volume_keys}")
         
-        # 주요 거래량 키 선택
-        volume_key = None
-        for key in ['tday_rltv_vol', 'rltv_vol', 'vol_rate', 'tday_rltv']:
-            if key in first_item:
-                volume_key = key
-                break
-                
-        if not volume_key:
-            print("❌ 거래량 데이터 키를 찾을 수 없음")
+        # 실제 API 응답 구조에 맞는 키 사용
+        volume_key = 'cntg_vol'  # 거래량 데이터
+        price_key = 'stck_prpr'   # 주식 가격
+        ratio_key = 'acml_vol_rlim'  # 누적 거래량 비율
+        
+        if volume_key not in first_item:
+            print(f"❌ 거래량 데이터 키 '{volume_key}'를 찾을 수 없음")
+            print(f"📋 사용 가능한 키: {list(first_item.keys())}")
             return None
             
         print(f"📊 사용할 거래량 키: {volume_key}")
@@ -212,7 +211,7 @@ class PbarTratioVisualizer:
             print(f"❌ 매물대 분석 오류: {e}")
             return None
     
-    def compare_with_current_price(self, code: str, analysis: Dict) -> Dict:
+    def compare_with_current_price(self, code: str, analysis: Dict, pbar_result: Dict = None) -> Dict:
         """현재가와 매물대 비교 분석"""
         print(f"\n💰 현재가 vs 매물대 비교: {code}")
         
@@ -220,15 +219,29 @@ class PbarTratioVisualizer:
             print("❌ 매물대 분석 결과 없음")
             return None
             
-        # 현재가 조회
+        # pbar_tratio API의 output1에서 현재가 정보 가져오기
         try:
-            price_result = self.agent.get_stock_price(code)
-            if not price_result or price_result.get('rt_cd') != '0':
-                print("❌ 현재가 조회 실패")
-                return None
+            if pbar_result and 'output1' in pbar_result:
+                current_price_info = pbar_result['output1']
+                current_price = int(current_price_info.get('stck_prpr', '0'))
+                stock_name = current_price_info.get('hts_kor_isnm', code)
+                prdy_vrss = current_price_info.get('prdy_vrss', '0')
+                prdy_ctrt = current_price_info.get('prdy_ctrt', '0')
+                acml_vol = current_price_info.get('acml_vol', '0')
                 
-            current_price = int(price_result['output']['stck_prpr'])
-            print(f"📊 현재가: {current_price:,}원")
+                print(f"📊 종목명: {stock_name}")
+                print(f"📊 현재가: {current_price:,}원")
+                print(f"📊 전일 대비: {prdy_vrss}원 ({prdy_ctrt}%)")
+                print(f"📊 누적 거래량: {acml_vol}")
+            else:
+                # 기존 방식 (fallback)
+                price_result = self.agent.get_stock_price(code)
+                if not price_result or price_result.get('rt_cd') != '0':
+                    print("❌ 현재가 조회 실패")
+                    return None
+                    
+                current_price = int(price_result['output']['stck_prpr'])
+                print(f"📊 현재가: {current_price:,}원")
             
             # 최대 매물대와 비교
             max_volume_price = analysis['max_volume_price']
@@ -383,7 +396,7 @@ class PbarTratioVisualizer:
             return {'code': code, 'success': False, 'error': '매물대 분석 실패'}
         
         # 3. 현재가 비교
-        comparison = self.compare_with_current_price(code, analysis)
+        comparison = self.compare_with_current_price(code, analysis, result)
         if not comparison:
             return {'code': code, 'success': False, 'error': '현재가 비교 실패'}
         
