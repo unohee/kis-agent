@@ -312,66 +312,58 @@ class StockAPI:
     
     def get_orderbook(self, code: str) -> Optional[pd.DataFrame]:
         """호가 및 예상체결 데이터 조회 (개선된 버전 - 각 호가단별 실제 거래대금 계산)"""
-        response = self.client.make_request(
-            endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
-            tr_id="FHKST01010200",
-            params={
-                "fid_cond_mrkt_div_code": "J",
-                "fid_input_iscd": code
+        # [변경 이유] get_orderbook은 deprecated 되었으며, get_orderbook_raw로 대체됩니다.
+        logging.warning("get_orderbook is deprecated. Use get_orderbook_raw instead.")
+        raw_data = self.get_orderbook_raw(code)
+        
+        if not raw_data:
+            logging.error(f"get_orderbook: get_orderbook_raw 호출 실패 for {code}")
+            return None
+        
+        try:
+            output1 = raw_data.get('output1')  # 호가 정보
+            output2 = raw_data.get('output2')  # 현재가 정보
+            
+            # 각 호가단별 실제 거래대금 계산
+            total_ask_amount = 0  # 매도호가 총 거래대금
+            total_bid_amount = 0  # 매수호가 총 거래대금
+            
+            # 매도호가 1~10단 계산 (askp1~askp10 × askp_rsqn1~askp_rsqn10)
+            for i in range(1, 11):
+                ask_price = float(output1.get(f'askp{i}', 0) or 0)
+                ask_volume = int(output1.get(f'askp_rsqn{i}', 0) or 0)
+                total_ask_amount += ask_price * ask_volume
+            
+            # 매수호가 1~10단 계산 (bidp1~bidp10 × bidp_rsqn1~bidp_rsqn10)
+            for i in range(1, 11):
+                bid_price = float(output1.get(f'bidp{i}', 0) or 0)
+                bid_volume = int(output1.get(f'bidp_rsqn{i}', 0) or 0)
+                total_bid_amount += bid_price * bid_volume
+            
+            # 기존 호환성을 위한 총 잔량 계산
+            total_ask_volume = int(output1.get('total_askp_rsqn', 0) or 0)
+            total_bid_volume = int(output1.get('total_bidp_rsqn', 0) or 0)
+            
+            # 총 거래대금 = 매도호가 거래대금 + 매수호가 거래대금
+            total_amount = total_ask_amount + total_bid_amount
+            
+            # DataFrame 생성 (기존 호환성 유지하면서 새로운 정보 추가)
+            df_dict = {
+                '매도잔량': [total_ask_volume],
+                '매수잔량': [total_bid_volume],
+                '총거래대금': [total_amount],  # 🆕 실제 각 호가×잔량의 정확한 합계
+                '매도거래대금': [total_ask_amount],  # 🆕 매도호가 거래대금
+                '매수거래대금': [total_bid_amount],  # 🆕 매수호가 거래대금
+                '현재가': [float(output2.get('stck_prpr', 0) or 0)],
+                '시가': [float(output2.get('stck_oprc', 0) or 0)],
+                '고가': [float(output2.get('stck_hgpr', 0) or 0)],
+                '저가': [float(output2.get('stck_lwpr', 0) or 0)]
             }
-        )
-        if response and response.get('rt_cd') == '0':
-            output1 = response.get('output1')  # 호가 정보
-            output2 = response.get('output2')  # 현재가 정보
             
-            if not output1 or not output2:
-                logging.error(f"get_orderbook: output1 또는 output2가 없음 for {code} – {response.get('msg1', '')}")
-                return None
+            return pd.DataFrame(df_dict)
             
-            try:
-                # 각 호가단별 실제 거래대금 계산
-                total_ask_amount = 0  # 매도호가 총 거래대금
-                total_bid_amount = 0  # 매수호가 총 거래대금
-                
-                # 매도호가 1~10단 계산 (askp1~askp10 × askp_rsqn1~askp_rsqn10)
-                for i in range(1, 11):
-                    ask_price = float(output1.get(f'askp{i}', 0) or 0)
-                    ask_volume = int(output1.get(f'askp_rsqn{i}', 0) or 0)
-                    total_ask_amount += ask_price * ask_volume
-                
-                # 매수호가 1~10단 계산 (bidp1~bidp10 × bidp_rsqn1~bidp_rsqn10)
-                for i in range(1, 11):
-                    bid_price = float(output1.get(f'bidp{i}', 0) or 0)
-                    bid_volume = int(output1.get(f'bidp_rsqn{i}', 0) or 0)
-                    total_bid_amount += bid_price * bid_volume
-                
-                # 기존 호환성을 위한 총 잔량 계산
-                total_ask_volume = int(output1.get('total_askp_rsqn', 0) or 0)
-                total_bid_volume = int(output1.get('total_bidp_rsqn', 0) or 0)
-                
-                # 총 거래대금 = 매도호가 거래대금 + 매수호가 거래대금
-                total_amount = total_ask_amount + total_bid_amount
-                
-                # DataFrame 생성 (기존 호환성 유지하면서 새로운 정보 추가)
-                df_dict = {
-                    '매도잔량': [total_ask_volume],
-                    '매수잔량': [total_bid_volume],
-                    '총거래대금': [total_amount],  # 🆕 실제 각 호가×잔량의 정확한 합계
-                    '매도거래대금': [total_ask_amount],  # 🆕 매도호가 거래대금
-                    '매수거래대금': [total_bid_amount],  # 🆕 매수호가 거래대금
-                    '현재가': [float(output2.get('stck_prpr', 0) or 0)],
-                    '시가': [float(output2.get('stck_oprc', 0) or 0)],
-                    '고가': [float(output2.get('stck_hgpr', 0) or 0)],
-                    '저가': [float(output2.get('stck_lwpr', 0) or 0)]
-                }
-                
-                return pd.DataFrame(df_dict)
-                
-            except (ValueError, TypeError, KeyError) as e:
-                logging.error(f"get_orderbook: 데이터 파싱 오류 for {code}: {e}")
-                return None
-        else:
-            logging.error(f"get_orderbook: API 호출 실패 for {code} – rt_cd: {response.get('rt_cd') if response else 'None'}, msg: {response.get('msg1') if response else 'No response'}")
+        except (ValueError, TypeError, KeyError) as e:
+            logging.error(f"get_orderbook: 데이터 파싱 오류 for {code}: {e}")
             return None
 
     def get_volume_power(self, volume: int = 0) -> Optional[Dict[str, Any]]:
