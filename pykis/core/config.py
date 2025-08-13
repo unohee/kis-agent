@@ -43,11 +43,18 @@ class KISConfig:
             config = dotenv_values(dotenv_path=env_path)
 
             # [변경 이유] STONKS 프로젝트의 환경변수명과 호환성 제공
-            self.APP_KEY = config.get("KIS_APP_KEY") or config.get("KIS_APPKEY") or ""
-            self.APP_SECRET = config.get("KIS_APP_SECRET") or config.get("KIS_APPSECRET") or ""
-            self.BASE_URL = config.get("KIS_BASE_URL") or ""
-            self.ACCOUNT_NO = config.get("KIS_ACCOUNT_NO") or config.get("KIS_ACCOUNT_CANO") or ""
-            self.ACCOUNT_CODE = config.get("KIS_ACCOUNT_CODE") or config.get("KIS_ACCOUNT_PRDT_CD") or ""
+            # MY_APP, MY_SEC 등 STONKS 환경변수도 인식
+            # dotenv_values와 os.environ 둘 다 확인
+            self.APP_KEY = (config.get("KIS_APP_KEY") or config.get("KIS_APPKEY") or config.get("MY_APP") or 
+                           os.environ.get("KIS_APP_KEY") or os.environ.get("MY_APP") or os.environ.get("APP_KEY") or "")
+            self.APP_SECRET = (config.get("KIS_APP_SECRET") or config.get("KIS_APPSECRET") or config.get("MY_SEC") or 
+                              os.environ.get("KIS_APP_SECRET") or os.environ.get("MY_SEC") or os.environ.get("APP_SECRET") or "")
+            self.BASE_URL = (config.get("KIS_BASE_URL") or config.get("PROD_URL") or 
+                            os.environ.get("KIS_BASE_URL") or os.environ.get("PROD_URL") or os.environ.get("BASE_URL") or "")
+            self.ACCOUNT_NO = (config.get("KIS_ACCOUNT_NO") or config.get("KIS_ACCOUNT_CANO") or config.get("MY_ACCT_STOCK") or 
+                              os.environ.get("KIS_ACCOUNT_NO") or os.environ.get("MY_ACCT_STOCK") or os.environ.get("ACCOUNT_STOCK") or "")
+            self.ACCOUNT_CODE = (config.get("KIS_ACCOUNT_CODE") or config.get("KIS_ACCOUNT_PRDT_CD") or config.get("MY_PROD") or 
+                                os.environ.get("KIS_ACCOUNT_CODE") or os.environ.get("MY_PROD") or os.environ.get("ACCOUNT_PRODUCT") or "")
         
         self._validate()
 

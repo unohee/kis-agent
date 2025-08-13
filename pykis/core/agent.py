@@ -1,11 +1,12 @@
 from . import client as core_client
 from .client import KISClient
-from ..account.balance import AccountBalanceAPI as AccountAPI
+from ..account.api import AccountAPI
 from ..stock.api import StockAPI
 from ..stock import StockMarketAPI
 from ..program.trade import ProgramTradeAPI
 from ..websocket.client import KisWebSocket
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, List
+import pandas as pd
 import logging
 from datetime import datetime, timedelta
 import sqlite3
@@ -1015,6 +1016,354 @@ class Agent:
         except Exception as e:
             logging.error(f"상승률 상위 종목 조회 실패: {e}")
             return []
+    
+    # ===== 새로 추가된 계좌 관련 API 메서드 (2025-01-08) =====
+    
+    def inquire_daily_ccld(
+        self, 
+        start_date: str = "", 
+        end_date: str = "", 
+        pdno: str = "", 
+        ord_dvsn_cd: str = "00"
+    ) -> Optional[pd.DataFrame]:
+        """주식일별주문체결조회
+        
+        특정 기간 동안의 주문 및 체결 내역을 조회합니다.
+        
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD). 기본값: 최근 30일
+            end_date: 조회종료일자 (YYYYMMDD). 기본값: 오늘
+            pdno: 종목코드 (6자리). 기본값: 전체
+            ord_dvsn_cd: 주문구분코드. 기본값: "00"(전체)
+            
+        Returns:
+            Optional[pd.DataFrame]: 주문체결내역 DataFrame
+            
+        See Also:
+            AccountAPI.inquire_daily_ccld: 상세 구현
+        """
+        return self.account_api.inquire_daily_ccld(start_date, end_date, pdno, ord_dvsn_cd)
+    
+    def inquire_period_trade_profit(
+        self, 
+        start_date: str, 
+        end_date: str
+    ) -> Optional[pd.DataFrame]:
+        """기간별매매손익현황조회
+        
+        지정한 기간 동안의 실현 매매손익을 종목별로 조회합니다.
+        
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식)
+            end_date: 조회종료일자 (YYYYMMDD 형식)
+            
+        Returns:
+            Optional[pd.DataFrame]: 기간별 매매손익 DataFrame
+            
+        See Also:
+            AccountAPI.inquire_period_trade_profit: 상세 구현
+        """
+        return self.account_api.inquire_period_trade_profit(start_date, end_date)
+    
+    def inquire_balance_rlz_pl(self) -> Optional[pd.DataFrame]:
+        """주식잔고조회_실현손익
+        
+        보유 종목의 평가손익과 실현손익 정보를 포함한 잔고를 조회합니다.
+        
+        Returns:
+            Optional[pd.DataFrame]: 실현손익이 포함된 잔고 DataFrame
+            
+        See Also:
+            AccountAPI.inquire_balance_rlz_pl: 상세 구현
+        """
+        return self.account_api.inquire_balance_rlz_pl()
+    
+    def inquire_psbl_sell(self, pdno: str) -> Optional[Dict[str, Any]]:
+        """매도가능수량조회
+        
+        특정 종목의 매도 가능한 수량을 조회합니다.
+        
+        Args:
+            pdno: 종목코드 (6자리)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 매도가능수량 정보
+            
+        See Also:
+            AccountAPI.inquire_psbl_sell: 상세 구현
+        """
+        return self.account_api.inquire_psbl_sell(pdno)
+    
+    def order_cash(
+        self, 
+        pdno: str, 
+        qty: int, 
+        price: int, 
+        buy_sell: str, 
+        order_type: str = "00",
+        exchange: str = "KRX"
+    ) -> Optional[Dict[str, Any]]:
+        """주식주문(현금)
+        
+        현금으로 주식을 매수 또는 매도합니다. 실제 주문이 실행되므로 주의하세요.
+        
+        Args:
+            pdno: 종목코드 (6자리)
+            qty: 주문수량
+            price: 주문단가 (시장가는 0)
+            buy_sell: 매수매도구분 ("BUY" 또는 "SELL")
+            order_type: 주문구분. 기본값: "00"(지정가)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 응답
+            
+        Warning:
+            실제 주문이 실행되므로 테스트 시 소액으로 진행하세요.
+            
+        See Also:
+            AccountAPI.order_cash: 상세 구현
+        """
+        return self.account_api.order_cash(pdno, qty, price, buy_sell, order_type, exchange)
+    
+    def order_cash_sor(
+        self,
+        pdno: str,
+        qty: int,
+        buy_sell: str,
+        order_type: str = "03"
+    ) -> Optional[Dict[str, Any]]:
+        """SOR 최유리지정가 주문
+        
+        Smart Order Routing으로 최적 가격에 주문합니다.
+        KRX와 NXT 중 최적의 거래소를 자동 선택합니다.
+        
+        Args:
+            pdno: 종목코드 (6자리)
+            qty: 주문수량
+            buy_sell: 매수매도구분 ("BUY" 또는 "SELL")
+            order_type: 주문구분 (기본값: "03" 최유리지정가)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 응답
+            
+        Example:
+            >>> # SOR 최유리지정가 매수
+            >>> agent.order_cash_sor("005930", 10, "BUY")
+            >>> 
+            >>> # SOR 시장가 매도
+            >>> agent.order_cash_sor("005930", 5, "SELL", "01")
+        """
+        return self.account_api.order_cash_sor(pdno, qty, buy_sell, order_type)
+    
+    def order_rvsecncl(
+        self, 
+        org_order_no: str, 
+        qty: int, 
+        price: int, 
+        order_type: str, 
+        cncl_type: str
+    ) -> Optional[Dict[str, Any]]:
+        """주식주문(정정취소)
+        
+        미체결 주문을 정정하거나 취소합니다.
+        
+        Args:
+            org_order_no: 원주문번호
+            qty: 주문수량 (정정 시 새로운 수량, 취소 시 기존 수량)
+            price: 주문단가 (정정 시 새로운 가격)
+            order_type: 주문구분
+            cncl_type: 정정취소구분 ("01": 정정, "02": 취소)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 정정취소 응답
+            
+        See Also:
+            AccountAPI.order_rvsecncl: 상세 구현
+        """
+        return self.account_api.order_rvsecncl(org_order_no, qty, price, order_type, cncl_type)
+    
+    def order_resv(
+        self, 
+        code: str, 
+        qty: int, 
+        price: int, 
+        order_type: str
+    ) -> Optional[Dict[str, Any]]:
+        """주식예약주문
+        
+        특정 조건에서 자동으로 실행될 예약주문을 등록합니다.
+        
+        Args:
+            code: 종목코드 (6자리)
+            qty: 주문수량
+            price: 주문단가
+            order_type: 주문구분
+            
+        Returns:
+            Optional[Dict[str, Any]]: 예약주문 응답
+            
+        See Also:
+            AccountAPI.order_resv: 상세 구현
+        """
+        return self.account_api.order_resv(code, qty, price, order_type)
+    
+    def order_resv_ccnl(self) -> Optional[Dict[str, Any]]:
+        """주식예약주문조회
+        
+        등록된 예약주문 목록을 조회합니다.
+        
+        Returns:
+            Optional[Dict[str, Any]]: 예약주문 목록
+            
+        See Also:
+            AccountAPI.order_resv_ccnl: 상세 구현
+        """
+        return self.account_api.order_resv_ccnl()
+    
+    def order_resv_rvsecncl(
+        self, 
+        seq: int, 
+        qty: int, 
+        price: int, 
+        order_type: str
+    ) -> Optional[Dict[str, Any]]:
+        """주식예약주문정정취소
+        
+        등록된 예약주문을 정정하거나 취소합니다.
+        
+        Args:
+            seq: 예약주문순번
+            qty: 주문수량
+            price: 주문단가
+            order_type: 주문구분
+            
+        Returns:
+            Optional[Dict[str, Any]]: 예약주문 정정취소 응답
+            
+        See Also:
+            AccountAPI.order_resv_rvsecncl: 상세 구현
+        """
+        return self.account_api.order_resv_rvsecncl(seq, qty, price, order_type)
+    
+    def inquire_credit_psamount(self, pdno: str) -> Optional[Dict[str, Any]]:
+        """신용매수가능조회
+        
+        신용거래로 매수 가능한 금액과 수량을 조회합니다.
+        
+        Args:
+            pdno: 종목코드 (6자리)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 신용매수가능 정보
+            
+        See Also:
+            AccountAPI.inquire_credit_psamount: 상세 구현
+        """
+        return self.account_api.inquire_credit_psamount(pdno)
+    
+    def order_credit_buy(
+        self, 
+        pdno: str, 
+        qty: int, 
+        price: int, 
+        order_type: str = "00", 
+        credit_type: str = "21"
+    ) -> Optional[Dict[str, Any]]:
+        """주식주문(신용매수)
+        
+        신용으로 주식을 매수합니다. 이자와 상환 의무가 발생합니다.
+        
+        Args:
+            pdno: 종목코드 (6자리)
+            qty: 주문수량
+            price: 주문단가 (시장가는 0)
+            order_type: 주문구분. 기본값: "00"(지정가)
+            credit_type: 신용거래구분. 기본값: "21"(신용융자매수)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 응답
+            
+        Warning:
+            신용거래는 이자와 상환 의무가 발생하므로 신중하게 사용하세요.
+            
+        See Also:
+            AccountAPI.order_credit_buy: 상세 구현
+        """
+        return self.account_api.order_credit_buy(pdno, qty, price, order_type, credit_type)
+    
+    def order_credit_sell(
+        self, 
+        pdno: str, 
+        qty: int, 
+        price: int, 
+        order_type: str = "00", 
+        credit_type: str = "11"
+    ) -> Optional[Dict[str, Any]]:
+        """주식주문(신용매도)
+        
+        신용으로 매수한 주식을 매도하여 대출금을 상환합니다.
+        
+        Args:
+            pdno: 종목코드 (6자리)
+            qty: 주문수량
+            price: 주문단가 (시장가는 0)
+            order_type: 주문구분. 기본값: "00"(지정가)
+            credit_type: 신용거래구분. 기본값: "11"(융자상환매도)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 응답
+            
+        See Also:
+            AccountAPI.order_credit_sell: 상세 구현
+        """
+        return self.account_api.order_credit_sell(pdno, qty, price, order_type, credit_type)
+    
+    def inquire_intgr_margin(self) -> Optional[Dict[str, Any]]:
+        """주식통합증거금 현황
+        
+        통합증거금 계좌의 증거금 현황을 조회합니다.
+        
+        Returns:
+            Optional[Dict[str, Any]]: 통합증거금 현황 정보
+            
+        See Also:
+            AccountAPI.inquire_intgr_margin: 상세 구현
+        """
+        return self.account_api.inquire_intgr_margin()
+    
+    def inquire_period_rights(
+        self, 
+        start_date: str, 
+        end_date: str
+    ) -> Optional[pd.DataFrame]:
+        """기간별계좌권리현황조회
+        
+        특정 기간 동안의 배당, 증자 등 권리 현황을 조회합니다.
+        
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식)
+            end_date: 조회종료일자 (YYYYMMDD 형식)
+            
+        Returns:
+            Optional[pd.DataFrame]: 기간별 권리현황 DataFrame
+            
+        See Also:
+            AccountAPI.inquire_period_rights: 상세 구현
+        """
+        return self.account_api.inquire_period_rights(start_date, end_date)
+    
+    def inquire_psbl_rvsecncl(self) -> Optional[Dict[str, Any]]:
+        """주식정정취소가능주문조회
+        
+        현재 정정하거나 취소할 수 있는 미체결 주문을 조회합니다.
+        
+        Returns:
+            Optional[Dict[str, Any]]: 정정취소가능 주문 목록
+            
+        See Also:
+            AccountAPI.inquire_psbl_rvsecncl: 상세 구현
+        """
+        return self.account_api.inquire_psbl_rvsecncl()
     
     # ============================================================================
     # 하위 호환성을 위한 __getattr__ 메서드 (기존 코드와의 호환성)

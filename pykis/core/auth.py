@@ -50,13 +50,13 @@ if not os.path.exists(token_tmp):
     with open(token_tmp, "w+", encoding='utf-8') as f:
          json.dump({}, f) # 빈 JSON 객체로 초기화
 
-# 환경 변수 기반 설정 로드 - 기본값 추가
+# 환경 변수 기반 설정 로드 - STONKS 환경변수도 인식
 _cfg = {
-    'my_app': os.getenv('KIS_APP_KEY', ''),
-    'my_sec': os.getenv('KIS_APP_SECRET', ''),
-    'my_acct_stock': os.getenv('KIS_ACCOUNT_NO', ''),
-    'my_prod': os.getenv('KIS_ACCOUNT_CODE', ''),
-    'prod': os.getenv('KIS_BASE_URL', 'https://openapi.koreainvestment.com:9443'),
+    'my_app': os.getenv('KIS_APP_KEY') or os.getenv('MY_APP') or '',
+    'my_sec': os.getenv('KIS_APP_SECRET') or os.getenv('MY_SEC') or '',
+    'my_acct_stock': os.getenv('KIS_ACCOUNT_NO') or os.getenv('MY_ACCT_STOCK') or '',
+    'my_prod': os.getenv('KIS_ACCOUNT_CODE') or os.getenv('MY_PROD') or '01',
+    'prod': os.getenv('KIS_BASE_URL') or os.getenv('PROD_URL') or 'https://openapi.koreainvestment.com:9443',
     'vps': os.getenv('KIS_VPS_URL', 'https://openapivts.koreainvestment.com:29443'),
     'my_agent': os.getenv('KIS_USER_AGENT', 'KIS_AGENT'),
 }
