@@ -1166,7 +1166,6 @@ class StockAPI:
                 return pd.DataFrame(output)
         
         return pd.DataFrame()
-    
     def get_daily_credit_balance(self, 
                                 code: str, 
                                 date: str) -> Optional[Dict[str, Any]]:
