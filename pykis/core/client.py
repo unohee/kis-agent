@@ -1,0 +1,474 @@
+import json
+import logging
+import threading
+import time
+import os
+from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+
+import requests
+
+from .auth import auth, getTREnv
+from .config import KISConfig
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+API_ENDPOINTS = {
+    # === OAuth 인증 ===
+    'TOKEN': '/oauth2/tokenP',
+    'APPROVAL': '/oauth2/Approval',
+    'REVOKE': '/oauth2/revokeP',
+    'HASHKEY': '/uapi/hashkey',
+    
+    # === 국내주식 시세 ===
+    'INQUIRE_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-price',  # 주식현재가 시세 (TR: FHKST01010100)
+    'INQUIRE_DAILY_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-daily-price',  # ELW 당일급변종목 (TR: FHPEW02870000)
+    'INQUIRE_TIME_ITEMCHARTPRICE': '/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice',  # 주식당일분봉조회(주식) (TR: FHKST03010200)
+    'INQUIRE_TIME_DAILYCHARTPRICE': '/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice',  # 일별분봉시세조회 (TR: FHKST03010230)
+    'INQUIRE_MEMBER': '/uapi/domestic-stock/v1/quotations/inquire-member',  # 주식현재가 회원사 (TR: FHKST01010600)
+    'INQUIRE_INVESTOR': '/uapi/domestic-stock/v1/quotations/inquire-investor',  # 주식현재가 투자자 (TR: FHKST01010900)
+    'INQUIRE_ASKING_PRICE_EXP_CCN': '/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn',  # 주식현재가 호가 예상체결 (TR: FHKST01010200)
+    'INQUIRE_CCNL': '/uapi/domestic-stock/v1/quotations/inquire-ccnl',  # 주식현재가 체결(최근30건) (TR: FHKST01010300)
+    'INQUIRE_DAILY_ITEMCHARTPRICE': '/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice',  # 국내주식기간별시세(일/주/월/년) (TR: FHKST03010100)
+    'INQUIRE_DAILY_INDEXCHARTPRICE': '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',  # 국내주식업종기간별시세(일/주/월/년) (TR: FHKUP03500100)
+    'INQUIRE_INDEX_DAILY_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-index-daily-price',  # 국내업종 일자별지수 (TR: FHPUP02120000)
+    'INQUIRE_DAILY_OVERTIMEPRICE': '/uapi/domestic-stock/v1/quotations/inquire-daily-overtimeprice',  # 주식현재가 시간외 일자별주가 (TR: FHPST02320000)
+    'INQUIRE_TIME_ITEMCONCLUSION': '/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion',  # 주식현재가 당일시간대별체결 (TR: FHPST01060000)
+    'INQUIRE_TIME_OVERTIMECONCLUSION': '/uapi/domestic-stock/v1/quotations/inquire-time-overtimeconclusion',  # 주식현재가 시간외 시간별체결 (TR: FHPST02310000)
+    'INQUIRE_OVERTIME_ASKING_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-overtime-asking-price',  # 국내주식 시간외호가 (TR: FHPST02300400)
+    'INQUIRE_OVERTIME_PRICE': '/uapi/domestic-stock/v1/quotations/inquire-overtime-price',  # 국내주식 시간외현재가 (TR: FHPST02300000)
+    'INQUIRE_PRICE_2': '/uapi/domestic-stock/v1/quotations/inquire-price-2',  # 주식현재가 시세2 (TR: FHPST01010000)
+    
+    # === 프로그램매매 ===
+    'PROGRAM_TRADE_BY_STOCK_DAILY': '/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily',  # 종목별 프로그램매매추이(일별) (TR: FHPPG04650200)
+    'PROGRAM_TRADE_BY_STOCK': '/uapi/domestic-stock/v1/quotations/program-trade-by-stock',  # 종목별프로그램매매추이(체결) (TR: FHPPG04650101)
+    'COMP_PROGRAM_TRADE_DAILY': '/uapi/domestic-stock/v1/quotations/comp-program-trade-daily',  # 프로그램매매 종합현황(일별) (TR: FHPPG04600000)
+    'COMP_PROGRAM_TRADE_TODAY': '/uapi/domestic-stock/v1/quotations/comp-program-trade-today',  # 프로그램매매 종합현황(시간) (TR: FHPPG04600100)
+    'INVESTOR_PROGRAM_TRADE_TODAY': '/uapi/domestic-stock/v1/quotations/investor-program-trade-today',  # 프로그램매매 투자자매매동향(당일) (TR: HHPPG046600C0)
+    
+    # === 투자자별 ===
+    'INQUIRE_INVESTOR_TIME_BY_MARKET': '/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market',  # 시장별 투자자매매동향(시세) (TR: FHPTJ04030000)
+    'INQUIRE_INVESTOR_DAILY_BY_MARKET': '/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market',  # 시장별 투자자매매동향(일별) (TR: FHPTJ04040000)
+    'INQUIRE_MEMBER_DAILY': '/uapi/domestic-stock/v1/quotations/inquire-member-daily',  # 주식현재가 회원사 종목매매동향 (TR: FHPST04540000)
+    'INVESTOR_TREND_ESTIMATE': '/uapi/domestic-stock/v1/quotations/investor-trend-estimate',  # 종목별 외인기관 추정가집계 (TR: HHPTJ04160200)
+    'FOREIGN_INSTITUTION_TOTAL': '/uapi/domestic-stock/v1/quotations/foreign-institution-total',  # 국내기관_외국인 매매종목가집계 (TR: FHPTJ04400000)
+    'FRGNMEM_PCHS_TREND': '/uapi/domestic-stock/v1/quotations/frgnmem-pchs-trend',  # 종목별 외국계 순매수추이 (TR: FHKST644400C0)
+    'FRGNMEM_TRADE_ESTIMATE': '/uapi/domestic-stock/v1/quotations/frgnmem-trade-estimate',  # 외국계 매매종목 가집계 (TR: FHKST644100C0)
+    'FRGNMEM_TRADE_TREND': '/uapi/domestic-stock/v1/quotations/frgnmem-trade-trend',  # 회원사 실시간 매매동향(틱) (TR: FHPST04320000)
+    
+    # === 거래/주문 ===
+    'INQUIRE_BALANCE': '/uapi/domestic-stock/v1/trading/inquire-balance',  # 주식잔고조회 (TR: TTTC8434R)
+    'INQUIRE_PSBL_ORDER': '/uapi/domestic-stock/v1/trading/inquire-psbl-order',  # 매수가능조회 (TR: TTTC8908R)
+    'INQUIRE_PSBL_SELL': '/uapi/domestic-stock/v1/trading/inquire-psbl-sell',  # 매도가능수량조회 (TR: TTTC8408R)
+    'INQUIRE_DAILY_CCLD': '/uapi/domestic-stock/v1/trading/inquire-daily-ccld',  # 주식일별주문체결조회 (TR: TTTC8001R)
+    'INQUIRE_ACCOUNT_BALANCE': '/uapi/domestic-stock/v1/trading/inquire-account-balance',  # 투자계좌자산현황조회 (TR: CTRP6548R)
+    'INQUIRE_BALANCE_RLZ_PL': '/uapi/domestic-stock/v1/trading/inquire-balance-rlz-pl',  # 주식잔고조회_실현손익 (TR: TTTC8494R)
+    'INQUIRE_PERIOD_PROFIT': '/uapi/domestic-stock/v1/trading/inquire-period-profit',  # 기간별손익일별합산조회 (TR: TTTC8708R)
+    'INQUIRE_PERIOD_TRADE_PROFIT': '/uapi/domestic-stock/v1/trading/inquire-period-trade-profit',  # 기간별매매손익현황조회 (TR: TTTC8715R)
+    'ORDER_CASH': '/uapi/domestic-stock/v1/trading/order-cash',  # 주식주문(현금) (TR: TTTC0802U)
+    'INQUIRE_CREDIT_PSAMOUNT': '/uapi/domestic-stock/v1/trading/inquire-credit-psamount',  # 신용매수가능조회 (TR: TTTC8909R)
+    'INQUIRE_PSBL_RVSECNCL': '/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl',  # 주식정정취소가능주문조회 (TR: TTTC8036R)
+    'ORDER_RESV_CCNL': '/uapi/domestic-stock/v1/trading/order-resv-ccnl',  # 주식예약주문조회 (TR: CTSC0004R)
+    
+    # === 시장정보/순위 ===
+    'VOLUME_RANK': '/uapi/domestic-stock/v1/quotations/volume-rank',  # 거래량순위 (TR: FHPST01710000)
+    'FLUCTUATION': '/uapi/domestic-stock/v1/ranking/fluctuation',  # 국내주식 등락률 순위 (TR: FHPST01700000)
+    'MARKET_CAP': '/uapi/domestic-stock/v1/ranking/market-cap',  # 국내주식 시가총액 상위 (TR: FHPST01740000)
+    'VOLUME_POWER': '/uapi/domestic-stock/v1/ranking/volume-power',  # 국내주식 체결강도 상위 (TR: FHPST01680000)
+    'AFTER_HOUR_BALANCE': '/uapi/domestic-stock/v1/ranking/after-hour-balance',  # 국내주식 시간외잔량 순위 (TR: FHPST01760000)
+    'SHORT_SALE': '/uapi/domestic-stock/v1/ranking/short-sale',  # 국내주식 공매도 상위종목 (TR: FHPST04820000)
+    'OVERTIME_FLUCTUATION': '/uapi/domestic-stock/v1/ranking/overtime-fluctuation',  # 국내주식 시간외등락율순위 (TR: FHPST02340000)
+    'OVERTIME_VOLUME': '/uapi/domestic-stock/v1/ranking/overtime-volume',  # 국내주식 시간외거래량순위 (TR: FHPST02350000)
+    
+    # === 기타 시세정보 ===
+    'SEARCH_STOCK_INFO': '/uapi/domestic-stock/v1/quotations/search-stock-info',  # 주식기본조회 (TR: CTPF1002R)
+    'CHK_HOLIDAY': '/uapi/domestic-stock/v1/quotations/chk-holiday',  # 국내휴장일조회 (TR: CTCA0903R)
+    'PBAR_TRATIO': '/uapi/domestic-stock/v1/quotations/pbar-tratio',  # 국내주식 매물대/거래비중 (TR: FHPST01130000)
+    'CAPTURE_UPLOWPRICE': '/uapi/domestic-stock/v1/quotations/capture-uplowprice',  # 국내주식 상하한가 포착 (TR: FHKST130000C0)
+    'EXP_CLOSING_PRICE': '/uapi/domestic-stock/v1/quotations/exp-closing-price',  # 국내주식 장마감 예상체결가 (TR: FHKST117300C0)
+    'EXP_PRICE_TREND': '/uapi/domestic-stock/v1/quotations/exp-price-trend',  # 국내주식 예상체결가 추이 (TR: FHPST01810000)
+    'EXP_INDEX_TREND': '/uapi/domestic-stock/v1/quotations/exp-index-trend',  # 국내주식 예상체결지수 추이 (TR: FHPST01840000)
+    'INQUIRE_VI_STATUS': '/uapi/domestic-stock/v1/quotations/inquire-vi-status',  # 변동성완화장치(VI) 현황 (TR: FHPST01390000)
+    'INQUIRE_DAILY_TRADE_VOLUME': '/uapi/domestic-stock/v1/quotations/inquire-daily-trade-volume',  # 종목별일별매수매도체결량 (TR: FHKST03010800)
+    'NEWS_TITLE': '/uapi/domestic-stock/v1/quotations/news-title',  # 종합 시황/공시(제목) (TR: FHKST01011800)
+    'DAILY_CREDIT_BALANCE': '/uapi/domestic-stock/v1/quotations/daily-credit-balance',  # 국내주식 신용잔고 일별추이 (TR: FHPST04760000)
+    'DAILY_SHORT_SALE': '/uapi/domestic-stock/v1/quotations/daily-short-sale',  # 국내주식 공매도 일별추이 (TR: FHPST04830000)
+    'MKTFUNDS': '/uapi/domestic-stock/v1/quotations/mktfunds',  # 국내 증시자금 종합 (TR: FHKST649100C0)
+    
+    # === 재무정보 ===
+    'INCOME_STATEMENT': '/uapi/domestic-stock/v1/finance/income-statement',  # 국내주식 손익계산서 (TR: FHKST66430200)
+    'BALANCE_SHEET': '/uapi/domestic-stock/v1/finance/balance-sheet',  # 국내주식 대차대조표 (TR: FHKST66430100)
+    'FINANCIAL_RATIO': '/uapi/domestic-stock/v1/finance/financial-ratio',  # 국내주식 재무비율 (TR: FHKST66430300)
+    'PROFIT_RATIO': '/uapi/domestic-stock/v1/finance/profit-ratio',  # 국내주식 수익성비율 (TR: FHKST66430400)
+    'STABILITY_RATIO': '/uapi/domestic-stock/v1/finance/stability-ratio',  # 국내주식 안정성비율 (TR: FHKST66430600)
+    'GROWTH_RATIO': '/uapi/domestic-stock/v1/finance/growth-ratio',  # 국내주식 성장성비율 (TR: FHKST66430800)
+    'ESTIMATE_PERFORM': '/uapi/domestic-stock/v1/quotations/estimate-perform',  # 국내주식 종목추정실적 (TR: HHKST668300C0)
+    'INVEST_OPINION': '/uapi/domestic-stock/v1/quotations/invest-opinion',  # 국내주식 종목투자의견 (TR: FHKST663300C0)
+    'INVEST_OPBYSEC': '/uapi/domestic-stock/v1/quotations/invest-opbysec',  # 국내주식 증권사별 투자의견 (TR: FHKST663400C0)
+    
+    # === 해외주식 ===
+    'OVERSEAS_PRICE': '/uapi/overseas-price/v1/quotations/price',  # 해외주식 현재체결가 (TR: HHDFS00000300)
+    'OVERSEAS_PRICE_DETAIL': '/uapi/overseas-price/v1/quotations/price-detail',  # 해외주식 현재가상세 (TR: HHDFS76200200)
+    'OVERSEAS_DAILYPRICE': '/uapi/overseas-price/v1/quotations/dailyprice',  # 해외주식 기간별시세 (TR: HHDFS76240000)
+    'OVERSEAS_INQUIRE_ASKING_PRICE': '/uapi/overseas-price/v1/quotations/inquire-asking-price',  # 해외주식 현재가 10호가 (TR: HHDFS76200100)
+    'OVERSEAS_SEARCH_INFO': '/uapi/overseas-price/v1/quotations/search-info',  # 해외주식 상품기본정보 (TR: CTPF1702R)
+    'OVERSEAS_NEWS_TITLE': '/uapi/overseas-price/v1/quotations/news-title',  # 해외뉴스종합(제목) (TR: HHPSTH60100C1)
+    'OVERSEAS_INQUIRE_TIME_ITEMCHARTPRICE': '/uapi/overseas-price/v1/quotations/inquire-time-itemchartprice',  # 해외주식분봉조회 (TR: HHDFS76950200)
+    'OVERSEAS_INQUIRE_DAILY_CHARTPRICE': '/uapi/overseas-price/v1/quotations/inquire-daily-chartprice',  # 해외주식 종목/지수/환율기간별시세 (TR: FHKST03030100)
+    
+    # === 해외주식 거래 ===
+    'OVERSEAS_INQUIRE_BALANCE': '/uapi/overseas-stock/v1/trading/inquire-balance',  # 해외주식 잔고 (TR: TTTS3012R)
+    'OVERSEAS_INQUIRE_CCNL': '/uapi/overseas-stock/v1/trading/inquire-ccnl',  # 해외주식 주문체결내역 (TR: TTTS3035R)
+    'OVERSEAS_INQUIRE_PSAMOUNT': '/uapi/overseas-stock/v1/trading/inquire-psamount',  # 해외주식 매수가능금액조회 (TR: TTTS3007R)
+    
+    # === 선물옵션 ===
+    'FUTUREOPTION_INQUIRE_PRICE': '/uapi/domestic-futureoption/v1/quotations/inquire-price',  # 선물옵션 시세 (TR: FHMIF10000000)
+    'FUTUREOPTION_INQUIRE_ASKING_PRICE': '/uapi/domestic-futureoption/v1/quotations/inquire-asking-price',  # 선물옵션 시세호가 (TR: FHMIF10010000)
+    'FUTUREOPTION_INQUIRE_BALANCE': '/uapi/domestic-futureoption/v1/trading/inquire-balance',  # 선물옵션 잔고현황 (TR: CTFO6118R)
+    'INQUIRE_INDEX_PRICE': '/uapi/domestic-futureoption/v1/quotations/underlying-price', # KOSPI 200 지수 (TR: FHMIF10100000)
+    'INQUIRE_FUTURES_PRICE': '/uapi/domestic-futureoption/v1/quotations/inquire-price', # 선물옵션 시세 (TR: FHMIF10000000)
+    
+    # === ETF/ETN ===
+    'ETF_INQUIRE_PRICE': '/uapi/etfetn/v1/quotations/inquire-price',  # ETF/ETN현재가 (TR: FHPST02400000)
+    'ETF_NAV_COMPARISON_TREND': '/uapi/etfetn/v1/quotations/nav-comparison-trend',  # NAV 비교추이(종목) (TR: FHPST02440000)
+    
+    # === 채권 ===
+    'BOND_INQUIRE_PRICE': '/uapi/domestic-bond/v1/quotations/inquire-price',  # 장내채권현재가(시세) (TR: FHKBJ773400C0)
+    'BOND_INQUIRE_BALANCE': '/uapi/domestic-bond/v1/trading/inquire-balance',  # 장내채권 잔고조회 (TR: CTSC8407R)
+
+    # === 조건검색 ===
+    'CONDITIONED_STOCK': '/uapi/domestic-stock/v1/quotations/psearch-result',
+}
+    
+    
+
+_shared_rate_limit_lock = threading.Lock()
+_last_api_call_time = [0]
+
+class KISClient:
+    """
+    한국투자증권 OpenAPI 클라이언트
+
+    이 클래스는 한국투자증권 OpenAPI와의 통신을 담당합니다.
+    API 요청, 토큰 관리, 요청 제한 관리 등의 기능을 제공합니다.
+
+    Attributes:
+        config (KISConfig): API 설정 정보
+        token (str): API 인증 토큰
+        base_url (str): API 기본 URL
+        verbose (bool): 상세 로깅 여부
+
+    Example:
+        >>> client = KISClient()
+        >>> response = client.make_request('/uapi/domestic-stock/v1/quotations/inquire-price', 'FHKST01010100', {'FID_COND_MRKT_DIV_CODE': 'J', 'FID_INPUT_ISCD': '005930'})
+    """
+
+    def __init__(self, svr: str = 'prod', config=None, verbose: bool = False):
+        """
+        KISClient를 초기화합니다.
+
+        Args:
+            svr (str): 서버 환경 ('prod' 또는 'dev')
+            config (KISConfig, optional): API 설정 정보
+            verbose (bool): 상세 로깅 여부
+
+        Raises:
+            Exception: 인증 실패 시 발생
+        """
+        if isinstance(svr, KISConfig):
+            self.config = svr
+            svr = 'prod'
+        else:
+            self.config = None
+        self.verbose = verbose
+        self.token: Optional[dict] = None
+        self.last_api_call_time = time.monotonic()
+        self.last_request_time = 0.0
+        self.min_interval = 0.05  # 50ms
+        self.lock = threading.Lock()
+
+        try:
+            if self.config is None:
+                # config가 없으면 환경 변수로 토큰 발급
+                token_data = auth(svr=svr)
+                self.token = token_data['access_token'] if token_data else None
+                self.base_url = os.getenv('KIS_BASE_URL', 'https://openapi.koreainvestment.com:9443')
+            else:
+                # config가 있으면 config로 토큰 발급
+                token_data = auth(config=self.config, svr=svr)
+                self.token = token_data['access_token'] if token_data else None
+                self.base_url = self.config.BASE_URL
+        except Exception as e:
+            logger.error(f"인증 실패: {e}", exc_info=True)
+            raise
+
+    def _enforce_rate_limit(self) -> None:
+        """API 요청 제한을 관리합니다."""
+        with _shared_rate_limit_lock:
+            now = time.monotonic()
+            elapsed = now - _last_api_call_time[0]
+            if elapsed < self.min_interval:
+                time.sleep(self.min_interval - elapsed)
+            _last_api_call_time[0] = time.monotonic()
+            self.last_request_time = _last_api_call_time[0]
+
+    def _get_base_headers(self, tr_id: str) -> Dict[str, str]:
+        """
+        기본 HTTP 헤더를 생성합니다.
+
+        Args:
+            tr_id (str): API 트랜잭션 ID
+
+        Returns:
+            Dict[str, str]: HTTP 헤더
+        """
+        return {
+            "Content-Type": "application/json",
+            "authorization": f"Bearer {self.token}",
+            "appKey": getTREnv().my_app,
+            "appSecret": getTREnv().my_sec,
+            "tr_id": tr_id,
+            "custtype": "P",
+        }
+
+    def make_request(
+        self,
+        endpoint: str,
+        tr_id: str,
+        params: Dict[str, Any],
+        method: str = 'GET',
+        retries: int = 2,  # [변경 이유] 테스트 속도 향상을 위해 재시도 횟수를 5회 → 2회로 단축
+        headers: Dict[str, str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        API 요청을 보내고 응답을 처리합니다.
+
+        Args:
+            endpoint (str): API 엔드포인트 URL
+            tr_id (str): API 트랜잭션 ID
+            params (Dict[str, Any]): API 요청 파라미터
+            method (str): HTTP 메서드 (기본값: 'GET')
+            retries (int): 재시도 횟수 (기본값: 5)
+            headers (Dict[str, str], optional): 추가 HTTP 헤더
+
+        Returns:
+            Optional[Dict[str, Any]]: API 응답 데이터
+
+        Raises:
+            Exception: API 요청 실패 시 발생
+        """
+        url = f"{self.base_url}{endpoint}"
+        
+        # getTREnv()를 사용하여 올바른 헤더 설정
+        env = getTREnv()
+        headers = headers or {}
+        headers["authorization"] = env.my_token
+        headers["content-type"] = "application/json"
+        headers["appkey"] = env.my_app
+        headers["appsecret"] = env.my_sec
+        headers["tr_id"] = tr_id
+        
+        if self.verbose:
+            logger.debug(f"요청 URL: {url}")
+            logger.debug(f"요청 헤더: {headers}")
+            logger.debug(f"요청 파라미터: {params}")
+        
+        last_exception = None
+
+        for attempt in range(retries):
+            self._enforce_rate_limit()
+            response = None
+            data = None
+            try:
+                if self.verbose:
+                    logger.info(f"[API] ({method}) {tr_id} 시도 {attempt+1}/{retries}")
+
+                response = requests.request(
+                    method.upper(),
+                    url,
+                    headers=headers,
+                    params=params if method.upper() == 'GET' else None,
+                    json=params if method.upper() != 'GET' else None,
+                    timeout=15,
+                )
+
+                try:
+                    data = response.json()
+                except json.JSONDecodeError:
+                    logger.error(f"[{tr_id}] JSON 디코드 실패 (시도 {attempt+1}/{retries})")
+                    logger.error(f"[{tr_id}] 원시 응답 텍스트: {response.text[:500]}...")
+                    logger.error(f"[{tr_id}] 응답 상태 코드: {response.status_code}")
+                    logger.error(f"[{tr_id}] 응답 헤더: {dict(response.headers)}")
+                    return {
+                        'rt_cd': 'JSON_DECODE_ERROR',
+                        'msg1': 'JSON 디코드 실패',
+                        'raw_text': response.text,
+                        'status_code': response.status_code,
+                        'error_type': 'JSONDecodeError',
+                    }
+
+                rt_cd = data.get('rt_cd')
+                if rt_cd is None:
+                    logger.error(f"[{tr_id}] rt_cd 값이 없음: {data}")
+                    return {
+                        'rt_cd': 'NO_RT_CD',
+                        'msg1': '응답에 rt_cd 값이 없음',
+                        'raw_data': data,
+                        'status_code': response.status_code,
+                        'error_type': 'NoRtCd',
+                    }
+
+                if response.status_code == 200 and rt_cd == '0':
+                    if self.verbose and tr_id != "TTTC8434R":
+                        logger.info(f"[API] 응답: {data}")
+                    return data
+                else:
+                    if response.status_code == 200 and rt_cd != '0':
+                        api_msg = data.get('msg1', '')
+                        api_code = data.get('rt_cd')
+                        logger.warning(f"[{tr_id}] API 오류 응답 (시도 {attempt+1}/{retries}): {api_msg} (code: {api_code})")
+                        is_rate_limit_error = (
+                            isinstance(api_code, str)
+                            and api_code == '1'
+                            and isinstance(api_msg, str)
+                            and "초당 거래건수를 초과하였습니다" in api_msg
+                        )
+                        if is_rate_limit_error:
+                            if attempt < retries - 1:
+                                logger.warning(f"[{tr_id}] API 유량 제한 감지 (code: {api_code}). 0.5초 대기 후 재시도... ({attempt+1}/{retries})")
+                                time.sleep(0.5)  # [변경 이유] 테스트 속도 향상을 위해 대기 시간을 1초 → 0.5초로 단축
+                            else:
+                                logger.error(f"[{tr_id}] API 유량 제한 최종 실패 (재시도 소진).")
+                                return data
+                        else:
+                            return {
+                                'rt_cd': api_code,
+                                'msg1': api_msg,
+                                'raw_data': data,
+                                'status_code': response.status_code,
+                                'error_type': 'ApiError',
+                            }
+                    elif response.status_code != 200:
+                        http_error_msg = data.get('msg1', response.text) if data and isinstance(data, dict) else response.text
+                        http_error_code_from_json = data.get('rt_cd') if data and isinstance(data, dict) else None
+                        final_http_error_code = (
+                            http_error_code_from_json if http_error_code_from_json else str(response.status_code)
+                        )
+                        log_entry = f"[{tr_id}] HTTP 오류 응답 (시도 {attempt+1}/{retries}): Status {response.status_code}, Message: {http_error_msg}"
+                        if http_error_code_from_json:
+                            log_entry += f" (API Code in JSON: {http_error_code_from_json})"
+                        logger.warning(log_entry)
+                        if attempt < retries - 1:
+                            time.sleep(0.2)  # [변경 이유] 테스트 속도 향상을 위해 HTTP 오류 시 대기 시간을 단축
+                            continue
+                        else:
+                            logger.error(f"[{tr_id}] HTTP 오류 최종 실패 (재시도 소진).")
+                            return data if data else {
+                                'rt_cd': str(response.status_code),
+                                'msg1': response.text,
+                                'error_type': 'HTTPErrorFinal',
+                            }
+                    else:
+                        logger.error(f"[{tr_id}] 로직 오류: 예상치 못한 HTTP/API 상태 (시도 {attempt+1}/{retries}). 응답: {data}. HTTP Status: {response.status_code if response else 'N/A'}")
+                        return data
+            except requests.exceptions.RequestException as e:
+                logger.error(f"[{tr_id}] 요청 실패 (시도 {attempt+1}/{retries}): {e}")
+                last_exception = e
+                if attempt < retries - 1:
+                    time.sleep(0.2)  # [변경 이유] 테스트 속도 향상을 위해 요청 실패 시 대기 시간을 단축
+                    continue
+                else:
+                    logger.error(f"[{tr_id}] 요청 최종 실패 (재시도 소진): {last_exception}")
+                    raise last_exception
+
+        logger.error(f"[{tr_id}] 최종 실패 후 루프 외부 도달: {last_exception if last_exception else '알 수 없는 오류'}")
+        if last_exception:
+            raise last_exception
+        raise Exception('Unknown error after retries')
+
+    def refresh_token(self) -> None:
+        """
+        API 토큰을 갱신합니다.
+
+        Raises:
+            Exception: 토큰 갱신 실패 시 발생
+        """
+        try:
+            response = requests.post(
+                f"{self.base_url}/oauth2/tokenP",
+                json={
+                    "grant_type": "client_credentials",
+                    "appkey": self.config.APP_KEY,
+                    "appsecret": self.config.APP_SECRET
+                },
+                headers={"content-type": "application/json"}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                self.token = data.get('access_token')
+                if not self.token:
+                    raise Exception("토큰 갱신 실패: access_token이 없습니다.")
+            else:
+                raise Exception(f"토큰 갱신 실패: HTTP {response.status_code}")
+        except Exception as e:
+            logger.error(f"토큰 갱신 실패: {e}")
+            raise
+
+    def get_kospi200_index(self, futures_month: str = "202409") -> Optional[Dict[str, Any]]:
+        """
+        KOSPI200 지수 조회
+
+        Args:
+            futures_month (str): 선물 만료월 (YYYYMM 형식)
+
+        Returns:
+            Dict[str, Any]: KOSPI200 지수 정보
+        """
+        endpoint = API_ENDPOINTS['INQUIRE_INDEX_PRICE']
+        params = {
+            "FID_COND_MRKT_DIV_CODE": "U",
+            "FID_INPUT_ISCD": f"101{futures_month[-2:]}000"
+        }
+        return self.make_request(endpoint, "FHMIF10100000", params)
+
+    def get_ws_approval_key(self) -> Optional[str]:
+        """
+        웹소켓 접속을 위한 승인키를 가져옵니다.
+
+        Returns:
+            str: 웹소켓 승인키
+        """
+        url = f"{self.base_url}/oauth2/Approval"
+        
+        payload = {
+            "grant_type": "client_credentials",
+            "appkey": self.config.app_key if self.config else os.getenv('KIS_APP_KEY'),
+            "secretkey": self.config.app_secret if self.config else os.getenv('KIS_APP_SECRET')
+        }
+        
+        headers = {
+            'content-type': 'application/json'
+        }
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            if response.status_code == 200:
+                approval_key = response.json().get("approval_key")
+                if not approval_key:
+                    logger.error("응답에서 approval_key를 추출하지 못했습니다.")
+                    return None
+                logger.info(f"웹소켓 승인키 발급 완료: {approval_key[:10]}...")
+                return approval_key
+            else:
+                logger.error(f"웹소켓 승인키 요청 실패: {response.status_code} - {response.text}")
+                return None
+        except Exception as e:
+            logger.error(f"웹소켓 승인키 요청 중 오류 발생: {e}")
+            return None
+
+__all__ = ['KISClient', 'API_ENDPOINTS']
