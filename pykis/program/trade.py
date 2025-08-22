@@ -1,5 +1,7 @@
 from typing import Optional, Dict, Any
+import pandas as pd
 from ..core.client import KISClient, API_ENDPOINTS
+from ..core.base_api import BaseAPI
 from datetime import datetime
 """
 program_trade_api.py - 프로그램 매매 정보 조회 전용 모듈
@@ -27,7 +29,7 @@ daily_summary = pgm_api.get_program_trade_daily_summary("005930", "20240726")
 """
 
 
-class ProgramTradeAPI:
+class ProgramTradeAPI(BaseAPI):
     """
     한국투자증권 API의 프로그램 매매 정보 조회 기능을 제공하는 클래스입니다.
 
@@ -51,8 +53,7 @@ class ProgramTradeAPI:
             client (KISClient): API 통신을 담당하는 클라이언트
             account_info (dict, optional): 계좌 정보
         """
-        self.client = client
-        self.account_info = account_info or {}
+        super().__init__(client, account_info)
 
     def get_program_trade_by_stock(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
@@ -63,7 +64,7 @@ class ProgramTradeAPI:
             ref_date (Optional[str]): 기준 일자 (YYYYMMDD 형식, 기본값: 현재 일자)
 
         Returns:
-            Optional[Dict[str, Any]]: API 응답 데이터
+            Optional[Dict[str, Any]]: rt_cd 메타데이터가 포함된 API 응답 데이터
         """
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
@@ -77,7 +78,7 @@ class ProgramTradeAPI:
             # 현재 구현은 ref_date가 있을 때만 날짜를 추가합니다.
             pass
 
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK'],
             tr_id="FHPPG04650101",  # 종목별프로그램매매추이(체결)
             params=params
@@ -104,7 +105,7 @@ class ProgramTradeAPI:
             date_str (str): 조회 일자 (YYYYMMDD 형식)
 
         Returns:
-            Optional[Dict[str, Any]]: API 응답 데이터
+            Optional[Dict[str, Any]]: rt_cd 메타데이터가 포함된 API 응답 데이터
                 - 성공 시: 일별 프로그램 매매 집계 정보를 포함한 응답 데이터
                 - 실패 시: None
 
@@ -118,7 +119,7 @@ class ProgramTradeAPI:
         Example:
             >>> api.get_program_trade_daily_summary("005930", "20240726")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK_DAILY'],
             tr_id="FHPPG04650200", # 종목별 프로그램매매추이(일별)
             params={
@@ -137,14 +138,14 @@ class ProgramTradeAPI:
             end_date (str): 종료 일자 (YYYYMMDD 형식)
 
         Returns:
-            Optional[Dict[str, Any]]: API 응답 데이터
+            Optional[Dict[str, Any]]: rt_cd 메타데이터가 포함된 API 응답 데이터
                 - 성공 시: 일별 프로그램 매매 종합현황 정보를 포함한 응답 데이터
                 - 실패 시: None
 
         Example:
             >>> api.get_program_trade_market_daily("20240701", "20240726")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",
             tr_id="FHPPG04600000", # 프로그램매매종합현황(일별)
             params={

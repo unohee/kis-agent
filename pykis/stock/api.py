@@ -151,7 +151,7 @@ class StockAPI(BaseAPI):
 
     def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[Dict]:
         """
-        주식 회원사 정보 조회 (Postman 검증된 방식)
+        주식 회원사 정보 조회 (Postman 검증된 방식) (rt_cd 메타데이터가 포함된)
         
         Args:
             ticker: 종목코드 (6자리)
@@ -159,7 +159,7 @@ class StockAPI(BaseAPI):
         """
         for attempt in range(retries):
             try:
-                response = self.client.make_request(
+                response = self._make_request_dict(
                     endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
                     tr_id="FHKST01010600",
                     params={
@@ -407,7 +407,7 @@ class StockAPI(BaseAPI):
             return None
 
     def get_market_fluctuation(self) -> Optional[Dict[str, Any]]:
-        """국내주식 등락률 순위 조회"""
+        """국내주식 등락률 순위 조회 (rt_cd 메타데이터가 포함된)"""
         params = {
             "fid_cond_mrkt_div_code": "J",
             "fid_cond_scr_div_code": "20170",
@@ -424,7 +424,7 @@ class StockAPI(BaseAPI):
             "fid_rsfl_rate1": "",
             "fid_rsfl_rate2": ""
         }
-        response = self.client.make_request(
+        response = self._make_request_dict(
             endpoint=API_ENDPOINTS['FLUCTUATION'],
             tr_id="FHPST01700000",
             params=params
@@ -432,7 +432,7 @@ class StockAPI(BaseAPI):
         return response
 
     def get_market_rankings(self, volume: int = 5000000) -> Optional[Dict[str, Any]]:
-        """거래량 순위 조회"""
+        """거래량 순위 조회 (rt_cd 메타데이터가 포함된)"""
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_COND_SCR_DIV_CODE": "20171",
@@ -446,7 +446,7 @@ class StockAPI(BaseAPI):
             "FID_VOL_CNT": str(volume),
             "FID_INPUT_DATE_1": ""
         }
-        response = self.client.make_request(
+        response = self._make_request_dict(
             endpoint=API_ENDPOINTS['VOLUME_RANK'],
             tr_id="FHPST01710000",
             params=params
@@ -467,7 +467,7 @@ class StockAPI(BaseAPI):
         return None
 
     def get_member_transaction(self, code: str, mem_code: str) -> Optional[Dict[str, Any]]:
-        """회원사 일별 매매 종목"""
+        """회원사 일별 매매 종목 (rt_cd 메타데이터가 포함된)"""
         from datetime import datetime, timedelta
         today = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
@@ -479,7 +479,7 @@ class StockAPI(BaseAPI):
             "fid_input_date_2": today,
             "fid_sctn_cls_code": ""
         }
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_MEMBER_DAILY'],
             tr_id="FHPST04540000",
             params=params
@@ -487,7 +487,7 @@ class StockAPI(BaseAPI):
 
     def get_frgnmem_pchs_trend(self, code: str, date: str) -> Optional[Dict[str, Any]]:
         """
-        종목별 외국계 순매수추이 조회 (날짜별 API)
+        종목별 외국계 순매수추이 조회 (날짜별 API) (rt_cd 메타데이터가 포함된)
         
         Args:
             code: 종목코드
@@ -496,7 +496,7 @@ class StockAPI(BaseAPI):
         Returns:
             Dict: 외국계 순매수추이 데이터
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['FRGNMEM_PCHS_TREND'],
             tr_id="FHKST644400C0",
             params={
@@ -658,14 +658,14 @@ class StockAPI(BaseAPI):
         return net_buy, details
 
     def get_pbar_tratio(self, code: str, retries: int = 10) -> Optional[dict]:
-        """매물대/거래비중 조회"""
+        """매물대/거래비중 조회 (rt_cd 메타데이터가 포함된)"""
         params = {
             "fid_cond_mrkt_div_code": "J",
             "fid_input_iscd": code,
             "fid_cond_scr_div_code": "20113",
             "fid_input_hour_1": "",
         }
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['PBAR_TRATIO'],
             tr_id="FHPST01130000",
             params=params,
@@ -673,7 +673,7 @@ class StockAPI(BaseAPI):
         )
 
     def get_hourly_conclusion(self, code: str, hour: str = "115959", retries: int = 10) -> Optional[dict]:
-        """시간대별 체결 조회
+        """시간대별 체결 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code: 종목코드 (6자리)
@@ -688,7 +688,7 @@ class StockAPI(BaseAPI):
             "fid_input_iscd": code,
             "fid_input_hour_1": hour,
         }
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_ITEMCONCLUSION'],
             tr_id="FHPST01060000",
             params=params,
@@ -696,7 +696,7 @@ class StockAPI(BaseAPI):
         )
 
     def get_stock_ccnl(self, code: str, retries: int = 10) -> Optional[dict]:
-        """주식현재가 체결(최근30건) 조회
+        """주식현재가 체결(최근30건) 조회 (rt_cd 메타데이터가 포함된)
         
         최근 30건의 체결 내역과 함께 당일 체결강도(tday_rltv)를 포함한 상세한 체결 정보를 제공합니다.
         
@@ -722,7 +722,7 @@ class StockAPI(BaseAPI):
             "fid_cond_mrkt_div_code": "J",
             "fid_input_iscd": code,
         }
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_CCNL'],
             tr_id="FHKST01010300",
             params=params,
@@ -731,13 +731,13 @@ class StockAPI(BaseAPI):
 
     def get_minute_price(self, code: str, hour: str = "153000") -> Optional[Dict]:
         """
-        분봉 데이터 조회 (주식당일분봉조회)
+        분봉 데이터 조회 (주식당일분봉조회) (rt_cd 메타데이터가 포함된)
         
         Args:
             code: 종목코드
             hour: 시간 (HHMMSS 형식, 기본값: 153000)
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_ITEMCHARTPRICE'],
             tr_id="FHKST03010200",
             params={
@@ -751,7 +751,7 @@ class StockAPI(BaseAPI):
 
     def get_daily_minute_price(self, code: str, date: str, hour: str = "153000") -> Optional[Dict]:
         """
-        일별분봉시세조회 - 과거일자 분봉 데이터 조회
+        일별분봉시세조회 - 과거일자 분봉 데이터 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -767,7 +767,7 @@ class StockAPI(BaseAPI):
             - 당사 서버에 보관된 데이터만 조회 가능
         """
         # [변경 이유] 한국투자증권 새로운 일별분봉시세조회 API 추가
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_DAILYCHARTPRICE'],
             tr_id="FHKST03010230",
             params={
@@ -850,12 +850,12 @@ class StockAPI(BaseAPI):
         }
 
     def get_possible_order(self, code: str, price: str, order_type: str = "01") -> Optional[Dict[str, Any]]:
-        """매수 가능 주문 조회"""
+        """매수 가능 주문 조회 (rt_cd 메타데이터가 포함된)"""
         if not self.account:
             logging.error("계좌 정보가 없습니다.")
             return None
         
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_PSBL_ORDER'],
             tr_id="TTTC8908R",
             params={
@@ -870,7 +870,7 @@ class StockAPI(BaseAPI):
         )
 
     def get_holiday_info(self, date: Optional[str] = None) -> Optional[Dict]:
-        """국내 휴장일 정보를 조회합니다.
+        """국내 휴장일 정보를 조회합니다. (rt_cd 메타데이터가 포함된)
         
         Args:
             date (str, optional): YYYYMMDD 형식의 기준 날짜. Defaults to None.
@@ -884,7 +884,7 @@ class StockAPI(BaseAPI):
             params['BASS_DT'] = date
             
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint=API_ENDPOINTS['CHK_HOLIDAY'],
                 tr_id="CTCA0903R",
                 params=params
@@ -894,16 +894,16 @@ class StockAPI(BaseAPI):
             return None
 
     def get_stock_financial(self, code: str) -> Optional[Dict[str, Any]]:
-        """재무비율 조회"""
-        return self.client.make_request(
+        """재무비율 조회 (rt_cd 메타데이터가 포함된)"""
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['FINANCIAL_RATIO'],
             tr_id="FHKST66430300",
             params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
         )
 
     def get_stock_basic(self, code: str) -> Optional[Dict[str, Any]]:
-        """주식 기본 정보 조회"""
-        return self.client.make_request(
+        """주식 기본 정보 조회 (rt_cd 메타데이터가 포함된)"""
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['SEARCH_STOCK_INFO'],
             tr_id="CTPF1002R",
             params={"PRDT_TYPE_CD": "300", "PDNO": code}
@@ -1002,13 +1002,13 @@ class StockAPI(BaseAPI):
 
     def get_kospi200_index(self, futures_month: str = "202409") -> Optional[Dict[str, Any]]:
         """
-        KOSPI 200 지수 시세 조회 (기초자산)
+        KOSPI 200 지수 시세 조회 (기초자산) (rt_cd 메타데이터가 포함된)
         
         Args:
             futures_month (str): 조회할 선물의 만기년월 (YYYYMM 형식).
                                  이 값에 따라 관련된 기초자산(KOSPI 200)의 시세가 조회됩니다.
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INDEX_PRICE'],
             tr_id="FHMIF10100000",
             params={
@@ -1018,8 +1018,8 @@ class StockAPI(BaseAPI):
         )
 
     def get_futures_price(self, code: str) -> Optional[Dict[str, Any]]:
-        """선물 시세 조회"""
-        return self.client.make_request(
+        """선물 시세 조회 (rt_cd 메타데이터가 포함된)"""
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_FUTURES_PRICE'],
             tr_id="FHMIF10000000",
             params={
@@ -1035,7 +1035,7 @@ class StockAPI(BaseAPI):
                                    end_date: str = "20220722", 
                                    period_div_code: str = "D") -> Optional[Dict[str, Any]]:
         """
-        국내주식업종기간별시세 조회 (일/주/월/년)
+        국내주식업종기간별시세 조회 (일/주/월/년) (rt_cd 메타데이터가 포함된)
         
         Args:
             market_div_code (str): 시장 분류 코드 (U: 업종)
@@ -1051,7 +1051,7 @@ class StockAPI(BaseAPI):
             - 한 번의 호출에 최대 50건의 데이터 수신
             - 다음 데이터를 받아오려면 OUTPUT 값의 가장 과거 일자의 1일 전 날짜를 end_date에 넣어 재호출
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_DAILY_INDEXCHARTPRICE'],
             tr_id="FHKUP03500100",
             params={
@@ -1068,7 +1068,7 @@ class StockAPI(BaseAPI):
                               end_date: str = None,
                               period: str = "D") -> Optional[Dict[str, Any]]:
         """
-        국내 지수 일자별 시세 조회
+        국내 지수 일자별 시세 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             index_code (str): 지수코드 (0001:KOSPI, 1001:KOSDAQ, 2001:KOSPI200)
@@ -1086,7 +1086,7 @@ class StockAPI(BaseAPI):
             from datetime import datetime
             end_date = datetime.now().strftime('%Y%m%d')
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS.get('INQUIRE_INDEX_DAILY_PRICE', '/uapi/domestic-stock/v1/quotations/inquire-index-daily-price'),
             tr_id="FHPUP02120000",
             params={
@@ -1099,7 +1099,7 @@ class StockAPI(BaseAPI):
     
     def get_orderbook_raw(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        주식 호가 조회 (원시 데이터)
+        주식 호가 조회 (원시 데이터) (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1110,7 +1110,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_orderbook_raw("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010200",
             params={
@@ -1121,7 +1121,7 @@ class StockAPI(BaseAPI):
     
     def get_stock_member(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        주식 회원사(거래원) 정보 조회
+        주식 회원사(거래원) 정보 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1132,7 +1132,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_stock_member("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
             tr_id="FHKST01010600",
             params={
@@ -1145,7 +1145,7 @@ class StockAPI(BaseAPI):
                                 code: str, 
                                 date: str) -> Optional[Dict[str, Any]]:
         """
-        국내주식 신용잔고 일별추이 조회
+        국내주식 신용잔고 일별추이 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
@@ -1163,7 +1163,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_daily_credit_balance("005930", "20240508")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['DAILY_CREDIT_BALANCE'],
             tr_id="FHPST04760000",  # 국내주식 신용잔고 일별추이 TR ID
             params={
@@ -1178,7 +1178,7 @@ class StockAPI(BaseAPI):
                                market_div_code: str = "F", 
                                input_iscd: str = None) -> Optional[Dict[str, Any]]:
         """
-        선물옵션 시세 조회
+        선물옵션 시세 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             market_div_code (str): 시장분류코드 (F: 지수선물, O: 지수옵션, JF: 주식선물, JO: 주식옵션)
@@ -1189,7 +1189,7 @@ class StockAPI(BaseAPI):
         """
         if input_iscd is None:
             input_iscd = get_kospi200_futures_code()
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['FUTUREOPTION_INQUIRE_PRICE'],
             tr_id="FHMIF10000000",
             params={
@@ -1205,7 +1205,7 @@ class StockAPI(BaseAPI):
                      rank_sort_cls_code: str = "0",
                      input_date: str = "") -> Optional[Dict[str, Any]]:
         """
-        변동성완화장치(VI) 현황 조회
+        변동성완화장치(VI) 현황 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리, 예: "005930"), 전체 조회시 빈 문자열
@@ -1224,7 +1224,7 @@ class StockAPI(BaseAPI):
         if not input_date:
             input_date = datetime.now().strftime("%Y%m%d")
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_VI_STATUS'],
             tr_id="FHPST01390000",
             params={
@@ -1241,7 +1241,7 @@ class StockAPI(BaseAPI):
 
     def get_elw_price(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        ELW(주식워런트증권) 현재가 조회
+        ELW(주식워런트증권) 현재가 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): ELW 종목코드
@@ -1252,7 +1252,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_elw_price("58F282")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_ELW_PRICE'],
             tr_id="FHKEW15010000",
             params={
@@ -1264,7 +1264,7 @@ class StockAPI(BaseAPI):
     def get_index_category_price(self, 
                                  upjong_code: str = "0001") -> Optional[Dict[str, Any]]:
         """
-        업종별 지수 시세 조회
+        업종별 지수 시세 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             upjong_code (str): 업종코드 (예: "0001")
@@ -1275,7 +1275,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_index_category_price("0001")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INDEX_CATEGORY_PRICE'],
             tr_id="FHKUP03500100",
             params={
@@ -1288,7 +1288,7 @@ class StockAPI(BaseAPI):
                             index_code: str = "0001",
                             hour: str = "") -> Optional[Dict[str, Any]]:
         """
-        지수 틱(체결) 시세 조회
+        지수 틱(체결) 시세 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             index_code (str): 지수코드 (예: "0001")
@@ -1300,7 +1300,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_index_tick_price("0001", "090000")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INDEX_TICKPRICE'],
             tr_id="FHPUP02110100",
             params={
@@ -1316,7 +1316,7 @@ class StockAPI(BaseAPI):
                             index_code: str = "0001",
                             time_div: str = "0") -> Optional[Dict[str, Any]]:
         """
-        지수 분/일봉 시세 조회
+        지수 분/일봉 시세 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             index_code (str): 지수코드 (예: "0001")
@@ -1328,7 +1328,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_index_time_price("0001", "1")  # 1분봉
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INDEX_TIMEPRICE'],
             tr_id="FHKUP03500200",
             params={
@@ -1344,7 +1344,7 @@ class StockAPI(BaseAPI):
                                      market_code: str = "STK",
                                      input_date: str = "") -> Optional[Dict[str, Any]]:
         """
-        시장별 투자자별 일별 매매동향 조회
+        시장별 투자자별 일별 매매동향 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             market_code (str): 시장구분코드 (STK:전체, KSP:코스피, KSQ:코스닥)
@@ -1360,7 +1360,7 @@ class StockAPI(BaseAPI):
         if not input_date:
             input_date = datetime.now().strftime("%Y%m%d")
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INVESTOR_DAILY_BY_MARKET'],
             tr_id="FHPTJ04400000",
             params={
@@ -1373,7 +1373,7 @@ class StockAPI(BaseAPI):
                                     market_code: str = "STK",
                                     time_div: str = "0") -> Optional[Dict[str, Any]]:
         """
-        시장별 투자자별 당일 시간대별 매매동향 조회
+        시장별 투자자별 당일 시간대별 매매동향 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             market_code (str): 시장구분코드 (STK:전체, KSP:코스피, KSQ:코스닭)
@@ -1385,7 +1385,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_investor_time_by_market("STK", "1")  # 1분 단위
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INVESTOR_TIME_BY_MARKET'],
             tr_id="FHPTJ04410000",
             params={
@@ -1401,7 +1401,7 @@ class StockAPI(BaseAPI):
                         start_date: str = "",
                         end_date: str = "") -> Optional[Dict[str, Any]]:
         """
-        종목별 회원사 일별 매매동향 조회
+        종목별 회원사 일별 매매동향 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1420,7 +1420,7 @@ class StockAPI(BaseAPI):
         if not start_date:
             start_date = end_date
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_MEMBER_DAILY'],
             tr_id="FHKST01010700",
             params={
@@ -1433,7 +1433,7 @@ class StockAPI(BaseAPI):
 
     def get_overtime_asking_price(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        시간외 호가 조회
+        시간외 호가 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1444,7 +1444,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_overtime_asking_price("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_OVERTIME_ASKING_PRICE'],
             tr_id="FHKST01010200",
             params={
@@ -1455,7 +1455,7 @@ class StockAPI(BaseAPI):
 
     def get_overtime_price(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        시간외 시세 조회
+        시간외 시세 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1466,7 +1466,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_overtime_price("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_OVERTIME_PRICE'],
             tr_id="FHKST01010300",
             params={
@@ -1479,7 +1479,7 @@ class StockAPI(BaseAPI):
                                    code: str,
                                    period_div: str = "0") -> Optional[Dict[str, Any]]:
         """
-        종목 분/일봉 차트 조회
+        종목 분/일봉 차트 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1491,7 +1491,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_time_daily_chart_price("005930", "1")  # 1분봉
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_DAILYCHARTPRICE'],
             tr_id="FHKST03010200",
             params={
@@ -1509,7 +1509,7 @@ class StockAPI(BaseAPI):
                                    index_code: str = "0001",
                                    period_div: str = "1") -> Optional[Dict[str, Any]]:
         """
-        지수 분봉 차트 조회
+        지수 분봉 차트 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             index_code (str): 지수코드 (예: "0001")
@@ -1521,7 +1521,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_time_index_chart_price("0001", "1")  # 1분봉
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_INDEXCHARTPRICE'],
             tr_id="FHKUP03500100",
             params={
@@ -1538,7 +1538,7 @@ class StockAPI(BaseAPI):
                                 code: str,
                                 hour: str = "") -> Optional[Dict[str, Any]]:
         """
-        종목별 체결 조회 (틱 데이터)
+        종목별 체결 조회 (틱 데이터) (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1550,7 +1550,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_time_item_conclusion("005930", "090000")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_ITEMCONCLUSION'],
             tr_id="FHPST01060000",
             params={
@@ -1565,7 +1565,7 @@ class StockAPI(BaseAPI):
                                     code: str,
                                     hour: str = "") -> Optional[Dict[str, Any]]:
         """
-        시간외 체결 조회
+        시간외 체결 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1577,7 +1577,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_time_overtime_conclusion("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_TIME_OVERTIMECONCLUSION'],
             tr_id="FHPST02320000",
             params={
@@ -1590,7 +1590,7 @@ class StockAPI(BaseAPI):
 
     def get_asking_price_exp_ccn(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        주식 호가 및 예상체결 조회
+        주식 호가 및 예상체결 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1601,7 +1601,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_asking_price_exp_ccn("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010200",
             params={
@@ -1612,7 +1612,7 @@ class StockAPI(BaseAPI):
 
     def get_price_2(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        주식 현재가 시세2 조회 (확장 정보)
+        주식 현재가 시세2 조회 (확장 정보) (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1623,7 +1623,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_price_2("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_PRICE_2'],
             tr_id="FHPST01010000",
             params={
@@ -1637,7 +1637,7 @@ class StockAPI(BaseAPI):
                                 start_date: str = "",
                                 end_date: str = "") -> Optional[Dict[str, Any]]:
         """
-        시간외 일자별 주가 조회
+        시간외 일자별 주가 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1656,7 +1656,7 @@ class StockAPI(BaseAPI):
         if not start_date:
             start_date = end_date
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_DAILY_OVERTIMEPRICE'],
             tr_id="FHPST02320000",
             params={
@@ -1673,7 +1673,7 @@ class StockAPI(BaseAPI):
                               start_date: str = "",
                               end_date: str = "") -> Optional[Dict[str, Any]]:
         """
-        종목별 일별 매수매도 체결량 조회
+        종목별 일별 매수매도 체결량 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1693,7 +1693,7 @@ class StockAPI(BaseAPI):
             from datetime import timedelta
             start_date = (datetime.strptime(end_date, "%Y%m%d") - timedelta(days=30)).strftime("%Y%m%d")
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_DAILY_TRADE_VOLUME'],
             tr_id="FHKST03010800",
             params={
@@ -1708,7 +1708,7 @@ class StockAPI(BaseAPI):
                                    code: str,
                                    market_code: str = "J") -> Optional[Dict[str, Any]]:
         """
-        종목별 프로그램매매 추이(체결) 조회
+        종목별 프로그램매매 추이(체결) 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1720,7 +1720,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_program_trade_by_stock("005930")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK'],
             tr_id="FHPPG04650101",
             params={
@@ -1735,7 +1735,7 @@ class StockAPI(BaseAPI):
                                          end_date: str = "",
                                          market_code: str = "J") -> Optional[Dict[str, Any]]:
         """
-        종목별 프로그램매매 추이(일별) 조회
+        종목별 프로그램매매 추이(일별) 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             code (str): 종목코드 (6자리)
@@ -1756,7 +1756,7 @@ class StockAPI(BaseAPI):
             from datetime import timedelta
             start_date = (datetime.strptime(end_date, "%Y%m%d") - timedelta(days=30)).strftime("%Y%m%d")
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK_DAILY'],
             tr_id="FHPPG04650200",
             params={
@@ -1772,7 +1772,7 @@ class StockAPI(BaseAPI):
                                      start_date: str = "",
                                      end_date: str = "") -> Optional[Dict[str, Any]]:
         """
-        프로그램매매 종합현황(일별) 조회
+        프로그램매매 종합현황(일별) 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             market_code (str): 시장구분코드 (J:거래소, Q:코스닥, JQ:KRX)
@@ -1792,7 +1792,7 @@ class StockAPI(BaseAPI):
             from datetime import timedelta
             start_date = (datetime.strptime(end_date, "%Y%m%d") - timedelta(days=30)).strftime("%Y%m%d")
             
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['COMP_PROGRAM_TRADE_DAILY'],
             tr_id="FHPPG04600000",
             params={
@@ -1806,7 +1806,7 @@ class StockAPI(BaseAPI):
                                      market_code: str = "J",
                                      time_div: str = "0") -> Optional[Dict[str, Any]]:
         """
-        프로그램매매 종합현황(당일/시간별) 조회
+        프로그램매매 종합현황(당일/시간별) 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             market_code (str): 시장구분코드 (J:거래소, Q:코스닥, JQ:KRX)
@@ -1818,7 +1818,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_comp_program_trade_today("J", "1")  # 거래소 1분 단위
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['COMP_PROGRAM_TRADE_TODAY'],
             tr_id="FHPPG04600100",
             params={
@@ -1831,7 +1831,7 @@ class StockAPI(BaseAPI):
     def get_investor_program_trade_today(self, 
                                          market_code: str = "J") -> Optional[Dict[str, Any]]:
         """
-        프로그램매매 투자자별 매매동향(당일) 조회
+        프로그램매매 투자자별 매매동향(당일) 조회 (rt_cd 메타데이터가 포함된)
         
         Args:
             market_code (str): 시장구분코드 (J:거래소, Q:코스닥, JQ:KRX)
@@ -1842,7 +1842,7 @@ class StockAPI(BaseAPI):
         Example:
             >>> stock_api.get_investor_program_trade_today("J")
         """
-        return self.client.make_request(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INVESTOR_PROGRAM_TRADE_TODAY'],
             tr_id="HHPPG046600C0",
             params={

@@ -93,7 +93,7 @@ class AccountAPI(BaseAPI):
         Returns
         -------
         Optional[dict]
-            Response JSON with purchase availability information.
+            Response JSON with purchase availability information (rt_cd 메타데이터가 포함된).
             - ord_psbl_cash: Available cash for purchase
             - ord_psbl_sbst: Available substitution amount
             - max_buy_qty: Maximum purchasable quantity
@@ -103,7 +103,7 @@ class AccountAPI(BaseAPI):
         >>> api.get_cash_available("005930")  # Samsung Electronics
         >>> api.get_cash_available("000660")  # SK Hynix
         """
-        res = self.client.make_request(
+        res = self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
             tr_id="TTTC8908R",
             params={
@@ -130,7 +130,7 @@ class AccountAPI(BaseAPI):
         Returns
         -------
         Optional[dict]
-            JSON structure describing investment account balance.
+            JSON structure describing investment account balance (rt_cd 메타데이터가 포함된).
             - output1: Account summary information
             - output2: Detailed balance information
 
@@ -138,7 +138,7 @@ class AccountAPI(BaseAPI):
         -------
         >>> api.get_total_asset()
         """
-        res = self.client.make_request(
+        res = self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-account-balance",
             tr_id="CTRP6548R",
             params={
@@ -157,9 +157,9 @@ class AccountAPI(BaseAPI):
         return res
 
     def get_account_order_quantity(self, code: str) -> Optional[Dict]:
-        """계좌별 주문 수량 조회"""
+        """계좌별 주문 수량 조회 (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint=(
                     "/uapi/domestic-stock/v1/trading/inquire-account-order-quantity"
                 ),
@@ -178,9 +178,9 @@ class AccountAPI(BaseAPI):
             return None
 
     def get_possible_order_amount(self) -> Optional[Dict]:
-        """주문 가능 금액 조회"""
+        """주문 가능 금액 조회 (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint=API_ENDPOINTS["INQUIRE_PSBL_ORDER"],
                 tr_id="TTTC8908R",
                 params={
@@ -200,9 +200,9 @@ class AccountAPI(BaseAPI):
     def order_credit(
         self, code: str, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """주식주문(신용)"""
+        """주식주문(신용) (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
                 tr_id="TTTC0852U",
                 params={
@@ -223,9 +223,9 @@ class AccountAPI(BaseAPI):
     def order_rvsecncl(
         self, org_order_no: str, qty: int, price: int, order_type: str, cncl_type: str
     ) -> Optional[Dict]:
-        """주식주문(정정취소)"""
+        """주식주문(정정취소) (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-rvsecncl",
                 tr_id="TTTC0803U",
                 params={
@@ -245,9 +245,9 @@ class AccountAPI(BaseAPI):
             return None
 
     def inquire_psbl_rvsecncl(self) -> Optional[Dict]:
-        """주식정정취소가능주문조회"""
+        """주식정정취소가능주문조회 (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",
                 tr_id="TTTC8036R",
                 params={
@@ -266,9 +266,9 @@ class AccountAPI(BaseAPI):
     def order_resv(
         self, code: str, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """주식예약주문"""
+        """주식예약주문 (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv",
                 tr_id="CTSC0008U",
                 params={
@@ -289,9 +289,9 @@ class AccountAPI(BaseAPI):
     def order_resv_rvsecncl(
         self, seq: int, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """주식예약주문정정취소"""
+        """주식예약주문정정취소 (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
                 tr_id="CTSC0013U",
                 params={
@@ -311,9 +311,9 @@ class AccountAPI(BaseAPI):
             return None
 
     def order_resv_ccnl(self) -> Optional[Dict]:
-        """주식예약주문조회"""
+        """주식예약주문조회 (rt_cd 메타데이터가 포함된)"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-ccnl",
                 tr_id="CTSC0004R",
                 params={
@@ -546,7 +546,7 @@ class AccountAPI(BaseAPI):
             pdno: 상품번호 (종목코드, 6자리, 필수)
 
         Returns:
-            Optional[Dict[str, Any]]: 매도가능수량 정보를 담은 딕셔너리
+            Optional[Dict[str, Any]]: 매도가능수량 정보를 담은 딕셔너리 (rt_cd 메타데이터가 포함된)
                 - output: 조회 결과
                     - ord_psbl_qty: 주문가능수량
                     - ord_psbl_amt: 주문가능금액
@@ -562,7 +562,7 @@ class AccountAPI(BaseAPI):
             ...     print(f"매도가능수량: {qty}주")
         """
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-sell",
                 tr_id="TTTC8408R",
                 params={
@@ -619,7 +619,7 @@ class AccountAPI(BaseAPI):
                 - "SOR": Smart Order Routing (최적 체결)
 
         Returns:
-            Optional[Dict[str, Any]]: 주문 응답 정보
+            Optional[Dict[str, Any]]: 주문 응답 정보 (rt_cd 메타데이터가 포함된)
                 - rt_cd: 응답코드 ("0": 성공)
                 - msg1: 응답메시지
                 - output: 주문 결과
@@ -661,7 +661,7 @@ class AccountAPI(BaseAPI):
             if exchange != "KRX":
                 params["EXCD"] = exchange
 
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-cash",
                 tr_id=tr_id,
                 params=params,
@@ -726,7 +726,7 @@ class AccountAPI(BaseAPI):
             pdno: 상품번호 (종목코드, 6자리, 필수)
 
         Returns:
-            Optional[Dict[str, Any]]: 신용매수가능 정보
+            Optional[Dict[str, Any]]: 신용매수가능 정보 (rt_cd 메타데이터가 포함된)
                 - output: 조회 결과
                     - crdt_ord_psbl_amt: 신용주문가능금액
                     - max_buy_qty: 최대매수가능수량
@@ -741,7 +741,7 @@ class AccountAPI(BaseAPI):
             ...     print(f"신용매수가능금액: {amt}원")
         """
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-credit-psamount",
                 tr_id="TTTC8909R",
                 params={
@@ -792,7 +792,7 @@ class AccountAPI(BaseAPI):
                 - "SOR": Smart Order Routing (최적 체결)
 
         Returns:
-            Optional[Dict[str, Any]]: 주문 응답 정보
+            Optional[Dict[str, Any]]: 주문 응답 정보 (rt_cd 메타데이터가 포함된)
                 - rt_cd: 응답코드 ("0": 성공)
                 - output: 주문 결과
                     - odno: 주문번호
@@ -823,7 +823,7 @@ class AccountAPI(BaseAPI):
             if exchange != "KRX":
                 params["EXCD"] = exchange
 
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
                 tr_id="TTTC0052U",  # 신용매수
                 params=params,
@@ -859,7 +859,7 @@ class AccountAPI(BaseAPI):
                 - "61": 대주상환매도
 
         Returns:
-            Optional[Dict[str, Any]]: 주문 응답 정보
+            Optional[Dict[str, Any]]: 주문 응답 정보 (rt_cd 메타데이터가 포함된)
                 - rt_cd: 응답코드 ("0": 성공)
                 - output: 주문 결과
                     - odno: 주문번호
@@ -871,7 +871,7 @@ class AccountAPI(BaseAPI):
             >>> result = api.order_credit_sell("005930", 10, 75000)
         """
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
                 tr_id="TTTC0051U",  # 신용매도
                 params={
@@ -896,7 +896,7 @@ class AccountAPI(BaseAPI):
         통합증거금 계좌가 아닌 경우 조회되지 않습니다.
 
         Returns:
-            Optional[Dict[str, Any]]: 통합증거금 현황 정보
+            Optional[Dict[str, Any]]: 통합증거금 현황 정보 (rt_cd 메타데이터가 포함된)
                 - output: 조회 결과
                     - dpsit_rate: 증거금률(%)
                     - cltr_rate: 담보비율(%)
@@ -913,7 +913,7 @@ class AccountAPI(BaseAPI):
             ...     print(f"증거금률: {rate}%")
         """
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/intgr-margin",
                 tr_id="TTTC0869R",
                 params={

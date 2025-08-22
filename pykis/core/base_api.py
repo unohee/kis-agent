@@ -9,7 +9,7 @@
 """
 
 import pandas as pd
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 
 
 class BaseAPI:
@@ -243,10 +243,10 @@ class BaseAPI:
         endpoint: str,
         tr_id: str,
         params: dict,
-        field_type: str = None,
+        field_type: Optional[str] = None,
         output_key: str = "output",
         return_dataframe: bool = True,
-    ) -> Optional[pd.DataFrame]:
+    ) -> Union[Optional[pd.DataFrame], Optional[Dict]]:
         """
         API 요청 후 자동으로 숫자형 변환을 적용하여 DataFrame 반환
 
@@ -261,53 +261,95 @@ class BaseAPI:
         Returns:
             변환된 DataFrame 또는 Dict
         """
-        response = self.client.make_request(
-            endpoint=endpoint, tr_id=tr_id, params=params
-        )
+        try:
+            response = self.client.make_request(
+                endpoint=endpoint, tr_id=tr_id, params=params
+            )
 
-        if not response or response.get("rt_cd") != "0":
-            return None
+            if not response or response.get("rt_cd") != "0":
+                return None
 
-        # 다양한 output 키 대응 (output, output1, output2 등)
-        output_data = None
-        for key in ["output", "output1", "output2"]:
-            if key in response and response[key]:
-                output_data = response[key]
-                break
+            # 다양한 output 키 대응 (output, output1, output2 등)
+            output_data = None
+            for key in ["output", "output1", "output2"]:
+                if key in response and response[key]:
+                    output_data = response[key]
+                    break
 
-        if not output_data:
-            return None
+            if not output_data:
+                return None
 
-        if not return_dataframe:
+            if not return_dataframe:
+                return response
+
+            # DataFrame으로 변환
+            if isinstance(output_data, list):
+                df = pd.DataFrame(output_data)
+            elif isinstance(output_data, dict):
+                df = pd.DataFrame([output_data])
+            else:
+                return None
+
+            # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
+            df = self._add_response_metadata(df, response)
+
+            # 숫자형 필드 변환 적용
+            return self._convert_numeric_fields(df, field_type)
+        except Exception as e:
+            import logging
+            logging.error(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")
+            raise Exception(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}") from e
+
+    def _make_request_dict(
+        self,
+        endpoint: str,
+        tr_id: str,
+        params: Dict,
+    ) -> Optional[Dict]:
+        """
+        API 요청 후 rt_cd 메타데이터를 포함한 Dict 반환
+
+        Args:
+            endpoint: API 엔드포인트
+            tr_id: 거래 ID
+            params: 요청 파라미터
+
+        Returns:
+            rt_cd 메타데이터가 포함된 Dict 응답
+        """
+        try:
+            response = self.client.make_request(
+                endpoint=endpoint, tr_id=tr_id, params=params
+            )
+
+            if not response:
+                return None
+
+            # Dict 응답에 rt_cd 메타데이터가 이미 포함되어 있음
             return response
-
-        # DataFrame으로 변환
-        if isinstance(output_data, list):
-            df = pd.DataFrame(output_data)
-        elif isinstance(output_data, dict):
-            df = pd.DataFrame([output_data])
-        else:
-            return None
-
-        # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
-        df = self._add_response_metadata(df, response)
-
-        # 숫자형 필드 변환 적용
-        return self._convert_numeric_fields(df, field_type)
+        except Exception as e:
+            import logging
+            logging.error(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")
+            raise Exception(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}") from e
 
     def _make_request_dataframe(
         self,
         endpoint: str,
         tr_id: str,
-        params: dict,
+        params: Dict,
         retries: int = 5,
-        field_type: str = None,
+        field_type: Optional[str] = None,
     ) -> Optional[pd.DataFrame]:
         """기존 메서드와 호환성 유지하면서 숫자형 변환 추가"""
-        return self._make_request_with_conversion(
-            endpoint=endpoint,
-            tr_id=tr_id,
-            params=params,
-            field_type=field_type,
-            return_dataframe=True,
-        )
+        try:
+            return self._make_request_with_conversion(
+                endpoint=endpoint,
+                tr_id=tr_id,
+                params=params,
+                field_type=field_type,
+                return_dataframe=True,
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")
+            raise Exception(f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}") from e
