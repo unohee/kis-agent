@@ -33,27 +33,52 @@ from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
 from datetime import datetime, timedelta
 
-def get_kospi200_futures_code(today=None):
+def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     """
     현재 날짜 기준으로 거래되고 있는 가장 활발한 KOSPI200 선물 종목코드를 반환합니다.
     
+    KOSPI200 선물은 3, 6, 9, 12월 만기로 거래되며, 만기일은 매월 두 번째 주 목요일입니다.
+    현재 날짜를 기준으로 가장 가까운 활성 선물 코드를 자동으로 계산합니다.
+    
     Args:
-        today: 기준 날짜 (기본값: 현재 날짜)
+        today (Optional[datetime]): 기준 날짜. None이면 현재 날짜 사용
         
     Returns:
-        str: KOSPI200 선물 종목코드 (예: 101W09)
+        str: KOSPI200 선물 종목코드 (6자리, 예: "101W09")
+        
+    Example:
+        >>> from pykis.stock.api import get_kospi200_futures_code
+        >>> from datetime import datetime
+        >>> 
+        >>> # 현재 활성 선물 코드
+        >>> current_code = get_kospi200_futures_code()
+        >>> print(current_code)  # "101W09" (2025년 9월물)
+        >>> 
+        >>> # 특정 날짜 기준
+        >>> specific_date = datetime(2025, 10, 1)
+        >>> future_code = get_kospi200_futures_code(specific_date)
+        >>> print(future_code)  # "101W12" (2025년 12월물)
         
     Note:
-        - KOSPI200 선물은 3, 6, 9, 12월 만기
-        - 만기일은 매월 두 번째 주 목요일
         - 종목코드 패턴: 101W + MM (MM: 03, 06, 09, 12)
-        - 현재 날짜가 만기일을 지난 경우 다음 만기월을 반환
+        - 만기일: 매월 두 번째 주 목요일 (15:30 마감)
+        - 만기일 지나면 자동으로 다음 만기월로 전환
+        - 12월물 만기 후에는 다음해 3월물로 전환
     """
     if today is None:
         today = datetime.now()
     
-    def get_second_thursday(year, month):
-        """특정 년월의 두 번째 주 목요일 날짜를 반환"""
+    def get_second_thursday(year: int, month: int) -> datetime:
+        """
+        특정 년월의 두 번째 주 목요일 날짜를 반환
+        
+        Args:
+            year (int): 연도
+            month (int): 월 (1-12)
+            
+        Returns:
+            datetime: 해당 월의 두 번째 주 목요일
+        """
         # 해당 월의 첫 번째 날
         first_day = datetime(year, month, 1)
         # 첫 번째 목요일까지의 일수 (0=월요일, 3=목요일)
@@ -668,8 +693,7 @@ class StockAPI(BaseAPI):
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['PBAR_TRATIO'],
             tr_id="FHPST01130000",
-            params=params,
-            retries=retries
+            params=params
         )
 
     def get_hourly_conclusion(self, code: str, hour: str = "115959", retries: int = 10) -> Optional[dict]:
@@ -1018,7 +1042,40 @@ class StockAPI(BaseAPI):
         )
 
     def get_futures_price(self, code: str) -> Optional[Dict[str, Any]]:
-        """선물 시세 조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        선물 시세 조회 (rt_cd 메타데이터가 포함된)
+        
+        KOSPI200 선물의 실시간 시세 정보를 조회합니다.
+        현재가, 등락률, 거래량 등의 상세 정보를 제공합니다.
+        
+        Args:
+            code (str): 선물 종목코드 (6자리, 예: "101T12")
+                       - 형식: YYY[계약타입][만기월]
+                       - YYY: 연도의 마지막 3자리
+                       - 계약타입: T(선물), S(스프레드)
+                       - 만기월: 03, 06, 09, 12 (분기별)
+        
+        Returns:
+            Optional[Dict[str, Any]]: 선물 시세 데이터
+                - 성공 시: rt_cd와 함께 시세 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> # 가장 활발한 KOSPI200 선물 시세 조회
+            >>> futures_code = get_kospi200_futures_code()
+            >>> result = stock_api.get_futures_price(futures_code)
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"현재가: {result['output']['stck_prpr']}")
+            ...     print(f"등락률: {result['output']['prdy_ctrt']}%")
+            
+            >>> # 특정 선물 시세 조회 
+            >>> result = stock_api.get_futures_price("101T12")
+        
+        Note:
+            - F 시장(지수선물)에서만 조회 가능
+            - 실시간 데이터이므로 시장 개장 시간에만 유효한 데이터 제공
+            - rt_cd가 '0'이면 성공, 그 외는 오류
+        """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_FUTURES_PRICE'],
             tr_id="FHMIF10000000",
@@ -1176,16 +1233,49 @@ class StockAPI(BaseAPI):
 
     def get_future_option_price(self, 
                                market_div_code: str = "F", 
-                               input_iscd: str = None) -> Optional[Dict[str, Any]]:
+                               input_iscd: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         선물옵션 시세 조회 (rt_cd 메타데이터가 포함된)
         
+        KOSPI200 선물/옵션, 주식선물/옵션의 실시간 시세를 조회합니다.
+        종목코드를 지정하지 않으면 가장 활발한 KOSPI200 선물 시세를 조회합니다.
+        
         Args:
-            market_div_code (str): 시장분류코드 (F: 지수선물, O: 지수옵션, JF: 주식선물, JO: 주식옵션)
-            input_iscd (str): 선물옵션종목코드 (선물 6자리 예: 101S03, 옵션 9자리 예: 201S03370)
-            
+            market_div_code (str, optional): 시장분류코드. Defaults to "F".
+                - "F": 지수선물 (KOSPI200 선물)
+                - "O": 지수옵션 (KOSPI200 옵션)  
+                - "JF": 주식선물 (개별주식 선물)
+                - "JO": 주식옵션 (개별주식 옵션)
+            input_iscd (Optional[str], optional): 선물옵션종목코드. Defaults to None.
+                - None인 경우 가장 활발한 KOSPI200 선물코드 자동 사용
+                - 선물: 6자리 (예: "101T12", "101S03")
+                - 옵션: 9자리 (예: "201T12370", "201S03370")
+                
         Returns:
-            Dict: 선물옵션 시세 데이터, 실패 시 None
+            Optional[Dict[str, Any]]: 선물옵션 시세 데이터
+                - 성공 시: rt_cd와 함께 시세 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> # 가장 활발한 KOSPI200 선물 시세 조회 (기본값)
+            >>> result = stock_api.get_future_option_price()
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"현재가: {result['output']['stck_prpr']}")
+            
+            >>> # 특정 KOSPI200 선물 시세 조회
+            >>> result = stock_api.get_future_option_price("F", "101T12")
+            
+            >>> # KOSPI200 옵션 시세 조회  
+            >>> result = stock_api.get_future_option_price("O", "201T12370")
+            
+            >>> # 개별주식 선물 시세 조회
+            >>> result = stock_api.get_future_option_price("JF", "005930T12")
+        
+        Note:
+            - 실시간 데이터이므로 시장 개장 시간에만 유효한 데이터 제공
+            - 옵션의 경우 행사가가 포함된 9자리 코드 필요
+            - rt_cd가 '0'이면 성공, 그 외는 오류
+            - 주식선물/옵션은 종목별로 상장 여부 확인 필요
         """
         if input_iscd is None:
             input_iscd = get_kospi200_futures_code()

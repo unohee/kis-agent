@@ -157,7 +157,25 @@ class AccountAPI(BaseAPI):
         return res
 
     def get_account_order_quantity(self, code: str) -> Optional[Dict]:
-        """계좌별 주문 수량 조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        계좌별 주문 수량 조회
+        
+        특정 종목에 대한 계좌별 주문 가능 수량과 관련 정보를 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            
+        Returns:
+            Optional[Dict]: 계좌별 주문 수량 정보
+                - 성공 시: rt_cd와 함께 주문 수량 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.get_account_order_quantity("005930")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"주문 가능 수량: {result['output']['ord_psbl_qty']}")
+        """
         try:
             return self._make_request_dict(
                 endpoint=(
@@ -178,7 +196,23 @@ class AccountAPI(BaseAPI):
             return None
 
     def get_possible_order_amount(self) -> Optional[Dict]:
-        """주문 가능 금액 조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        주문 가능 금액 조회
+        
+        현재 계좌의 주문 가능한 금액과 관련 정보를 조회합니다.
+        
+        Returns:
+            Optional[Dict]: 주문 가능 금액 정보
+                - 성공 시: rt_cd와 함께 주문 가능 금액 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.get_possible_order_amount()
+            >>> if result and result.get('rt_cd') == '0':
+            ...     available_amount = result['output']['ord_psbl_amt']
+            ...     print(f"주문 가능 금액: {available_amount:,}원")
+        """
         try:
             return self._make_request_dict(
                 endpoint=API_ENDPOINTS["INQUIRE_PSBL_ORDER"],
@@ -200,7 +234,31 @@ class AccountAPI(BaseAPI):
     def order_credit(
         self, code: str, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """주식주문(신용) (rt_cd 메타데이터가 포함된)"""
+        """
+        주식 신용주문
+        
+        신용거래로 주식을 주문합니다. 실제 주문이 실행되므로 주의하세요.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            qty (int): 주문 수량
+            price (int): 주문 단가 (시장가는 0)
+            order_type (str): 주문 구분 ("00": 지정가, "01": 시장가)
+            
+        Returns:
+            Optional[Dict]: 신용주문 응답
+                - 성공 시: rt_cd와 함께 주문 결과 정보 딕셔너리
+                - 실패 시: None
+                
+        Warning:
+            실제 신용주문이 실행되므로 테스트 시 소액으로 진행하세요.
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.order_credit("005930", 10, 70000, "00")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"주문번호: {result['output']['odno']}")
+        """
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
@@ -223,7 +281,23 @@ class AccountAPI(BaseAPI):
     def order_rvsecncl(
         self, org_order_no: str, qty: int, price: int, order_type: str, cncl_type: str
     ) -> Optional[Dict]:
-        """주식주문(정정취소) (rt_cd 메타데이터가 포함된)"""
+        """
+        주식주문 정정/취소
+        
+        기존 주문을 정정하거나 취소합니다.
+        
+        Args:
+            org_order_no (str): 원주문번호
+            qty (int): 정정 수량 (취소시 0)
+            price (int): 정정 단가 (취소시 0)
+            order_type (str): 주문 구분
+            cncl_type (str): 정정취소 구분 ("정정" 또는 "취소")
+            
+        Returns:
+            Optional[Dict]: 정정/취소 응답
+                - 성공 시: rt_cd와 함께 정정/취소 결과 정보
+                - 실패 시: None
+        """
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-rvsecncl",
@@ -245,7 +319,23 @@ class AccountAPI(BaseAPI):
             return None
 
     def inquire_psbl_rvsecncl(self) -> Optional[Dict]:
-        """주식정정취소가능주문조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        정정/취소 가능 주문 조회
+        
+        현재 정정하거나 취소할 수 있는 미체결 주문을 조회합니다.
+        
+        Returns:
+            Optional[Dict]: 정정/취소 가능 주문 목록
+                - 성공 시: rt_cd와 함께 주문 정보 리스트
+                - 실패 시: None
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.inquire_psbl_rvsecncl()
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for order in result['output']:
+            ...         print(f"주문번호: {order['odno']}")
+        """
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",
@@ -266,7 +356,28 @@ class AccountAPI(BaseAPI):
     def order_resv(
         self, code: str, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """주식예약주문 (rt_cd 메타데이터가 포함된)"""
+        """
+        주식 예약주문
+        
+        지정된 시점에 주문이 실행되도록 예약주문을 등록합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리)
+            qty (int): 주문 수량
+            price (int): 주문 단가
+            order_type (str): 주문 구분
+            
+        Returns:
+            Optional[Dict]: 예약주문 응답
+                - 성공 시: rt_cd와 함께 예약주문 결과
+                - 실패 시: None
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.order_resv("005930", 10, 70000, "00")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"예약주문 등록: {result['output']['odno']}")
+        """
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv",
@@ -289,7 +400,28 @@ class AccountAPI(BaseAPI):
     def order_resv_rvsecncl(
         self, seq: int, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """주식예약주문정정취소 (rt_cd 메타데이터가 포함된)"""
+        """
+        예약주문 정정/취소
+        
+        등록된 예약주문을 정정하거나 취소합니다.
+        
+        Args:
+            seq (int): 예약주문 일련번호
+            qty (int): 정정 수량
+            price (int): 정정 단가
+            order_type (str): 주문 구분
+            
+        Returns:
+            Optional[Dict]: 예약주문 정정/취소 응답
+                - 성공 시: rt_cd와 함께 정정/취소 결과
+                - 실패 시: None
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.order_resv_rvsecncl(123, 5, 75000, "00")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print("예약주문 정정 완료")
+        """
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
@@ -311,7 +443,23 @@ class AccountAPI(BaseAPI):
             return None
 
     def order_resv_ccnl(self) -> Optional[Dict]:
-        """주식예약주문조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        예약주문 조회
+        
+        등록된 예약주문 내역을 조회합니다.
+        
+        Returns:
+            Optional[Dict]: 예약주문 내역
+                - 성공 시: rt_cd와 함께 예약주문 리스트
+                - 실패 시: None
+                
+        Example:
+            >>> account_api = AccountAPI(client, account_info)
+            >>> result = account_api.order_resv_ccnl()
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for order in result['output']:
+            ...         print(f"예약주문: {order['pdno']} {order['ord_qty']}주")
+        """
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-ccnl",

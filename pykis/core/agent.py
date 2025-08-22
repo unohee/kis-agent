@@ -4,7 +4,7 @@ from ..stock.api import StockAPI
 from ..stock import StockMarketAPI
 from ..program.trade import ProgramTradeAPI
 from ..websocket.client import KisWebSocket
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import pandas as pd
 import logging
 from datetime import datetime
@@ -44,18 +44,28 @@ class Agent:
 
     def __init__(
         self,
+        env_path: str,
         client: Optional[KISClient] = None,
         account_info: Optional[Dict] = None,
-        env_path: str = None,
     ):
         """
         Agent를 초기화합니다.
 
         Args:
+            env_path (str): .env 파일 경로 (필수)
             client (KISClient, optional): API 클라이언트. None이면 새로 생성
             account_info (Dict, optional): 계좌 정보. None이면 .env에서 자동 로드
-            env_path (str, required): .env 파일 경로 (필수)
 
+        Raises:
+            ValueError: env_path가 제공되지 않았을 때
+            FileNotFoundError: .env 파일을 찾을 수 없을 때
+
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> agent = Agent(env_path="/path/to/my/.env")
+
+        Note:
+            보안상 이유로 env_path는 명시적으로 지정해야 합니다.
         Raises:
             ValueError: env_path가 제공되지 않은 경우
         """
@@ -156,11 +166,30 @@ class Agent:
     # 주식 시세 관련 메서드들 (StockAPI 위임)
     # ============================================================================
 
-    def get_stock_price(self, code: str):
-        """현재가 조회"""
+    def get_stock_price(self, code: str) -> Optional[Dict[str, Any]]:
+        """
+        주식 현재가 조회
+        
+        지정된 종목의 실시간 현재가와 시세 정보를 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            
+        Returns:
+            Optional[Dict[str, Any]]: 현재가 시세 데이터
+                - 성공 시: rt_cd와 함께 시세 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_stock_price("005930")  # 삼성전자
+            >>> if result and result.get('rt_cd') == '0':
+            ...     price = result['output']['stck_prpr']
+            ...     print(f"현재가: {price:,}원")
+        """
         return self.stock_api.get_stock_price(code)
 
-    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1"):
+    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[Dict[str, Any]]:
         """
         일별 시세 조회 (Postman 검증된 방식)
 
@@ -171,7 +200,7 @@ class Agent:
         """
         return self.stock_api.get_daily_price(code, period, org_adj_prc)
 
-    def get_daily_credit_balance(self, code: str, date: str):
+    def get_daily_credit_balance(self, code: str, date: str) -> Optional[Dict[str, Any]]:
         """
         국내주식 신용잔고 일별추이 조회
 
@@ -184,7 +213,7 @@ class Agent:
         """
         return self.stock_api.get_daily_credit_balance(code, date)
 
-    def get_minute_price(self, code: str, hour: str = "153000"):
+    def get_minute_price(self, code: str, hour: str = "153000") -> Optional[Dict[str, Any]]:
         """
         주식당일분봉조회 (Postman 검증된 방식)
 
@@ -194,7 +223,7 @@ class Agent:
         """
         return self.stock_api.get_minute_price(code, hour)
 
-    def get_daily_minute_price(self, code: str, date: str, hour: str = "153000"):
+    def get_daily_minute_price(self, code: str, date: str, hour: str = "153000") -> Optional[Dict[str, Any]]:
         """
         일별분봉시세조회 - 과거일자 분봉 데이터 조회
 
@@ -214,31 +243,127 @@ class Agent:
         # [변경 이유] 한국투자증권 새로운 일별분봉시세조회 API 추가
         return self.stock_api.get_daily_minute_price(code, date, hour)
 
-    def get_member(self, code: str):
-        """거래원 조회"""
+    def get_member(self, code: str) -> Optional[Dict[str, Any]]:
+        """
+        거래원별 매매 현황 조회
+        
+        특정 종목의 거래원별 매수/매도 현황을 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            
+        Returns:
+            Optional[Dict[str, Any]]: 거래원별 매매 현황 데이터
+                - 성공 시: rt_cd와 함께 거래원 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_member("005930")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for member in result['output']:
+            ...         print(f"거래원: {member['mbcr_name']}")
+        """
         return self.stock_api.get_member(code)
 
     def get_foreign_broker_net_buy(
         self, code: str, foreign_brokers=None, date: str = None
-    ):
-        """외국계 증권사 순매수 조회"""
+    ) -> Optional[Dict[str, Any]]:
+        """
+        외국계 증권사 순매수 현황 조회
+        
+        특정 종목에 대한 외국계 증권사들의 순매수 거래량을 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            foreign_brokers (list, optional): 외국계 증권사 목록. None이면 기본 목록 사용.
+            date (str, optional): 조회 날짜 (YYYYMMDD). None이면 당일.
+            
+        Returns:
+            Optional[Dict[str, Any]]: 외국계 순매수 현황 데이터
+                - 성공 시: 외국계 증권사별 순매수량 정보
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_foreign_broker_net_buy("005930")
+            >>> if result:
+            ...     print(f"외국계 순매수량: {result['net_buy_volume']:,}주")
+        """
         return self.stock_api.get_foreign_broker_net_buy(code, foreign_brokers, date)
 
-    def get_program_trade_by_stock(self, code: str):
-        """종목별 프로그램매매추이(체결) 조회"""
+    def get_program_trade_by_stock(self, code: str) -> Optional[Dict[str, Any]]:
+        """
+        종목별 프로그램매매 추이 조회
+        
+        특정 종목의 프로그램매매 체결 현황을 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            
+        Returns:
+            Optional[Dict[str, Any]]: 프로그램매매 추이 데이터
+                - 성공 시: rt_cd와 함께 프로그램매매 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_program_trade_by_stock("005930")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"프로그램매매 순매수량: {result['output']['pgtr_ntby_qty']}")
+        """
         return self.program_api.get_program_trade_by_stock(code)
 
-    def get_member_transaction(self, code: str, mem_code: str = "99999"):
-        """회원사 매매 정보 조회"""
+    def get_member_transaction(self, code: str, mem_code: str = "99999") -> Optional[Dict[str, Any]]:
+        """
+        회원사별 매매 정보 조회
+        
+        특정 종목의 회원사별 매수/매도 거래 정보를 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            mem_code (str, optional): 회원사 코드. Defaults to "99999" (전체).
+            
+        Returns:
+            Optional[Dict[str, Any]]: 회원사별 매매 정보 데이터
+                - 성공 시: rt_cd와 함께 회원사 매매 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_member_transaction("005930")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for member in result['output']:
+            ...         print(f"회원사: {member['brkr_name']}")
+        """
         return self.stock_api.get_member_transaction(code, mem_code)
 
-    def get_volume_power(self, volume: int = 0):
-        """체결강도 순위 조회"""
+    def get_volume_power(self, volume: int = 0) -> Optional[Dict[str, Any]]:
+        """
+        체결강도 순위 조회
+        
+        체결강도가 높은 종목들의 순위를 조회합니다.
+        
+        Args:
+            volume (int, optional): 최소 거래량 조건. Defaults to 0.
+            
+        Returns:
+            Optional[Dict[str, Any]]: 체결강도 순위 데이터
+                - 성공 시: rt_cd와 함께 체결강도 순위 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_volume_power(volume=1000000)  # 100만주 이상
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for stock in result['output']:
+            ...         print(f"종목: {stock['hts_kor_isnm']}, 체결강도: {stock['cttr_pwr']}")
+        """
         return self.stock_api.get_volume_power(volume)
 
     def get_index_daily_price(
         self, index_code: str = "0001", end_date: str = None, period: str = "D"
-    ):
+    ) -> Optional[Dict[str, Any]]:
         """
         국내 지수 일자별 시세 조회
 
@@ -252,7 +377,7 @@ class Agent:
         """
         return self.stock_api.get_index_daily_price(index_code, end_date, period)
 
-    def get_orderbook_raw(self, code: str):
+    def get_orderbook_raw(self, code: str) -> Optional[Dict[str, Any]]:
         """
         주식 호가 조회 (원시 데이터)
 
@@ -264,7 +389,7 @@ class Agent:
         """
         return self.stock_api.get_orderbook_raw(code)
 
-    def get_stock_member(self, code: str):
+    def get_stock_member(self, code: str) -> Optional[Dict[str, Any]]:
         """
         주식 회원사(거래원) 정보 조회
 
@@ -276,7 +401,7 @@ class Agent:
         """
         return self.stock_api.get_stock_member(code)
 
-    def get_stock_investor(self, code: str):
+    def get_stock_investor(self, code: str) -> Optional[Dict[str, Any]]:
         """
         주식 투자자별 매매동향 조회 (원시 데이터)
 
@@ -292,43 +417,142 @@ class Agent:
     # 계좌 관련 메서드들 (AccountAPI 위임)
     # ============================================================================
 
-    def get_account_balance(self):
-        """계좌 잔고 조회"""
+    def get_account_balance(self) -> Optional[Dict[str, Any]]:
+        """
+        계좌 잔고 조회
+        
+        현재 계좌의 보유 종목, 평가손익, 총 자산 등의 잔고 정보를 조회합니다.
+        
+        Returns:
+            Optional[Dict[str, Any]]: 계좌 잔고 정보 데이터
+                - 성공 시: rt_cd와 함께 잔고 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_account_balance()
+            >>> if result and result.get('rt_cd') == '0':
+            ...     total_asset = result['output2'][0]['tot_evlu_amt']
+            ...     print(f"총 평가금액: {total_asset:,}원")
+        """
         return self.account_api.get_account_balance()
 
-    def get_possible_order_amount(self, code: str, price: str, order_type: str = "01"):
-        """주문 가능 금액 조회"""
+    def get_possible_order_amount(self, code: str, price: str, order_type: str = "01") -> Optional[Dict[str, Any]]:
+        """
+        주문 가능 금액 조회
+        
+        특정 종목에 대한 매수/매도 가능 금액을 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            price (str): 주문 단가
+            order_type (str, optional): 주문 구분. Defaults to "01" (매수).
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 가능 금액 정보 데이터
+                - 성공 시: rt_cd와 함께 주문 가능 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_possible_order_amount("005930", "70000", "01")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     max_qty = result['output']['ord_psbl_qty']
+            ...     print(f"주문 가능 수량: {max_qty:,}주")
+        """
         return self.stock_api.get_possible_order(code, price, order_type)
 
-    def get_account_order_quantity(self, code: str):
-        """계좌별 주문 수량 조회"""
+    def get_account_order_quantity(self, code: str) -> Optional[Dict[str, Any]]:
+        """
+        계좌별 주문 수량 조회
+        
+        특정 종목에 대한 계좌별 주문 가능 수량을 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            
+        Returns:
+            Optional[Dict[str, Any]]: 계좌별 주문 수량 정보 데이터
+                - 성공 시: rt_cd와 함께 주문 수량 정보 딕셔너리
+                - 실패 시: None
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> result = agent.get_account_order_quantity("005930")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     available_qty = result['output']['ord_psbl_qty']
+            ...     print(f"주문 가능 수량: {available_qty:,}주")
+        """
         return self.account_api.get_account_order_quantity(code)
 
     # ============================================================================
     # 프로그램 매매 관련 메서드들 (ProgramTradeAPI 위임)
     # ============================================================================
 
-    def get_program_trade_hourly_trend(self, code: str):
-        """시간별 프로그램 매매 추이 조회"""
+    def get_program_trade_hourly_trend(self, code: str) -> Optional[Dict[str, Any]]:
+        """
+        시간별 프로그램 매매 추이 조회
+        
+        특정 종목의 시간대별 프로그램 매매 동향을 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            
+        Returns:
+            Optional[Dict[str, Any]]: 시간별 프로그램 매매 추이 데이터
+        """
         return self.program_api.get_program_trade_hourly_trend(code)
 
-    def get_program_trade_daily_summary(self, code: str, date_str: str):
-        """종목별 일별 프로그램 매매 집계 조회"""
+    def get_program_trade_daily_summary(self, code: str, date_str: str) -> Optional[Dict[str, Any]]:
+        """
+        종목별 일별 프로그램 매매 집계 조회
+        
+        특정 날짜의 특정 종목 프로그램 매매 집계를 조회합니다.
+        
+        Args:
+            code (str): 종목코드 (6자리, 예: "005930")
+            date_str (str): 조회 날짜 (YYYYMMDD 형식)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 일별 프로그램 매매 집계 데이터
+        """
         return self.program_api.get_program_trade_daily_summary(code, date_str)
 
-    def get_program_trade_period_detail(self, start_date: str, end_date: str):
-        """기간별 프로그램 매매 상세 조회"""
+    def get_program_trade_period_detail(self, start_date: str, end_date: str) -> Optional[Dict[str, Any]]:
+        """
+        기간별 프로그램 매매 상세 조회
+        
+        지정된 기간 동안의 프로그램 매매 상세 내역을 조회합니다.
+        
+        Args:
+            start_date (str): 시작 날짜 (YYYYMMDD 형식)
+            end_date (str): 종료 날짜 (YYYYMMDD 형식)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 기간별 프로그램 매매 상세 데이터
+        """
         return self.program_api.get_program_trade_period_detail(start_date, end_date)
 
-    def get_program_trade_market_daily(self, start_date: str, end_date: str):
-        """시장 전체 프로그램 매매 종합현황 (일별) 조회"""
+    def get_program_trade_market_daily(self, start_date: str, end_date: str) -> Optional[Dict[str, Any]]:
+        """
+        시장 전체 프로그램 매매 종합현황 조회
+        
+        지정된 기간의 시장 전체 프로그램 매매 현황을 조회합니다.
+        
+        Args:
+            start_date (str): 시작 날짜 (YYYYMMDD 형식)
+            end_date (str): 종료 날짜 (YYYYMMDD 형식)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 시장 전체 프로그램 매매 현황 데이터
+        """
         return self.program_api.get_program_trade_market_daily(start_date, end_date)
 
     # ============================================================================
     # 기타 유틸리티 메서드들
     # ============================================================================
 
-    def get_all_methods(self, show_details: bool = False, category: str = None):
+    def get_all_methods(self, show_details: bool = False, category: str = None) -> Dict[str, Any]:
         """
         Agent에서 사용 가능한 모든 메서드를 카테고리별로 정리하여 반환합니다.
 
@@ -577,7 +801,7 @@ class Agent:
 
         return result
 
-    def search_methods(self, keyword: str):
+    def search_methods(self, keyword: str) -> List[Dict[str, Any]]:
         """
         키워드로 메서드를 검색합니다.
 
@@ -619,7 +843,7 @@ class Agent:
 
         return results
 
-    def show_method_usage(self, method_name: str):
+    def show_method_usage(self, method_name: str) -> None:
         """
         특정 메서드의 사용법을 출력합니다.
 
@@ -681,7 +905,7 @@ class Agent:
         else:
             return "기타"
 
-    def get_holiday_info(self):
+    def get_holiday_info(self) -> Optional[Dict[str, Any]]:
         """휴장일 정보를 조회합니다.
 
         Returns:
@@ -708,7 +932,7 @@ class Agent:
             logging.error(f"휴장일 확인 실패: {e}")
             return None
 
-    def init_minute_db(self, db_path="db/stonks_candles.db"):
+    def init_minute_db(self, db_path: str = "db/stonks_candles.db") -> bool:
         """분봉 데이터용 DB 및 테이블 생성 (최초 1회)"""
         try:
             conn = sqlite3.connect(db_path)
@@ -736,7 +960,7 @@ class Agent:
             logging.error(f"분봉 DB 초기화 실패: {e}")
             return False
 
-    def migrate_minute_csv_to_db(self, code, db_path="db/stonks_candles.db"):
+    def migrate_minute_csv_to_db(self, code: str, db_path: str = "db/stonks_candles.db") -> bool:
         """기존 csv 분봉 데이터를 DB로 이관 (한 번만)"""
         cache_dir = "cache"
         csv_file_path = os.path.join(cache_dir, f"{code}_minute_data.csv")
@@ -805,7 +1029,7 @@ class Agent:
         # 영업일을 찾지 못했을 경우 오늘 날짜 반환
         return current_date.strftime("%Y%m%d")
 
-    def fetch_minute_data(self, code, date=None, cache_dir="cache"):
+    def fetch_minute_data(self, code: str, date: Optional[str] = None, cache_dir: str = "cache") -> 'pd.DataFrame':
         """
         분봉 데이터 수집 (4번 호출 방식으로 효율적 수집)
 
@@ -1254,7 +1478,7 @@ class Agent:
 
     def get_condition_stocks(
         self, user_id: str = "unohee", seq: int = 0, tr_cont: str = "N"
-    ):
+    ) -> Optional[List[Dict[str, Any]]]:
         """조건검색 결과를 조회합니다.
 
         Args:
@@ -1274,8 +1498,23 @@ class Agent:
             logging.error(f"조건검색 종목 조회 실패: {e}")
             return None
 
-    def get_top_gainers(self):
-        """상승률 상위 종목 조회 (국내주식 등락률 순위)"""
+    def get_top_gainers(self) -> Optional[List[Dict[str, Any]]]:
+        """
+        상승률 상위 종목 조회
+        
+        국내주식 등락률 순위를 조회하여 상승률이 높은 종목 목록을 반환합니다.
+        
+        Returns:
+            Optional[List[Dict[str, Any]]]: 상승률 상위 종목 리스트
+                - 성공 시: 등락률 순위 정보 리스트
+                - 실패 시: 빈 리스트
+                
+        Example:
+            >>> agent = Agent(env_path=".env")
+            >>> top_gainers = agent.get_top_gainers()
+            >>> for stock in top_gainers[:5]:  # 상위 5개
+            ...     print(f"{stock['hts_kor_isnm']}: {stock['prdy_ctrt']}%")
+        """
         try:
             return self.stock_api.get_market_fluctuation()
         except Exception as e:
