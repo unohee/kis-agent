@@ -19,8 +19,13 @@ logger = logging.getLogger(__name__)
 def test_agent_usage():
     """KIS_Agent의 주요 기능을 테스트합니다."""
     try:
+        # .env 파일 경로 설정
+        env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+        if not os.path.exists(env_path):
+            env_path = os.path.join(os.path.dirname(__file__), '..', '.env.example')
+        
         # KIS_Agent 초기화
-        agent = Agent()
+        agent = Agent(env_path=env_path)
         logger.info("KIS_Agent 초기화 완료")
 
         # 1. 국내주식 시세 조회

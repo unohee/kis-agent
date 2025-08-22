@@ -1,4 +1,5 @@
 import pytest
+import os
 from unittest.mock import MagicMock, AsyncMock, patch
 from pykis import Agent
 from pykis.websocket.client import KisWebSocket
@@ -9,7 +10,8 @@ import asyncio
 def agent():
     """Agent fixture - 실제 설정을 사용"""
     try:
-        return Agent()
+        env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+        return Agent(env_path=env_path)
     except Exception as e:
         pytest.skip(f"Agent 초기화 실패: {e}")
 

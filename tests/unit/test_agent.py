@@ -30,12 +30,14 @@ class TestAgent(unittest.TestCase):
     def setUp(self):
         """테스트 설정"""
         # 실제 .env 파일의 인증 정보를 사용
-        self.agent = Agent()
+        env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+        self.agent = Agent(env_path=env_path)
         self.test_stock_code = "005930"  # 삼성전자
 
     def test_init_without_client(self):
         """클라이언트 없이 초기화 테스트"""
-        agent = Agent()
+        env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+        agent = Agent(env_path=env_path)
         # 내부적으로 KISClient가 생성되었는지 확인
         self.assertIsInstance(agent.client, KISClient)
 

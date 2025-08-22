@@ -22,7 +22,8 @@ def test_market_api():
     """
     try:
         # KIS_Agent 초기화
-        agent = Agent()
+        env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+        agent = Agent(env_path=env_path)
         logger.info("KIS_Agent 초기화 완료")
 
         # 테스트할 종목 코드 (삼성전자)

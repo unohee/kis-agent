@@ -1,4 +1,5 @@
 import pytest
+import os
 from unittest.mock import Mock, patch
 from pykis import Agent
 from pykis.core.client import KISClient
@@ -15,8 +16,9 @@ class TestStockMonitorIntegration:
     @pytest.fixture
     def agent(self, mock_client):
         """Agent 인스턴스를 생성합니다."""
+        env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
         with patch('pykis.core.agent.KISClient', return_value=mock_client):
-            return Agent(mock_client)
+            return Agent(client=mock_client, env_path=env_path)
 
     def test_stockmonitor_core_functions_integration(self, agent, mock_client):
         """StockMonitor 핵심 함수들 통합 테스트"""
@@ -272,7 +274,8 @@ class TestStockMonitorIntegration:
             mock_config.return_value.account_stock = '12345678'
             mock_config.return_value.account_product = '01'
             
-            agent = Agent()
+            env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+            agent = Agent(env_path=env_path)
             
             # StockMonitor.__init__에서 사용하는 것처럼 Agent가 정상 초기화됨
             assert agent is not None

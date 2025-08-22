@@ -28,14 +28,14 @@ class TestProgramTradeAPI:
         """ProgramTradeAPI 초기화 테스트"""
         api = ProgramTradeAPI(mock_client)
         assert api.client == mock_client
-        assert api.account_info == {}
+        assert api.account is None
 
     def test_init_with_account(self, mock_client):
         """계좌 정보가 있는 ProgramTradeAPI 초기화 테스트"""
         account_info = {'CANO': '12345678', 'ACNT_PRDT_CD': '01'}
         api = ProgramTradeAPI(mock_client, account_info)
         assert api.client == mock_client
-        assert api.account_info == account_info
+        assert api.account == account_info
 
     def test_get_program_trade_by_stock_success(self, program_api, mock_client):
         """get_program_trade_by_stock 성공 테스트"""

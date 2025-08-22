@@ -33,13 +33,15 @@ def safe_call(name, func, *args, **kwargs):
 
 def test_account_balance(account_info):
     """계좌 잔고 조회 테스트"""
-    agent = Agent()
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    agent = Agent(env_path=env_path)
     df = agent.get_account_balance_df()
     assert df is not None and not df.empty, "잔고 데이터가 없거나 오류가 발생했습니다."
 
 def test_agent_api(account_info, test_stock_code):
     """Agent의 주요 API 기능 테스트"""
-    agent = Agent()
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    agent = Agent(env_path=env_path)
     
     # 주식 가격 조회 테스트
     print("\n[주식 가격 조회 테스트]")
@@ -63,7 +65,8 @@ def test_agent_api(account_info, test_stock_code):
 
 def test_stock_api(account_info, test_stock_code):
     """Agent 시세/투자자/호가 테스트"""
-    agent = Agent()
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    agent = Agent(env_path=env_path)
     
     price = agent.get_stock_price(test_stock_code)
     assert price is not None, "주식 가격 조회 실패"
@@ -85,7 +88,8 @@ def test_stock_api(account_info, test_stock_code):
 
 def test_program_trade(test_stock_code):
     """Agent 프로그램 매매 테스트"""
-    agent = Agent()
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    agent = Agent(env_path=env_path)
     trend = agent.get_program_trade_trend(test_stock_code)
     assert trend is not None, "프로그램 매매 추이 조회 실패"
     net_buy = agent.get_net_buy_volume(test_stock_code)
@@ -100,7 +104,8 @@ def test_condition_search():
     logging.getLogger().setLevel(logging.WARNING)
     
     try:
-        agent = Agent()
+        env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+        agent = Agent(env_path=env_path)
         # 조건검색 목록 조회
         conditions = agent.get_condition_list()
         assert conditions is not None, "조건검색 목록 조회 실패"

@@ -10,7 +10,8 @@ if not os.getenv('RUN_LIVE_TESTS'):
 
 def test_condition_stocks():
     """조건검색식 종목 조회 테스트"""
-    agent = Agent()
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    agent = Agent(env_path=env_path)
     
     # 조건검색식 목록 조회
     conditions = agent.get_condition_list()

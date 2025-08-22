@@ -11,6 +11,7 @@ PyKIS Agent 종합 테스트
 import pytest
 import pandas as pd
 import time
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
@@ -20,7 +21,8 @@ from pykis import Agent
 @pytest.fixture(scope="session")
 def agent():
     """Agent 인스턴스를 제공하는 fixture"""
-    return Agent()
+    env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+    return Agent(env_path=env_path)
 
 
 @pytest.fixture(scope="session")
