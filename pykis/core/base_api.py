@@ -10,6 +10,7 @@
 
 import pandas as pd
 from typing import Optional, Dict, List, Union
+from .response_processor import APIRequestManager
 
 
 class BaseAPI:
@@ -28,6 +29,13 @@ class BaseAPI:
 
         # 각 API별 숫자형 필드 매핑 테이블
         self.numeric_field_mappings = self._get_numeric_field_mappings()
+        
+        # API 요청 관리자 초기화 (Factory Pattern)
+        self.request_manager = APIRequestManager(
+            client=client,
+            metadata_adder=self._add_response_metadata,
+            field_converter=self._convert_numeric_fields
+        )
 
     def _get_numeric_field_mappings(self) -> Dict[str, List[str]]:
         """API별 숫자형 변환이 필요한 필드들을 정의"""
@@ -242,13 +250,15 @@ class BaseAPI:
         self,
         endpoint: str,
         tr_id: str,
-        params: dict,
+        params: Dict,
         field_type: Optional[str] = None,
         output_key: str = "output",
         return_dataframe: bool = True,
     ) -> Union[Optional[pd.DataFrame], Optional[Dict]]:
         """
         API 요청 후 자동으로 숫자형 변환을 적용하여 DataFrame 반환
+        
+        복잡도 개선: Factory Pattern으로 응답 처리 로직 위임
 
         Args:
             endpoint: API 엔드포인트
@@ -261,44 +271,13 @@ class BaseAPI:
         Returns:
             변환된 DataFrame 또는 Dict
         """
-        try:
-            response = self.client.make_request(
-                endpoint=endpoint, tr_id=tr_id, params=params
-            )
-
-            if not response or response.get("rt_cd") != "0":
-                return None
-
-            # 다양한 output 키 대응 (output, output1, output2 등)
-            output_data = None
-            for key in ["output", "output1", "output2"]:
-                if key in response and response[key]:
-                    output_data = response[key]
-                    break
-
-            if not output_data:
-                return None
-
-            if not return_dataframe:
-                return response
-
-            # DataFrame으로 변환
-            if isinstance(output_data, list):
-                df = pd.DataFrame(output_data)
-            elif isinstance(output_data, dict):
-                df = pd.DataFrame([output_data])
-            else:
-                return None
-
-            # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
-            df = self._add_response_metadata(df, response)
-
-            # 숫자형 필드 변환 적용
-            return self._convert_numeric_fields(df, field_type)
-        except Exception as e:
-            import logging
-            logging.error(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")
-            raise Exception(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}") from e
+        return self.request_manager.make_request_with_processing(
+            endpoint=endpoint,
+            tr_id=tr_id,
+            params=params,
+            field_type=field_type,
+            return_dataframe=return_dataframe
+        )
 
     def _make_request_dict(
         self,
