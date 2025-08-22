@@ -21,10 +21,12 @@
 """
 
 import logging
+import pandas as pd
 from typing import Dict, List, Optional, Any
 from ..core.client import KISClient, API_ENDPOINTS
+from ..core.base_api import BaseAPI
 
-class ConditionAPI:
+class ConditionAPI(BaseAPI):
     """
     조건검색 API 기능을 제공하는 클래스입니다.
 
@@ -39,18 +41,19 @@ class ConditionAPI:
         >>> stocks = condition.get_condition_stocks("user123")
     """
     
-    def __init__(self, client: KISClient):
+    def __init__(self, client: KISClient, account_info=None):
         """
         ConditionAPI를 초기화합니다.
 
         Args:
             client (KISClient): API 통신을 담당하는 클라이언트
+            account_info (dict, optional): 계좌 정보
 
         Example:
             >>> client = KISClient()
             >>> api = ConditionAPI(client)
         """
-        self.client = client
+        super().__init__(client, account_info)
 
     def get_condition_stocks(self, user_id: str = "unohee", seq: int = 0, tr_cont: str = 'N') -> Optional[List[Dict]]:
         """
@@ -119,9 +122,9 @@ class ConditionAPI:
             return None
 
     def get_condition_list(self) -> Optional[Dict[str, Any]]:
-        """조건검색 목록 조회"""
+        """조건검색 목록 조회 - rt_cd 메타데이터가 포함된 응답 반환"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/quotations/inquire-condition",
                 tr_id="FHKST03010000",
                 params={
@@ -134,9 +137,9 @@ class ConditionAPI:
             return None
 
     def get_condition_result(self, condition_id: str) -> Optional[Dict[str, Any]]:
-        """조건검색 결과 조회"""
+        """조건검색 결과 조회 - rt_cd 메타데이터가 포함된 응답 반환"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/quotations/inquire-condition-result",
                 tr_id="FHKST03010100",
                 params={
@@ -150,9 +153,9 @@ class ConditionAPI:
             return None
 
     def save_condition(self, condition_name: str, condition_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """조건검색 저장"""
+        """조건검색 저장 - rt_cd 메타데이터가 포함된 응답 반환"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/quotations/save-condition",
                 tr_id="FHKST03010200",
                 params={
@@ -167,9 +170,9 @@ class ConditionAPI:
             return None
 
     def delete_condition(self, condition_id: str) -> Optional[Dict[str, Any]]:
-        """조건검색 삭제"""
+        """조건검색 삭제 - rt_cd 메타데이터가 포함된 응답 반환"""
         try:
-            return self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/quotations/delete-condition",
                 tr_id="FHKST03010300",
                 params={

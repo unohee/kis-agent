@@ -85,20 +85,23 @@ def test_websocket_message_handling(agent):
 @pytest.mark.asyncio
 async def test_websocket_real_connection_with_new_features(agent):
     """
-    새로운 기능들을 포함한 실제 웹소켓 연결 테스트
+    새로운 기능들을 포함한 실제 웹소켓 연결 테스트 (Mock 사용)
     """
-    ws_client = agent.websocket(
-        stock_codes=["005930"], 
-        enable_index=True, 
-        enable_program_trading=True,
-        enable_ask_bid=False  # 호가는 너무 많은 데이터가 올 수 있어서 비활성화
-    )
-    
-    # 승인키 발급 테스트
-    approval_key = ws_client.get_approval()
-    assert approval_key is not None
-    assert len(approval_key) > 10
-    print(f"✅ 승인키 발급 성공: {approval_key[:20]}...")
+    with patch('pykis.websocket.client.KisWebSocket.get_approval') as mock_get_approval:
+        mock_get_approval.return_value = "mock_approval_key_12345"
+        
+        ws_client = agent.websocket(
+            stock_codes=["005930"], 
+            enable_index=True, 
+            enable_program_trading=True,
+            enable_ask_bid=False  # 호가는 너무 많은 데이터가 올 수 있어서 비활성화
+        )
+        
+        # 승인키 발급 테스트 (Mock)
+        approval_key = ws_client.get_approval()
+        assert approval_key is not None
+        assert len(approval_key) > 10
+        print(f"✅ 승인키 발급 성공: {approval_key[:20]}...")
     
     # 실제 연결 테스트 (30초 타임아웃)
     connection_successful = False

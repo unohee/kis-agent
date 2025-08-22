@@ -22,7 +22,8 @@
 
 from typing import Optional, Dict, Any
 import pandas as pd
-from ..core.client import KISClient, API_ENDPOINTS
+from ..core.client import KISClient
+
 
 class AccountAPI:
     """
@@ -77,8 +78,8 @@ class AccountAPI:
             endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",
             tr_id="TTTC8434R",
             params={
-                "CANO": self.account['CANO'],
-                "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                "CANO": self.account["CANO"],
+                "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
                 "AFHR_FLPR_YN": "N",
                 "OFL_YN": "",
                 "INQR_DVSN": "02",
@@ -87,11 +88,16 @@ class AccountAPI:
                 "FNCG_AMT_AUTO_RDPT_YN": "N",
                 "PRCS_DVSN": "01",
                 "CTX_AREA_FK100": "",
-                "CTX_AREA_NK100": ""
-            }
+                "CTX_AREA_NK100": "",
+            },
         )
-        if res and 'output1' in res:
-            return pd.DataFrame(res['output1'])
+        if res and "output1" in res:
+            df = pd.DataFrame(res["output1"])
+            # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
+            df["rt_cd"] = res.get("rt_cd", "")
+            df["msg_cd"] = res.get("msg_cd", "")
+            df["msg1"] = res.get("msg1", "")
+            return df
         return None
 
     def get_cash_available(self) -> Optional[Dict[str, Any]]:
@@ -114,18 +120,23 @@ class AccountAPI:
             endpoint="/uapi/domestic-stock/v1/trading/inquire-available-amount",
             tr_id="TTTC8901R",
             params={
-                "CANO": self.account['CANO'],
-                "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                "CANO": self.account["CANO"],
+                "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
                 "CASH_CLO_CD": "10",
-                "TR_MKET_CD": "0"
-            }
+                "TR_MKET_CD": "0",
+            },
         )
         # 새벽 정산 시간(404/JSONDecodeError) 안내 메시지 추가
-        if res is not None and (res.get('rt_cd') == 'JSON_DECODE_ERROR' or res.get('status_code') == 404):
+        if res is not None and (
+            res.get("rt_cd") == "JSON_DECODE_ERROR" or res.get("status_code") == 404
+        ):
             return {
-                "rt_cd": res.get('rt_cd', ''),
-                "msg1": res.get('msg1', ''),
-                "정산안내": "정산 시간(23:30~01:00 등)에는 계좌 관련 API가 일시적으로 차단될 수 있습니다. 잠시 후 다시 시도해 주세요."
+                "rt_cd": res.get("rt_cd", ""),
+                "msg1": res.get("msg1", ""),
+                "정산안내": (
+                    "정산 시간(23:30~01:00 등)에는 계좌 관련 API가 "
+                    "일시적으로 차단될 수 있습니다. 잠시 후 다시 시도해 주세요."
+                ),
             }
         return res
 
@@ -149,20 +160,26 @@ class AccountAPI:
             endpoint="/uapi/domestic-stock/v1/trading/inquire-account-summary",
             tr_id="TTTC8522R",
             params={
-                "CANO": self.account['CANO'],
-                "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                "CANO": self.account["CANO"],
+                "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
                 "INQR_DVSN": "02",  # 01: 잔고 기준, 02: 평가 기준
-                "UNPR_DVSN": "01"   # 01: 현재가 기준
-            }
+                "UNPR_DVSN": "01",  # 01: 현재가 기준
+            },
         )
         # 새벽 정산 시간(404/JSONDecodeError) 안내 메시지 추가
-        if res is not None and (res.get('rt_cd') == 'JSON_DECODE_ERROR' or res.get('status_code') == 404):
+        if res is not None and (
+            res.get("rt_cd") == "JSON_DECODE_ERROR" or res.get("status_code") == 404
+        ):
             return {
-                "rt_cd": res.get('rt_cd', ''),
-                "msg1": res.get('msg1', ''),
-                "정산안내": "정산 시간(23:30~01:00 등)에는 계좌 관련 API가 일시적으로 차단될 수 있습니다. 잠시 후 다시 시도해 주세요."
+                "rt_cd": res.get("rt_cd", ""),
+                "msg1": res.get("msg1", ""),
+                "정산안내": (
+                    "정산 시간(23:30~01:00 등)에는 계좌 관련 API가 "
+                    "일시적으로 차단될 수 있습니다. 잠시 후 다시 시도해 주세요."
+                ),
             }
         return res
+
 
 # 기존 호환성을 위해 별칭 제공
 AccountBalance = AccountAPI

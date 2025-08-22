@@ -35,6 +35,8 @@ env/
 .coverage
 htmlcov/
 .pytest_cache/
+testing/
+examples_llm/
 
 # Credentials
 credit/

@@ -152,8 +152,7 @@ API_ENDPOINTS = {
     
     
 
-_shared_rate_limit_lock = threading.Lock()
-_last_api_call_time = [0]
+# 글로벌 rate limit 변수들 제거됨 - 인스턴스별 관리로 변경
 
 class KISClient:
     """
@@ -189,13 +188,13 @@ class KISClient:
             self.config = svr
             svr = 'prod'
         else:
-            self.config = None
+            self.config = config
         self.verbose = verbose
         self.token: Optional[dict] = None
         self.last_api_call_time = time.monotonic()
         self.last_request_time = 0.0
         self.min_interval = 0.05  # 50ms
-        self.lock = threading.Lock()
+        self.rate_limit_lock = threading.Lock()  # 인스턴스별 rate limit lock
 
         try:
             if self.config is None:
@@ -213,14 +212,14 @@ class KISClient:
             raise
 
     def _enforce_rate_limit(self) -> None:
-        """API 요청 제한을 관리합니다."""
-        with _shared_rate_limit_lock:
+        """API 요청 제한을 관리합니다 (인스턴스별)."""
+        with self.rate_limit_lock:
             now = time.monotonic()
-            elapsed = now - _last_api_call_time[0]
+            elapsed = now - self.last_api_call_time
             if elapsed < self.min_interval:
                 time.sleep(self.min_interval - elapsed)
-            _last_api_call_time[0] = time.monotonic()
-            self.last_request_time = _last_api_call_time[0]
+            self.last_api_call_time = time.monotonic()
+            self.last_request_time = self.last_api_call_time
 
     def _get_base_headers(self, tr_id: str) -> Dict[str, str]:
         """

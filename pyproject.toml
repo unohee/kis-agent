@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pykis"
-version = "0.1.21"
-description = "한국투자증권 OpenAPI Python Wrapper"
+version = "0.1.22"
+description = "한국투자증권 OpenAPI Python Wrapper - Korea Investment & Securities Trading API Client"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
@@ -28,24 +28,29 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "requests>=2.26.0",
-    "pandas>=1.3.0",
-    "python-dotenv>=0.19.0",
-    "pycryptodome>=3.23",
+    "requests>=2.31.0,<3.0.0",
+    "pandas>=1.5.0,<3.0.0",
+    "python-dotenv>=0.21.0,<2.0.0",
+    "pycryptodome>=3.23.0,<4.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=3.0.0",
-    "black>=22.0.0",
-    "isort>=5.10.0",
-    "flake8>=4.0.0",
-    "mypy>=0.910",
+    "pytest>=7.4.0,<9.0.0",
+    "pytest-cov>=4.1.0,<6.0.0",
+    "black>=23.0.0,<25.0.0",
+    "isort>=5.12.0,<6.0.0",
+    "flake8>=6.0.0,<8.0.0",
+    "mypy>=1.5.0,<2.0.0",
+    "pre-commit>=3.3.0,<4.0.0",
 ]
 websocket = [
-    "websockets>=12.0",
-    "aiohttp>=3.9.0",
+    "websockets>=12.0,<14.0",
+    "aiohttp>=3.9.0,<4.0.0",
+]
+all = [
+    "websockets>=12.0,<14.0",
+    "aiohttp>=3.9.0,<4.0.0",
 ]
 
 [project.urls]
@@ -58,7 +63,7 @@ Changelog = "https://github.com/unohee/pykis/blob/main/CHANGELOG.md"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["pykis*"]
-exclude = ["tests*", "examples*"]
+exclude = ["tests*", "examples*", "docs*", "scripts*", ".github*"]
 
 [tool.black]
 line-length = 88
