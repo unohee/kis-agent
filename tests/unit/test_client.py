@@ -67,7 +67,7 @@ class TestKISClient(unittest.TestCase):
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-price",
             tr_id="FHKST01010100",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": "005930"
             }
         )
@@ -84,7 +84,7 @@ class TestKISClient(unittest.TestCase):
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-price",
             tr_id="FHKST01010400",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": "005930",
                 "FID_INPUT_DATE_1": "20240601",
                 "FID_INPUT_DATE_2": "20240618"
@@ -104,7 +104,7 @@ class TestKISClient(unittest.TestCase):
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn",
             tr_id="FHKST01010200",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": "005930"
             }
         )
@@ -121,7 +121,7 @@ class TestKISClient(unittest.TestCase):
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-investor",
             tr_id="FHKST01010900",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": "005930"
             }
         )
@@ -146,7 +146,7 @@ class TestKISClient(unittest.TestCase):
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-daily-ccld",
             tr_id="FHKST03030100",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": "005930",
                 "FID_INPUT_DATE_1": "",
                 "FID_INPUT_DATE_2": "",
@@ -167,7 +167,7 @@ class TestKISClient(unittest.TestCase):
             endpoint="/uapi/domestic-stock/v1/ranking/market-cap",
             tr_id="FHPTJ04040000",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_COND_SCR_DIV_CODE": "20170",
                 "FID_INPUT_ISCD": "0000",
                 "FID_DIV_CLS_CODE": "0",

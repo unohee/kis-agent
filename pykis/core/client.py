@@ -169,7 +169,7 @@ class KISClient:
 
     Example:
         >>> client = KISClient()
-        >>> response = client.make_request('/uapi/domestic-stock/v1/quotations/inquire-price', 'FHKST01010100', {'FID_COND_MRKT_DIV_CODE': 'J', 'FID_INPUT_ISCD': '005930'})
+        >>> response = client.make_request('/uapi/domestic-stock/v1/quotations/inquire-price', 'FHKST01010100', {'FID_COND_MRKT_DIV_CODE': 'UN', 'FID_INPUT_ISCD': '005930'})
     """
 
     def __init__(self, svr: str = 'prod', config=None, verbose: bool = False):

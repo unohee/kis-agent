@@ -62,7 +62,7 @@ class TestProgramTradeAPI:
         assert 'endpoint' in call_args.kwargs
         assert call_args.kwargs['tr_id'] == 'FHPPG04650101'
         assert call_args.kwargs['params']['FID_INPUT_ISCD'] == '005930'
-        assert call_args.kwargs['params']['FID_COND_MRKT_DIV_CODE'] == 'J'
+        assert call_args.kwargs['params']['FID_COND_MRKT_DIV_CODE'] == 'UN'
 
     @patch('pykis.program.trade.datetime')
     def test_get_program_trade_by_stock_with_default_date(self, mock_datetime, program_api, mock_client):

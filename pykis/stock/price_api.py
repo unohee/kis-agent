@@ -21,7 +21,7 @@ class StockPriceAPI(BaseAPI):
         return self._make_request_with_conversion(
             endpoint=API_ENDPOINTS['INQUIRE_PRICE'],
             tr_id="FHKST01010100",
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code},
             field_type='stock_price'
         )
 
@@ -51,7 +51,7 @@ class StockPriceAPI(BaseAPI):
         return self._make_request_with_conversion(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010200",
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code},
             field_type='orderbook'
         )
 
@@ -60,7 +60,7 @@ class StockPriceAPI(BaseAPI):
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010200",
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code}
         )
 
     def get_minute_price(self, code: str, hour: str = "153000") -> Optional[Dict]:
@@ -69,7 +69,7 @@ class StockPriceAPI(BaseAPI):
             endpoint=API_ENDPOINTS['INQUIRE_TIME_ITEMCHARTPRICE'],
             tr_id="FHKST01010300",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_HOUR_1": hour
             }
@@ -81,7 +81,7 @@ class StockPriceAPI(BaseAPI):
             endpoint=API_ENDPOINTS['INQUIRE_TIME_ITEMCHARTPRICE'],
             tr_id="FHKST01010300",
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_DATE_1": date,
                 "FID_INPUT_HOUR_1": hour

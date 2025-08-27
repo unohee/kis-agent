@@ -67,7 +67,7 @@ class ProgramTradeAPI(BaseAPI):
             Optional[Dict[str, Any]]: rt_cd 메타데이터가 포함된 API 응답 데이터
         """
         params = {
-            "FID_COND_MRKT_DIV_CODE": "J",
+            "FID_COND_MRKT_DIV_CODE": "UN",
             "FID_INPUT_ISCD": code,
         }
         if ref_date:
@@ -123,7 +123,7 @@ class ProgramTradeAPI(BaseAPI):
             endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK_DAILY'],
             tr_id="FHPPG04650200", # 종목별 프로그램매매추이(일별)
             params={
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "UN",
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_DATE_1": date_str # 기준일자 (YYYYMMDD)
             }
@@ -152,7 +152,7 @@ class ProgramTradeAPI(BaseAPI):
                 "FID_MRKT_CLS_CODE": "", # 시장 분류 코드 (전체는 공백)
                 "FID_INPUT_DATE_1": start_date,
                 "FID_INPUT_DATE_2": end_date,
-                "FID_COND_MRKT_DIV_CODE": "J" # J: 주식
+                "FID_COND_MRKT_DIV_CODE": "UN" # UN: 통합장 (KOSPI+KOSDAQ+NXT)
             }
         )
 

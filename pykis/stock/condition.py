@@ -128,7 +128,7 @@ class ConditionAPI(BaseAPI):
                 endpoint="/uapi/domestic-stock/v1/quotations/inquire-condition",
                 tr_id="FHKST03010000",
                 params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
+                    "FID_COND_MRKT_DIV_CODE": "UN",
                     "FID_COND_SCR_DIV_CODE": "20171"
                 }
             )
@@ -143,7 +143,7 @@ class ConditionAPI(BaseAPI):
                 endpoint="/uapi/domestic-stock/v1/quotations/inquire-condition-result",
                 tr_id="FHKST03010100",
                 params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
+                    "FID_COND_MRKT_DIV_CODE": "UN",
                     "FID_COND_SCR_DIV_CODE": "20171",
                     "FID_COND_ID": condition_id
                 }
@@ -159,7 +159,7 @@ class ConditionAPI(BaseAPI):
                 endpoint="/uapi/domestic-stock/v1/quotations/save-condition",
                 tr_id="FHKST03010200",
                 params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
+                    "FID_COND_MRKT_DIV_CODE": "UN",
                     "FID_COND_SCR_DIV_CODE": "20171",
                     "FID_COND_NAME": condition_name,
                     "FID_COND_DATA": condition_data
@@ -176,7 +176,7 @@ class ConditionAPI(BaseAPI):
                 endpoint="/uapi/domestic-stock/v1/quotations/delete-condition",
                 tr_id="FHKST03010300",
                 params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
+                    "FID_COND_MRKT_DIV_CODE": "UN",
                     "FID_COND_SCR_DIV_CODE": "20171",
                     "FID_COND_ID": condition_id
                 }
