@@ -2,9 +2,12 @@
 
 한국투자증권 OpenAPI를 Python으로 쉽게 사용할 수 있는 래퍼 라이브러리입니다.
 
-[![Tests](https://img.shields.io/badge/tests-178%20passed-brightgreen)](https://github.com/your-repo/pykis)
-[![Coverage](https://img.shields.io/badge/coverage-44%25-yellow)](https://github.com/your-repo/pykis)
+**🎉 NEW: NXT(넥스트레이드) 시장 지원!** - KOSPI/KOSDAQ과 함께 차세대 대체거래소 통합 지원
+
+[![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/your-repo/pykis)
+[![Coverage](https://img.shields.io/badge/coverage-52%25-orange)](https://github.com/your-repo/pykis)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![NXT](https://img.shields.io/badge/NXT-지원-green)](https://www.nextrade.co.kr/)
 
 ## 🚀 설치 방법
 
@@ -39,10 +42,10 @@ balance = agent.get_account_balance()  # 계좌 잔고
 cash = agent.get_cash_available()      # 주문 가능 현금
 total = agent.get_total_asset()        # 총 자산
 
-# 📈 주식 시세 조회
-price = agent.get_stock_price("005930")      # 삼성전자 현재가
-daily = agent.get_daily_price("005930")      # 일별 시세
-orderbook = agent.get_orderbook("005930")    # 호가 정보
+# 📈 주식 시세 조회 (KOSPI/KOSDAQ/NXT 통합 지원)
+price = agent.get_stock_price("005930")      # 삼성전자 현재가 (KOSPI)
+daily = agent.get_daily_price("035720")      # 카카오 일별시세 (KOSDAQ)
+orderbook = agent.get_orderbook("NXT종목")   # NXT 시장 종목도 동일하게 조회 가능
 
 # 📊 분봉 데이터 조회
 minute_data = agent.get_minute_price("005930", "093000")  # 특정 시간 분봉
@@ -185,8 +188,8 @@ pytest tests/ -v --cov=pykis
 - `order_resv_rvsecncl(seq, qty, price, order_type)`: 예약 주문 정정/취소
 - `order_resv_ccnl()`: 예약 주문 조회
 
-### 국내주식 관련
-- `get_stock_price(code)`: 현재가 조회
+### 국내주식 관련 (KOSPI/KOSDAQ/NXT 통합 지원)
+- `get_stock_price(code)`: 현재가 조회 
 - `get_daily_price(code)`: 일별 시세 조회  
 - `get_orderbook(code)`: 호가 정보 조회
 - `get_minute_price(code, time)`: 특정 시간 분봉 데이터 조회
@@ -244,7 +247,21 @@ pytest tests/ -v --cov=pykis
 
 ## 이전 업데이트 (v0.1.20)
 
-### ✨ 새로운 기능
+## 📈 최신 업데이트 (v0.1.22)
+
+### 🎉 NXT(넥스트레이드) 시장 지원 추가
+- **통합 시장 지원**: 모든 API에서 KOSPI/KOSDAQ/NXT 동시 지원
+  - `FID_COND_MRKT_DIV_CODE` 값을 "J"에서 "UN"으로 변경
+  - 기존 KOSPI/KOSDAQ 종목 100% 호환성 보장
+  - NXT 종목도 기존과 동일한 방식으로 조회 가능
+- **영향받는 기능**: 현재가 조회, 일별/분봉 시세, 호가 정보, 투자자별 매매 동향, 조건 검색 등 모든 주식 관련 API
+
+### ✅ 테스트 및 코드 품질 향상
+- **테스트 확대**: 232개 테스트 통과 (기존 178개에서 54개 추가)
+- **코드 커버리지**: 52%로 향상 (기존 44%에서 개선)
+- **신규 테스트 모듈**: DataFrame 헬퍼, 투자자 DB, WebSocket 클라이언트 기본 기능 테스트 추가
+
+### ✨ 이전 업데이트
 - **🌐 웹소켓 멀티 구독 시스템**: 여러 종목을 동시에 구독할 수 있는 `WSAgent` 클래스 추가
   - 실시간 시세, 호가, 지수, 프로그램매매 데이터 동시 수신
   - 자동 연결 관리 및 오류 복구 기능

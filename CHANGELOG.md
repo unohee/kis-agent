@@ -2,6 +2,33 @@
 
 모든 주요 변경사항이 이 파일에 기록됩니다.
 
+## [0.1.22] - 2025-08-27
+
+### 🎉 NXT(넥스트레이드) 시장 지원 추가
+- **통합 시장 지원**: 모든 API에서 KOSPI/KOSDAQ/NXT 동시 지원
+  - `FID_COND_MRKT_DIV_CODE` 값을 "J"에서 "UN"으로 변경
+  - 29개 위치 변경 (7개 모듈 + 2개 테스트 파일)
+  - 기존 KOSPI/KOSDAQ 종목 100% 호환성 보장
+  - NXT 종목도 기존과 동일한 방식으로 조회 가능
+
+### ✅ 테스트 및 코드 품질 대폭 향상  
+- **테스트 확대**: 232개 테스트 통과 (54개 추가)
+- **코드 커버리지**: 52%로 향상 (8% 개선)
+- **신규 테스트 모듈**: 
+  - `test_dataframe_helper.py`: DataFrame 헬퍼 함수 16개 테스트 (100% 커버리지)
+  - `test_investor_db.py`: 투자자 DB 모듈 16개 테스트 (75% 커버리지)
+  - `test_websocket_client_basic.py`: WebSocket 클라이언트 기본 기능 15개 테스트
+
+### 🔧 변경된 모듈
+- **Stock API 모듈들**: `api.py`, `investor_api.py`, `price_api.py`, `market_api.py`, `condition.py`
+- **Core 모듈**: `client.py` (예제 코드 업데이트)
+- **Program 모듈**: `trade.py` (주석도 업데이트)
+- **테스트 모듈**: `test_client.py`, `test_program_trade.py`
+
+### 📚 문서 업데이트
+- **README.md**: NXT 지원 내용 추가, 뱃지 업데이트
+- **NXT_SUPPORT_CHANGES.md**: 상세한 변경사항 문서화
+
 ## [0.1.21] - 2025-08-22
 
 ### ✨ 새로운 기능
