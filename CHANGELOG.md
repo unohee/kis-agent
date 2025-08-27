@@ -25,6 +25,12 @@
 - **Program 모듈**: `trade.py` (주석도 업데이트)
 - **테스트 모듈**: `test_client.py`, `test_program_trade.py`
 
+### ⚡ 호환성 최적화 (2025-08-27 오후)
+- **선별적 시장 코드 적용**: API별 호환성에 맞게 J/UN 코드 선택 적용
+- **investor_api.py**: 투자자/거래원 API는 J 코드로 롤백 (UN 지원 불가 확인)
+  - `get_stock_investor()`, `get_stock_member()`, `get_member_transaction()` 
+- **기타 API**: 기본 시세/차트 API는 UN 코드 유지 (NXT 지원 계속)
+
 ### 📚 문서 업데이트
 - **README.md**: NXT 지원 내용 추가, 뱃지 업데이트
 - **NXT_SUPPORT_CHANGES.md**: 상세한 변경사항 문서화

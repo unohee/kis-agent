@@ -21,7 +21,7 @@ class StockInvestorAPI(BaseAPI):
     def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[pd.DataFrame]:
         """투자자별 매매동향 조회"""
         params = {
-            "FID_COND_MRKT_DIV_CODE": "UN",
+            "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": ticker,
         }
         return self._make_request_dataframe(
@@ -37,7 +37,7 @@ class StockInvestorAPI(BaseAPI):
             endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
             tr_id="FHKST01010600",
             params={
-                "FID_COND_MRKT_DIV_CODE": "UN",
+                "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": ticker,
             }
         )
@@ -48,7 +48,7 @@ class StockInvestorAPI(BaseAPI):
             endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
             tr_id="FHKST01010600",
             params={
-                "FID_COND_MRKT_DIV_CODE": "UN",
+                "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_MEM_CODE": mem_code
             }
