@@ -1099,7 +1099,7 @@ class Agent:
 
             # 새로 수집
             logging.info(f"[{code}] 분봉 데이터 API 수집 시작 ({target_date})")
-            result = self.stock_api.get_full_day_minute_price(code, target_date)
+            result = self.stock_api.get_intraday_price(code, target_date)
 
             if result and result.get("rt_cd") == "0":
                 minute_data = result.get("output2", [])

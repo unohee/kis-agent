@@ -18,13 +18,13 @@ from datetime import datetime
 class StockInvestorAPI(BaseAPI):
     """투자자별 매매 정보 조회 전용 API 클래스"""
 
-    def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[pd.DataFrame]:
-        """투자자별 매매동향 조회"""
+    def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[Dict]:
+        """투자자별 매매동향 조회 (rt_cd 메타데이터가 포함된)"""
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": ticker,
         }
-        return self._make_request_dataframe(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INVESTOR'],
             tr_id="FHKST01010900",
             params=params,
@@ -91,27 +91,36 @@ class StockInvestorAPI(BaseAPI):
         """과거 날짜의 외국인 순매수 조회 (투자자별 매매 동향 기반)"""
         try:
             # get_stock_investor로 30일간 외국인 매매 데이터 조회
-            investor_df = self.get_stock_investor(ticker=code)
+            investor_data = self.get_stock_investor(ticker=code)
             
-            if investor_df is None or investor_df.empty:
+            if not investor_data or 'output' not in investor_data:
                 logging.warning(f"[{code}] 투자자별 매매 동향 데이터 조회 실패")
                 return None
             
-            # 해당 날짜 데이터 찾기
-            target_data = investor_df[investor_df['stck_bsop_date'] == date]
+            # output이 리스트인지 확인
+            output_data = investor_data['output']
+            if not isinstance(output_data, list):
+                output_data = [output_data]
             
-            if target_data.empty:
+            # 해당 날짜 데이터 찾기
+            target_row = None
+            for row in output_data:
+                if row.get('stck_bsop_date') == date:
+                    target_row = row
+                    break
+            
+            if not target_row:
                 logging.warning(f"[{code}] {date} 날짜 데이터 없음 (최근 30일 범위 내에서만 조회 가능)")
                 # 사용 가능한 날짜 범위 표시
-                available_dates = investor_df['stck_bsop_date'].tolist()
-                logging.info(f"[{code}] 사용 가능한 날짜: {available_dates[0]} ~ {available_dates[-1]}")
+                available_dates = [row.get('stck_bsop_date', '') for row in output_data]
+                if available_dates:
+                    logging.info(f"[{code}] 사용 가능한 날짜: {available_dates[0]} ~ {available_dates[-1]}")
                 return None
             
             # 외국인 매매 데이터 추출
-            row = target_data.iloc[0]
-            frgn_ntby_qty = int(row.get('frgn_ntby_qty', 0)) if row.get('frgn_ntby_qty') else 0
-            frgn_buy_vol = int(row.get('frgn_shnu_vol', 0)) if row.get('frgn_shnu_vol') else 0
-            frgn_sell_vol = int(row.get('frgn_seln_vol', 0)) if row.get('frgn_seln_vol') else 0
+            frgn_ntby_qty = int(target_row.get('frgn_ntby_qty', 0)) if target_row.get('frgn_ntby_qty') else 0
+            frgn_buy_vol = int(target_row.get('frgn_shnu_vol', 0)) if target_row.get('frgn_shnu_vol') else 0
+            frgn_sell_vol = int(target_row.get('frgn_seln_vol', 0)) if target_row.get('frgn_seln_vol') else 0
             
             details = {
                 'brokers': [],  # 과거 날짜는 개별 거래원 정보 없음
@@ -121,7 +130,7 @@ class StockInvestorAPI(BaseAPI):
                 'query_date': date,
                 'note': '투자자별 매매 동향 기반 외국인 전체 순매수 (과거 날짜)',
                 'api_method': 'stock_investor',
-                'data_range': f"{investor_df['stck_bsop_date'].iloc[0]} ~ {investor_df['stck_bsop_date'].iloc[-1]}"
+                'data_range': f"{available_dates[0] if available_dates else ''} ~ {available_dates[-1] if available_dates else ''}"
             }
             
             logging.info(f"[{code}] {date} 외국인 순매수: {frgn_ntby_qty:,}주 (매수: {frgn_buy_vol:,}, 매도: {frgn_sell_vol:,})")
