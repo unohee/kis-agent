@@ -308,13 +308,13 @@ class StockAPI(BaseAPI):
                   - askp_rsqn1~askp_rsqn10: 매도호가 잔량 1~10단
                   - total_bidp_rsqn: 총 매수호가 잔량
                   - total_askp_rsqn: 총 매도호가 잔량
-                - output2: 현재가 정보
+                - output2: 예상체결 정보
         """
         response = self.client.make_request(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010200",
             params={
-                "fid_cond_mrkt_div_code": "J",
+                "fid_cond_mrkt_div_code": "UN",
                 "fid_input_iscd": code
             }
         )
