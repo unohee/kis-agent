@@ -10,6 +10,7 @@ import requests
 
 from .auth import auth, getTREnv
 from .config import KISConfig
+from .rate_limiter import RateLimiter
 
 # 로깅 설정
 logging.basicConfig(
@@ -172,7 +173,8 @@ class KISClient:
         >>> response = client.make_request('/uapi/domestic-stock/v1/quotations/inquire-price', 'FHKST01010100', {'FID_COND_MRKT_DIV_CODE': 'UN', 'FID_INPUT_ISCD': '005930'})
     """
 
-    def __init__(self, svr: str = 'prod', config=None, verbose: bool = False):
+    def __init__(self, svr: str = 'prod', config=None, verbose: bool = False, 
+                 enable_rate_limiter: bool = True, rate_limiter: Optional[RateLimiter] = None):
         """
         KISClient를 초기화합니다.
 
@@ -180,6 +182,8 @@ class KISClient:
             svr (str): 서버 환경 ('prod' 또는 'dev')
             config (KISConfig, optional): API 설정 정보
             verbose (bool): 상세 로깅 여부
+            enable_rate_limiter (bool): Rate Limiter 사용 여부
+            rate_limiter (RateLimiter, optional): 커스텀 Rate Limiter 인스턴스
 
         Raises:
             Exception: 인증 실패 시 발생
@@ -195,6 +199,19 @@ class KISClient:
         self.last_request_time = 0.0
         self.min_interval = 0.05  # 50ms
         self.rate_limit_lock = threading.Lock()  # 인스턴스별 rate limit lock
+        
+        # Rate Limiter 설정
+        self.enable_rate_limiter = enable_rate_limiter
+        if enable_rate_limiter:
+            self.rate_limiter = rate_limiter or RateLimiter(
+                requests_per_second=15,  # 안전 마진을 두고 15회로 설정 (실제 제한: 20회)
+                requests_per_minute=900,  # 안전 마진을 두고 900회로 설정 (실제 제한: 1000회)
+                min_interval_ms=70,       # 안전 마진을 두고 70ms로 설정 (권장: 50ms)
+                burst_size=5,
+                enable_adaptive=True
+            )
+        else:
+            self.rate_limiter = None
 
         try:
             if self.config is None:
@@ -211,15 +228,27 @@ class KISClient:
             logger.error(f"인증 실패: {e}", exc_info=True)
             raise
 
-    def _enforce_rate_limit(self) -> None:
-        """API 요청 제한을 관리합니다 (인스턴스별)."""
-        with self.rate_limit_lock:
-            now = time.monotonic()
-            elapsed = now - self.last_api_call_time
-            if elapsed < self.min_interval:
-                time.sleep(self.min_interval - elapsed)
-            self.last_api_call_time = time.monotonic()
-            self.last_request_time = self.last_api_call_time
+    def _enforce_rate_limit(self, priority: int = 0) -> None:
+        """
+        API 요청 제한을 관리합니다 (인스턴스별).
+        
+        Args:
+            priority: 요청 우선순위 (0=일반, 1=중요, 2=긴급)
+        """
+        if self.enable_rate_limiter and self.rate_limiter:
+            # 새로운 Rate Limiter 사용
+            wait_time = self.rate_limiter.acquire(priority)
+            if wait_time > 0 and self.verbose:
+                logger.debug(f"Rate limiter 대기: {wait_time:.3f}초")
+        else:
+            # 기존 방식 유지 (하위 호환성)
+            with self.rate_limit_lock:
+                now = time.monotonic()
+                elapsed = now - self.last_api_call_time
+                if elapsed < self.min_interval:
+                    time.sleep(self.min_interval - elapsed)
+                self.last_api_call_time = time.monotonic()
+                self.last_request_time = self.last_api_call_time
 
     def _get_base_headers(self, tr_id: str) -> Dict[str, str]:
         """
@@ -248,6 +277,7 @@ class KISClient:
         method: str = 'GET',
         retries: int = 2,  # [변경 이유] 테스트 속도 향상을 위해 재시도 횟수를 5회 → 2회로 단축
         headers: Dict[str, str] = None,
+        priority: int = 0,  # 요청 우선순위 (0=일반, 1=중요, 2=긴급)
     ) -> Optional[Dict[str, Any]]:
         """
         API 요청을 보내고 응답을 처리합니다.
@@ -285,7 +315,7 @@ class KISClient:
         last_exception = None
 
         for attempt in range(retries):
-            self._enforce_rate_limit()
+            self._enforce_rate_limit(priority)
             response = None
             data = None
             try:
@@ -330,19 +360,29 @@ class KISClient:
                 if response.status_code == 200 and rt_cd == '0':
                     if self.verbose and tr_id != "TTTC8434R":
                         logger.info(f"[API] 응답: {data}")
+                    # 성공 시 Rate Limiter에 보고
+                    if self.enable_rate_limiter and self.rate_limiter:
+                        self.rate_limiter.report_success()
                     return data
                 else:
                     if response.status_code == 200 and rt_cd != '0':
                         api_msg = data.get('msg1', '')
                         api_code = data.get('rt_cd')
                         logger.warning(f"[{tr_id}] API 오류 응답 (시도 {attempt+1}/{retries}): {api_msg} (code: {api_code})")
+                        
+                        # 유량 제한 에러 체크
                         is_rate_limit_error = (
                             isinstance(api_code, str)
-                            and api_code == '1'
+                            and (api_code == '1' or api_code in ['EGW00201', 'EGW00202', 'EGW00203'])
                             and isinstance(api_msg, str)
-                            and "초당 거래건수를 초과하였습니다" in api_msg
+                            and ("초당 거래건수를 초과" in api_msg or "유량 제한" in api_msg)
                         )
+                        
                         if is_rate_limit_error:
+                            # Rate Limiter에 에러 보고
+                            if self.enable_rate_limiter and self.rate_limiter:
+                                self.rate_limiter.report_error(api_code)
+                            
                             if attempt < retries - 1:
                                 logger.warning(f"[{tr_id}] API 유량 제한 감지 (code: {api_code}). 0.5초 대기 후 재시도... ({attempt+1}/{retries})")
                                 time.sleep(0.5)  # [변경 이유] 테스트 속도 향상을 위해 대기 시간을 1초 → 0.5초로 단축
