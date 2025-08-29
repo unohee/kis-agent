@@ -145,19 +145,45 @@ class APICache(TTLCache):
     API 전용 캐시 - 특정 API 엔드포인트별로 다른 TTL 설정
     """
     
-    # API별 기본 TTL 설정 (초)
+    # API별 기본 TTL 설정 (초) - 데이터 변동성 기준
     DEFAULT_TTLS = {
-        # 실시간 시세 - 매우 짧은 캐시
-        "inquire-price": 3,              # 현재가 - 3초
-        "inquire-asking-price": 3,        # 호가 - 3초
+        # === 실시간 시세 (10초 이하) ===
+        "inquire-price": 10,              # 현재가 - 10초 (실시간 변동)
+        "inquire-asking-price": 10,       # 호가 - 10초 (실시간 변동)
+        "inquire-time-itemconclusion": 5, # 체결 - 5초 (매우 빈번한 변동)
+        "inquire-ccnl": 5,                # 체결내역 - 5초
         
-        # 변동성이 적은 데이터 - 중간 캐시
-        "inquire-daily-itemchartprice": 10,  # 일봉 - 10초
-        "inquire-investor": 10,              # 투자자 동향 - 10초
+        # === 분/시간 단위 데이터 (30초) ===
+        "inquire-investor": 30,           # 투자자 동향 - 30초 (분 단위 집계)
+        "inquire-member": 30,             # 거래원 - 30초 (분 단위 변동)
+        "inquire-program": 30,            # 프로그램 매매 - 30초
+        "inquire-minutechart": 30,        # 분봉 - 30초
         
-        # 거의 변하지 않는 데이터 - 긴 캐시
-        "inquire-balance": 30,            # 잔고 - 30초
-        "inquire-psbl-order": 15,         # 주문가능금액 - 15초
+        # === 일 단위 데이터 (60초) ===
+        "inquire-daily-itemchartprice": 60,  # 일봉 - 60초 (장중 고/저/종가 변동)
+        "inquire-daily-indexchartprice": 60, # 지수 일봉 - 60초
+        "inquire-daily-program": 60,         # 일별 프로그램 - 60초
+        "volume-rank": 60,                    # 거래량 순위 - 60초
+        
+        # === 계좌/잔고 정보 (60-120초) ===
+        "inquire-balance": 60,            # 잔고 - 60초 (주문 시에만 변동)
+        "inquire-psbl-order": 30,         # 주문가능금액 - 30초 (시세 연동)
+        "inquire-account": 120,           # 계좌정보 - 120초
+        "inquire-profit": 60,             # 수익률 - 60초
+        
+        # === 정적 정보 (300초 이상) ===
+        "inquire-stock-info": 300,        # 종목 기본정보 - 300초 (5분)
+        "inquire-holiday": 86400,         # 휴장일 - 86400초 (1일)
+        "inquire-product": 300,           # 상품정보 - 300초
+        "inquire-condition": 300,         # 조건검색 - 300초
+        "search": 300,                    # 종목검색 - 300초
+        
+        # === 주문 관련 (캐시 안함) ===
+        "order": 0,                        # 주문 - 캐시 안함
+        "modify": 0,                       # 정정 - 캐시 안함
+        "cancel": 0,                       # 취소 - 캐시 안함
+        "order-cash": 0,                   # 현금주문 - 캐시 안함
+        "order-credit": 0,                 # 신용주문 - 캐시 안함
     }
     
     def __init__(self, default_ttl: int = 5, max_size: int = 1000):
@@ -165,9 +191,13 @@ class APICache(TTLCache):
         
     def get_ttl_for_endpoint(self, endpoint: str) -> int:
         """엔드포인트별 적절한 TTL 반환"""
+        # 엔드포인트를 소문자로 변환하여 비교
+        endpoint_lower = endpoint.lower()
+        
         # 엔드포인트에서 API 타입 추출
         for api_type, ttl in self.DEFAULT_TTLS.items():
-            if api_type in endpoint:
+            # API 타입도 소문자로 변환하여 비교
+            if api_type.lower() in endpoint_lower:
                 return ttl
         
         return self.default_ttl
