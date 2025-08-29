@@ -89,71 +89,69 @@ class InvestorPositionAnalyzer:
             self.logger.error(f"투자자 API import 실패: {e}")
             return None
 
-    def get_stock_investor_data(self, stock_code: str) -> Optional['pd.DataFrame']:
-        """개별 종목 투자자 데이터 조회 (기존 API 활용)"""
+    def get_stock_investor_data(self, stock_code: str) -> Optional[Dict]:
+        """개별 종목 투자자 데이터 조회"""
         try:
-            apis = self._import_investor_apis()
-            if not apis:
-                self.logger.error("투자자 API를 불러올 수 없습니다")
-                return None
-            
-            # inquire_investor API 직접 호출
-            df = apis['inquire_investor'](
-                env_dv="real",
-                fid_cond_mrkt_div_code="J",
-                fid_input_iscd=stock_code
+            # BaseAPI의 _make_request_dict 사용
+            response = self.client.make_request(
+                endpoint=API_ENDPOINTS.get('INQUIRE_INVESTOR', '/uapi/domestic-stock/v1/quotations/inquire-investor'),
+                tr_id="FHKST01010900",
+                params={
+                    "FID_COND_MRKT_DIV_CODE": "J",
+                    "FID_INPUT_ISCD": stock_code
+                }
             )
             
-            return df
+            return response
             
         except Exception as e:
             self.logger.error(f"종목 {stock_code} 투자자 데이터 조회 실패: {e}")
             return None
 
-    def get_daily_market_trends(self, date: str = None, market: str = "KSP") -> Optional['pd.DataFrame']:
+    def get_daily_market_trends(self, date: str = None, market: str = "KSP") -> Optional[Dict]:
         """시장별 일별 투자자 동향 조회"""
         try:
-            apis = self._import_investor_apis()
-            if not apis:
-                return None
-            
             if date is None:
                 date = datetime.now().strftime('%Y%m%d')
             
-            # inquire_investor_daily_by_market API 호출
-            df = apis['inquire_investor_daily_by_market'](
-                fid_cond_mrkt_div_code="U",
-                fid_input_iscd="0001",  # 코스피
-                fid_input_date_1=date,
-                fid_input_iscd_1=market,
-                fid_input_date_2=date,
-                fid_input_iscd_2="0001"
+            # API 호출
+            response = self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market",
+                tr_id="FHKST01010800",
+                params={
+                    "FID_COND_MRKT_DIV_CODE": "U",
+                    "FID_INPUT_ISCD": "0001",  # 코스피
+                    "FID_INPUT_DATE_1": date,
+                    "FID_INPUT_ISCD_1": market,
+                    "FID_INPUT_DATE_2": date,
+                    "FID_INPUT_ISCD_2": "0001"
+                }
             )
             
-            return df
+            return response
             
         except Exception as e:
             self.logger.error(f"시장별 일별 투자자 동향 조회 실패 ({date}): {e}")
             return None
 
-    def get_foreign_institution_aggregate(self) -> Optional['pd.DataFrame']:
+    def get_foreign_institution_aggregate(self) -> Optional[Dict]:
         """외국인/기관 실시간 집계 데이터 조회"""
         try:
-            apis = self._import_investor_apis()
-            if not apis:
-                return None
-            
-            # foreign_institution_total API 호출
-            df = apis['foreign_institution_total'](
-                fid_cond_mrkt_div_code="V",
-                fid_cond_scr_div_code="16449",
-                fid_input_iscd="0000",  # 전체
-                fid_div_cls_code="0",   # 수량정열
-                fid_rank_sort_cls_code="0",  # 순매수상위
-                fid_etc_cls_code="0"    # 전체
+            # API 호출
+            response = self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/quotations/foreign-institution-total",
+                tr_id="FHPTJ04400000",
+                params={
+                    "FID_COND_MRKT_DIV_CODE": "V",
+                    "FID_COND_SCR_DIV_CODE": "16449",
+                    "FID_INPUT_ISCD": "0000",  # 전체
+                    "FID_DIV_CLS_CODE": "0",   # 수량정열
+                    "FID_RANK_SORT_CLS_CODE": "0",  # 순매수상위
+                    "FID_ETC_CLS_CODE": "0"    # 전체
+                }
             )
             
-            return df
+            return response
             
         except Exception as e:
             self.logger.error(f"외국인/기관 집계 데이터 조회 실패: {e}")

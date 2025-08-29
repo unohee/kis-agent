@@ -8,7 +8,6 @@ Stock Price API - 주식 시세 조회 전용 모듈
 """
 
 from typing import Optional, Dict, Any
-import pandas as pd
 from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
 
@@ -16,25 +15,24 @@ from ..core.base_api import BaseAPI
 class StockPriceAPI(BaseAPI):
     """주식 시세 조회 전용 API 클래스"""
 
-    def get_stock_price(self, code: str) -> Optional[pd.DataFrame]:
-        """주식 현재가 조회 (숫자형 자동 변환)"""
-        return self._make_request_with_conversion(
+    def get_stock_price(self, code: str) -> Optional[Dict]:
+        """주식 현재가 조회"""
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_PRICE'],
             tr_id="FHKST01010100",
-            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code},
-            field_type='stock_price'
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code}
         )
 
-    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[pd.DataFrame]:
+    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[Dict]:
         """
-        일별 시세 조회 (숫자형 자동 변환)
+        일별 시세 조회
         
         Args:
             code: 종목코드 (6자리)
             period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
             org_adj_prc: 수정주가구분 (0: 수정주가 미사용, 1: 수정주가 사용)
         """
-        return self._make_request_with_conversion(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_DAILY_ITEMCHARTPRICE'],
             tr_id="FHKST01010400",
             params={
@@ -42,17 +40,15 @@ class StockPriceAPI(BaseAPI):
                 "fid_input_iscd": code,
                 "fid_period_div_code": period,
                 "fid_org_adj_prc": org_adj_prc
-            },
-            field_type='daily_price'
+            }
         )
 
-    def get_orderbook(self, code: str) -> Optional[pd.DataFrame]:
+    def get_orderbook(self, code: str) -> Optional[Dict]:
         """주식 호가 정보 조회"""
-        return self._make_request_with_conversion(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010200",
-            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code},
-            field_type='orderbook'
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code}
         )
 
     def get_orderbook_raw(self, code: str) -> Optional[Dict]:

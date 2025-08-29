@@ -8,7 +8,6 @@ Stock Market API - 시장 정보 및 순위 조회 전용 모듈
 """
 
 from typing import Optional, Dict, Any
-import pandas as pd
 from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
 
@@ -42,9 +41,9 @@ class StockMarketAPI(BaseAPI):
             }
         )
 
-    def get_volume_power(self, volume: int = 0) -> Optional[pd.DataFrame]:
+    def get_volume_power(self, volume: int = 0) -> Optional[Dict]:
         """체결강도 순위 조회"""
-        return self._make_request_with_conversion(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['HTS_CURRENT_PRICE'],
             tr_id="FHKST01010900",
             params={
@@ -57,15 +56,13 @@ class StockMarketAPI(BaseAPI):
                 "FID_INPUT_PRICE_1": "",
                 "FID_INPUT_PRICE_2": "",
                 "FID_VOL_CNT": str(volume)
-            },
-            field_type='volume_power'
+            }
         )
 
-    def get_stock_info(self, ticker: str) -> Optional[pd.DataFrame]:
+    def get_stock_info(self, ticker: str) -> Optional[Dict]:
         """종목 기본 정보 조회"""
-        return self._make_request_with_conversion(
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_PRICE'],
             tr_id="FHKST01010100",
-            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": ticker},
-            field_type='stock_price'
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": ticker}
         )

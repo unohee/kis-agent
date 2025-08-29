@@ -125,8 +125,8 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     return f"101W{expiry:02d}"
 
 class StockAPI(BaseAPI):
-    def __init__(self, client: KISClient, account_info: Dict[str, str]):
-        super().__init__(client, account_info)
+    def __init__(self, client: KISClient, account_info: Dict[str, str], enable_cache=True, cache_config=None):
+        super().__init__(client, account_info, enable_cache, cache_config)
 
     def _make_request_dataframe(self, endpoint: str, tr_id: str, params: dict, retries: int = 5) -> Optional['pd.DataFrame']:
         """공통 요청 함수: 응답을 DataFrame으로 변환"""
@@ -142,16 +142,15 @@ class StockAPI(BaseAPI):
             return pd.DataFrame([output]) if isinstance(output, dict) else pd.DataFrame(output)
         return None
 
-    def get_stock_price(self, code: str) -> Optional[pd.DataFrame]:
-        """주식 현재가 조회 (숫자형 자동 변환)"""
-        return self._make_request_with_conversion(
+    def get_stock_price(self, code: str) -> Optional[Dict]:
+        """주식 현재가 조회 (rt_cd 메타데이터 포함)"""
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_PRICE'],
             tr_id="FHKST01010100",
-            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code},
-            field_type='stock_price'
+            params={"FID_COND_MRKT_DIV_CODE": "UN", "FID_INPUT_ISCD": code}
         )
 
-    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[pd.DataFrame]:
+    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[Dict[str, Any]]:
         """
         일별 시세 조회 (숫자형 자동 변환)
         
@@ -160,7 +159,8 @@ class StockAPI(BaseAPI):
             period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
             org_adj_prc: 수정주가구분 (0: 수정주가 미사용, 1: 수정주가 사용)
         """
-        return self._make_request_with_conversion(
+        # [변경 이유] API 요청 메서드는 원시 dict를 반환하도록 일관화
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_DAILY_ITEMCHARTPRICE'],
             tr_id="FHKST01010400",
             params={
@@ -168,8 +168,7 @@ class StockAPI(BaseAPI):
                 "fid_input_iscd": code,
                 "fid_period_div_code": period,
                 "fid_org_adj_prc": org_adj_prc
-            },
-            field_type='daily_price'
+            }
         )
 
     
@@ -217,7 +216,7 @@ class StockAPI(BaseAPI):
         
         return None
     
-    def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional['pd.DataFrame']:
+    def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[Dict]:
         """투자자별 매매 동향 조회
         개인 순매수 수량 및 거래대금은 'prsn_ntby_qty', 'prsn_ntby_tr_pbmn' 필드 사용.
         """
@@ -225,35 +224,14 @@ class StockAPI(BaseAPI):
             "FID_COND_MRKT_DIV_CODE": "UN",
             "FID_INPUT_ISCD": ticker,
         }
-        df = self._make_request_dataframe(
+        response = self.client.make_request(
             endpoint=API_ENDPOINTS['INQUIRE_INVESTOR'],
             tr_id="FHKST01010900",
             params=params,
             retries=retries
         )
-        # 개인 투자자 정보 집계 예시 (필요시 DataFrame에서 바로 추출)
-        if df is not None and not df.empty:
-            # 'prsn_ntby_qty', 'prsn_ntby_tr_pbmn' 필드 사용
-            try:
-                if 'prsn_ntby_qty' in df.columns and 'prsn_ntby_tr_pbmn' in df.columns:
-                    try:
-                        indiv_qty_str = df['prsn_ntby_qty'].iloc[0]
-                        indiv_pbmn_str = df['prsn_ntby_tr_pbmn'].iloc[0]
-                        
-                        # Convert empty strings to 0
-                        indiv_qty = int(indiv_qty_str) if indiv_qty_str.strip() else 0
-                        indiv_pbmn = int(indiv_pbmn_str) / 100000000 if indiv_pbmn_str.strip() else 0
-                        
-                        if not indiv_qty_str.strip() or not indiv_pbmn_str.strip():
-                            logging.info("Empty string encountered for individual investor details, set to 0.")
-
-                        df['개인_순매수수량'] = indiv_qty
-                        df['개인_순매수거래대금_억'] = indiv_pbmn
-                    except Exception as e:
-                        logging.error(f"Error extracting individual investor details: {e}", exc_info=True)
-            except Exception as e:
-                logging.error(f"Error extracting individual investor details: {e}", exc_info=True)
-        return df
+        # API 응답 직접 반환 (rt_cd 메타데이터 포함)
+        return response
         
     def estimate_accumulated_volume_by_top_members(self, stock_member_data: Dict[str, Any], force_refresh: bool = False) -> Optional[Dict[str, Any]]:
         """
@@ -397,7 +375,7 @@ class StockAPI(BaseAPI):
     #         logging.error(f"get_orderbook: 데이터 파싱 오류 for {code}: {e}")
     #         return None
 
-    def get_volume_power(self, volume: int = 0) -> Optional[pd.DataFrame]:
+    def get_volume_power(self, volume: int = 0) -> Optional[Dict]:
         """
         체결강도 순위 조회 (숫자형 자동 변환)
         
@@ -421,11 +399,10 @@ class StockAPI(BaseAPI):
                 "fid_trgt_cls_code": "0"
             }
             
-            return self._make_request_with_conversion(
+            return self._make_request_dict(
                 endpoint=API_ENDPOINTS['VOLUME_POWER'],
                 tr_id="FHPST01680000",
-                params=params,
-                field_type='volume_power'
+                params=params
             )
         except Exception as e:
             logging.error(f"체결강도 순위 조회 실패: {e}")
@@ -478,18 +455,14 @@ class StockAPI(BaseAPI):
         )
         return response  # Return raw response for debugging
 
-    def get_stock_info(self, ticker: str) -> Optional['pd.DataFrame']:
-        """주식 기본 정보 조회"""
-        response = self.client.make_request(
+    def get_stock_info(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """주식 기본 정보 조회 (원시 dict 반환)"""
+        # [변경 이유] API 요청 메서드는 원시 dict를 반환하도록 일관화
+        return self._make_request_dict(
             endpoint=API_ENDPOINTS['SEARCH_STOCK_INFO'],
             tr_id="CTPF1002R",
             params={"PRDT_TYPE_CD": "300", "PDNO": ticker}
         )
-        if response and response.get('rt_cd') == '0':
-            output = response.get('output', {})
-            import pandas as pd  # 지역 import로 로딩 시간 단축
-            return pd.DataFrame([output]) if output else pd.DataFrame()
-        return None
 
     def get_member_transaction(self, code: str, mem_code: str) -> Optional[Dict[str, Any]]:
         """회원사 일별 매매 종목 (rt_cd 메타데이터가 포함된)"""
@@ -557,28 +530,36 @@ class StockAPI(BaseAPI):
     def _get_foreign_broker_historical(self, code: str, date: str) -> Optional[tuple]:
         """과거 날짜의 외국인 순매수 조회 (투자자별 매매 동향 기반)"""
         try:
-            # get_stock_investor로 30일간 외국인 매매 데이터 조회
-            investor_df = self.get_stock_investor(ticker=code)
+            # [변경 이유] get_stock_investor가 dict를 반환하므로 DataFrame 전제 코드를 dict 파싱 로직으로 수정
+            investor_data = self.get_stock_investor(ticker=code)
             
-            if investor_df is None or investor_df.empty:
+            if not investor_data or 'output' not in investor_data:
                 logging.warning(f"[{code}] 투자자별 매매 동향 데이터 조회 실패")
                 return None
             
-            # 해당 날짜 데이터 찾기
-            target_data = investor_df[investor_df['stck_bsop_date'] == date]
+            # output이 리스트인지 보정
+            output_data = investor_data['output']
+            if not isinstance(output_data, list):
+                output_data = [output_data]
             
-            if target_data.empty:
+            # 해당 날짜 데이터 찾기
+            target_row = None
+            for row in output_data:
+                if row.get('stck_bsop_date') == date:
+                    target_row = row
+                    break
+            
+            if not target_row:
                 logging.warning(f"[{code}] {date} 날짜 데이터 없음 (최근 30일 범위 내에서만 조회 가능)")
-                # 사용 가능한 날짜 범위 표시
-                available_dates = investor_df['stck_bsop_date'].tolist()
-                logging.info(f"[{code}] 사용 가능한 날짜: {available_dates[0]} ~ {available_dates[-1]}")
+                available_dates = [row.get('stck_bsop_date', '') for row in output_data]
+                if available_dates:
+                    logging.info(f"[{code}] 사용 가능한 날짜: {available_dates[0]} ~ {available_dates[-1]}")
                 return None
             
             # 외국인 매매 데이터 추출
-            row = target_data.iloc[0]
-            frgn_ntby_qty = int(row.get('frgn_ntby_qty', 0)) if row.get('frgn_ntby_qty') else 0
-            frgn_buy_vol = int(row.get('frgn_shnu_vol', 0)) if row.get('frgn_shnu_vol') else 0
-            frgn_sell_vol = int(row.get('frgn_seln_vol', 0)) if row.get('frgn_seln_vol') else 0
+            frgn_ntby_qty = int(target_row.get('frgn_ntby_qty', 0) or 0)
+            frgn_buy_vol = int(target_row.get('frgn_shnu_vol', 0) or 0)
+            frgn_sell_vol = int(target_row.get('frgn_seln_vol', 0) or 0)
             
             details = {
                 'brokers': [],  # 과거 날짜는 개별 거래원 정보 없음
@@ -587,8 +568,7 @@ class StockAPI(BaseAPI):
                 'total_brokers_found': 0,
                 'query_date': date,
                 'note': '투자자별 매매 동향 기반 외국인 전체 순매수 (과거 날짜)',
-                'api_method': 'stock_investor',
-                'data_range': f"{investor_df['stck_bsop_date'].iloc[0]} ~ {investor_df['stck_bsop_date'].iloc[-1]}"
+                'api_method': 'stock_investor'
             }
             
             logging.info(f"[{code}] {date} 외국인 순매수: {frgn_ntby_qty:,}주 (매수: {frgn_buy_vol:,}, 매도: {frgn_sell_vol:,})")

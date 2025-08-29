@@ -41,7 +41,7 @@ class ConditionAPI(BaseAPI):
         >>> stocks = condition.get_condition_stocks("user123")
     """
     
-    def __init__(self, client: KISClient, account_info=None):
+    def __init__(self, client: KISClient, account_info=None, enable_cache=True, cache_config=None):
         """
         ConditionAPI를 초기화합니다.
 
@@ -53,7 +53,7 @@ class ConditionAPI(BaseAPI):
             >>> client = KISClient()
             >>> api = ConditionAPI(client)
         """
-        super().__init__(client, account_info)
+        super().__init__(client, account_info, enable_cache, cache_config)
 
     def get_condition_stocks(self, user_id: str = "unohee", seq: int = 0, tr_cont: str = 'N') -> Optional[List[Dict]]:
         """

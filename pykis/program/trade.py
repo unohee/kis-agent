@@ -45,7 +45,7 @@ class ProgramTradeAPI(BaseAPI):
         >>> daily_summary = pgm_api.get_program_trade_daily_summary("005930", "20240726")
     """
 
-    def __init__(self, client, account_info=None):
+    def __init__(self, client, account_info=None, enable_cache=True, cache_config=None):
         """
         ProgramTradeAPI를 초기화합니다.
 
@@ -53,7 +53,7 @@ class ProgramTradeAPI(BaseAPI):
             client (KISClient): API 통신을 담당하는 클라이언트
             account_info (dict, optional): 계좌 정보
         """
-        super().__init__(client, account_info)
+        super().__init__(client, account_info, enable_cache, cache_config)
 
     def get_program_trade_by_stock(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """

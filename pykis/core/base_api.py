@@ -11,21 +11,34 @@
 import pandas as pd
 from typing import Optional, Dict, List, Union
 from .response_processor import APIRequestManager
+from .cache import APICache
 
 
 class BaseAPI:
     """모든 API 클래스들의 공통 베이스 클래스"""
 
-    def __init__(self, client, account_info=None):
+    def __init__(self, client, account_info=None, enable_cache=True, cache_config=None):
         """
         BaseAPI 초기화
 
         Args:
             client: KISClient 인스턴스
             account_info: 계좌 정보 (필요한 경우)
+            enable_cache: 캐시 사용 여부 (기본: True)
+            cache_config: 캐시 설정 (default_ttl, max_size)
         """
         self.client = client
         self.account = account_info
+
+        # 캐시 초기화
+        if enable_cache:
+            cache_config = cache_config or {}
+            self.cache = APICache(
+                default_ttl=cache_config.get('default_ttl', 5),
+                max_size=cache_config.get('max_size', 1000)
+            )
+        else:
+            self.cache = None
 
         # 각 API별 숫자형 필드 매핑 테이블
         self.numeric_field_mappings = self._get_numeric_field_mappings()
@@ -246,44 +259,14 @@ class BaseAPI:
         df["msg1"] = response.get("msg1", "")
         return df
 
-    def _make_request_with_conversion(
-        self,
-        endpoint: str,
-        tr_id: str,
-        params: Dict,
-        field_type: Optional[str] = None,
-        output_key: str = "output",
-        return_dataframe: bool = True,
-    ) -> Union[Optional[pd.DataFrame], Optional[Dict]]:
-        """
-        API 요청 후 자동으로 숫자형 변환을 적용하여 DataFrame 반환
-        
-        복잡도 개선: Factory Pattern으로 응답 처리 로직 위임
-
-        Args:
-            endpoint: API 엔드포인트
-            tr_id: 거래 ID
-            params: 요청 파라미터
-            field_type: 숫자형 필드 매핑에 사용할 타입
-            output_key: 응답에서 데이터를 추출할 키 (기본값: 'output')
-            return_dataframe: DataFrame 반환 여부 (False면 Dict 반환)
-
-        Returns:
-            변환된 DataFrame 또는 Dict
-        """
-        return self.request_manager.make_request_with_processing(
-            endpoint=endpoint,
-            tr_id=tr_id,
-            params=params,
-            field_type=field_type,
-            return_dataframe=return_dataframe
-        )
 
     def _make_request_dict(
         self,
         endpoint: str,
         tr_id: str,
         params: Dict,
+        use_cache: bool = True,
+        cache_ttl: Optional[int] = None,
     ) -> Optional[Dict]:
         """
         API 요청 후 rt_cd 메타데이터를 포함한 Dict 반환
@@ -292,10 +275,26 @@ class BaseAPI:
             endpoint: API 엔드포인트
             tr_id: 거래 ID
             params: 요청 파라미터
+            use_cache: 캐시 사용 여부 (기본: True)
+            cache_ttl: 캐시 TTL (초), None인 경우 엔드포인트별 기본값 사용
 
         Returns:
             rt_cd 메타데이터가 포함된 Dict 응답
         """
+        # 캐시 사용 여부 확인
+        if use_cache and self.cache:
+            # 캐시 키 생성
+            cache_key = self.cache._make_key(
+                {"endpoint": endpoint, "tr_id": tr_id, "params": params}
+            )
+            
+            # 캐시 조회
+            cached_value = self.cache.get(cache_key)
+            if cached_value is not None:
+                # 캐시 히트 시 _cached 플래그 추가
+                cached_value["_cached"] = True
+                return cached_value
+        
         try:
             response = self.client.make_request(
                 endpoint=endpoint, tr_id=tr_id, params=params
@@ -303,6 +302,15 @@ class BaseAPI:
 
             if not response:
                 return None
+
+            # 성공 응답을 캐시에 저장
+            if use_cache and self.cache and response.get("rt_cd") == "0":
+                # TTL 결정 (지정값 또는 엔드포인트별 기본값)
+                ttl = cache_ttl if cache_ttl is not None else self.cache.get_ttl_for_endpoint(endpoint)
+                cache_key = self.cache._make_key(
+                    {"endpoint": endpoint, "tr_id": tr_id, "params": params}
+                )
+                self.cache.set(cache_key, response, ttl)
 
             # Dict 응답에 rt_cd 메타데이터가 이미 포함되어 있음
             return response
@@ -318,16 +326,43 @@ class BaseAPI:
         params: Dict,
         retries: int = 5,
         field_type: Optional[str] = None,
+        use_cache: bool = True,
+        cache_ttl: Optional[int] = None,
     ) -> Optional[pd.DataFrame]:
         """기존 메서드와 호환성 유지하면서 숫자형 변환 추가"""
+        # 캐시 사용 여부 확인
+        if use_cache and self.cache:
+            # 캐시 키 생성
+            cache_key = self.cache._make_key(
+                {"endpoint": endpoint, "tr_id": tr_id, "params": params, "dataframe": True}
+            )
+            
+            # 캐시 조회
+            cached_value = self.cache.get(cache_key)
+            if cached_value is not None:
+                # DataFrame으로 복원
+                return cached_value
+        
         try:
-            return self._make_request_with_conversion(
+            # request_manager를 사용하여 DataFrame가져오기
+            result = self.request_manager.make_request_with_processing(
                 endpoint=endpoint,
                 tr_id=tr_id,
                 params=params,
                 field_type=field_type,
-                return_dataframe=True,
+                return_dataframe=True
             )
+            
+            # 성공 응답을 캐시에 저장
+            if use_cache and self.cache and result is not None and not result.empty:
+                # TTL 결정 (지정값 또는 엔드포인트별 기본값)
+                ttl = cache_ttl if cache_ttl is not None else self.cache.get_ttl_for_endpoint(endpoint)
+                cache_key = self.cache._make_key(
+                    {"endpoint": endpoint, "tr_id": tr_id, "params": params, "dataframe": True}
+                )
+                self.cache.set(cache_key, result, ttl)
+            
+            return result
         except Exception as e:
             import logging
             logging.error(f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")

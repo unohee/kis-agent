@@ -9,7 +9,6 @@ Facade Pattern을 적용하여 복잡한 하위 시스템을 단순화
 """
 
 from typing import Optional, Dict, Any, List, Tuple
-import pandas as pd
 from ..core.client import KISClient
 from ..core.base_api import BaseAPI
 
@@ -31,7 +30,7 @@ class StockAPI(BaseAPI):
         investor_api (StockInvestorAPI): 투자자 정보 전담 API
     """
     
-    def __init__(self, client: KISClient, account_info=None):
+    def __init__(self, client: KISClient, account_info=None, enable_cache=True, cache_config=None):
         """
         StockAPI Facade 초기화
         
@@ -39,7 +38,7 @@ class StockAPI(BaseAPI):
             client (KISClient): API 통신 클라이언트
             account_info (dict, optional): 계좌 정보
         """
-        super().__init__(client, account_info)
+        super().__init__(client, account_info, enable_cache, cache_config)
         
         # 하위 시스템 초기화
         self.price_api = StockPriceAPI(client, account_info)
@@ -48,15 +47,15 @@ class StockAPI(BaseAPI):
     
     # ===== 시세 관련 메서드 (StockPriceAPI 위임) =====
     
-    def get_stock_price(self, code: str) -> Optional[pd.DataFrame]:
+    def get_stock_price(self, code: str) -> Optional[Dict]:
         """주식 현재가 조회"""
         return self.price_api.get_stock_price(code)
     
-    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[pd.DataFrame]:
+    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[Dict]:
         """일별 시세 조회"""
         return self.price_api.get_daily_price(code, period, org_adj_prc)
     
-    def get_orderbook(self, code: str) -> Optional[pd.DataFrame]:
+    def get_orderbook(self, code: str) -> Optional[Dict]:
         """주식 호가 정보 조회"""
         return self.price_api.get_orderbook(code)
     
@@ -82,18 +81,22 @@ class StockAPI(BaseAPI):
         """거래량 기준 종목 순위 조회"""
         return self.market_api.get_market_rankings(volume)
     
-    def get_volume_power(self, volume: int = 0) -> Optional[pd.DataFrame]:
+    def get_volume_power(self, volume: int = 0) -> Optional[Dict]:
         """체결강도 순위 조회"""
         return self.market_api.get_volume_power(volume)
     
-    def get_stock_info(self, ticker: str) -> Optional[pd.DataFrame]:
+    def get_stock_info(self, ticker: str) -> Optional[Dict]:
         """종목 기본 정보 조회"""
         return self.market_api.get_stock_info(ticker)
     
     # ===== 투자자 정보 관련 메서드 (StockInvestorAPI 위임) =====
     
-    def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[pd.DataFrame]:
-        """투자자별 매매동향 조회"""
+    def get_stock_investor(self, ticker: str = '', retries: int = 10, force_refresh: bool = False) -> Optional[Dict]:
+        """투자자별 매매동향 조회 (원시 dict 반환)
+
+        Note:
+            - [변경 이유] StockInvestorAPI.get_stock_investor가 dict를 반환하므로 Facade도 일관성을 위해 dict로 타입을 맞춤
+        """
         return self.investor_api.get_stock_investor(ticker, retries, force_refresh)
     
     def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[Dict]:

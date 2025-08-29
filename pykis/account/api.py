@@ -28,7 +28,7 @@ df = account.get_account_balance()
 
 
 class AccountAPI(BaseAPI):
-    def __init__(self, client: KISClient, account_info: Dict[str, str]):
+    def __init__(self, client: KISClient, account_info: Dict[str, str], enable_cache=True, cache_config=None):
         """Wrapper around KIS account related endpoints.
 
         Parameters
@@ -38,27 +38,33 @@ class AccountAPI(BaseAPI):
         account_info : dict
             Dictionary with ``CANO`` and ``ACNT_PRDT_CD`` keys. Values are
             usually loaded from ``credit/kis_devlp.yaml``.
+        enable_cache : bool
+            캐시 사용 여부 (기본: True)
+        cache_config : dict
+            캐시 설정 (default_ttl, max_size)
 
         Example
         -------
         >>> account = load_account_info()
         >>> api = AccountAPI(KISClient(), account)
         """
-        super().__init__(client, account_info)
+        super().__init__(client, account_info, enable_cache, cache_config)
 
-    def get_account_balance(self) -> Optional[pd.DataFrame]:
+    def get_account_balance(self) -> Optional[Dict]:
         """Return current holdings and profit/loss information.
 
         Returns
         -------
-        Optional[pandas.DataFrame]
-            ``output1`` from the API on success with numeric fields converted.
+        Optional[Dict]
+            API response with rt_cd metadata included.
 
         Example
         -------
-        >>> api.get_account_balance().head()
+        >>> result = api.get_account_balance()
+        >>> if result:
+        >>>     holdings = result.get('output1', [])
         """
-        res = self.client.make_request(
+        return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",
             tr_id="TTTC8434R",
             params={
@@ -73,12 +79,8 @@ class AccountAPI(BaseAPI):
                 "PRCS_DVSN": "00",
                 "CTX_AREA_FK100": "",
                 "CTX_AREA_NK100": "",
-            },
+            }
         )
-        if res and "output1" in res:
-            df = pd.DataFrame(res["output1"])
-            return self._convert_numeric_fields(df, "account_balance")
-        return None
 
     def get_cash_available(
         self, stock_code: str = "005930"
@@ -625,36 +627,40 @@ class AccountAPI(BaseAPI):
             logging.error(f"기간별매매손익 조회 실패: {e}")
             return None
 
-    def inquire_balance_rlz_pl(self) -> Optional[pd.DataFrame]:
+    def inquire_balance_rlz_pl(self) -> Optional[Dict]:
         """주식잔고조회_실현손익 - 보유 종목의 실현손익 정보를 포함한 잔고를 조회합니다.
 
         현재 보유 중인 종목의 평가손익과 함께 과거 매매로 인한 실현손익 정보를 제공합니다.
         일반 잔고 조회와 달리 실현손익 계산이 포함되어 있어 전체 투자 성과를 파악할 수 있습니다.
 
         Returns:
-            Optional[pd.DataFrame]: 실현손익이 포함된 잔고 정보 DataFrame
-                - pdno: 상품번호
-                - prdt_name: 상품명
-                - hldg_qty: 보유수량
-                - pchs_avg_pric: 매입평균가
-                - pchs_amt: 매입금액
-                - prpr: 현재가
-                - evlu_amt: 평가금액
-                - evlu_pfls_amt: 평가손익금액
-                - evlu_pfls_rt: 평가손익률(%)
-                - rlzt_pfls: 실현손익
-                - rlzt_pfls_rt: 실현손익률(%)
+            Optional[Dict]: 실현손익이 포함된 잔고 정보
+                - output1: 종목별 잔고 리스트
+                    - pdno: 상품번호
+                    - prdt_name: 상품명
+                    - hldg_qty: 보유수량
+                    - pchs_avg_pric: 매입평균가
+                    - pchs_amt: 매입금액
+                    - prpr: 현재가
+                    - evlu_amt: 평가금액
+                    - evlu_pfls_amt: 평가손익금액
+                    - evlu_pfls_rt: 평가손익률(%)
+                    - rlzt_pfls: 실현손익
+                    - rlzt_pfls_rt: 실현손익률(%)
+                - rt_cd: 결과 코드
                 실패 시 None 반환
 
         Example:
-            >>> df = api.inquire_balance_rlz_pl()
-            >>> if df is not None:
-            ...     # 평가손익과 실현손익 합계
-            ...     total_eval = df['evlu_pfls_amt'].astype(float).sum()
-            ...     total_rlz = df['rlzt_pfls'].astype(float).sum()
+            >>> result = api.inquire_balance_rlz_pl()
+            >>> if result:
+            ...     holdings = result.get('output1', [])
+            ...     # 평가손익과 실현손익 계산
+            ...     for item in holdings:
+            ...         eval_profit = float(item.get('evlu_pfls_amt', 0))
+            ...         realized_profit = float(item.get('rlzt_pfls', 0))
         """
         try:
-            res = self.client.make_request(
+            return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-balance-rlz-pl",
                 tr_id="TTTC8494R",
                 params={
@@ -670,16 +676,8 @@ class AccountAPI(BaseAPI):
                     "COST_ICLD_YN": "N",
                     "CTX_AREA_FK100": "",
                     "CTX_AREA_NK100": "",
-                },
+                }
             )
-            if res and "output1" in res:
-                df = pd.DataFrame(res["output1"])
-                # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
-                df["rt_cd"] = res.get("rt_cd", "")
-                df["msg_cd"] = res.get("msg_cd", "")
-                df["msg1"] = res.get("msg1", "")
-                return df
-            return None
         except Exception as e:
             logging.error(f"실현손익 잔고 조회 실패: {e}")
             return None
