@@ -1,7 +1,7 @@
 import pandas as pd
 from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable, List, Tuple
 import logging
 
 """
@@ -491,42 +491,175 @@ class AccountAPI(BaseAPI):
         end_date: str = "",
         pdno: str = "",
         ord_dvsn_cd: str = "00",
-    ) -> Optional[pd.DataFrame]:
+        pagination: bool = False,
+        ccld_dvsn: str = "00",
+        inqr_dvsn: str = "01",
+        inqr_dvsn_3: str = "00",
+        max_pages: int = 100,
+        page_callback: Optional[Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """주식일별주문체결조회 - 일자별 주문 및 체결 내역을 조회합니다.
 
         특정 기간 동안의 주문 및 체결 내역을 조회하여 거래 이력을 확인할 수 있습니다.
-        최대 3개월까지 조회 가능하며, 3개월 이전 데이터는 별도 TR_ID 사용이 필요합니다.
+        pagination=True 설정 시 실전계좌 연속조회를 통해 100건 이상의 데이터를 가져올 수 있습니다.
 
-        Args:
-            start_date: 조회시작일자 (YYYYMMDD 형식). 빈 문자열이면 최근 30일
-            end_date: 조회종료일자 (YYYYMMDD 형식). 빈 문자열이면 오늘
-            pdno: 상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목
-            ord_dvsn_cd: 주문구분코드
-                - "00": 전체 (기본값)
-                - "01": 현금매도
-                - "02": 현금매수
+        Parameters
+        ----------
+        start_date : str, optional
+            조회시작일자 (YYYYMMDD 형식). 빈 문자열이면 최근 30일.
+        end_date : str, optional
+            조회종료일자 (YYYYMMDD 형식). 빈 문자열이면 오늘.
+        pdno : str, optional
+            상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목.
+        ord_dvsn_cd : str, optional
+            주문구분코드 (매도매수구분). 기본값: "00".
+            - "00": 전체
+            - "01": 매도
+            - "02": 매수
+        pagination : bool, optional
+            연속조회 사용 여부. 기본값: False.
+            - False: 단일 조회 (최대 100건)
+            - True: 연속조회 (페이지네이션 지원)
+        ccld_dvsn : str, optional
+            체결구분 (pagination=True일 때만 사용). 기본값: "00".
+            - "00": 전체
+            - "01": 체결
+            - "02": 미체결
+        inqr_dvsn : str, optional
+            조회구분/정렬 (pagination=True일 때만 사용). 기본값: "01".
+            - "00": 역순 (최신 데이터부터)
+            - "01": 정순 (과거 데이터부터)
+        inqr_dvsn_3 : str, optional
+            조회구분3 (pagination=True일 때만 사용). 기본값: "00".
+            - "00": 전체 (현금+신용+담보+대출)
+            - "01": 현금
+            - "02": 신용
+            - "03": 담보
+            - "04": 대출
+        max_pages : int, optional
+            최대 조회 페이지 수 (pagination=True일 때). 기본값: 100.
+            페이지당 최대 100건, 100페이지면 최대 10,000건.
+        page_callback : callable, optional
+            각 페이지 조회 후 호출되는 콜백 함수 (pagination=True일 때).
+            함수 시그니처: (page_num: int, page_data: pd.DataFrame, ctx_info: dict) -> None
+            ctx_info 딕셔너리 포함 내용:
+            - "FK100": 연속조회키 FK100 (str)
+            - "NK100": 연속조회키 NK100 (str)
+            - "total_rows": 현재 페이지 행 수 (int)
 
-        Returns:
-            Optional[pd.DataFrame]: 주문체결내역이 담긴 DataFrame
-                - ord_dt: 주문일자
-                - ord_tmd: 주문시각
-                - pdno: 상품번호
+        Returns
+        -------
+        dict or None
+            주문체결내역이 담긴 딕셔너리. 실패 시 None 반환.
+            
+            반환 딕셔너리 구조:
+            - rt_cd (str): 응답코드 ("0": 성공)
+            - msg_cd (str): 메시지 코드
+            - msg1 (str): 응답 메시지
+            - output1 (list): 주문체결내역 리스트 (각 항목은 딕셔너리)
+                각 딕셔너리 항목의 주요 필드:
+                - ord_dt: 주문일자 (YYYYMMDD)
+                - ord_gno_brno: 주문채번지점번호
+                - odno: 주문번호
+                - orgn_odno: 원주문번호
+                - ord_dvsn_name: 주문구분명
+                - sll_buy_dvsn_cd: 매도매수구분코드 (01:매도, 02:매수)
+                - sll_buy_dvsn_cd_name: 매도매수구분코드명
+                - pdno: 상품번호 (종목코드)
                 - prdt_name: 상품명
-                - sll_buy_dvsn_cd_name: 매도매수구분명
                 - ord_qty: 주문수량
                 - ord_unpr: 주문단가
+                - ord_tmd: 주문시각 (HHMMSS)
                 - tot_ccld_qty: 총체결수량
-                - avg_prvs: 평균체결가
-                - ccld_amt: 체결금액
-                실패 시 None 반환
+                - avg_prvs: 평균가
+                - tot_ccld_amt: 총체결금액
+                - cncl_yn: 취소여부 (Y/N)
+                - loan_dt: 대출일자
+                - rmn_qty: 잔여수량
+                - rjct_qty: 거부수량
+            - output2 (dict, optional): 요약 정보 (pagination=True일 때)
+                - tot_ord_qty: 총주문수량
+                - tot_ccld_qty: 총체결수량
+                - tot_ccld_amt: 총체결금액
+                - page_count: 조회한 페이지 수
+                - total_count: 전체 조회 건수
 
-        Example:
-            >>> # 최근 30일 전체 주문체결 조회
-            >>> df = api.inquire_daily_ccld()
-            >>>
-            >>> # 특정 종목의 1월 거래내역 조회
-            >>> df = api.inquire_daily_ccld("20250101", "20250131", "005930")
+        Raises
+        ------
+        Exception
+            API 호출 실패 시 로그 기록 후 None 반환.
+
+        Notes
+        -----
+        - 실전계좌에서는 한 번에 최대 100건까지만 조회 가능합니다.
+        - pagination=True 설정 시 CTX_AREA_FK100, CTX_AREA_NK100을 활용한 연속조회를 수행합니다.
+        - 연속조회 시 중복 데이터는 자동으로 제거됩니다.
+        - 조회 기간은 최대 3개월까지 권장됩니다.
+
+        Examples
+        --------
+        단일 조회 (최대 100건):
+        
+        >>> result = api.inquire_daily_ccld("20250501", "20250901")
+        >>> if result and result['rt_cd'] == '0':
+        ...     print(f"조회 건수: {len(result['output1'])}")
+        ...     # DataFrame으로 변환하려면:
+        ...     df = pd.DataFrame(result['output1'])
+        
+        연속조회로 전체 데이터 가져오기:
+        
+        >>> result = api.inquire_daily_ccld(
+        ...     start_date="20250501",
+        ...     end_date="20250901",
+        ...     pagination=True,
+        ...     ccld_dvsn="01"  # 체결된 거래만
+        ... )
+        >>> if result and result['rt_cd'] == '0':
+        ...     print(f"총 {len(result['output1'])}건 조회 완료")
+        ...     print(f"총 {result['output2']['page_count']}페이지 조회")
+        
+        콜백과 함께 연속조회:
+        
+        >>> def on_page(page_num: int, page_data: List[Dict], ctx_info: dict) -> None:
+        ...     print(f"페이지 {page_num}: {len(page_data)}건 조회")
+        ...     print(f"연속키 FK100: {ctx_info['FK100'][:20]}...")
+        ...
+        >>> result = api.inquire_daily_ccld(
+        ...     start_date="20250501",
+        ...     end_date="20250901",
+        ...     pagination=True,
+        ...     page_callback=on_page,
+        ...     max_pages=10  # 최대 1,000건
+        ... )
+        
+        매수 거래만 조회:
+        
+        >>> result = api.inquire_daily_ccld(
+        ...     start_date="20250501",
+        ...     end_date="20250901",
+        ...     ord_dvsn_cd="02",  # 매수만
+        ...     pagination=True,
+        ...     ccld_dvsn="01"  # 체결된 것만
+        ... )
+        >>> # DataFrame으로 변환하려면:
+        >>> if result and result['rt_cd'] == '0':
+        ...     df = pd.DataFrame(result['output1'])
         """
+        # 연속조회 사용
+        if pagination:
+            return self._inquire_daily_ccld_pagination(
+                start_date=start_date,
+                end_date=end_date,
+                sll_buy_dvsn_cd=ord_dvsn_cd,
+                inqr_dvsn=inqr_dvsn,
+                pdno=pdno,
+                ccld_dvsn=ccld_dvsn,
+                inqr_dvsn_3=inqr_dvsn_3,
+                max_pages=max_pages,
+                page_callback=page_callback,
+            )
+        
+        # 기존 단일 조회
         try:
             res = self.client.make_request(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-daily-ccld",
@@ -549,26 +682,190 @@ class AccountAPI(BaseAPI):
                 },
             )
 
-            # API 응답 체크
-            if res:
-                if res.get("rt_cd") != "0":
-                    logging.warning(
-                        f"API 응답 오류: {res.get('msg1', 'Unknown error')}"
-                    )
-                    return pd.DataFrame()
-
-                # output1이 있으면 DataFrame 반환 (빈 리스트도 허용)
-                if "output1" in res:
-                    df = pd.DataFrame(res["output1"])
-                    # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
-                    df["rt_cd"] = res.get("rt_cd", "")
-                    df["msg_cd"] = res.get("msg_cd", "")
-                    df["msg1"] = res.get("msg1", "")
-                    return df
-
-            return pd.DataFrame()
+            # API 응답을 그대로 딕셔너리로 반환
+            return res
         except Exception as e:
             logging.error(f"일별주문체결 조회 실패: {e}")
+            return None
+    
+    def _inquire_daily_ccld_pagination(
+        self,
+        start_date: str,
+        end_date: str,
+        sll_buy_dvsn_cd: str = "00",
+        inqr_dvsn: str = "01",
+        pdno: str = "",
+        ccld_dvsn: str = "01",
+        inqr_dvsn_3: str = "00",
+        max_pages: int = 100,
+        page_callback: Optional[Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """내부 헬퍼 메서드: 연속조회를 통한 일별주문체결 조회.
+        
+        CTX_AREA_FK100과 CTX_AREA_NK100을 활용하여 페이지네이션을 구현합니다.
+        실전계좌에서 호출당 최대 100건의 데이터를 가져오며,
+        연속조회키를 통해 다음 페이지를 요청합니다.
+        
+        Parameters
+        ----------
+        start_date : str
+            조회시작일자 (YYYYMMDD 형식)
+        end_date : str
+            조회종료일자 (YYYYMMDD 형식)
+        sll_buy_dvsn_cd : str
+            매도매수구분코드 (00:전체, 01:매도, 02:매수)
+        inqr_dvsn : str
+            조회구분 (00:역순, 01:정순)
+        pdno : str
+            상품번호 (종목코드, 빈 문자열이면 전체)
+        ccld_dvsn : str
+            체결구분 (00:전체, 01:체결, 02:미체결)
+        inqr_dvsn_3 : str
+            조회구분3 (00:전체, 01:현금, 02:신용, 03:담보, 04:대출)
+        max_pages : int
+            최대 조회 페이지 수
+        page_callback : callable, optional
+            페이지별 콜백 함수
+            
+        Returns
+        -------
+        pd.DataFrame or None
+            전체 주문체결내역 DataFrame 또는 실패 시 None
+        """
+        all_data = []
+        ctx_area_fk100 = ""
+        ctx_area_nk100 = ""
+        page_count = 0
+        
+        try:
+            while page_count < max_pages:
+                # API 요청
+                res = self.client.make_request(
+                    endpoint="/uapi/domestic-stock/v1/trading/inquire-daily-ccld",
+                    tr_id="TTTC8001R",  # 실전계좌용 TR_ID
+                    params={
+                        "CANO": self.account["CANO"],
+                        "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", "01"),
+                        "INQR_STRT_DT": start_date,
+                        "INQR_END_DT": end_date,
+                        "SLL_BUY_DVSN_CD": sll_buy_dvsn_cd,
+                        "INQR_DVSN": inqr_dvsn,
+                        "PDNO": pdno,
+                        "CCLD_DVSN": ccld_dvsn,
+                        "ORD_GNO_BRNO": "",
+                        "ODNO": "",
+                        "INQR_DVSN_3": inqr_dvsn_3,
+                        "INQR_DVSN_1": "",
+                        "CTX_AREA_FK100": ctx_area_fk100,
+                        "CTX_AREA_NK100": ctx_area_nk100,
+                    },
+                )
+                
+                # 응답 처리
+                if not res or res.get("rt_cd") != "0":
+                    if page_count == 0:
+                        logging.error(
+                            f"일별주문체결 조회 실패: {res.get('msg1', 'Unknown error') if res else 'No response'}"
+                        )
+                        return None
+                    else:
+                        # 연속조회 중 오류 발생시 현재까지 데이터 반환
+                        logging.warning(
+                            f"페이지 {page_count + 1} 조회 실패, 현재까지 데이터 반환"
+                        )
+                        break
+                
+                # output1 데이터 처리
+                output1 = res.get("output1", [])
+                if not output1:
+                    # 더 이상 데이터가 없음
+                    break
+                
+                # 데이터 저장 (딕셔너리 리스트로 유지)
+                all_data.extend(output1)
+                
+                page_count += 1
+                
+                # 콜백 호출
+                if page_callback:
+                    ctx_info = {
+                        "FK100": res.get("CTX_AREA_FK100", ""),
+                        "NK100": res.get("CTX_AREA_NK100", ""),
+                        "total_rows": len(output1)
+                    }
+                    page_callback(page_count, output1, ctx_info)
+                
+                # 연속조회 키 추출
+                ctx_area_fk100 = res.get("CTX_AREA_FK100", "")
+                ctx_area_nk100 = res.get("CTX_AREA_NK100", "")
+                
+                # 연속조회 키가 없으면 종료
+                if not ctx_area_fk100 and not ctx_area_nk100:
+                    break
+                
+                # 데이터가 100건 미만이면 마지막 페이지
+                if len(output1) < 100:
+                    break
+            
+            # 전체 데이터를 딕셔너리로 반환
+            if all_data:
+                # 중복 제거
+                unique_data = []
+                seen = set()
+                for item in all_data:
+                    key = (item.get("ord_dt", ""), item.get("odno", ""), item.get("pdno", ""))
+                    if key not in seen:
+                        seen.add(key)
+                        unique_data.append(item)
+                
+                # 정렬
+                if unique_data:
+                    unique_data.sort(
+                        key=lambda x: (x.get("ord_dt", ""), x.get("ord_tmd", "")),
+                        reverse=(inqr_dvsn == "00")
+                    )
+                
+                # 요약 정보 생성
+                tot_ord_qty = sum(int(item.get("ord_qty", 0)) for item in unique_data if item.get("ord_qty"))
+                tot_ccld_qty = sum(int(item.get("tot_ccld_qty", 0)) for item in unique_data if item.get("tot_ccld_qty"))
+                tot_ccld_amt = sum(float(item.get("tot_ccld_amt", 0)) for item in unique_data if item.get("tot_ccld_amt"))
+                
+                logging.info(
+                    f"일별주문체결 조회 완료: 총 {page_count}페이지, {len(unique_data)}건"
+                )
+                
+                # 최종 결과 반환
+                return {
+                    "rt_cd": "0",
+                    "msg_cd": "SUCCESSFUL",
+                    "msg1": f"정상처리 완료 - 총 {len(unique_data)}건 조회",
+                    "output1": unique_data,
+                    "output2": {
+                        "tot_ord_qty": str(tot_ord_qty),
+                        "tot_ccld_qty": str(tot_ccld_qty),
+                        "tot_ccld_amt": str(tot_ccld_amt),
+                        "page_count": page_count,
+                        "total_count": len(unique_data)
+                    }
+                }
+            
+            # 빈 결과 반환
+            return {
+                "rt_cd": "0",
+                "msg_cd": "NO_DATA",
+                "msg1": "조회된 데이터가 없습니다",
+                "output1": [],
+                "output2": {
+                    "tot_ord_qty": "0",
+                    "tot_ccld_qty": "0",
+                    "tot_ccld_amt": "0",
+                    "page_count": 0,
+                    "total_count": 0
+                }
+            }
+            
+        except Exception as e:
+            logging.error(f"일별주문체결 연속조회 실패: {e}")
             return None
 
     def inquire_period_trade_profit(
