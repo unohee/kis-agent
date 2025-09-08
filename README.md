@@ -24,8 +24,6 @@ pip install pykis
 
 ##  기본 사용법
 
-### API 키 직접 전달 방식 (권장)
-
 ```python
 from pykis import Agent
 import os
@@ -70,33 +68,6 @@ except ValueError as e:
 except RuntimeError as e:
     print(f"토큰 발급 실패: {e}")
 ```
-
-### .env 파일 사용 (호환성)
-
-기존 코드와의 호환성을 위해 `.env` 파일도 여전히 지원합니다:
-
-```bash
-# .env 파일
-APP_KEY=your_app_key_here
-APP_SECRET=your_app_secret_here
-KIS_BASE_URL=https://openapi.koreainvestment.com:9443
-CANO=your_account_number
-ACNT_PRDT_CD=01
-```
-
-```python
-# .env 파일에서 로드
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-agent = Agent(
-    app_key=os.getenv('APP_KEY'),
-    app_secret=os.getenv('APP_SECRET'),
-    account_no=os.getenv('CANO'),
-    account_code=os.getenv('ACNT_PRDT_CD', '01')
-)
 
 #  계좌 정보 조회
 balance = agent.get_account_balance()  # 계좌 잔고

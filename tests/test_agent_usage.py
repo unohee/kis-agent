@@ -25,20 +25,9 @@ def test_agent_usage():
         account_no = os.environ.get('KIS_ACCOUNT_NO')
         account_code = os.environ.get('KIS_ACCOUNT_CODE', '01')
         
-        # 환경변수가 없으면 .env 파일에서 로드 시도
-        if not all([app_key, app_secret, account_no]):
-            from dotenv import load_dotenv
-            env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-            if os.path.exists(env_path):
-                load_dotenv(env_path)
-                app_key = os.getenv('APP_KEY') or os.getenv('KIS_APP_KEY')
-                app_secret = os.getenv('APP_SECRET') or os.getenv('KIS_APP_SECRET')
-                account_no = os.getenv('CANO') or os.getenv('KIS_ACCOUNT_NO')
-                account_code = os.getenv('ACNT_PRDT_CD') or os.getenv('KIS_ACCOUNT_CODE') or '01'
-        
         # API 키가 없으면 테스트 건너뛰기
         if not all([app_key, app_secret, account_no]):
-            pytest.skip("필수 API 키가 설정되지 않았습니다")
+            pytest.skip("필수 API 키가 설정되지 않았습니다. 환경변수를 설정하세요: KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO")
         
         # KIS_Agent 초기화
         agent = Agent(

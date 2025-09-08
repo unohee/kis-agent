@@ -1,10 +1,13 @@
-import os
 from dataclasses import dataclass
-from dotenv import dotenv_values
 
 @dataclass
 class KISConfig:
-    """API 인증 및 계좌 정보를 관리하는 설정 클래스"""
+    """API 인증 및 계좌 정보를 관리하는 설정 클래스
+    
+    Note:
+        .env 파일 지원이 제거되었습니다. 
+        API 키는 반드시 매개변수로 직정 전달해야 합니다.
+    """
 
     APP_KEY: str = ""
     APP_SECRET: str = ""
@@ -12,62 +15,23 @@ class KISConfig:
     ACCOUNT_NO: str = ""
     ACCOUNT_CODE: str = ""
 
-    def __init__(self, env_path: str = None, app_key: str = None, app_secret: str = None, base_url: str = None, account_no: str = None, account_code: str = None):
+    def __init__(self, app_key: str = None, app_secret: str = None, base_url: str = None, account_no: str = None, account_code: str = None):
         """
         설정을 초기화합니다.
         
         Args:
-            env_path (str, optional): .env 파일 경로 (호환성 유지용)
-            app_key (str): API 앱 키
-            app_secret (str): API 앱 시크릿
-            base_url (str): API 베이스 URL
-            account_no (str): 계좌번호
-            account_code (str): 계좌 상품코드
-        
-        Note:
-            env_path가 제공되면 .env 파일에서 로드하고,
-            개별 매개변수가 제공되면 해당 값을 사용합니다.
+            app_key (str): API 앱 키 (필수)
+            app_secret (str): API 앱 시크릿 (필수)
+            base_url (str): API 베이스 URL (기본값: 실전투자 URL)
+            account_no (str): 계좌번호 (필수)
+            account_code (str): 계좌 상품코드 (필수)
         """
-        # env_path가 제공되면 .env 파일에서 로드 (호환성)
-        if env_path is not None:
-            if not os.path.exists(env_path):
-                raise FileNotFoundError(
-                    f"'{env_path}' 파일을 찾을 수 없습니다."
-                )
-            
-            config = dotenv_values(dotenv_path=env_path)
-            
-            # .env 파일에서 값 로드 (개별 매개변수가 우선)
-            self.APP_KEY = app_key or (
-                config.get("APP_KEY") or config.get("KIS_APP_KEY") or 
-                config.get("KIS_APPKEY") or config.get("MY_APP") or 
-                os.environ.get("APP_KEY") or os.environ.get("KIS_APP_KEY") or ""
-            )
-            self.APP_SECRET = app_secret or (
-                config.get("APP_SECRET") or config.get("KIS_APP_SECRET") or 
-                config.get("KIS_APPSECRET") or config.get("MY_SEC") or 
-                os.environ.get("APP_SECRET") or os.environ.get("KIS_APP_SECRET") or ""
-            )
-            self.BASE_URL = base_url or (
-                config.get("KIS_BASE_URL") or config.get("BASE_URL") or 
-                config.get("PROD_URL") or os.environ.get("KIS_BASE_URL") or 
-                "https://openapi.koreainvestment.com:9443"
-            )
-            self.ACCOUNT_NO = account_no or (
-                config.get("CANO") or config.get("KIS_ACCOUNT_NO") or 
-                config.get("MY_ACCT_STOCK") or os.environ.get("CANO") or ""
-            )
-            self.ACCOUNT_CODE = account_code or (
-                config.get("ACNT_PRDT_CD") or config.get("KIS_ACCOUNT_CODE") or 
-                config.get("MY_PROD") or os.environ.get("ACNT_PRDT_CD") or ""
-            )
-        else:
-            # 직접 매개변수 사용
-            self.APP_KEY = app_key or ""
-            self.APP_SECRET = app_secret or ""
-            self.BASE_URL = base_url or "https://openapi.koreainvestment.com:9443"
-            self.ACCOUNT_NO = account_no or ""
-            self.ACCOUNT_CODE = account_code or ""
+        # 매개변수 설정
+        self.APP_KEY = app_key or ""
+        self.APP_SECRET = app_secret or ""
+        self.BASE_URL = base_url or "https://openapi.koreainvestment.com:9443"
+        self.ACCOUNT_NO = account_no or ""
+        self.ACCOUNT_CODE = account_code or ""
         
         self._validate()
 

@@ -24,7 +24,12 @@ class Agent:
 
     Example:
         >>> from pykis import Agent
-        >>> agent = Agent()
+        >>> agent = Agent(
+        ...     app_key="YOUR_APP_KEY",
+        ...     app_secret="YOUR_APP_SECRET",
+        ...     account_no="12345678",
+        ...     account_code="01"
+        ... )
         >>>
         >>> # 주식 시세 조회
         >>> price = agent.get_stock_price("005930")
