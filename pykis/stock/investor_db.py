@@ -370,7 +370,7 @@ class InvestorPositionDB:
             self.logger.error(f"시장 요약 조회 실패 ({date}): {e}")
             return {}
 
-    def cleanup_old_data(self, days_to_keep: int = 90):
+    def cleanup_old_data(self, days_to_keep: int = 90) -> None:
         """오래된 데이터 정리 (기본 90일 보관)"""
         try:
             cutoff_date = (datetime.now() - timedelta(days=days_to_keep)).strftime('%Y%m%d')

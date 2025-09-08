@@ -16,7 +16,19 @@ class StockMarketAPI(BaseAPI):
     """주식 시장 정보 조회 전용 API 클래스"""
 
     def get_market_fluctuation(self) -> Optional[Dict[str, Any]]:
-        """시장 변동성 정보 조회 (rt_cd 메타데이터가 포함된)"""
+        """시장 변동성 정보 조회
+        
+        Returns:
+            Optional[Dict[str, Any]]: 시장 변동성 정보를 포함한 응답 데이터
+                - rt_cd: 응답 코드 ("0": 성공)
+                - msg1: 응답 메시지
+                - output: 시장 변동성 데이터
+                
+        Example:
+            >>> market_api = StockMarketAPI(client)
+            >>> fluctuation = market_api.get_market_fluctuation()
+            >>> print(fluctuation['rt_cd'])  # "0"
+        """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_ASKING_PRICE_EXP_CCN'],
             tr_id="FHKST01010600",
@@ -24,9 +36,25 @@ class StockMarketAPI(BaseAPI):
         )
 
     def get_market_rankings(self, volume: int = 5000000) -> Optional[Dict[str, Any]]:
-        """거래량 기준 종목 순위 조회 (rt_cd 메타데이터가 포함된)"""
+        """거래량 기준 종목 순위 조회
+        
+        Args:
+            volume (int, optional): 최소 거래량 기준. Defaults to 5000000.
+            
+        Returns:
+            Optional[Dict[str, Any]]: 종목 순위 정보를 포함한 응답 데이터
+                - rt_cd: 응답 코드 ("0": 성공)
+                - msg1: 응답 메시지  
+                - output: 순위 데이터 리스트
+                
+        Example:
+            >>> market_api = StockMarketAPI(client)
+            >>> rankings = market_api.get_market_rankings(volume=10000000)
+            >>> for stock in rankings['output']:
+            ...     print(f"코드: {stock['code']}, 순위: {stock['rank']}")
+        """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS['FHKST01010900'],
+            endpoint=API_ENDPOINTS['INQUIRE_INVESTOR'],
             tr_id="FHKST01010900",
             params={
                 "FID_COND_MRKT_DIV_CODE": "UN",
@@ -41,10 +69,26 @@ class StockMarketAPI(BaseAPI):
             }
         )
 
-    def get_volume_power(self, volume: int = 0) -> Optional[Dict]:
-        """체결강도 순위 조회"""
+    def get_volume_power(self, volume: int = 0) -> Optional[Dict[str, Any]]:
+        """체결강도 순위 조회
+        
+        Args:
+            volume (int, optional): 최소 거래량 기준. Defaults to 0.
+            
+        Returns:
+            Optional[Dict[str, Any]]: 체결강도 순위 정보를 포함한 응답 데이터
+                - rt_cd: 응답 코드 ("0": 성공)
+                - msg1: 응답 메시지
+                - output: 체결강도 데이터 리스트
+                
+        Example:
+            >>> market_api = StockMarketAPI(client)
+            >>> power = market_api.get_volume_power()
+            >>> for stock in power['output']:
+            ...     print(f"코드: {stock['code']}, 체결강도: {stock['power']}")
+        """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS['HTS_CURRENT_PRICE'],
+            endpoint=API_ENDPOINTS['INQUIRE_INVESTOR'],
             tr_id="FHKST01010900",
             params={
                 "FID_COND_MRKT_DIV_CODE": "UN",
@@ -59,8 +103,23 @@ class StockMarketAPI(BaseAPI):
             }
         )
 
-    def get_stock_info(self, ticker: str) -> Optional[Dict]:
-        """종목 기본 정보 조회"""
+    def get_stock_info(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """종목 기본 정보 조회
+        
+        Args:
+            ticker (str): 종목 코드 (예: "005930")
+            
+        Returns:
+            Optional[Dict[str, Any]]: 종목 기본 정보를 포함한 응답 데이터
+                - rt_cd: 응답 코드 ("0": 성공)
+                - msg1: 응답 메시지
+                - output: 종목 기본 정보
+                
+        Example:
+            >>> market_api = StockMarketAPI(client)
+            >>> info = market_api.get_stock_info("005930")
+            >>> print(f"종목명: {info['output']['name']}")
+        """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_PRICE'],
             tr_id="FHKST01010100",

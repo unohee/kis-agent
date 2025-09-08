@@ -105,7 +105,7 @@ class TTLCache:
                 "default_ttl": self.default_ttl
             }
     
-    def cached(self, ttl: Optional[int] = None):
+    def cached(self, ttl: Optional[int] = None) -> Callable:
         """
         함수 데코레이터 - 함수 결과를 캐시
         
@@ -202,7 +202,7 @@ class APICache(TTLCache):
         
         return self.default_ttl
     
-    def cache_api_call(self, endpoint: str, tr_id: str, params: Dict):
+    def cache_api_call(self, endpoint: str, tr_id: str, params: Dict) -> Callable:
         """
         API 호출 결과를 캐시하는 데코레이터
         

@@ -14,6 +14,7 @@ import time, copy
 import requests
 import json
 import os
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 import pandas as pd
 from collections import namedtuple
@@ -78,7 +79,7 @@ _base_headers = {
 
 
 # 토큰 발급 받아 저장 (토큰값, 토큰 유효시간,1일, 6시간 이내 발급신청시는 기존 토큰값과 동일, 발급시 알림톡 발송)
-def save_token(my_token, my_expired, path: str = token_tmp):
+def save_token(my_token: str, my_expired: str, path: str = token_tmp) -> None:
     valid_date = datetime.strptime(my_expired, '%Y-%m-%d %H:%M:%S')
     token_data = {
         'token': my_token,
@@ -91,7 +92,7 @@ def save_token(my_token, my_expired, path: str = token_tmp):
 
 
 # 토큰 확인 (토큰값, 토큰 유효시간_1일, 6시간 이내 발급신청시는 기존 토큰값과 동일, 발급시 알림톡 발송)
-def read_token(path: str = token_tmp):
+def read_token(path: str = token_tmp) -> Optional[Dict[str, Any]]:
     try:
         if not os.path.exists(path):
             return None
@@ -150,12 +151,17 @@ def _setTRENV(cfg):
     _TRENV = nt1(**d)
 
 
-def isPaperTrading():  # 모의투자 매매
+def isPaperTrading() -> bool:  # 모의투자 매매
+    """모의투자 여부 확인
+    
+    Returns:
+        bool: 모의투자면 True, 실전투자면 False
+    """
     return _isPaper
 
 
 # 실전투자면 'prod', 모의투자면 'vps'를 셋팅 하시기 바랍니다.
-def changeTREnv(token_key, svr='prod', product=_cfg['my_prod'], config=None):
+def changeTREnv(token_key: str, svr: str = 'prod', product: str = _cfg['my_prod'], config: Optional[Dict[str, Any]] = None) -> None:
     cfg = dict()
 
     global _isPaper
@@ -204,8 +210,18 @@ def _getResultObject(json_data):
 
 # Token 발급, 유효기간 1일, 6시간 이내 발급시 기존 token값 유지, 발급시 알림톡 무조건 발송
 # 모의투자인 경우  svr='vps', 투자계좌(01)이 아닌경우 product='XX' 변경하세요 (계좌번호 뒤 2자리)
-def auth(config=None, svr='prod', product=None, url=None):
-    """API 인증 토큰을 발급받습니다."""
+def auth(config=None, svr: str = 'prod', product: Optional[str] = None, url: Optional[str] = None) -> Any:
+    """API 인증 토큰을 발급받습니다.
+    
+    Args:
+        config: KISConfig 인스턴스 또는 None
+        svr (str): 서버 타입 ('prod' or 'vps'). Defaults to 'prod'.
+        product (Optional[str]): 상품 코드. Defaults to None.
+        url (Optional[str]): API URL. Defaults to None.
+        
+    Returns:
+        Any: 인증 토큰 정보를 포함한 응답 객체
+    """
     global _cfg, _TRENV, _base_headers
 
     if config is not None:
@@ -284,7 +300,17 @@ def auth(config=None, svr='prod', product=None, url=None):
 
 # end of initialize, 토큰 재발급, 토큰 발급시 유효시간 1일
 # 프로그램 실행시 _last_auth_time에 저장하여 유효시간 체크, 유효시간 만료시 토큰 발급 처리
-def reAuth(config=None, svr='prod', product=None):
+def reAuth(config=None, svr: str = 'prod', product: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """토큰 재인증
+    
+    Args:
+        config: KISConfig 인스턴스 또는 None
+        svr (str): 서버 타입. Defaults to 'prod'.
+        product (Optional[str]): 상품 코드. Defaults to None.
+        
+    Returns:
+        Optional[Dict[str, Any]]: 인증 토큰 정보
+    """
     n2 = datetime.now()
     if config is not None or (n2 - _last_auth_time).seconds >= 86400:
         if product is None:
@@ -293,11 +319,21 @@ def reAuth(config=None, svr='prod', product=None):
     return read_token()
 
 
-def getEnv():
+def getEnv() -> Dict[str, Any]:
+    """환경 설정 반환
+    
+    Returns:
+        Dict[str, Any]: 현재 환경 설정
+    """
     return _cfg
 
 
-def getTREnv():
+def getTREnv() -> Any:
+    """거래 환경 정보 반환
+    
+    Returns:
+        Any: 거래 환경 설정 정보
+    """
     # 디버깅용: 반환 객체 타입과 내용 출력 - 디버그 메시지 비활성화
     # print(f"[디버그] getTREnv() 반환 타입: {type(_TRENV)}, 값: {_TRENV}")
     return _TRENV
@@ -306,7 +342,7 @@ def getTREnv():
 # 현재는 hash key 필수 사항아님, 생략가능, API 호출과정에서 변조 우려를 하는 경우 사용
 # Input: HTTP Header, HTTP post param
 # Output: None
-def set_order_hash_key(h, p):
+def set_order_hash_key(h: Dict[str, str], p: Dict[str, Any]) -> None:
     url = f"{getTREnv().my_url}/uapi/hashkey"  # hashkey 발급 API URL
 
     res = requests.post(url, data=json.dumps(p), headers=h)
