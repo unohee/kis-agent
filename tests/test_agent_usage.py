@@ -19,13 +19,34 @@ logger = logging.getLogger(__name__)
 def test_agent_usage():
     """KIS_Agent의 주요 기능을 테스트합니다."""
     try:
-        # .env 파일 경로 설정
-        env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-        if not os.path.exists(env_path):
-            env_path = os.path.join(os.path.dirname(__file__), '..', '.env.example')
+        # 환경변수에서 API 키 로드
+        app_key = os.environ.get('KIS_APP_KEY')
+        app_secret = os.environ.get('KIS_APP_SECRET')
+        account_no = os.environ.get('KIS_ACCOUNT_NO')
+        account_code = os.environ.get('KIS_ACCOUNT_CODE', '01')
+        
+        # 환경변수가 없으면 .env 파일에서 로드 시도
+        if not all([app_key, app_secret, account_no]):
+            from dotenv import load_dotenv
+            env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+            if os.path.exists(env_path):
+                load_dotenv(env_path)
+                app_key = os.getenv('APP_KEY') or os.getenv('KIS_APP_KEY')
+                app_secret = os.getenv('APP_SECRET') or os.getenv('KIS_APP_SECRET')
+                account_no = os.getenv('CANO') or os.getenv('KIS_ACCOUNT_NO')
+                account_code = os.getenv('ACNT_PRDT_CD') or os.getenv('KIS_ACCOUNT_CODE') or '01'
+        
+        # API 키가 없으면 테스트 건너뛰기
+        if not all([app_key, app_secret, account_no]):
+            pytest.skip("필수 API 키가 설정되지 않았습니다")
         
         # KIS_Agent 초기화
-        agent = Agent(env_path=env_path)
+        agent = Agent(
+            app_key=app_key,
+            app_secret=app_secret,
+            account_no=account_no,
+            account_code=account_code
+        )
         logger.info("KIS_Agent 초기화 완료")
 
         # 1. 국내주식 시세 조회

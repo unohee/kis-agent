@@ -15,32 +15,99 @@
 pip install pykis
 ```
 
-##  환경 설정
+##  API 키 발급
 
-프로젝트 루트에 `.env` 파일을 생성하고 한국투자증권 API 정보를 설정하세요:
+한국투자증권 개발자센터에서 API 키를 발급받으세요:
+- [개발자센터](https://apiportal.koreainvestment.com)에서 회원가입 및 API 신청
+- APP_KEY와 APP_SECRET 발급
+- 계좌번호(CANO)와 상품코드(ACNT_PRDT_CD) 확인
+
+##  기본 사용법
+
+### API 키 직접 전달 방식 (권장)
+
+```python
+from pykis import Agent
+import os
+
+# 환경변수에서 API 키 로드 (보안 권장)
+app_key = os.environ.get('KIS_APP_KEY')
+app_secret = os.environ.get('KIS_APP_SECRET')
+account_no = os.environ.get('KIS_ACCOUNT_NO')
+account_code = os.environ.get('KIS_ACCOUNT_CODE', '01')
+
+# Agent 인스턴스 생성 (실전투자)
+agent = Agent(
+    app_key=app_key,
+    app_secret=app_secret,
+    account_no=account_no,
+    account_code=account_code,
+    # base_url="https://openapi.koreainvestment.com:9443"  # 기본값 (실전)
+)
+
+# 모의투자 Agent 생성
+agent_mock = Agent(
+    app_key=app_key,
+    app_secret=app_secret,
+    account_no=account_no,
+    account_code=account_code,
+    base_url="https://openapivts.koreainvestment.com:29443"  # 모의투자
+)
+```
+
+### 예외 처리
+
+```python
+try:
+    agent = Agent(
+        app_key=app_key,
+        app_secret=app_secret,
+        account_no=account_no,
+        account_code=account_code
+    )
+except ValueError as e:
+    print(f"필수 매개변수 누락: {e}")
+except RuntimeError as e:
+    print(f"토큰 발급 실패: {e}")
+```
+
+### .env 파일 사용 (호환성)
+
+기존 코드와의 호환성을 위해 `.env` 파일도 여전히 지원합니다:
 
 ```bash
 # .env 파일
 APP_KEY=your_app_key_here
 APP_SECRET=your_app_secret_here
-KIS_BASE_URL=https://openapi.koreainvestment.com:9443  # 실투자
-# KIS_BASE_URL=https://openapivts.koreainvestment.com:29443  # 모의투자
+KIS_BASE_URL=https://openapi.koreainvestment.com:9443
 CANO=your_account_number
 ACNT_PRDT_CD=01
 ```
 
-##  기본 사용법
-
 ```python
-from pykis import Agent
+# .env 파일에서 로드
+from dotenv import load_dotenv
+import os
 
-# .env 파일 경로 지정하여 Agent 인스턴스 생성
-agent = Agent(env_path=".env")
+load_dotenv()
+
+agent = Agent(
+    app_key=os.getenv('APP_KEY'),
+    app_secret=os.getenv('APP_SECRET'),
+    account_no=os.getenv('CANO'),
+    account_code=os.getenv('ACNT_PRDT_CD', '01')
+)
 
 #  계좌 정보 조회
 balance = agent.get_account_balance()  # 계좌 잔고
-cash = agent.get_cash_available()      # 주문 가능 현금
-total = agent.get_total_asset()        # 총 자산
+
+# Note: get_cash_available과 get_total_asset 메서드가 없는 경우 대체 방법:
+if balance and balance.get('rt_cd') == '0':
+    # 전체 계좌 잔고 정보는 balance['output2']에 포함됨
+    total_info = balance['output2'][0] if balance.get('output2') else None
+    if total_info:
+        total_asset = total_info.get('tot_evlu_amt')  # 총 평가금액
+        available_cash = total_info.get('nass_amt')   # 순자산금액
 
 #  주식 시세 조회 (KOSPI/KOSDAQ/NXT 통합 지원)
 price = agent.get_stock_price("005930")      # 삼성전자 현재가 (KOSPI)

@@ -11,12 +11,8 @@ import logging
 from datetime import datetime
 import sqlite3
 import os
-from dotenv import load_dotenv
 from .auth import auth, read_token
 from .config import KISConfig
-
-# .env 파일 로드
-load_dotenv()
 
 
 class Agent:
@@ -45,7 +41,11 @@ class Agent:
 
     def __init__(
         self,
-        env_path: str = "../.env",
+        app_key: str,
+        app_secret: str,
+        account_no: str,
+        account_code: str,
+        base_url: str = "https://openapi.koreainvestment.com:9443",
         client: Optional[KISClient] = None,
         account_info: Optional[Dict] = None,
         enable_rate_limiter: bool = True,
@@ -56,52 +56,76 @@ class Agent:
         Agent를 초기화합니다.
 
         Args:
-            env_path (str): .env 파일 경로 (필수)
+            app_key (str): 한국투자증권 API 앱 키 (필수)
+            app_secret (str): 한국투자증권 API 앱 시크릿 (필수)
+            account_no (str): 계좌번호 (필수)
+            account_code (str): 계좌 상품코드 (필수)
+            base_url (str): API 베이스 URL (기본값: 실전투자 URL)
+                - 실전투자: "https://openapi.koreainvestment.com:9443"
+                - 모의투자: "https://openapivts.koreainvestment.com:29443"
             client (KISClient, optional): API 클라이언트. None이면 새로 생성
-            account_info (Dict, optional): 계좌 정보. None이면 .env에서 자동 로드
+            account_info (Dict, optional): 계좌 정보. None이면 자동 설정
             enable_rate_limiter (bool): Rate Limiter 사용 여부 (기본값: True)
             rate_limiter (RateLimiter, optional): 커스텀 Rate Limiter 인스턴스
             rate_limiter_config (Dict, optional): Rate Limiter 설정
-                - requests_per_second: 초당 최대 요청 수 (기본값: 15)
-                - requests_per_minute: 분당 최대 요청 수 (기본값: 900)
-                - min_interval_ms: 최소 간격(밀리초) (기본값: 70)
-                - burst_size: 버스트 크기 (기본값: 5)
+                - requests_per_second: 초당 최대 요청 수 (기본값: 20)
+                - requests_per_minute: 분당 최대 요청 수 (기본값: 1000)
+                - min_interval_ms: 최소 간격(밀리초) (기본값: 10)
+                - burst_size: 버스트 크기 (기본값: 15)
                 - enable_adaptive: 적응형 속도 조절 (기본값: True)
 
         Raises:
-            ValueError: env_path가 제공되지 않았을 때
-            FileNotFoundError: .env 파일을 찾을 수 없을 때
+            ValueError: 필수 매개변수가 누락되었을 때
+            RuntimeError: 토큰 발급이 실패했을 때
 
         Example:
-            >>> # 기본 Rate Limiter 사용
-            >>> agent = Agent(env_path=".env")
+            >>> # 실전투자 Agent 생성
+            >>> agent = Agent(
+            ...     app_key="YOUR_APP_KEY",
+            ...     app_secret="YOUR_APP_SECRET",
+            ...     account_no="12345678",
+            ...     account_code="01"
+            ... )
+            >>> 
+            >>> # 모의투자 Agent 생성
+            >>> agent = Agent(
+            ...     app_key="YOUR_APP_KEY",
+            ...     app_secret="YOUR_APP_SECRET",
+            ...     account_no="12345678",
+            ...     account_code="01",
+            ...     base_url="https://openapivts.koreainvestment.com:29443"
+            ... )
             >>> 
             >>> # Rate Limiter 비활성화
-            >>> agent = Agent(env_path=".env", enable_rate_limiter=False)
-            >>> 
-            >>> # 커스텀 Rate Limiter 설정
             >>> agent = Agent(
-            ...     env_path=".env",
-            ...     rate_limiter_config={
-            ...         "requests_per_second": 10,
-            ...         "requests_per_minute": 500,
-            ...         "enable_adaptive": False
-            ...     }
+            ...     app_key="YOUR_APP_KEY",
+            ...     app_secret="YOUR_APP_SECRET",
+            ...     account_no="12345678",
+            ...     account_code="01",
+            ...     enable_rate_limiter=False
             ... )
 
         Note:
-            보안상 이유로 env_path는 명시적으로 지정해야 합니다.
-        Raises:
-            ValueError: env_path가 제공되지 않은 경우
+            API 키와 계좌 정보는 보안상 중요하므로 코드에 직접 하드코딩하지 마세요.
+            환경변수나 별도의 설정 파일에서 로드하는 것을 권장합니다.
         """
-        # env_path 필수 매개변수 검증
-        if env_path is None:
+        # 필수 매개변수 검증
+        if not all([app_key, app_secret, account_no, account_code]):
             raise ValueError(
-                "env_path 매개변수는 필수입니다. Agent(env_path='/path/to/.env')로 사용하세요."
+                "필수 매개변수가 누락되었습니다.\n"
+                "Agent를 생성할 때 다음 매개변수가 모두 필요합니다:\n"
+                "  - app_key: 한국투자증권 API 앱 키\n"
+                "  - app_secret: 한국투자증권 API 앱 시크릿\n"
+                "  - account_no: 계좌번호\n"
+                "  - account_code: 계좌 상품코드\n\n"
+                "예시:\n"
+                "  agent = Agent(\n"
+                "      app_key='YOUR_APP_KEY',\n"
+                "      app_secret='YOUR_APP_SECRET',\n"
+                "      account_no='12345678',\n"
+                "      account_code='01'\n"
+                "  )"
             )
-
-        # 커스텀 .env 파일 로딩
-        load_dotenv(env_path, override=True)
 
         # Rate Limiter 설정
         if enable_rate_limiter:
@@ -123,8 +147,16 @@ class Agent:
         else:
             self.rate_limiter = None
 
-        # 설정 및 클라이언트 초기화
-        config = KISConfig(env_path) if not client else None
+        # 설정 객체 생성
+        config = KISConfig(
+            app_key=app_key,
+            app_secret=app_secret,
+            base_url=base_url,
+            account_no=account_no,
+            account_code=account_code
+        ) if not client else None
+        
+        # 클라이언트 초기화
         self.client = client or KISClient(
             config=config, 
             enable_rate_limiter=enable_rate_limiter,
@@ -136,12 +168,9 @@ class Agent:
 
         # 계좌 정보 설정
         if account_info is None:
-            # .env 파일에서 계좌 정보 자동 로드
-            if not config:
-                config = KISConfig(env_path)
             self.account_info = {
-                "CANO": config.account_stock,
-                "ACNT_PRDT_CD": config.account_product,
+                "CANO": account_no,
+                "ACNT_PRDT_CD": account_code,
             }
         else:
             self.account_info = account_info

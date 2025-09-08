@@ -1,16 +1,6 @@
 import os
 from dataclasses import dataclass
-from dotenv import dotenv_values, load_dotenv
-
-# 환경설정 파일 로드 우선순위: 1) 현재 작업 디렉토리 .env, 2) PyKIS 패키지 루트 .env
-# 다른 프로젝트에서 PyKIS를 사용할 때는 해당 프로젝트의 .env를 우선 사용
-current_dir_env = os.path.join(os.getcwd(), '.env')
-pykis_root_env = os.path.join(os.path.dirname(__file__), '../../.env')
-
-if os.path.exists(current_dir_env):
-    load_dotenv(dotenv_path=current_dir_env, override=True)  # 현재 디렉토리 .env 우선
-elif os.path.exists(pykis_root_env):
-    load_dotenv(dotenv_path=pykis_root_env, override=True)  # PyKIS 루트 .env 대체
+from dotenv import dotenv_values
 
 @dataclass
 class KISConfig:
@@ -22,38 +12,62 @@ class KISConfig:
     ACCOUNT_NO: str = ""
     ACCOUNT_CODE: str = ""
 
-    def __init__(self, env_path: str = ".env", app_key: str = None, app_secret: str = None, base_url: str = None, account_no: str = None, account_code: str = None):
+    def __init__(self, env_path: str = None, app_key: str = None, app_secret: str = None, base_url: str = None, account_no: str = None, account_code: str = None):
         """
         설정을 초기화합니다.
-        인자가 제공되면 직접 사용하고, 그렇지 않으면 .env 파일에서 로드합니다.
+        
+        Args:
+            env_path (str, optional): .env 파일 경로 (호환성 유지용)
+            app_key (str): API 앱 키
+            app_secret (str): API 앱 시크릿
+            base_url (str): API 베이스 URL
+            account_no (str): 계좌번호
+            account_code (str): 계좌 상품코드
+        
+        Note:
+            env_path가 제공되면 .env 파일에서 로드하고,
+            개별 매개변수가 제공되면 해당 값을 사용합니다.
         """
-        # 인자가 하나라도 제공되면 직접 설정을 적용
-        if any(arg is not None for arg in [app_key, app_secret, base_url, account_no, account_code]):
-            self.APP_KEY = app_key or ""
-            self.APP_SECRET = app_secret or ""
-            self.BASE_URL = base_url or ""
-            self.ACCOUNT_NO = account_no or ""
-            self.ACCOUNT_CODE = account_code or ""
-        else:
+        # env_path가 제공되면 .env 파일에서 로드 (호환성)
+        if env_path is not None:
             if not os.path.exists(env_path):
                 raise FileNotFoundError(
-                    f"'{env_path}' 파일을 찾을 수 없습니다. '.env.example' 파일을 복사하여 설정 후 사용하세요."
+                    f"'{env_path}' 파일을 찾을 수 없습니다."
                 )
             
             config = dotenv_values(dotenv_path=env_path)
-
-            # .env 파일의 실제 변수명과 매칭
-            # APP_KEY, APP_SECRET, CANO, ACNT_PRDT_CD, KIS_BASE_URL
-            self.APP_KEY = (config.get("APP_KEY") or config.get("KIS_APP_KEY") or config.get("KIS_APPKEY") or config.get("MY_APP") or 
-                           os.environ.get("APP_KEY") or os.environ.get("KIS_APP_KEY") or os.environ.get("MY_APP") or "")
-            self.APP_SECRET = (config.get("APP_SECRET") or config.get("KIS_APP_SECRET") or config.get("KIS_APPSECRET") or config.get("MY_SEC") or 
-                              os.environ.get("APP_SECRET") or os.environ.get("KIS_APP_SECRET") or os.environ.get("MY_SEC") or "")
-            self.BASE_URL = (config.get("KIS_BASE_URL") or config.get("BASE_URL") or config.get("PROD_URL") or 
-                            os.environ.get("KIS_BASE_URL") or os.environ.get("BASE_URL") or os.environ.get("PROD_URL") or "")
-            self.ACCOUNT_NO = (config.get("CANO") or config.get("KIS_ACCOUNT_NO") or config.get("KIS_ACCOUNT_CANO") or config.get("MY_ACCT_STOCK") or 
-                              os.environ.get("CANO") or os.environ.get("KIS_ACCOUNT_NO") or os.environ.get("MY_ACCT_STOCK") or "")
-            self.ACCOUNT_CODE = (config.get("ACNT_PRDT_CD") or config.get("KIS_ACCOUNT_CODE") or config.get("KIS_ACCOUNT_PRDT_CD") or config.get("MY_PROD") or 
-                                os.environ.get("ACNT_PRDT_CD") or os.environ.get("KIS_ACCOUNT_CODE") or os.environ.get("MY_PROD") or "")
+            
+            # .env 파일에서 값 로드 (개별 매개변수가 우선)
+            self.APP_KEY = app_key or (
+                config.get("APP_KEY") or config.get("KIS_APP_KEY") or 
+                config.get("KIS_APPKEY") or config.get("MY_APP") or 
+                os.environ.get("APP_KEY") or os.environ.get("KIS_APP_KEY") or ""
+            )
+            self.APP_SECRET = app_secret or (
+                config.get("APP_SECRET") or config.get("KIS_APP_SECRET") or 
+                config.get("KIS_APPSECRET") or config.get("MY_SEC") or 
+                os.environ.get("APP_SECRET") or os.environ.get("KIS_APP_SECRET") or ""
+            )
+            self.BASE_URL = base_url or (
+                config.get("KIS_BASE_URL") or config.get("BASE_URL") or 
+                config.get("PROD_URL") or os.environ.get("KIS_BASE_URL") or 
+                "https://openapi.koreainvestment.com:9443"
+            )
+            self.ACCOUNT_NO = account_no or (
+                config.get("CANO") or config.get("KIS_ACCOUNT_NO") or 
+                config.get("MY_ACCT_STOCK") or os.environ.get("CANO") or ""
+            )
+            self.ACCOUNT_CODE = account_code or (
+                config.get("ACNT_PRDT_CD") or config.get("KIS_ACCOUNT_CODE") or 
+                config.get("MY_PROD") or os.environ.get("ACNT_PRDT_CD") or ""
+            )
+        else:
+            # 직접 매개변수 사용
+            self.APP_KEY = app_key or ""
+            self.APP_SECRET = app_secret or ""
+            self.BASE_URL = base_url or "https://openapi.koreainvestment.com:9443"
+            self.ACCOUNT_NO = account_no or ""
+            self.ACCOUNT_CODE = account_code or ""
         
         self._validate()
 
@@ -93,7 +107,22 @@ class KISConfig:
         return "openapi.koreainvestment.com:9443" in self.BASE_URL
 
     def _validate(self) -> None:
-        if not all([self.APP_KEY, self.APP_SECRET, self.BASE_URL, self.ACCOUNT_NO, self.ACCOUNT_CODE]):
-            raise ValueError("필수 설정 값이 누락되었습니다. .env 파일의 내용을 확인하세요.")
+        missing_fields = []
+        if not self.APP_KEY:
+            missing_fields.append("app_key")
+        if not self.APP_SECRET:
+            missing_fields.append("app_secret")
+        if not self.BASE_URL:
+            missing_fields.append("base_url")
+        if not self.ACCOUNT_NO:
+            missing_fields.append("account_no")
+        if not self.ACCOUNT_CODE:
+            missing_fields.append("account_code")
+        
+        if missing_fields:
+            raise ValueError(
+                f"필수 설정 값이 누락되었습니다: {', '.join(missing_fields)}\n"
+                "필요한 모든 매개변수를 제공해주세요."
+            )
 
 __all__ = ["KISConfig"]
