@@ -94,7 +94,7 @@ class WSAgent:
         self.auto_reconnect = auto_reconnect
         
         # 웹소켓 연결
-        self.ws: Optional[websockets.WebSocketClientProtocol] = None
+        self.ws = None
         self.connected = False
         
         # 구독 관리

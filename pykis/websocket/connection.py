@@ -8,7 +8,6 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 import websockets
-from websockets.client import WebSocketClientProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -47,18 +46,18 @@ class ConnectionManager:
         self.ping_timeout = ping_timeout
         self.auto_reconnect = auto_reconnect
         
-        self.ws: Optional[WebSocketClientProtocol] = None
+        self.ws = None
         self.connected = False
         self.last_recv_time = datetime.now()
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 5
         
-    async def connect(self) -> WebSocketClientProtocol:
+    async def connect(self):
         """
         WebSocket 서버에 연결
         
         Returns:
-            WebSocketClientProtocol: 연결된 WebSocket 객체
+            WebSocket 객체
             
         Raises:
             websockets.exceptions.WebSocketException: 연결 실패
@@ -131,12 +130,12 @@ class ConnectionManager:
         self.last_recv_time = datetime.now()
         return message
         
-    async def reconnect(self) -> Optional[WebSocketClientProtocol]:
+    async def reconnect(self):
         """
         재연결 시도
         
         Returns:
-            WebSocketClientProtocol: 재연결된 WebSocket 객체 (성공 시)
+            WebSocket 객체 (성공 시)
             None: 재연결 실패
             
         Raises:
