@@ -45,7 +45,7 @@ class Agent:
 
     def __init__(
         self,
-        env_path: str,
+        env_path: str = "../.env",
         client: Optional[KISClient] = None,
         account_info: Optional[Dict] = None,
         enable_rate_limiter: bool = True,

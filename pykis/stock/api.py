@@ -187,7 +187,7 @@ class StockAPI(BaseAPI):
                     endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
                     tr_id="FHKST01010600",
                     params={
-                        "FID_COND_MRKT_DIV_CODE": "UN",
+                        "FID_COND_MRKT_DIV_CODE": "J",
                         "FID_INPUT_ISCD": ticker
                     }
                 )
@@ -221,7 +221,7 @@ class StockAPI(BaseAPI):
         개인 순매수 수량 및 거래대금은 'prsn_ntby_qty', 'prsn_ntby_tr_pbmn' 필드 사용.
         """
         params = {
-            "FID_COND_MRKT_DIV_CODE": "UN",
+            "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": ticker,
         }
         response = self.client.make_request(
@@ -922,7 +922,7 @@ class StockAPI(BaseAPI):
                     endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
                     tr_id="FHKST01010600",
                     params={
-                        "FID_COND_MRKT_DIV_CODE": "UN",
+                        "FID_COND_MRKT_DIV_CODE": "J",
                         "FID_INPUT_ISCD": ticker
                     }
                 )
@@ -1168,7 +1168,7 @@ class StockAPI(BaseAPI):
             endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
             tr_id="FHKST01010600",
             params={
-                "FID_COND_MRKT_DIV_CODE": "UN",
+                "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code
             }
         )
