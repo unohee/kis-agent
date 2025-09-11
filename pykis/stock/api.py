@@ -1914,3 +1914,323 @@ class StockAPI(BaseAPI):
                 "fid_input_option": market_code
             }
         )
+
+    def order_cash(self,
+                   ord_dv: str,  # 매수매도구분 (buy:매수, sell:매도)
+                   pdno: str,  # 종목코드
+                   ord_dvsn: str,  # 주문구분
+                   ord_qty: str,  # 주문수량
+                   ord_unpr: str,  # 주문단가
+                   excg_id_dvsn_cd: str = "KRX",  # 거래소ID구분코드
+                   sll_type: str = "",  # 매도유형
+                   cndt_pric: str = ""  # 조건가격
+                   ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식주문(현금) API
+        
+        현금매수/매도 주문을 실행합니다.
+        
+        Args:
+            ord_dv (str): 매수매도구분 (buy:매수, sell:매도)
+            pdno (str): 종목코드 (6자리)
+            ord_dvsn (str): 주문구분 
+                - 00:지정가, 01:시장가, 02:조건부지정가, 03:최유리지정가
+                - 04:최우선지정가, 05:장전시간외, 06:장후시간외
+                - 07:시간외단일가, 08:자기주식, 09:자기주식S-Option
+                - 10:자기주식금전신탁, 11:IOC지정가, 12:FOK지정가
+                - 13:IOC시장가, 14:FOK시장가, 15:IOC최유리, 16:FOK최유리
+            ord_qty (str): 주문수량
+            ord_unpr (str): 주문단가 (시장가는 "0")
+            excg_id_dvsn_cd (str): 거래소ID구분코드 (KRX:한국거래소)
+            sll_type (str): 매도유형 (01:일반매도, 02:임의매매, 05:대차매도)
+            cndt_pric (str): 조건가격 (스탑지정가 주문 시 사용)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 결과 데이터
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg1: 응답메시지
+                - output: 주문 상세 정보
+                
+        Example:
+            >>> # 삼성전자 1주 70000원 지정가 매수
+            >>> result = stock_api.order_cash("buy", "005930", "00", "1", "70000")
+            >>> print(result['msg1'])
+            
+            >>> # 삼성전자 1주 시장가 매도
+            >>> result = stock_api.order_cash("sell", "005930", "01", "1", "0")
+        """
+        # 필수 파라미터 검증
+        if not ord_dv or ord_dv not in ["buy", "sell"]:
+            raise ValueError("ord_dv must be 'buy' or 'sell'")
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not ord_dvsn:
+            raise ValueError("ord_dvsn (주문구분) is required")
+        if not ord_qty:
+            raise ValueError("ord_qty (주문수량) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+
+        # TR ID 설정 (실전/모의에 따라 다름)
+        is_mock = getattr(self.client, 'is_mock', False)
+        if is_mock:
+            tr_id = "VTTC0011U" if ord_dv == "sell" else "VTTC0012U"
+        else:
+            tr_id = "TTTC0011U" if ord_dv == "sell" else "TTTC0012U"
+
+        # 계좌 정보 확인
+        if not hasattr(self, 'account') or not self.account:
+            raise ValueError("Account information is required for trading")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_DVSN": ord_dvsn,
+            "ORD_QTY": ord_qty,
+            "ORD_UNPR": ord_unpr,
+            "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,
+            "SLL_TYPE": sll_type,
+            "CNDT_PRIC": cndt_pric
+        }
+
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['ORDER_CASH'],
+            tr_id=tr_id,
+            params=params,
+            method='POST'
+        )
+
+    def order_credit(self,
+                     ord_dv: str,  # 매수매도구분 (buy:매수, sell:매도)
+                     pdno: str,  # 종목코드
+                     crdt_type: str,  # 신용유형
+                     ord_dvsn: str,  # 주문구분
+                     ord_qty: str,  # 주문수량
+                     ord_unpr: str,  # 주문단가
+                     loan_dt: str = "",  # 대출일자 (기본값: 빈 문자열)
+                     excg_id_dvsn_cd: str = "KRX",  # 거래소ID구분코드
+                     sll_type: str = "",  # 매도유형
+                     rsvn_ord_yn: str = "N",  # 예약주문여부
+                     emgc_ord_yn: str = "",  # 비상주문여부
+                     cndt_pric: str = ""  # 조건가격
+                     ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식주문(신용) API
+        
+        신용매수/매도 주문을 실행합니다. (모의투자 미지원)
+        
+        Args:
+            ord_dv (str): 매수매도구분 (buy:매수, sell:매도)
+            pdno (str): 종목코드 (6자리)
+            crdt_type (str): 신용유형
+                - [매수] 21:자기융자신규, 23:유통융자신규, 26:유통대주상환, 28:자기대주상환
+                - [매도] 22:유통대주신규, 24:자기대주신규, 25:자기융자상환, 27:유통융자상환
+            loan_dt (str): 대출일자 (YYYYMMDD)
+                - 신용매수: 오늘날짜
+                - 신용매도: 매도할 종목의 대출일자
+            ord_dvsn (str): 주문구분 (00:지정가, 01:시장가 등)
+            ord_qty (str): 주문수량
+            ord_unpr (str): 주문단가
+            excg_id_dvsn_cd (str): 거래소ID구분코드 (KRX:한국거래소)
+            sll_type (str): 매도유형
+            rsvn_ord_yn (str): 예약주문여부 (Y:예약주문, N:신용주문)
+            emgc_ord_yn (str): 비상주문여부
+            cndt_pric (str): 조건가격
+            
+        Returns:
+            Optional[Dict[str, Any]]: 주문 결과 데이터
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg1: 응답메시지
+                - output: 주문 상세 정보
+                
+        Example:
+            >>> # 삼성전자 1주 자기융자신규 매수
+            >>> from datetime import datetime
+            >>> today = datetime.now().strftime("%Y%m%d")
+            >>> result = stock_api.order_credit(
+            ...     "buy", "005930", "21", today, "00", "1", "70000"
+            ... )
+        """
+        # 필수 파라미터 검증
+        if not ord_dv or ord_dv not in ["buy", "sell"]:
+            raise ValueError("ord_dv must be 'buy' or 'sell'")
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not crdt_type:
+            raise ValueError("crdt_type (신용유형) is required")
+        # loan_dt는 빈 문자열도 허용 (기존 AccountAPI 방식과 동일)
+        if not ord_dvsn:
+            raise ValueError("ord_dvsn (주문구분) is required")
+        if not ord_qty:
+            raise ValueError("ord_qty (주문수량) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+
+        # 모의투자 확인 (신용거래는 실전만 가능)
+        is_mock = getattr(self.client, 'is_mock', False)
+        if is_mock:
+            raise ValueError("신용거래는 모의투자에서 지원되지 않습니다.")
+
+        # TR ID 설정 (실전전용)
+        tr_id = "TTTC0051U" if ord_dv == "sell" else "TTTC0052U"
+
+        # 계좌 정보 확인
+        if not hasattr(self, 'account') or not self.account:
+            raise ValueError("Account information is required for trading")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "CRDT_TYPE": crdt_type,
+            "LOAN_DT": loan_dt,
+            "ORD_DVSN": ord_dvsn,
+            "ORD_QTY": ord_qty,
+            "ORD_UNPR": ord_unpr,
+            "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,
+            "SLL_TYPE": sll_type,
+            "RSVN_ORD_YN": rsvn_ord_yn,
+            "EMGC_ORD_YN": emgc_ord_yn,
+            "CNDT_PRIC": cndt_pric
+        }
+
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['ORDER_CREDIT'],
+            tr_id=tr_id,
+            params=params,
+            method='POST'
+        )
+
+    def inquire_psbl_order(self,
+                          pdno: str,  # 종목코드
+                          ord_unpr: str,  # 주문단가
+                          ord_dvsn: str = "00",  # 주문구분
+                          cma_evlu_amt_icld_yn: str = "Y",  # CMA평가금액포함여부
+                          ovrs_icld_yn: str = "Y"  # 해외포함여부
+                          ) -> Optional[Dict[str, Any]]:
+        """
+        매수가능조회 API
+        
+        특정 종목의 매수 가능 수량과 금액을 조회합니다.
+        
+        Args:
+            pdno (str): 종목코드 (6자리)
+            ord_unpr (str): 주문단가
+            ord_dvsn (str): 주문구분 (기본값: "00")
+                - 00:지정가, 01:시장가, 02:조건부지정가, 03:최유리지정가
+                - 04:최우선지정가, 05:장전시간외, 06:장후시간외
+                - 07:시간외단일가, 08:자기주식, 09:자기주식S-Option
+                - 10:자기주식금전신탁, 11:IOC지정가, 12:FOK지정가
+                - 13:IOC시장가, 14:FOK시장가, 15:IOC최유리, 16:FOK최유리
+            cma_evlu_amt_icld_yn (str): CMA평가금액포함여부 (Y:포함, N:미포함)
+            ovrs_icld_yn (str): 해외포함여부 (Y:포함, N:미포함)
+            
+        Returns:
+            Optional[Dict[str, Any]]: 매수가능 정보
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg1: 응답메시지
+                - output: 매수가능 상세 정보
+                    - ord_psbl_cash: 주문가능현금
+                    - max_buy_qty: 최대매수수량
+                    - ord_psbl_qty: 주문가능수량
+                    
+        Example:
+            >>> # 삼성전자 70000원 지정가 매수가능 조회
+            >>> result = stock_api.inquire_psbl_order("005930", "70000")
+            >>> print(f"매수가능수량: {result['output']['max_buy_qty']}")
+        """
+        # 필수 파라미터 검증
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+
+        # 계좌 정보 확인
+        if not hasattr(self, 'account') or not self.account:
+            raise ValueError("Account information is required for order inquiry")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_UNPR": ord_unpr,
+            "ORD_DVSN": ord_dvsn,
+            "CMA_EVLU_AMT_ICLD_YN": cma_evlu_amt_icld_yn,
+            "OVRS_ICLD_YN": ovrs_icld_yn
+        }
+
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_PSBL_ORDER'],
+            tr_id="TTTC8908R",
+            params=params
+        )
+
+    def inquire_credit_psamount(self,
+                               pdno: str,  # 종목코드
+                               ord_unpr: str,  # 주문단가
+                               ord_dvsn: str = "00",  # 주문구분
+                               crdt_type: str = "21",  # 신용유형
+                               cma_evlu_amt_icld_yn: str = "N",  # CMA평가금액포함여부
+                               ovrs_icld_yn: str = "N"  # 해외포함여부
+                               ) -> Optional[Dict[str, Any]]:
+        """
+        신용매수가능조회 API
+        
+        특정 종목의 신용매수 가능 수량과 금액을 조회합니다.
+        
+        Args:
+            pdno (str): 종목코드 (6자리)
+            ord_unpr (str): 주문단가
+            ord_dvsn (str): 주문구분 (기본값: "00")
+                - 00:지정가, 01:시장가, 02:조건부지정가, 03:최유리지정가
+                - 04:최우선지정가, 05:장전시간외, 06:장후시간외
+                - 07:시간외단일가
+            crdt_type (str): 신용유형 (기본값: "21")
+                - 21:자기융자신규, 23:유통융자신규
+                - 26:유통대주상환, 28:자기대주상환
+            cma_evlu_amt_icld_yn (str): CMA평가금액포함여부 (기본값: "N")
+                - Y:포함, N:불포함
+            ovrs_icld_yn (str): 해외포함여부 (기본값: "N")
+                - Y:포함, N:불포함
+                
+        Returns:
+            Optional[Dict[str, Any]]: 신용매수가능 정보
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg1: 응답메시지
+                - output: 신용매수가능 상세 정보
+                    - crdt_buy_psbl_amt: 신용매수가능금액
+                    - max_buy_qty: 최대매수수량
+                    - crdt_psbl_qty: 신용매수가능수량
+                    
+        Example:
+            >>> # 삼성전자 70000원 신용매수가능 조회
+            >>> result = stock_api.inquire_credit_psamount("005930", "70000")
+            >>> print(f"신용매수가능수량: {result['output']['max_buy_qty']}")
+        """
+        # 필수 파라미터 검증
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+
+        # 계좌 정보 확인
+        if not hasattr(self, 'account') or not self.account:
+            raise ValueError("Account information is required for credit inquiry")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_DVSN": ord_dvsn,
+            "CRDT_TYPE": crdt_type,
+            "CMA_EVLU_AMT_ICLD_YN": cma_evlu_amt_icld_yn,
+            "OVRS_ICLD_YN": ovrs_icld_yn,
+            "ORD_UNPR": ord_unpr
+        }
+
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_CREDIT_PSAMOUNT'],
+            tr_id="TTTC8909R",
+            params=params
+        )

@@ -263,7 +263,7 @@ class AccountAPI(BaseAPI):
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
-                tr_id="TTTC0852U",
+                tr_id="TTTC0052U",
                 params={
                     "CANO": self.account["CANO"],
                     "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],

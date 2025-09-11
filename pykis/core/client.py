@@ -77,6 +77,7 @@ API_ENDPOINTS = {
     'INQUIRE_PERIOD_PROFIT': '/uapi/domestic-stock/v1/trading/inquire-period-profit',  # 기간별손익일별합산조회 (TR: TTTC8708R)
     'INQUIRE_PERIOD_TRADE_PROFIT': '/uapi/domestic-stock/v1/trading/inquire-period-trade-profit',  # 기간별매매손익현황조회 (TR: TTTC8715R)
     'ORDER_CASH': '/uapi/domestic-stock/v1/trading/order-cash',  # 주식주문(현금) (TR: TTTC0802U)
+    'ORDER_CREDIT': '/uapi/domestic-stock/v1/trading/order-credit',  # 주식주문(신용) (TR: TTTC0051U/TTTC0052U)
     'INQUIRE_CREDIT_PSAMOUNT': '/uapi/domestic-stock/v1/trading/inquire-credit-psamount',  # 신용매수가능조회 (TR: TTTC8909R)
     'INQUIRE_PSBL_RVSECNCL': '/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl',  # 주식정정취소가능주문조회 (TR: TTTC8036R)
     'ORDER_RESV_CCNL': '/uapi/domestic-stock/v1/trading/order-resv-ccnl',  # 주식예약주문조회 (TR: CTSC0004R)
@@ -194,7 +195,9 @@ class KISClient:
         else:
             self.config = config
         self.verbose = verbose
-        self.token: Optional[dict] = None
+        self.token: Optional[str] = None
+        self.token_expired: Optional[str] = None  # 토큰 만료 시간 저장
+        self.svr = svr  # 서버 환경 저장
         self.last_api_call_time = time.monotonic()
         self.last_request_time = 0.0
         self.min_interval = 0.05  # 50ms
@@ -204,29 +207,59 @@ class KISClient:
         self.enable_rate_limiter = enable_rate_limiter
         if enable_rate_limiter:
             self.rate_limiter = rate_limiter or RateLimiter(
-                requests_per_second=20,  # API 최대 제한 활용 (20회/초)
-                requests_per_minute=1000,  # API 최대 제한 활용 (1000회/분)
-                min_interval_ms=10,       # 최적화된 최소 간격 (10ms)
-                burst_size=15,
+                requests_per_second=10,  # 보수적 설정 (실제 제한보다 낮게)
+                requests_per_minute=500,  # 보수적 설정
+                min_interval_ms=100,       # 최소 100ms 간격
+                burst_size=5,
                 enable_adaptive=True
             )
         else:
             self.rate_limiter = None
 
+        # 초기 토큰 발급 또는 기존 토큰 재사용
+        self._initialize_token()
+
+    def _initialize_token(self) -> None:
+        """초기 토큰 발급 또는 기존 토큰 재사용"""
         try:
             if self.config is None:
                 # config가 없으면 환경 변수로 토큰 발급
-                token_data = auth(svr=svr)
-                self.token = token_data['access_token'] if token_data else None
+                token_data = auth(svr=self.svr)
+                if token_data:
+                    self.token = token_data.get('access_token')
+                    self.token_expired = token_data.get('access_token_token_expired')
                 self.base_url = os.getenv('KIS_BASE_URL', 'https://openapi.koreainvestment.com:9443')
             else:
                 # config가 있으면 config로 토큰 발급
-                token_data = auth(config=self.config, svr=svr)
-                self.token = token_data['access_token'] if token_data else None
+                token_data = auth(config=self.config, svr=self.svr)
+                if token_data:
+                    self.token = token_data.get('access_token')
+                    self.token_expired = token_data.get('access_token_token_expired')
                 self.base_url = self.config.BASE_URL
         except Exception as e:
             logger.error(f"인증 실패: {e}", exc_info=True)
             raise
+
+    def _check_and_refresh_token(self) -> None:
+        """토큰 만료 체크 및 자동 갱신"""
+        if self.token_expired:
+            try:
+                # 토큰 만료 시간 파싱
+                if isinstance(self.token_expired, str):
+                    exp_dt = datetime.strptime(self.token_expired, '%Y-%m-%d %H:%M:%S')
+                else:
+                    exp_dt = self.token_expired
+                
+                # 현재 시간
+                now_dt = datetime.now()
+                
+                # 토큰이 만료되었거나 5분 이내 만료 예정이면 갱신
+                if exp_dt <= now_dt + timedelta(minutes=5):
+                    # logger.info("토큰이 만료되었거나 곧 만료됩니다. 자동 갱신을 시작합니다.")
+                    self._initialize_token()
+            except Exception as e:
+                logger.warning(f"토큰 만료 체크 중 오류 발생, 토큰 재발급 시도: {e}")
+                self._initialize_token()
 
     def _enforce_rate_limit(self, priority: int = 0) -> None:
         """
@@ -296,6 +329,9 @@ class KISClient:
         Raises:
             Exception: API 요청 실패 시 발생
         """
+        # 요청 전 토큰 만료 체크 및 자동 갱신
+        self._check_and_refresh_token()
+        
         url = f"{self.base_url}{endpoint}"
         
         # getTREnv()를 사용하여 올바른 헤더 설정
@@ -371,6 +407,24 @@ class KISClient:
                         logger.warning(f"[{tr_id}] API 오류 응답 (시도 {attempt+1}/{retries}): {api_msg} (code: {api_code})")
                         
                         # 유량 제한 에러 체크
+                        # 토큰 만료 에러 체크
+                        is_token_expired = (
+                            isinstance(api_code, str) 
+                            and api_code in ['EGW00123', 'EGW00124']  # 토큰 만료 에러 코드
+                        ) or (
+                            isinstance(api_msg, str)
+                            and ("토큰" in api_msg and "만료" in api_msg)
+                        )
+                        
+                        if is_token_expired:
+                            logger.warning(f"[{tr_id}] 토큰 만료 감지. 재발급 시도...")
+                            self._initialize_token()
+                            # 헤더 업데이트
+                            env = getTREnv()
+                            headers["authorization"] = env.my_token
+                            if attempt < retries - 1:
+                                continue  # 토큰 갱신 후 재시도
+                        
                         is_rate_limit_error = (
                             isinstance(api_code, str)
                             and (api_code == '1' or api_code in ['EGW00201', 'EGW00202', 'EGW00203'])

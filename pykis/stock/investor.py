@@ -70,6 +70,7 @@ class InvestorPositionAnalyzer:
         self.client = client
         self.account = account_info or {}
         self.logger = logging.getLogger(__name__)
+        # 클라이언트가 자동으로 토큰을 관리하므로 별도 처리 불필요
         
     def _import_investor_apis(self):
         """투자자 관련 API 동적 import"""
