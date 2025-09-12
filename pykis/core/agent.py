@@ -763,7 +763,7 @@ class Agent(BaseExceptionHandler):
                 ],
             },
             "program": {
-                "title": "🤖 프로그램 매매 관련",
+                "title": "프로그램 매매 관련",
                 "methods": [
                     (
                         "get_program_trade_by_stock",
