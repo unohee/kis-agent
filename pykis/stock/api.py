@@ -25,13 +25,12 @@ price = stock.get_stock_price("005930")
 """
 
 from typing import Optional, Dict, Any, List
-# [변경 이유] pandas 로딩 시간 단축을 위해 필요한 메서드에서만 지역 import 사용
-# import pandas as pd  # 지역 import로 변경
 import logging
 import pandas as pd
+from datetime import datetime, timedelta
 from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
-from datetime import datetime, timedelta
+from ..core.decorators import api_endpoint, deprecated, with_retry
 
 def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     """
@@ -125,6 +124,7 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     return f"101W{expiry:02d}"
 
 class StockAPI(BaseAPI):
+    """주식 관련 API - 종목 단위 시세 조회 및 주문"""
     def __init__(self, client: KISClient, account_info: Dict[str, str], enable_cache=True, cache_config=None):
         super().__init__(client, account_info, enable_cache, cache_config)
 

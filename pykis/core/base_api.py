@@ -6,12 +6,14 @@
 - 숫자형 필드 자동 변환
 - DataFrame/Dict 반환 타입 통합
 - API 응답 정규화
+- 데코레이터 기반 API 호출 지원
 """
 
 import pandas as pd
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List, Union, Any
 from .response_processor import APIRequestManager
 from .cache import APICache
+from .client import API_ENDPOINTS
 
 
 class BaseAPI:
@@ -187,6 +189,22 @@ class BaseAPI:
             # 프로그램 매매
             "program_trade": ["stck_bsop_date", "pgtr_ntby_qty", "pgtr_ntby_tr_pbmn"],
         }
+
+    def _add_default_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        기본 파라미터 추가 (데코레이터 지원용)
+
+        Args:
+            params: 원본 파라미터
+
+        Returns:
+            기본값이 추가된 파라미터
+        """
+        # 시장 구분 코드 기본값
+        if 'fid_cond_mrkt_div_code' not in params and 'FID_COND_MRKT_DIV_CODE' not in params:
+            params['fid_cond_mrkt_div_code'] = 'J'
+
+        return params
 
     def _safe_numeric_convert(self, value):
         """문자열을 안전하게 숫자로 변환하는 헬퍼 함수"""
