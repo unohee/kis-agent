@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pykis"
-version = "1.1.0"
+version = "1.1.1"
 description = "한국투자증권 OpenAPI Python Wrapper - Korea Investment & Securities Trading API Client"
 readme = "README.md"
 requires-python = ">=3.8"

@@ -8,6 +8,10 @@ PyKIS 웹소켓 모듈의 공개 API 인터페이스를 정의합니다.
 
 ## 🏗️ 클래스 참조
 
+### 공식 진입점
+- 권장: `from pykis import WebSocketClient` 사용 (RefactoredWebSocketClient)
+- 비권장(deprecated): `KisWebSocket` — 내부 호환만 유지, 신규 코드는 사용하지 마세요.
+
 ### WSAgent
 
 다중 구독을 관리하는 핵심 웹소켓 에이전트입니다.
@@ -45,6 +49,12 @@ ws_client = agent.websocket(
 # 직접 생성
 from pykis.websocket.ws_agent import WSAgent
 ws_agent = WSAgent(approval_key="your_approval_key")
+
+## 🔐 승인키 발급 정책 (Fail‑Fast)
+
+- `Agent.websocket()`은 내부 `KISClient.get_ws_approval_key()`를 호출해 승인키를 발급하고, 발급 키로 WebSocket 클라이언트를 생성합니다.
+- 승인키 발급 실패(빈 응답/예외) 시 즉시 예외를 발생시킵니다(traceback 포함). 재시도 로직이나 더미 키 폴백은 제공하지 않습니다.
+- 운영 전에는 REST 인증(앱키/시크릿, 계좌정보, 베이스 URL)과 네트워크 연결 상태를 먼저 점검하세요.
 ```
 
 #### 메서드

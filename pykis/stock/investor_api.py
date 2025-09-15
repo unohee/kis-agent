@@ -24,11 +24,11 @@ class StockInvestorAPI(BaseAPI):
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": ticker,
         }
+        # retries 파라미터는 Dict 경로에서 사용하지 않으므로 무시
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['INQUIRE_INVESTOR'],
             tr_id="FHKST01010900",
             params=params,
-            retries=retries
         )
 
     def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[Dict]:
@@ -55,7 +55,7 @@ class StockInvestorAPI(BaseAPI):
         )
 
     def get_frgnmem_pchs_trend(self, code: str, date: str) -> Optional[Dict[str, Any]]:
-        """외국인 매수 추이 조회 (rt_cd 메타데이터가 포함된)"""
+        """종목별 외국인 당일 순매수 추이 조회 (rt_cd 메타데이터가 포함된)"""
         return self._make_request_dict(
             endpoint=API_ENDPOINTS['FRGNMEM_PCHS_TREND'],
             tr_id="FHKST644400C0",

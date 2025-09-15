@@ -19,25 +19,13 @@ from .investor_api import StockInvestorAPI
 from .condition import ConditionAPI
 from .investor import InvestorPositionAnalyzer
 
-# 기존 import (필요시 접근)
-try:
-    from .api import StockAPI as LegacyStockAPI
-except ImportError:
-    LegacyStockAPI = None  # 레거시 클래스가 없을 경우
-
-# 하위 호환성을 위한 별칭
-MarketAPI = StockAPI  # 기존 별칭 유지
-
 __all__ = [
     'StockAPI',           # 메인 Facade (Strategy Pattern으로 구현)
     'StockPriceAPI',      # 시세 전담 (SRP 적용)
     'StockMarketAPI',     # 시장 정보 전담 (SRP 적용)
     'StockInvestorAPI',   # 투자자 정보 전담 (SRP 적용)
     'ConditionAPI',       # 조건검색 (BaseAPI 상속)
-    'MarketAPI',          # 기존 별칭 (하위 호환성)
     'InvestorPositionAnalyzer',  # 기존 유틸리티
 ]
 
-# 레거시 지원
-if LegacyStockAPI:
-    __all__.append('LegacyStockAPI')
+# 하위 호환 별칭 제거: 레거시 사용 중단 정책

@@ -2,6 +2,21 @@
 
      .
 
+## [1.1.1] - 2025-09-15
+
+### 변경 사항 (WebSocket)
+- 공식 진입점 단일화: `WebSocketClient`(= `RefactoredWebSocketClient`)를 공개 API로 권장. 루트(`from pykis import WebSocketClient`)에서 사용.
+- 레거시 `KisWebSocket`는 deprecated 상태로 내부 호환만 유지(루트 공개 제거). 테스트/기존 코드는 경고와 함께 동작.
+- `Agent.websocket()`이 `WebSocketClient`를 반환하도록 표준화.
+
+### 승인키 발급 정책 (Fail‑Fast)
+- 승인키 발급 실패 시 즉시 예외 발생 + 한국어 로깅 + traceback 포함. 더미 키 폴백 제거.
+- 승인키는 `Agent.client.get_ws_approval_key()`와 동일한 자격 증명 흐름으로 발급.
+
+### 레거시 정리
+- `pykis.stock.api.StockAPI`는 구현을 제거하고 Facade(`api_facade.StockAPI`)만 재노출. 주문/가능조회/휴장일/지수·선물 API는 Facade로 이관.
+- 문서에 WebSocketClient 공식화 및 승인키 fail‑fast 정책 명시.
+
 ## [1.1.0] - 2025-01-12
 
 ###   

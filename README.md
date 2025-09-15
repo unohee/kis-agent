@@ -139,6 +139,16 @@ report_path = generate_trading_report(
 
 ##    
 
+공식 웹소켓 진입점은 `WebSocketClient`입니다.
+
+```python
+from pykis import WebSocketClient
+# 혹은 agent.websocket()으로 생성
+ws_client = agent.websocket(stock_codes=["005930"], enable_index=True)
+```
+
+`KisWebSocket`은 deprecated이며 테스트/내부 호환만 유지됩니다.
+
 ```python
 #    
 ws_client = agent.websocket(
@@ -151,6 +161,11 @@ ws_client = agent.websocket(
 #  
 import asyncio
 asyncio.run(ws_client.start())
+
+# 주의: 승인키 발급 정책 (fail-fast)
+# - agent.websocket()은 내부 KISClient에서 approval_key를 발급해 주입합니다.
+# - 승인키 발급 실패 시 즉시 예외를 발생시키고(traceback 포함) 로깅합니다.
+# - 네트워크/자격 증명 문제를 먼저 해결한 뒤 재시도하세요.
 ```
 
 ##   Excel 

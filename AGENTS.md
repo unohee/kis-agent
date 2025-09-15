@@ -1,4 +1,46 @@
 # pykis 개발 가이드
+# Repository Guidelines
+
+본 문서는 pykis 저장소의 기여자를 위한 간결한 운영 가이드입니다. 핵심 구조, 개발/테스트 명령, 코드 스타일, 커밋/PR 규칙을 한눈에 제공합니다.
+
+## Project Structure & Module Organization
+- `pykis/`: 라이브러리 소스 (Agent, Client, APIs)
+- `tests/`: 테스트 스위트(`pytest` 기준, `test_*.py`)
+- `examples/`: 사용 예제 및 실험 스크립트
+- `docs/`: 문서 및 참고 자료
+- 루트: `pyproject.toml`(도구 설정), `README.md`, `CHANGELOG.md`
+
+## Build, Test, and Development Commands
+- 가상환경: `python -m venv .venv && source .venv/bin/activate`
+- 개발 설치: `pip install -e .[dev]`
+- 테스트: `pytest` (기본 커버리지 수집), 통합 제외: `pytest -m "not integration"`
+- 포맷팅: `black . && isort .`
+- 정적 분석: `flake8 . && mypy pykis`
+- 배포 아카이브: `python -m build` (필요 시 `pip install build`)
+
+## Coding Style & Naming Conventions
+- 포맷: `black`(line length 88) + `isort`(profile=black)
+- 린트: `flake8`; 타입: `mypy`(함수에 타입 힌트 필수, untyped 금지)
+- 파이썬 컨벤션: 4-space 들여쓰기, `snake_case` 함수/변수, `PascalCase` 클래스
+- Docstring: 모든 공개 API에 목적/파라미터/반환/예외 명시(한국어 권장)
+- 로깅: 한국어 메시지 일관 사용
+
+## Testing Guidelines
+- 프레임워크: `pytest`(+ `pytest-cov`), 테스트 경로: `tests/`, 패턴: `test_*.py`
+- 마커: 통합 테스트는 `@pytest.mark.integration`
+- 실행 예: `pytest -v --cov=pykis` 또는 `pytest -m "not integration"`
+- 단위 테스트 우선, 공용 API 경계(Agent/Client) 중심으로 검증
+
+## Commit & Pull Request Guidelines
+- 커밋 컨벤션: Conventional Commits 권장 — `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, `perf:`
+- 이모지 사용은 지양(과거 정리됨); 한국어/영어 혼용 가능하나 타입 접두사는 영어 유지
+- PR 요건: 변경 의도/범위/테스트 결과 요약, 관련 이슈 링크, 스크린샷·로그(필요 시)
+- 작은 단위로 PR 제출, 기능/리팩터 분리
+
+## Security & Configuration
+- 민감 정보는 환경변수 또는 안전한 비밀 관리 사용(.env 사용 시 로컬 한정, 예시는 `*.example` 참고)
+- 실제 주문 API 포함: 테스트 시 모의/차단 설정을 우선 적용하고 주의 깊게 실행
+- 네트워크/호출 제한 준수, 에러 시 한국어 로깅과 재현 절차를 PR에 포함
 
 ## 프로젝트 개요
 pykis는 한국투자증권 API를 Python으로 쉽게 사용할 수 있도록 래핑한 라이브러리입니다. 본 프로젝트는 pip를 통해 설치하여 사용할 수 있는 형태로 개발되고 있습니다.

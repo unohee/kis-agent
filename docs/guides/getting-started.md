@@ -158,6 +158,7 @@ from pykis.websocket import WSAgent, SubscriptionType
 
 async def advanced_websocket():
     # WSAgent 직접 사용
+    # 승인키는 KISClient에서 발급되며, 실패 시 즉시 예외가 발생합니다 (fail-fast).
     approval_key = client.get_ws_approval_key()
     agent = WSAgent(approval_key)
     

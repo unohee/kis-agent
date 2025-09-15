@@ -9,7 +9,7 @@ Facade Pattern을 적용하여 복잡한 하위 시스템을 단순화
 """
 
 from typing import Optional, Dict, Any, List, Tuple
-from ..core.client import KISClient
+from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
 
 from .price_api import StockPriceAPI
@@ -114,6 +114,250 @@ class StockAPI(BaseAPI):
     def get_foreign_broker_net_buy(self, code: str, foreign_brokers=None, date: str = None) -> Optional[tuple]:
         """외국계 증권사 순매수 집계"""
         return self.investor_api.get_foreign_broker_net_buy(code, foreign_brokers, date)
+
+    # ===== 주문 및 가능금액 관련 메서드 (레거시에서 이전) =====
+
+    def order_cash(
+        self,
+        ord_dv: str,
+        pdno: str,
+        ord_dvsn: str,
+        ord_qty: str,
+        ord_unpr: str,
+        excg_id_dvsn_cd: str = "KRX",
+        sll_type: str = "",
+        cndt_pric: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """국내주식주문(현금) — 매수/매도 주문 전송
+
+        Note:
+            레거시 StockAPI에서 옮겨온 구현으로, Facade에서도 동일한 인터페이스를 제공합니다.
+        """
+        if not ord_dv or ord_dv not in ["buy", "sell"]:
+            raise ValueError("ord_dv must be 'buy' or 'sell'")
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not ord_dvsn:
+            raise ValueError("ord_dvsn (주문구분) is required")
+        if not ord_qty:
+            raise ValueError("ord_qty (주문수량) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+
+        if not getattr(self, 'account', None):
+            raise ValueError("Account information is required for trading")
+
+        is_mock = getattr(self.client, 'is_mock', False)
+        tr_id = ("VTTC0011U" if ord_dv == "sell" else "VTTC0012U") if is_mock else ("TTTC0011U" if ord_dv == "sell" else "TTTC0012U")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_DVSN": ord_dvsn,
+            "ORD_QTY": ord_qty,
+            "ORD_UNPR": ord_unpr,
+            "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,
+            "SLL_TYPE": sll_type,
+            "CNDT_PRIC": cndt_pric,
+        }
+
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['ORDER_CASH'],
+            tr_id=tr_id,
+            params=params,
+            method='POST',
+        )
+
+    def order_credit(
+        self,
+        ord_dv: str,
+        pdno: str,
+        crdt_type: str,
+        ord_dvsn: str,
+        ord_qty: str,
+        ord_unpr: str,
+        loan_dt: str = "",
+        excg_id_dvsn_cd: str = "KRX",
+        sll_type: str = "",
+        rsvn_ord_yn: str = "N",
+        emgc_ord_yn: str = "",
+        cndt_pric: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """국내주식주문(신용) — 매수/매도 주문 전송 (모의 미지원)"""
+        if not ord_dv or ord_dv not in ["buy", "sell"]:
+            raise ValueError("ord_dv must be 'buy' or 'sell'")
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not crdt_type:
+            raise ValueError("crdt_type is required")
+        if not ord_dvsn:
+            raise ValueError("ord_dvsn (주문구분) is required")
+        if not ord_qty:
+            raise ValueError("ord_qty (주문수량) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+
+        if getattr(self.client, 'is_mock', False):
+            raise ValueError("신용거래는 모의투자에서 지원되지 않습니다")
+
+        if not getattr(self, 'account', None):
+            raise ValueError("Account information is required for trading")
+
+        tr_id = "TTTC0051U" if ord_dv == "sell" else "TTTC0052U"
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_DVSN": ord_dvsn,
+            "ORD_QTY": ord_qty,
+            "ORD_UNPR": ord_unpr,
+            "CRDT_TYPE": crdt_type,
+            "LOAN_DT": loan_dt,
+            "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,
+            "SLL_TYPE": sll_type,
+            "RSVN_ORD_YN": rsvn_ord_yn,
+            "EMGC_ORD_YN": emgc_ord_yn,
+            "CNDT_PRIC": cndt_pric,
+        }
+
+        return self.client.make_request(
+            endpoint=API_ENDPOINTS['ORDER_CREDIT'],
+            tr_id=tr_id,
+            params=params,
+            method='POST',
+        )
+
+    def inquire_psbl_order(
+        self,
+        pdno: str,
+        ord_unpr: str,
+        ord_dvsn: str = "00",
+        cma_evlu_amt_icld_yn: str = "N",
+        ovrs_icld_yn: str = "N",
+    ) -> Optional[Dict[str, Any]]:
+        """매수가능조회"""
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+        if not getattr(self, 'account', None):
+            raise ValueError("Account information is required for order inquiry")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_UNPR": ord_unpr,
+            "ORD_DVSN": ord_dvsn,
+            "CMA_EVLU_AMT_ICLD_YN": cma_evlu_amt_icld_yn,
+            "OVRS_ICLD_YN": ovrs_icld_yn,
+        }
+
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_PSBL_ORDER'],
+            tr_id="TTTC8908R",
+            params=params,
+        )
+
+    def inquire_credit_psamount(
+        self,
+        pdno: str,
+        ord_unpr: str,
+        ord_dvsn: str = "00",
+        crdt_type: str = "21",
+        cma_evlu_amt_icld_yn: str = "N",
+        ovrs_icld_yn: str = "N",
+    ) -> Optional[Dict[str, Any]]:
+        """신용매수가능조회"""
+        if not pdno:
+            raise ValueError("pdno (종목코드) is required")
+        if not ord_unpr:
+            raise ValueError("ord_unpr (주문단가) is required")
+        if not getattr(self, 'account', None):
+            raise ValueError("Account information is required for credit inquiry")
+
+        params = {
+            "CANO": self.account.get("CANO", ""),
+            "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", ""),
+            "PDNO": pdno,
+            "ORD_DVSN": ord_dvsn,
+            "CRDT_TYPE": crdt_type,
+            "CMA_EVLU_AMT_ICLD_YN": cma_evlu_amt_icld_yn,
+            "OVRS_ICLD_YN": ovrs_icld_yn,
+            "ORD_UNPR": ord_unpr,
+        }
+
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_CREDIT_PSAMOUNT'],
+            tr_id="TTTC8909R",
+            params=params,
+        )
+
+    # ===== 추가 유틸 조회 =====
+
+    def get_possible_order(self, code: str, price: str, order_type: str = "01") -> Optional[Dict[str, Any]]:
+        """매수 가능 주문 조회 (rt_cd 메타데이터 포함)"""
+        if not getattr(self, 'account', None):
+            import logging
+            logging.error("계좌 정보가 없습니다.")
+            return None
+
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_PSBL_ORDER'],
+            tr_id="TTTC8908R",
+            params={
+                "CANO": self.account['CANO'],
+                "ACNT_PRDT_CD": self.account['ACNT_PRDT_CD'],
+                "PDNO": code,
+                "ORD_UNPR": price,
+                "ORD_DVSN": order_type,
+                "CMA_EVLU_AMT_ICLD_YN": "Y",
+                "OVRS_ICLD_YN": "Y",
+            },
+        )
+
+    def get_holiday_info(self, date: Optional[str] = None) -> Optional[Dict]:
+        """국내 휴장일 정보 조회 (rt_cd 메타데이터 포함)"""
+        params: Dict[str, Any] = {'CTX_AREA_NK': '', 'CTX_AREA_FK': ''}
+        if date:
+            params['BASS_DT'] = date
+
+        try:
+            return self._make_request_dict(
+                endpoint=API_ENDPOINTS['CHK_HOLIDAY'],
+                tr_id="CTCA0903R",
+                params=params,
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"국내 휴장일 정보 조회 실패: {e}")
+            return None
+
+    # ===== 선물/지수 관련 =====
+
+    def get_kospi200_index(self, futures_month: str = "202409") -> Optional[Dict[str, Any]]:
+        """KOSPI 200 지수 시세 조회 (기초자산)"""
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_INDEX_PRICE'],
+            tr_id="FHMIF10100000",
+            params={
+                "fid_cond_mrkt_cls_code": "K21",
+                "fid_input_iscd": futures_month,
+            },
+        )
+
+    def get_futures_price(self, code: str) -> Optional[Dict[str, Any]]:
+        """선물 시세 조회"""
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS['INQUIRE_FUTURES_PRICE'],
+            tr_id="FHMIF10000000",
+            params={
+                "fid_cond_mrkt_div_code": "F",
+                "fid_input_iscd": code,
+            },
+        )
 
 
 # 하위 호환성을 위한 별칭

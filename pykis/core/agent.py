@@ -1,10 +1,11 @@
 from .client import KISClient
 from .rate_limiter import RateLimiter
 from ..account.api import AccountAPI
-from ..stock.api import StockAPI
+from ..stock import StockAPI
 from ..stock import StockMarketAPI
 from ..program.trade import ProgramTradeAPI
 from ..websocket.client import KisWebSocket
+from ..websocket.factory import WebSocketClientFactory, ClientType
 from .base_exception_handler import BaseExceptionHandler, exception_handler
 from typing import Optional, Dict, Any, List
 import pandas as pd
@@ -47,25 +48,26 @@ class Agent(BaseExceptionHandler):
 
     def __init__(
         self,
-        app_key: str,
-        app_secret: str,
-        account_no: str,
-        account_code: str,
+        app_key: Optional[str] = None,
+        app_secret: Optional[str] = None,
+        account_no: Optional[str] = None,
+        account_code: Optional[str] = None,
         base_url: str = "https://openapi.koreainvestment.com:9443",
         client: Optional[KISClient] = None,
         account_info: Optional[Dict] = None,
         enable_rate_limiter: bool = True,
         rate_limiter: Optional[RateLimiter] = None,
         rate_limiter_config: Optional[Dict[str, Any]] = None,
+        env_path: Optional[str] = None,
     ):
         """
         Agent를 초기화합니다.
 
         Args:
-            app_key (str): 한국투자증권 API 앱 키 (필수)
-            app_secret (str): 한국투자증권 API 앱 시크릿 (필수)
-            account_no (str): 계좌번호 (필수)
-            account_code (str): 계좌 상품코드 (필수)
+            app_key (Optional[str]): 한국투자증권 API 앱 키
+            app_secret (Optional[str]): 한국투자증권 API 앱 시크릿
+            account_no (Optional[str]): 계좌번호
+            account_code (Optional[str]): 계좌 상품코드
             base_url (str): API 베이스 URL (기본값: 실전투자 URL)
                 - 실전투자: "https://openapi.koreainvestment.com:9443"
                 - 모의투자: "https://openapivts.koreainvestment.com:29443"
@@ -79,6 +81,8 @@ class Agent(BaseExceptionHandler):
                 - min_interval_ms: 최소 간격(밀리초) (기본값: 10)
                 - burst_size: 버스트 크기 (기본값: 15)
                 - enable_adaptive: 적응형 속도 조절 (기본값: True)
+            env_path (str, optional): 하위 호환을 위한 매개변수로 더 이상 사용되지 않습니다.
+                환경 변수 또는 인자로 직접 키를 전달하세요.
 
         Raises:
             ValueError: 필수 매개변수가 누락되었을 때
@@ -117,6 +121,20 @@ class Agent(BaseExceptionHandler):
         """
         # BaseExceptionHandler 초기화
         super().__init__("Agent")
+        # env_path가 제공되면 .env 로드 (하위 호환 지원)
+        if env_path:
+            try:
+                from dotenv import load_dotenv
+                load_dotenv(env_path)
+                # 비어있는 인자만 환경변수에서 보완
+                app_key = app_key or os.getenv("KIS_APP_KEY") or os.getenv("APP_KEY") or os.getenv("MY_APP")
+                app_secret = app_secret or os.getenv("KIS_APP_SECRET") or os.getenv("APP_SECRET") or os.getenv("MY_SEC")
+                account_no = account_no or os.getenv("KIS_ACCOUNT_NO") or os.getenv("CANO") or os.getenv("MY_ACCT_STOCK")
+                account_code = account_code or os.getenv("KIS_ACCOUNT_CODE") or os.getenv("ACNT_PRDT_CD") or os.getenv("MY_PROD")
+                base_url = os.getenv("KIS_BASE_URL", base_url)
+                self.logger.info("env_path에서 환경 변수를 로드했습니다.")
+            except Exception:
+                self.logger.warning("env_path 처리 중 오류가 발생했으며 기본 인자를 사용합니다.")
         
         # 필수 매개변수 검증
         if not all([app_key, app_secret, account_no, account_code]):
@@ -190,24 +208,35 @@ class Agent(BaseExceptionHandler):
         # API 모듈 초기화
         self._init_apis()
 
-    def _ensure_valid_token(self, config):
-        """토큰 유효성 검증 및 자동 재발급"""
+    def _ensure_valid_token(self, config: Optional[KISConfig]) -> None:
+        """
+        토큰 유효성 검증 및 자동 재발급
+
+        - 외부에서 `KISClient` 인스턴스를 주입한 경우(`config is None`)에는 클라이언트가
+          자체적으로 토큰을 관리하므로 이 단계에서 별도 검증을 생략한다.
+        - 내부에서 `KISClient`를 생성한 경우에만 저장된 토큰을 확인하고 필요 시 발급한다.
+        """
+        # 한국어 로깅 일관성 유지 및 외부 클라이언트 주입 시 조기 반환
+        if config is None:
+            self.logger.info("외부 클라이언트가 제공되어 토큰 검증을 생략합니다.")
+            return
+
         try:
             # 기존 토큰 확인
             saved_token = read_token()
 
             if saved_token is None:
                 # 토큰이 없거나 만료된 경우 새로 발급
-                print("[Agent] 토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다.")
+                self.logger.info("토큰이 없거나 만료되었습니다. 새 토큰을 발급합니다.")
                 auth(config=config)
-                print("[Agent] 토큰 발급이 완료되었습니다.")
+                self.logger.info("토큰 발급이 완료되었습니다.")
             else:
                 # 유효한 토큰이 있는 경우
-                print("[Agent] 유효한 토큰이 확인되었습니다.")
+                self.logger.info("유효한 토큰이 확인되었습니다.")
 
         except Exception as e:
-            print(f"[Agent] 토큰 검증/발급 중 오류 발생: {e}")
             # 토큰 발급 실패는 중요한 문제이므로 예외 재발생
+            self.logger.error("토큰 검증/발급 중 오류 발생", exc_info=True)
             raise RuntimeError(f"토큰 자동 발급 실패: {e}")
 
     def _init_apis(self):
@@ -224,30 +253,45 @@ class Agent(BaseExceptionHandler):
         enable_index: bool = True,
         enable_program_trading: bool = True,
         enable_ask_bid: bool = False,
-    ) -> KisWebSocket:
+    ):
         """
-        실시간 웹소켓 클라이언트를 생성합니다.
+        실시간 WebSocket 클라이언트 생성 (표준: WebSocketClient)
 
-        Args:
-            stock_codes (list, optional): 구독할 종목코드 리스트. Defaults to None.
-            purchase_prices (dict, optional): 매수 정보 딕셔너리
-                {'종목코드': (매입가격, 보유 수량)}. Defaults to None.
-            enable_index (bool): 지수 실시간 데이터 구독 여부. Defaults to True.
-            enable_program_trading (bool): 프로그램매매 실시간 데이터 구독 여부. Defaults to True.
-            enable_ask_bid (bool): 호가 실시간 데이터 구독 여부. Defaults to False.
-
-        Returns:
-            KisWebSocket: 웹소켓 클라이언트 객체
+        - 레거시 `KisWebSocket` 대신 리팩토링된 `WebSocketClient`를 반환합니다.
+        - 테스트/로컬 환경에서는 승인키 없이도 객체를 생성할 수 있도록 더미 키를 사용합니다.
         """
-        return KisWebSocket(
-            client=self.client,
-            account_info=self.account_info,
-            stock_codes=stock_codes,
-            purchase_prices=purchase_prices,
-            enable_index=enable_index,
-            enable_program_trading=enable_program_trading,
-            enable_ask_bid=enable_ask_bid,
+        # 승인키는 Agent의 클라이언트로부터 발급(실패 시 즉시 실패)
+        try:
+            approval_key = self.client.get_ws_approval_key()
+            if not approval_key:
+                self.logger.error("웹소켓 승인키 발급 실패: 빈 응답")
+                raise RuntimeError("웹소켓 승인키 발급 실패")
+        except Exception as e:
+            # 한국어 로깅 + traceback 포함, 즉시 실패
+            self.logger.error("웹소켓 승인키 발급 중 오류 발생", exc_info=True)
+            raise
+
+        # 기본 타입의 클라이언트 생성
+        ws_client = WebSocketClientFactory.create_client(
+            client_type=ClientType.BASIC,
+            approval_key=approval_key,
         )
+
+        # 초기 구독 구성
+        for code in (stock_codes or []):
+            ws_client.add_stock_subscription(code)
+        if enable_index:
+            ws_client.enable_index_subscription()
+        if enable_program_trading:
+            ws_client.enable_program_trading_subscription()
+        if enable_ask_bid:
+            ws_client.enable_orderbook_subscription()
+
+        # 레거시 인터페이스 호환을 위해 필드 보강
+        # purchase_prices는 내부적으로 사용하지 않지만, 참조 가능하도록 보관
+        ws_client.purchase_prices = purchase_prices or {}
+
+        return ws_client
 
     # ============================================================================
     # 주식 시세 관련 메서드들 (StockAPI 위임)

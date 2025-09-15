@@ -1,5 +1,5 @@
 from .core.agent import Agent
-from .websocket.client import KisWebSocket
+from .websocket.refactored_client import RefactoredWebSocketClient as WebSocketClient
 
 __version__ = "0.1.22"
-__all__ = ['Agent', 'KisWebSocket']
+__all__ = ['Agent', 'WebSocketClient']

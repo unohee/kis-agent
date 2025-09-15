@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import logging
 
 from ..core.client import KISClient
+import warnings
 from ..stock.api import StockAPI
 
 # 로깅 레벨을 INFO로 설정
@@ -36,6 +37,12 @@ class KisWebSocket:
             enable_program_trading (bool): 프로그램매매 실시간 데이터 구독 여부. Defaults to True.
             enable_ask_bid (bool): 호가 실시간 데이터 구독 여부. Defaults to False.
         """
+        # Deprecated 안내: 새로운 WebSocket 클라이언트 사용 유도
+        warnings.warn(
+            "KisWebSocket은 deprecated입니다. 실사용은 RefactoredWebSocketClient 또는 WebSocketClientFactory를 사용하세요.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.client = client
         self.account_info = account_info
         self.stock_api = StockAPI(client=client, account_info=account_info)
