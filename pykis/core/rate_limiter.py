@@ -19,10 +19,10 @@ class RateLimiter:
     
     def __init__(
         self,
-        requests_per_second: int = 20,  # API 최대 제한 활용 (20회/초)
-        requests_per_minute: int = 1000,  # API 최대 제한 활용 (1000회/분)
-        min_interval_ms: int = 10,       # 최적화된 최소 간격 (10ms)
-        burst_size: int = 15,             # 순간 처리량 증대
+        requests_per_second: int = 18,  # 안정적 운영 기준 (API 최대 20회/초)
+        requests_per_minute: int = 900,  # 안정적 운영 기준 (API 최대 1000회/분)
+        min_interval_ms: int = 50,       # 안전한 최소 간격 (50ms)
+        burst_size: int = 10,             # 순간 처리량 (안정성 우선)
         enable_adaptive: bool = True      # 적응형 속도 조절 활성화
     ):
         """
