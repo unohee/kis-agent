@@ -28,7 +28,7 @@ jobs:
 
     - name: Run basic tests
       run: |
-        pytest tests/test_cache_integration.py tests/test_cache_realworld.py tests/test_cache_ttl.py tests/test_exception_handling.py -v || true
+        pytest tests/test_cache_integration.py tests/test_cache_realworld.py tests/test_cache_ttl.py tests/test_exception_handling.py -v
 
   lint:
     runs-on: ubuntu-latest
@@ -47,6 +47,6 @@ jobs:
 
     - name: Check formatting
       run: |
-        black --check pykis/ --diff || true
-        isort --check-only pykis/ --diff || true
-        flake8 pykis/ --max-line-length=100 --ignore=E501,W503 || true
+        black --check pykis/ --diff
+        isort --check-only pykis/ --diff
+        flake8 pykis/ --max-line-length=100 --ignore=E501,W503
