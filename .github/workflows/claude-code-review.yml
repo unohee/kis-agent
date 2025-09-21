@@ -1,40 +1,54 @@
-name: Code Review
+name: Claude Code Review
 
 on:
   pull_request:
     types: [opened, synchronize]
+    # Optional: Only run on specific file changes
+    # paths:
+    #   - "src/**/*.ts"
+    #   - "src/**/*.tsx"
+    #   - "src/**/*.js"
+    #   - "src/**/*.jsx"
 
 jobs:
-  code-quality-check:
-    name: Code Quality Check
+  claude-review:
+    # Optional: Filter by PR author
+    # if: |
+    #   github.event.pull_request.user.login == 'external-contributor' ||
+    #   github.event.pull_request.user.login == 'new-developer' ||
+    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.12'
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality and best practices
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+            
+            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install black isort flake8
+            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+          
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 
-    - name: Quality check
-      run: |
-        echo "## 📋 코드 품질 검토" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-
-        # 기본 문법 검사
-        python -c "import py_compile; import glob; [py_compile.compile(f, doraise=True) for f in glob.glob('pykis/**/*.py', recursive=True)]" && echo "✅ 문법 검사 통과" >> $GITHUB_STEP_SUMMARY || echo "❌ 문법 오류 발견" >> $GITHUB_STEP_SUMMARY
-
-        # 스타일 검사
-        black --check pykis/ --diff || echo "⚠️ 포맷팅 필요" >> $GITHUB_STEP_SUMMARY
-        isort --check-only pykis/ --diff || echo "⚠️ import 정렬 필요" >> $GITHUB_STEP_SUMMARY
-        flake8 pykis/ --max-line-length=100 --ignore=E501,W503 || echo "⚠️ 린팅 이슈 발견" >> $GITHUB_STEP_SUMMARY
-
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "🔍 코드 품질 검토 완료" >> $GITHUB_STEP_SUMMARY
