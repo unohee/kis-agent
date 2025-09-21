@@ -1,0 +1,88 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files: |
+          *.py
+          *.md
+          *.yml
+          *.yaml
+          *.toml
+          *.txt
+
+    - name: Claude Code Review
+      if: steps.changed-files.outputs.any_changed == 'true'
+      uses: anthropics/claude-code-review-action@v1
+      with:
+        claude_api_key: ${{ secrets.CLAUDE_API_KEY }}
+        files: ${{ steps.changed-files.outputs.all_changed_files }}
+        focus_areas: |
+          - 코드 품질 및 가독성
+          - 보안 취약점
+          - 성능 최적화 가능성
+          - 한국투자증권 API 사용 모범 사례
+          - 예외 처리 및 오류 핸들링
+          - 문서화 개선사항
+        exclude_patterns: |
+          - "*.pyc"
+          - "__pycache__/"
+          - ".pytest_cache/"
+          - "*.log"
+        comment_on_pr: true
+        review_level: "detailed"
+        language: "ko"
+
+  code-quality-check:
+    name: Pre-Review Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Quick quality check
+      run: |
+        echo "## 📋 코드 품질 사전 검토" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # 기본 문법 검사
+        python -m py_compile pykis/*.py && echo "✅ 문법 검사 통과" >> $GITHUB_STEP_SUMMARY || echo "❌ 문법 오류 발견" >> $GITHUB_STEP_SUMMARY
+
+        # 스타일 검사 (느슨한 기준)
+        flake8 pykis/ --count --statistics --max-line-length=100 --ignore=E501,W503 || true
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🤖 Claude 상세 리뷰가 곧 시작됩니다..." >> $GITHUB_STEP_SUMMARY
