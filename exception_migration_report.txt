@@ -1,0 +1,131 @@
+================================================================================
+PyKIS 예외 처리 마이그레이션 분석 보고서
+================================================================================
+
+[ 전체 통계 ]
+- 전체 파일 수: 41
+- 이슈가 있는 파일: 20
+- 발견된 이슈: 196
+
+[ 이슈 유형별 통계 ]
+- GENERIC_EXCEPTION: 100건
+- NO_RAISE_AFTER_LOG: 52건
+- SWALLOW_EXCEPTION: 44건
+
+[ 파일별 상세 이슈 ]
+
+📁 pykis/account/api.py
+  ├─ Line 195: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 196: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"계좌별 주문 수량 조회 실패: {e}")
+  │  개선: logging 후 예외를 반드시 raise
+  ├─ Line 197: SWALLOW_EXCEPTION
+  │  코드: return None
+  │  개선: 예외를 raise하거나 명시적인 기본값 반환
+  ├─ Line 231: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 232: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"주문 가능 금액 조회 실패: {e}")
+  │  개선: logging 후 예외를 반드시 raise
+
+📁 pykis/account/models.py
+  ├─ Line 109: SWALLOW_EXCEPTION
+  │  코드: return None
+  │  개선: 예외를 raise하거나 명시적인 기본값 반환
+
+📁 pykis/core/agent.py
+  ├─ Line 208: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 1048: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 1049: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"분봉 DB 초기화 실패: {e}")
+  │  개선: logging 후 예외를 반드시 raise
+  ├─ Line 1078: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 1079: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"CSV to DB migration failed: {e}")
+  │  개선: logging 후 예외를 반드시 raise
+
+📁 pykis/core/auth.py
+  ├─ Line 127: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 129: SWALLOW_EXCEPTION
+  │  코드: return None
+  │  개선: 예외를 raise하거나 명시적인 기본값 반환
+  ├─ Line 399: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+
+📁 pykis/core/base_api.py
+  ├─ Line 317: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 366: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+
+📁 pykis/core/base_exception_handler.py
+  ├─ Line 192: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+
+📁 pykis/core/client.py
+  ├─ Line 239: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 260: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 516: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 568: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 570: SWALLOW_EXCEPTION
+  │  코드: return None
+  │  개선: 예외를 raise하거나 명시적인 기본값 반환
+
+📁 pykis/core/exceptions.py
+  ├─ Line 186: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+
+📁 pykis/core/response_processor.py
+  ├─ Line 87: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 88: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"DataFrame 변환 실패: {e}")
+  │  개선: logging 후 예외를 반드시 raise
+  ├─ Line 89: SWALLOW_EXCEPTION
+  │  코드: return None
+  │  개선: 예외를 raise하거나 명시적인 기본값 반환
+  ├─ Line 172: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+
+📁 pykis/stock/api.py
+  ├─ Line 210: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 211: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"주식 회원사 조회 예외 발생 (시도 {attempt+1}/{retries}): {e}")
+  │  개선: logging 후 예외를 반드시 raise
+  ├─ Line 267: GENERIC_EXCEPTION
+  │  코드: except Exception as e:
+  │  개선: 특정 예외 타입 사용 권장 (APIException, ValidationException 등)
+  ├─ Line 268: NO_RAISE_AFTER_LOG
+  │  코드: logging.error(f"Failed to estimate accumulated volume: {e}", exc_info=True)
+  │  개선: logging 후 예외를 반드시 raise
+  ├─ Line 269: SWALLOW_EXCEPTION
+  │  코드: return None
+  │  개선: 예외를 raise하거나 명시적인 기본값 반환
