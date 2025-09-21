@@ -15,46 +15,55 @@ from functools import wraps
 # PyKIS 전용 예외 클래스들
 class PyKISException(Exception):
     """PyKIS 기본 예외 클래스"""
+
     pass
 
 
 class APIException(PyKISException):
     """API 호출 관련 예외"""
+
     pass
 
 
 class AuthenticationException(PyKISException):
     """인증 관련 예외"""
+
     pass
 
 
 class ValidationException(PyKISException):
     """데이터 검증 관련 예외"""
+
     pass
 
 
 class NetworkException(PyKISException):
     """네트워크 관련 예외"""
+
     pass
 
 
 class DataProcessingException(PyKISException):
     """데이터 처리 관련 예외"""
+
     pass
 
 
 class ConfigurationException(PyKISException):
     """설정 관련 예외"""
+
     pass
 
 
 class RateLimitException(PyKISException):
     """Rate Limit 관련 예외"""
+
     pass
 
 
 class WebSocketException(PyKISException):
     """WebSocket 관련 예외"""
+
     pass
 
 
@@ -75,10 +84,12 @@ class ExceptionHandler:
             logger_name = f"pykis.{self.__class__.__module__}.{self.__class__.__name__}"
         self._exception_logger = logging.getLogger(logger_name)
 
-    def _handle_exception(self,
-                         exception: Exception,
-                         context: str,
-                         reraise_as: Optional[Type[PyKISException]] = None) -> None:
+    def _handle_exception(
+        self,
+        exception: Exception,
+        context: str,
+        reraise_as: Optional[Type[PyKISException]] = None,
+    ) -> None:
         """
         예외 처리 핵심 메서드
 
@@ -93,7 +104,7 @@ class ExceptionHandler:
         # 전체 traceback 정보 캡처
         exc_type, exc_value, exc_tb = sys.exc_info()
         tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
-        tb_text = ''.join(tb_lines)
+        tb_text = "".join(tb_lines)
 
         # 에러 메시지 구성
         error_msg = f"[{context}] {exception.__class__.__name__}: {str(exception)}"
@@ -119,9 +130,11 @@ class ExceptionHandler:
         self._exception_logger.debug(message)
 
 
-def handle_exceptions(context: str = None,
-                     reraise_as: Type[PyKISException] = None,
-                     exceptions_to_catch: Union[Type[Exception], tuple] = Exception):
+def handle_exceptions(
+    context: str = None,
+    reraise_as: Type[PyKISException] = None,
+    exceptions_to_catch: Union[Type[Exception], tuple] = Exception,
+):
     """
     예외 처리 데코레이터
 
@@ -135,6 +148,7 @@ def handle_exceptions(context: str = None,
         def get_stock_info(self, code):
             return self.api.get_info(code)
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -142,7 +156,7 @@ def handle_exceptions(context: str = None,
                 return func(*args, **kwargs)
             except exceptions_to_catch as e:
                 # self가 첫 번째 인자인 경우 (메서드)
-                if args and hasattr(args[0], '_handle_exception'):
+                if args and hasattr(args[0], "_handle_exception"):
                     error_context = context or f"{func.__name__}"
                     args[0]._handle_exception(e, error_context, reraise_as)
                 else:
@@ -150,7 +164,7 @@ def handle_exceptions(context: str = None,
                     error_context = context or f"{func.__name__}"
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
-                    tb_text = ''.join(tb_lines)
+                    tb_text = "".join(tb_lines)
 
                     error_msg = f"[{error_context}] {e.__class__.__name__}: {str(e)}"
                     logging.error(f"{error_msg}\n{tb_text}")
@@ -159,7 +173,9 @@ def handle_exceptions(context: str = None,
                         raise reraise_as(f"{error_msg}\n원본 예외: {e}") from e
                     else:
                         raise
+
         return wrapper
+
     return decorator
 
 
@@ -184,11 +200,13 @@ def safe_execute(func, *args, context: str = None, **kwargs) -> Any:
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        error_context = context or f"{func.__name__ if hasattr(func, '__name__') else 'unknown'}"
+        error_context = (
+            context or f"{func.__name__ if hasattr(func, '__name__') else 'unknown'}"
+        )
 
         exc_type, exc_value, exc_tb = sys.exc_info()
         tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
-        tb_text = ''.join(tb_lines)
+        tb_text = "".join(tb_lines)
 
         error_msg = f"[{error_context}] {e.__class__.__name__}: {str(e)}"
         logging.error(f"{error_msg}\n{tb_text}")
@@ -239,22 +257,20 @@ def ensure_type(value: Any, expected_type: type, name: str) -> Any:
 
 __all__ = [
     # 예외 클래스들
-    'PyKISException',
-    'APIException',
-    'AuthenticationException',
-    'ValidationException',
-    'NetworkException',
-    'DataProcessingException',
-    'ConfigurationException',
-    'RateLimitException',
-    'WebSocketException',
-
+    "PyKISException",
+    "APIException",
+    "AuthenticationException",
+    "ValidationException",
+    "NetworkException",
+    "DataProcessingException",
+    "ConfigurationException",
+    "RateLimitException",
+    "WebSocketException",
     # 핸들러 클래스
-    'ExceptionHandler',
-
+    "ExceptionHandler",
     # 데코레이터 및 유틸리티
-    'handle_exceptions',
-    'safe_execute',
-    'ensure_not_none',
-    'ensure_type',
+    "handle_exceptions",
+    "safe_execute",
+    "ensure_not_none",
+    "ensure_type",
 ]

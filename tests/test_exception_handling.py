@@ -22,7 +22,7 @@ from pykis.core.exceptions import (
     handle_exceptions,
     ensure_not_none,
     ensure_type,
-    safe_execute
+    safe_execute,
 )
 
 
@@ -53,6 +53,7 @@ class TestExceptionHandler:
 
     def test_handler_without_name(self):
         """이름 없이 핸들러 초기화"""
+
         class TestClass(ExceptionHandler):
             pass
 
@@ -132,10 +133,7 @@ class TestHandleExceptionsDecorator:
         """특정 예외만 캐치하는 데코레이터"""
 
         class TestAPI(ExceptionHandler):
-            @handle_exceptions(
-                context="특정 예외",
-                exceptions_to_catch=ValueError
-            )
+            @handle_exceptions(context="특정 예외", exceptions_to_catch=ValueError)
             def method_with_specific_catch(self, error_type):
                 if error_type == "value":
                     raise ValueError("값 에러")
@@ -190,6 +188,7 @@ class TestSafeExecute:
 
     def test_safe_execute_success(self):
         """정상 실행"""
+
         def add(a, b):
             return a + b
 
@@ -198,6 +197,7 @@ class TestSafeExecute:
 
     def test_safe_execute_with_exception(self, caplog):
         """예외 발생 시"""
+
         def failing_func():
             raise ValueError("실패")
 
@@ -275,10 +275,7 @@ class TestIntegrationWithStockAPI:
         assert "API 응답이 없습니다" in str(exc_info.value)
 
         # 오류 응답
-        mock_client.make_request.return_value = {
-            "rt_cd": "1",
-            "msg1": "시스템 점검 중"
-        }
+        mock_client.make_request.return_value = {"rt_cd": "1", "msg1": "시스템 점검 중"}
 
         with pytest.raises(APIException) as exc_info:
             api.get_stock_price("005930")

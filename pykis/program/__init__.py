@@ -4,8 +4,4 @@ from .trade import ProgramTradeAPI
 ProgramAPI = ProgramTradeAPI
 ProgramTrade = ProgramTradeAPI
 
-__all__ = [
-    'ProgramTradeAPI',
-    'ProgramAPI',
-    'ProgramTrade'
-]
+__all__ = ["ProgramTradeAPI", "ProgramAPI", "ProgramTrade"]

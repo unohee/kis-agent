@@ -16,9 +16,4 @@ from .client import KISClient, API_ENDPOINTS
 from .auth import auth
 from .config import KISConfig
 
-__all__ = [
-    'KISClient',
-    'KISConfig',
-    'auth',
-    'Agent'
-]
+__all__ = ["KISClient", "KISConfig", "auth", "Agent"]

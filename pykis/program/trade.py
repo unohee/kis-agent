@@ -3,6 +3,7 @@ import pandas as pd
 from ..core.client import KISClient, API_ENDPOINTS
 from ..core.base_api import BaseAPI
 from datetime import datetime
+
 """
 program_trade_api.py - 프로그램 매매 정보 조회 전용 모듈
 
@@ -55,7 +56,9 @@ class ProgramTradeAPI(BaseAPI):
         """
         super().__init__(client, account_info, enable_cache, cache_config)
 
-    def get_program_trade_by_stock(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def get_program_trade_by_stock(
+        self, code: str, ref_date: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         종목별 프로그램매매추이(체결)를 조회합니다. ref_date가 없으면 당일 시간별, 있으면 해당일의 데이터를 조회합니다.
 
@@ -79,9 +82,9 @@ class ProgramTradeAPI(BaseAPI):
             pass
 
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK'],
+            endpoint=API_ENDPOINTS["PROGRAM_TRADE_BY_STOCK"],
             tr_id="FHPPG04650101",  # 종목별프로그램매매추이(체결)
-            params=params
+            params=params,
         )
 
     def get_program_trade_hourly_trend(self, code: str) -> Optional[Dict[str, Any]]:
@@ -96,14 +99,16 @@ class ProgramTradeAPI(BaseAPI):
         """
         return self.get_program_trade_by_stock(code, ref_date=None)
 
-    def get_program_trade_daily_summary(self, code: str, date_str: str) -> Optional[Dict[str, Any]]:
+    def get_program_trade_daily_summary(
+        self, code: str, date_str: str
+    ) -> Optional[Dict[str, Any]]:
         """
         종목별 프로그램매매추이(일별) - 일별 프로그램 매매 집계를 조회합니다.
 
         Args:
             code (str): 종목 코드 (예: "005930")
             date_str (str): 조회 일자 (YYYYMMDD 형식)
- 
+
         Returns:
             Optional[Dict[str, Any]]: rt_cd 메타데이터가 포함된 API 응답 데이터
                 - 성공 시: 일별 프로그램 매매 집계 정보를 포함한 응답 데이터
@@ -120,16 +125,18 @@ class ProgramTradeAPI(BaseAPI):
             >>> api.get_program_trade_daily_summary("005930", "20240726")
         """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS['PROGRAM_TRADE_BY_STOCK_DAILY'],
-            tr_id="FHPPG04650200", # 종목별 프로그램매매추이(일별)
+            endpoint=API_ENDPOINTS["PROGRAM_TRADE_BY_STOCK_DAILY"],
+            tr_id="FHPPG04650200",  # 종목별 프로그램매매추이(일별)
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code,
-                "FID_INPUT_DATE_1": date_str # 기준일자 (YYYYMMDD)
-            }
+                "FID_INPUT_DATE_1": date_str,  # 기준일자 (YYYYMMDD)
+            },
         )
 
-    def get_program_trade_market_daily(self, start_date: str, end_date: str) -> Optional[Dict[str, Any]]:
+    def get_program_trade_market_daily(
+        self, start_date: str, end_date: str
+    ) -> Optional[Dict[str, Any]]:
         """
         프로그램 매매 종합현황 (일별)을 조회합니다.
 
@@ -147,18 +154,15 @@ class ProgramTradeAPI(BaseAPI):
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",
-            tr_id="FHPPG04600000", # 프로그램매매종합현황(일별)
+            tr_id="FHPPG04600000",  # 프로그램매매종합현황(일별)
             params={
-                "FID_MRKT_CLS_CODE": "", # 시장 분류 코드 (전체는 공백)
+                "FID_MRKT_CLS_CODE": "",  # 시장 분류 코드 (전체는 공백)
                 "FID_INPUT_DATE_1": start_date,
                 "FID_INPUT_DATE_2": end_date,
-                "FID_COND_MRKT_DIV_CODE": "J" # UN: 통합장 (KOSPI+KOSDAQ+NXT)
-            }
+                "FID_COND_MRKT_DIV_CODE": "J",  # UN: 통합장 (KOSPI+KOSDAQ+NXT)
+            },
         )
 
-    
-
-    
 
 # 주석 처리된 get_program_trade_summary는 삭제 또는 실제 API 명세에 맞게 재구현 필요
 # class ProgramTradeAPI:

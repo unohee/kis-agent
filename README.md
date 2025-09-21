@@ -1,55 +1,75 @@
 # PyKIS
 
- OpenAPI Python      .
+한국투자증권 OpenAPI Python 래퍼 - Korea Investment & Securities Trading API Client
 
-** NEW: NXT()  !** - KOSPI/KOSDAQ     
+**🚀 NEW: NXT(넥스트) 시장 완벽 지원!** - KOSPI/KOSDAQ과 함께 모든 국내 주식시장 커버
 
-[![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/your-repo/pykis)
-[![Coverage](https://img.shields.io/badge/coverage-52%25-orange)](https://github.com/your-repo/pykis)
+## ✨ 주요 특징
+
+- **🏎️ 고성능**: 지능형 캐싱으로 API 호출 80-95% 감소
+- **🛡️ 안정성**: 실측 기반 Rate Limiting (18 RPS / 900 RPM)
+- **📊 실시간**: WebSocket을 통한 실시간 데이터 스트리밍
+- **📈 완전성**: KOSPI, KOSDAQ, NXT 시장 완벽 지원
+- **🔧 편의성**: Excel 거래 보고서 자동 생성
+- **🤖 자동화**: CI/CD 파이프라인과 자동 테스트 (232개 테스트)     
+
+[![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/unohee/pykis)
+[![Coverage](https://img.shields.io/badge/coverage-52%25-orange)](https://github.com/unohee/pykis)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![NXT](https://img.shields.io/badge/NXT--green)](https://www.nextrade.co.kr/)
+[![Rate Limiting](https://img.shields.io/badge/rate%20limiting-18%20RPS%2F900%20RPM-blue)](https://github.com/unohee/pykis)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-green)](https://github.com/unohee/pykis/actions)
 
-##   
+## 📦 설치
 
 ```bash
 pip install pykis
 ```
 
-##  API  
+## 🔧 사전 준비
 
-  API  :
-- [](https://apiportal.koreainvestment.com)   API 
-- APP_KEY APP_SECRET 
-- (CANO) (ACNT_PRDT_CD) 
+한국투자증권 API 사용을 위한 준비사항:
+- [한국투자증권 API 포털](https://apiportal.koreainvestment.com)에서 API 신청
+- APP_KEY와 APP_SECRET 발급
+- 계좌번호(CANO)와 계좌상품코드(ACNT_PRDT_CD) 확인
 
-##   
+## ⚡ 성능 최적화
+
+PyKIS는 실제 운영 환경에서 검증된 성능 최적화를 제공합니다:
+
+- **캐시 적중률**: 80-95% (API 호출 대폭 감소)
+- **Rate Limiting**: 18 RPS / 900 RPM (실측 안정 기준)
+- **응답 시간**: 평균 50ms 이하 (캐시 적중 시)
+- **동시 연결**: 멀티스레드 안전성 보장 
+
+## 🚀 빠른 시작
 
 ```python
 from pykis import Agent
 import os
 
-#  API   ( )
+# 환경변수에서 API 키 로드 (권장 방식)
 app_key = os.environ.get('KIS_APP_KEY')
 app_secret = os.environ.get('KIS_APP_SECRET')
 account_no = os.environ.get('KIS_ACCOUNT_NO')
 account_code = os.environ.get('KIS_ACCOUNT_CODE', '01')
 
-# Agent   ()
+# Agent 인스턴스 생성 (실전투자)
 agent = Agent(
     app_key=app_key,
     app_secret=app_secret,
     account_no=account_no,
     account_code=account_code,
-    # base_url="https://openapi.koreainvestment.com:9443"  #  ()
+    # 기본값: 실전투자 URL
 )
 
-#  Agent 
+# 모의투자 Agent 생성
 agent_mock = Agent(
     app_key=app_key,
     app_secret=app_secret,
     account_no=account_no,
     account_code=account_code,
-    base_url="https://openapivts.koreainvestment.com:29443"  # 
+    base_url="https://openapivts.koreainvestment.com:29443"  # 모의투자
 )
 ```
 
@@ -311,7 +331,12 @@ pytest tests/ -v --cov=pykis
 
 ##   (v0.1.20)
 
-##    (v0.1.22)
+## 📋 테스트 현황 (v0.1.22)
+
+### 🧪 테스트 커버리지
+- **232개 테스트 통과** (모든 핵심 기능 검증)
+- **52% 코드 커버리지** (지속적 개선 중)
+- **CI/CD 자동화**: GitHub Actions으로 Python 3.8/3.11/3.12 테스트
 
 ###  NXT()   
 - **  **:  API KOSPI/KOSDAQ/NXT  

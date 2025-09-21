@@ -21,10 +21,7 @@ class TestStockOrderAPI:
     @pytest.fixture
     def stock_api(self, mock_client):
         """StockAPI 인스턴스 생성"""
-        account_info = {
-            "CANO": "12345678",
-            "ACNT_PRDT_CD": "01"
-        }
+        account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
         return StockAPI(mock_client, account_info, enable_cache=False)
 
     def test_order_cash_buy_success(self, stock_api, mock_client):
@@ -33,20 +30,13 @@ class TestStockOrderAPI:
         expected_response = {
             "rt_cd": "0",
             "msg1": "주문이 정상적으로 접수되었습니다.",
-            "output": {
-                "odno": "0000117057",
-                "ord_tmd": "103422"
-            }
+            "output": {"odno": "0000117057", "ord_tmd": "103422"},
         }
         mock_client.make_request.return_value = expected_response
 
         # When
         result = stock_api.order_cash(
-            ord_dv="buy",
-            pdno="005930",
-            ord_dvsn="00",
-            ord_qty="1",
-            ord_unpr="70000"
+            ord_dv="buy", pdno="005930", ord_dvsn="00", ord_qty="1", ord_unpr="70000"
         )
 
         # Then
@@ -64,20 +54,13 @@ class TestStockOrderAPI:
         expected_response = {
             "rt_cd": "0",
             "msg1": "주문이 정상적으로 접수되었습니다.",
-            "output": {
-                "odno": "0000117058",
-                "ord_tmd": "103523"
-            }
+            "output": {"odno": "0000117058", "ord_tmd": "103523"},
         }
         mock_client.make_request.return_value = expected_response
 
         # When
         result = stock_api.order_cash(
-            ord_dv="sell",
-            pdno="005930",
-            ord_dvsn="01",
-            ord_qty="1",
-            ord_unpr="0"
+            ord_dv="sell", pdno="005930", ord_dvsn="01", ord_qty="1", ord_unpr="0"
         )
 
         # Then
@@ -95,11 +78,7 @@ class TestStockOrderAPI:
 
         # When
         result = stock_api.order_cash(
-            ord_dv="buy",
-            pdno="005930",
-            ord_dvsn="00",
-            ord_qty="1",
-            ord_unpr="70000"
+            ord_dv="buy", pdno="005930", ord_dvsn="00", ord_qty="1", ord_unpr="70000"
         )
 
         # Then
@@ -121,10 +100,7 @@ class TestStockOrderAPI:
         expected_response = {
             "rt_cd": "0",
             "msg1": "신용주문이 정상적으로 접수되었습니다.",
-            "output": {
-                "odno": "0000117059",
-                "ord_tmd": "103624"
-            }
+            "output": {"odno": "0000117059", "ord_tmd": "103624"},
         }
         mock_client.make_request.return_value = expected_response
 
@@ -136,7 +112,7 @@ class TestStockOrderAPI:
             loan_dt="20250911",
             ord_dvsn="00",
             ord_qty="1",
-            ord_unpr="70000"
+            ord_unpr="70000",
         )
 
         # Then
@@ -152,7 +128,7 @@ class TestStockOrderAPI:
         # Given
         expected_response = {
             "rt_cd": "0",
-            "msg1": "신용주문이 정상적으로 접수되었습니다."
+            "msg1": "신용주문이 정상적으로 접수되었습니다.",
         }
         mock_client.make_request.return_value = expected_response
 
@@ -164,7 +140,7 @@ class TestStockOrderAPI:
             loan_dt="20250901",
             ord_dvsn="00",
             ord_qty="1",
-            ord_unpr="70000"
+            ord_unpr="70000",
         )
 
         # Then
@@ -177,7 +153,9 @@ class TestStockOrderAPI:
         mock_client.is_mock = True
 
         # When & Then
-        with pytest.raises(ValueError, match="신용거래는 모의투자에서 지원되지 않습니다"):
+        with pytest.raises(
+            ValueError, match="신용거래는 모의투자에서 지원되지 않습니다"
+        ):
             stock_api.order_credit(
                 ord_dv="buy",
                 pdno="005930",
@@ -185,7 +163,7 @@ class TestStockOrderAPI:
                 loan_dt="20250911",
                 ord_dvsn="00",
                 ord_qty="1",
-                ord_unpr="70000"
+                ord_unpr="70000",
             )
 
     def test_inquire_psbl_order_success(self, stock_api, mock_client):
@@ -197,11 +175,13 @@ class TestStockOrderAPI:
             "output": {
                 "ord_psbl_cash": "1000000",
                 "max_buy_qty": "14",
-                "ord_psbl_qty": "14"
-            }
+                "ord_psbl_qty": "14",
+            },
         }
-        
-        with patch.object(stock_api, '_make_request_dict', return_value=expected_response):
+
+        with patch.object(
+            stock_api, "_make_request_dict", return_value=expected_response
+        ):
             # When
             result = stock_api.inquire_psbl_order("005930", "70000")
 
@@ -222,11 +202,13 @@ class TestStockOrderAPI:
             "output": {
                 "crdt_buy_psbl_amt": "2000000",
                 "max_buy_qty": "28",
-                "crdt_psbl_qty": "28"
-            }
+                "crdt_psbl_qty": "28",
+            },
         }
-        
-        with patch.object(stock_api, '_make_request_dict', return_value=expected_response):
+
+        with patch.object(
+            stock_api, "_make_request_dict", return_value=expected_response
+        ):
             # When
             result = stock_api.inquire_credit_psamount("005930", "70000")
 

@@ -11,10 +11,7 @@ class TestNewAccountAPI(unittest.TestCase):
     def setUpClass(cls):
         """테스트 클래스 설정"""
         cls.client = MagicMock(spec=KISClient)
-        cls.account_info = {
-            "CANO": "12345678",
-            "ACNT_PRDT_CD": "01"
-        }
+        cls.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
         cls.api = AccountAPI(cls.client, cls.account_info)
         cls.test_code = "005930"
 

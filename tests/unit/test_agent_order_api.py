@@ -13,17 +13,17 @@ class TestAgentOrderAPI:
     @pytest.fixture
     def mock_agent(self):
         """Mock Agent 생성"""
-        with patch('pykis.core.agent.KISClient'), \
-             patch('pykis.core.agent.auth'), \
-             patch('pykis.core.agent.read_token'):
-            
+        with patch("pykis.core.agent.KISClient"), patch("pykis.core.agent.auth"), patch(
+            "pykis.core.agent.read_token"
+        ):
+
             agent = Agent(
                 app_key="test_key",
                 app_secret="test_secret",
                 account_no="12345678",
-                account_code="01"
+                account_code="01",
             )
-            
+
             # Mock stock_api 생성
             agent.stock_api = Mock()
             return agent
@@ -34,17 +34,13 @@ class TestAgentOrderAPI:
         expected_response = {
             "rt_cd": "0",
             "msg1": "주문이 정상적으로 접수되었습니다.",
-            "output": {"odno": "0000117057"}
+            "output": {"odno": "0000117057"},
         }
         mock_agent.stock_api.order_cash.return_value = expected_response
 
         # When
         result = mock_agent.order_stock_cash(
-            ord_dv="buy",
-            pdno="005930",
-            ord_dvsn="00",
-            ord_qty="1",
-            ord_unpr="70000"
+            ord_dv="buy", pdno="005930", ord_dvsn="00", ord_qty="1", ord_unpr="70000"
         )
 
         # Then
@@ -57,7 +53,7 @@ class TestAgentOrderAPI:
             ord_unpr="70000",
             excg_id_dvsn_cd="KRX",
             sll_type="",
-            cndt_pric=""
+            cndt_pric="",
         )
 
     def test_order_stock_cash_with_options(self, mock_agent):
@@ -75,7 +71,7 @@ class TestAgentOrderAPI:
             ord_unpr="0",
             excg_id_dvsn_cd="SOR",
             sll_type="01",
-            cndt_pric="69000"
+            cndt_pric="69000",
         )
 
         # Then
@@ -87,7 +83,7 @@ class TestAgentOrderAPI:
             ord_unpr="0",
             excg_id_dvsn_cd="SOR",
             sll_type="01",
-            cndt_pric="69000"
+            cndt_pric="69000",
         )
 
     def test_order_stock_credit_success(self, mock_agent):
@@ -96,7 +92,7 @@ class TestAgentOrderAPI:
         expected_response = {
             "rt_cd": "0",
             "msg1": "신용주문이 정상적으로 접수되었습니다.",
-            "output": {"odno": "0000117058"}
+            "output": {"odno": "0000117058"},
         }
         mock_agent.stock_api.order_credit.return_value = expected_response
 
@@ -108,7 +104,7 @@ class TestAgentOrderAPI:
             loan_dt="20250911",
             ord_dvsn="00",
             ord_qty="1",
-            ord_unpr="70000"
+            ord_unpr="70000",
         )
 
         # Then
@@ -125,7 +121,7 @@ class TestAgentOrderAPI:
             sll_type="",
             rsvn_ord_yn="N",
             emgc_ord_yn="",
-            cndt_pric=""
+            cndt_pric="",
         )
 
     def test_inquire_order_psbl_success(self, mock_agent):
@@ -137,8 +133,8 @@ class TestAgentOrderAPI:
             "output": {
                 "ord_psbl_cash": "1000000",
                 "max_buy_qty": "14",
-                "ord_psbl_qty": "14"
-            }
+                "ord_psbl_qty": "14",
+            },
         }
         mock_agent.stock_api.inquire_psbl_order.return_value = expected_response
 
@@ -152,7 +148,7 @@ class TestAgentOrderAPI:
             ord_unpr="70000",
             ord_dvsn="00",
             cma_evlu_amt_icld_yn="Y",
-            ovrs_icld_yn="Y"
+            ovrs_icld_yn="Y",
         )
 
     def test_inquire_order_psbl_with_options(self, mock_agent):
@@ -167,7 +163,7 @@ class TestAgentOrderAPI:
             ord_unpr="70000",
             ord_dvsn="01",
             cma_evlu_amt_icld_yn="N",
-            ovrs_icld_yn="N"
+            ovrs_icld_yn="N",
         )
 
         # Then
@@ -176,7 +172,7 @@ class TestAgentOrderAPI:
             ord_unpr="70000",
             ord_dvsn="01",
             cma_evlu_amt_icld_yn="N",
-            ovrs_icld_yn="N"
+            ovrs_icld_yn="N",
         )
 
     def test_inquire_credit_order_psbl_success(self, mock_agent):
@@ -188,8 +184,8 @@ class TestAgentOrderAPI:
             "output": {
                 "crdt_buy_psbl_amt": "2000000",
                 "max_buy_qty": "28",
-                "crdt_psbl_qty": "28"
-            }
+                "crdt_psbl_qty": "28",
+            },
         }
         mock_agent.stock_api.inquire_credit_psamount.return_value = expected_response
 
@@ -204,7 +200,7 @@ class TestAgentOrderAPI:
             ord_dvsn="00",
             crdt_type="21",
             cma_evlu_amt_icld_yn="N",
-            ovrs_icld_yn="N"
+            ovrs_icld_yn="N",
         )
 
     def test_inquire_credit_order_psbl_with_options(self, mock_agent):
@@ -215,10 +211,7 @@ class TestAgentOrderAPI:
 
         # When
         result = mock_agent.inquire_credit_order_psbl(
-            pdno="005930",
-            ord_unpr="70000",
-            ord_dvsn="01",
-            crdt_type="23"
+            pdno="005930", ord_unpr="70000", ord_dvsn="01", crdt_type="23"
         )
 
         # Then
@@ -228,7 +221,7 @@ class TestAgentOrderAPI:
             ord_dvsn="01",
             crdt_type="23",
             cma_evlu_amt_icld_yn="N",
-            ovrs_icld_yn="N"
+            ovrs_icld_yn="N",
         )
 
     def test_stock_api_error_propagation(self, mock_agent):
@@ -247,14 +240,16 @@ class TestAgentOrderAPI:
             ("order_stock_cash", "order_cash"),
             ("order_stock_credit", "order_credit"),
             ("inquire_order_psbl", "inquire_psbl_order"),
-            ("inquire_credit_order_psbl", "inquire_credit_psamount")
+            ("inquire_credit_order_psbl", "inquire_credit_psamount"),
         ]
 
         for agent_method, stock_api_method in methods_to_test:
             # When
             agent_func = getattr(mock_agent, agent_method)
             stock_api_func = getattr(mock_agent.stock_api, stock_api_method)
-            
+
             # Then
             assert callable(agent_func), f"{agent_method} should be callable"
-            assert hasattr(mock_agent.stock_api, stock_api_method), f"stock_api should have {stock_api_method}"
+            assert hasattr(
+                mock_agent.stock_api, stock_api_method
+            ), f"stock_api should have {stock_api_method}"

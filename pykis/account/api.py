@@ -28,7 +28,13 @@ df = account.get_account_balance()
 
 
 class AccountAPI(BaseAPI):
-    def __init__(self, client: KISClient, account_info: Dict[str, str], enable_cache=True, cache_config=None):
+    def __init__(
+        self,
+        client: KISClient,
+        account_info: Dict[str, str],
+        enable_cache=True,
+        cache_config=None,
+    ):
         """Wrapper around KIS account related endpoints.
 
         Parameters
@@ -78,7 +84,7 @@ class AccountAPI(BaseAPI):
                 "PRCS_DVSN": "00",
                 "CTX_AREA_FK100": "",
                 "CTX_AREA_NK100": "",
-            }
+            },
         )
 
     def get_cash_available(
@@ -160,17 +166,17 @@ class AccountAPI(BaseAPI):
     def get_account_order_quantity(self, code: str) -> Optional[Dict]:
         """
         계좌별 주문 수량 조회
-        
+
         특정 종목에 대한 계좌별 주문 가능 수량과 관련 정보를 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
-            
+
         Returns:
             Optional[Dict]: 계좌별 주문 수량 정보
                 - 성공 시: rt_cd와 함께 주문 수량 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.get_account_order_quantity("005930")
@@ -199,14 +205,14 @@ class AccountAPI(BaseAPI):
     def get_possible_order_amount(self) -> Optional[Dict]:
         """
         주문 가능 금액 조회
-        
+
         현재 계좌의 주문 가능한 금액과 관련 정보를 조회합니다.
-        
+
         Returns:
             Optional[Dict]: 주문 가능 금액 정보
                 - 성공 시: rt_cd와 함께 주문 가능 금액 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.get_possible_order_amount()
@@ -237,23 +243,23 @@ class AccountAPI(BaseAPI):
     ) -> Optional[Dict]:
         """
         주식 신용주문
-        
+
         신용거래로 주식을 주문합니다. 실제 주문이 실행되므로 주의하세요.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
             qty (int): 주문 수량
             price (int): 주문 단가 (시장가는 0)
             order_type (str): 주문 구분 ("00": 지정가, "01": 시장가)
-            
+
         Returns:
             Optional[Dict]: 신용주문 응답
                 - 성공 시: rt_cd와 함께 주문 결과 정보 딕셔너리
                 - 실패 시: None
-                
+
         Warning:
             실제 신용주문이 실행되므로 테스트 시 소액으로 진행하세요.
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.order_credit("005930", 10, 70000, "00")
@@ -284,16 +290,16 @@ class AccountAPI(BaseAPI):
     ) -> Optional[Dict]:
         """
         주식주문 정정/취소
-        
+
         기존 주문을 정정하거나 취소합니다.
-        
+
         Args:
             org_order_no (str): 원주문번호
             qty (int): 정정 수량 (취소시 0)
             price (int): 정정 단가 (취소시 0)
             order_type (str): 주문 구분
             cncl_type (str): 정정취소 구분 ("정정" 또는 "취소")
-            
+
         Returns:
             Optional[Dict]: 정정/취소 응답
                 - 성공 시: rt_cd와 함께 정정/취소 결과 정보
@@ -322,14 +328,14 @@ class AccountAPI(BaseAPI):
     def inquire_psbl_rvsecncl(self) -> Optional[Dict]:
         """
         정정/취소 가능 주문 조회
-        
+
         현재 정정하거나 취소할 수 있는 미체결 주문을 조회합니다.
-        
+
         Returns:
             Optional[Dict]: 정정/취소 가능 주문 목록
                 - 성공 시: rt_cd와 함께 주문 정보 리스트
                 - 실패 시: None
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.inquire_psbl_rvsecncl()
@@ -359,20 +365,20 @@ class AccountAPI(BaseAPI):
     ) -> Optional[Dict]:
         """
         주식 예약주문
-        
+
         지정된 시점에 주문이 실행되도록 예약주문을 등록합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리)
             qty (int): 주문 수량
             price (int): 주문 단가
             order_type (str): 주문 구분
-            
+
         Returns:
             Optional[Dict]: 예약주문 응답
                 - 성공 시: rt_cd와 함께 예약주문 결과
                 - 실패 시: None
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.order_resv("005930", 10, 70000, "00")
@@ -403,20 +409,20 @@ class AccountAPI(BaseAPI):
     ) -> Optional[Dict]:
         """
         예약주문 정정/취소
-        
+
         등록된 예약주문을 정정하거나 취소합니다.
-        
+
         Args:
             seq (int): 예약주문 일련번호
             qty (int): 정정 수량
             price (int): 정정 단가
             order_type (str): 주문 구분
-            
+
         Returns:
             Optional[Dict]: 예약주문 정정/취소 응답
                 - 성공 시: rt_cd와 함께 정정/취소 결과
                 - 실패 시: None
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.order_resv_rvsecncl(123, 5, 75000, "00")
@@ -446,14 +452,14 @@ class AccountAPI(BaseAPI):
     def order_resv_ccnl(self) -> Optional[Dict]:
         """
         예약주문 조회
-        
+
         등록된 예약주문 내역을 조회합니다.
-        
+
         Returns:
             Optional[Dict]: 예약주문 내역
                 - 성공 시: rt_cd와 함께 예약주문 리스트
                 - 실패 시: None
-                
+
         Example:
             >>> account_api = AccountAPI(client, account_info)
             >>> result = account_api.order_resv_ccnl()
@@ -495,7 +501,9 @@ class AccountAPI(BaseAPI):
         inqr_dvsn: str = "01",
         inqr_dvsn_3: str = "00",
         max_pages: int = 100,
-        page_callback: Optional[Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]] = None,
+        page_callback: Optional[
+            Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
+        ] = None,
     ) -> Optional[Dict[str, Any]]:
         """주식일별주문체결조회 - 일자별 주문 및 체결 내역을 조회합니다.
 
@@ -550,7 +558,7 @@ class AccountAPI(BaseAPI):
         -------
         dict or None
             주문체결내역이 담긴 딕셔너리. 실패 시 None 반환.
-            
+
             반환 딕셔너리 구조:
             - rt_cd (str): 응답코드 ("0": 성공)
             - msg_cd (str): 메시지 코드
@@ -598,15 +606,15 @@ class AccountAPI(BaseAPI):
         Examples
         --------
         단일 조회 (최대 100건):
-        
+
         >>> result = api.inquire_daily_ccld("20250501", "20250901")
         >>> if result and result['rt_cd'] == '0':
         ...     print(f"조회 건수: {len(result['output1'])}")
         ...     # DataFrame으로 변환하려면:
         ...     df = pd.DataFrame(result['output1'])
-        
+
         연속조회로 전체 데이터 가져오기:
-        
+
         >>> result = api.inquire_daily_ccld(
         ...     start_date="20250501",
         ...     end_date="20250901",
@@ -616,9 +624,9 @@ class AccountAPI(BaseAPI):
         >>> if result and result['rt_cd'] == '0':
         ...     print(f"총 {len(result['output1'])}건 조회 완료")
         ...     print(f"총 {result['output2']['page_count']}페이지 조회")
-        
+
         콜백과 함께 연속조회:
-        
+
         >>> def on_page(page_num: int, page_data: List[Dict], ctx_info: dict) -> None:
         ...     print(f"페이지 {page_num}: {len(page_data)}건 조회")
         ...     print(f"연속키 FK100: {ctx_info['FK100'][:20]}...")
@@ -630,9 +638,9 @@ class AccountAPI(BaseAPI):
         ...     page_callback=on_page,
         ...     max_pages=10  # 최대 1,000건
         ... )
-        
+
         매수 거래만 조회:
-        
+
         >>> result = api.inquire_daily_ccld(
         ...     start_date="20250501",
         ...     end_date="20250901",
@@ -657,7 +665,7 @@ class AccountAPI(BaseAPI):
                 max_pages=max_pages,
                 page_callback=page_callback,
             )
-        
+
         # 기존 단일 조회
         try:
             res = self.client.make_request(
@@ -686,7 +694,7 @@ class AccountAPI(BaseAPI):
         except Exception as e:
             logging.error(f"일별주문체결 조회 실패: {e}")
             return None
-    
+
     def _inquire_daily_ccld_pagination(
         self,
         start_date: str,
@@ -697,14 +705,16 @@ class AccountAPI(BaseAPI):
         ccld_dvsn: str = "01",
         inqr_dvsn_3: str = "00",
         max_pages: int = 100,
-        page_callback: Optional[Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]] = None,
+        page_callback: Optional[
+            Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
+        ] = None,
     ) -> Optional[Dict[str, Any]]:
         """내부 헬퍼 메서드: 연속조회를 통한 일별주문체결 조회.
-        
+
         CTX_AREA_FK100과 CTX_AREA_NK100을 활용하여 페이지네이션을 구현합니다.
         실전계좌에서 호출당 최대 100건의 데이터를 가져오며,
         연속조회키를 통해 다음 페이지를 요청합니다.
-        
+
         Parameters
         ----------
         start_date : str
@@ -725,7 +735,7 @@ class AccountAPI(BaseAPI):
             최대 조회 페이지 수
         page_callback : callable, optional
             페이지별 콜백 함수
-            
+
         Returns
         -------
         pd.DataFrame or None
@@ -735,7 +745,7 @@ class AccountAPI(BaseAPI):
         ctx_area_fk100 = ""
         ctx_area_nk100 = ""
         page_count = 0
-        
+
         try:
             while page_count < max_pages:
                 # API 요청
@@ -759,7 +769,7 @@ class AccountAPI(BaseAPI):
                         "CTX_AREA_NK100": ctx_area_nk100,
                     },
                 )
-                
+
                 # 응답 처리
                 if not res or res.get("rt_cd") != "0":
                     if page_count == 0:
@@ -773,66 +783,82 @@ class AccountAPI(BaseAPI):
                             f"페이지 {page_count + 1} 조회 실패, 현재까지 데이터 반환"
                         )
                         break
-                
+
                 # output1 데이터 처리
                 output1 = res.get("output1", [])
                 if not output1:
                     # 더 이상 데이터가 없음
                     break
-                
+
                 # 데이터 저장 (딕셔너리 리스트로 유지)
                 all_data.extend(output1)
-                
+
                 page_count += 1
-                
+
                 # 콜백 호출
                 if page_callback:
                     ctx_info = {
                         "FK100": res.get("CTX_AREA_FK100", ""),
                         "NK100": res.get("CTX_AREA_NK100", ""),
-                        "total_rows": len(output1)
+                        "total_rows": len(output1),
                     }
                     page_callback(page_count, output1, ctx_info)
-                
+
                 # 연속조회 키 추출
                 ctx_area_fk100 = res.get("CTX_AREA_FK100", "")
                 ctx_area_nk100 = res.get("CTX_AREA_NK100", "")
-                
+
                 # 연속조회 키가 없으면 종료
                 if not ctx_area_fk100 and not ctx_area_nk100:
                     break
-                
+
                 # 데이터가 100건 미만이면 마지막 페이지
                 if len(output1) < 100:
                     break
-            
+
             # 전체 데이터를 딕셔너리로 반환
             if all_data:
                 # 중복 제거
                 unique_data = []
                 seen = set()
                 for item in all_data:
-                    key = (item.get("ord_dt", ""), item.get("odno", ""), item.get("pdno", ""))
+                    key = (
+                        item.get("ord_dt", ""),
+                        item.get("odno", ""),
+                        item.get("pdno", ""),
+                    )
                     if key not in seen:
                         seen.add(key)
                         unique_data.append(item)
-                
+
                 # 정렬
                 if unique_data:
                     unique_data.sort(
                         key=lambda x: (x.get("ord_dt", ""), x.get("ord_tmd", "")),
-                        reverse=(inqr_dvsn == "00")
+                        reverse=(inqr_dvsn == "00"),
                     )
-                
+
                 # 요약 정보 생성
-                tot_ord_qty = sum(int(item.get("ord_qty", 0)) for item in unique_data if item.get("ord_qty"))
-                tot_ccld_qty = sum(int(item.get("tot_ccld_qty", 0)) for item in unique_data if item.get("tot_ccld_qty"))
-                tot_ccld_amt = sum(float(item.get("tot_ccld_amt", 0)) for item in unique_data if item.get("tot_ccld_amt"))
-                
+                tot_ord_qty = sum(
+                    int(item.get("ord_qty", 0))
+                    for item in unique_data
+                    if item.get("ord_qty")
+                )
+                tot_ccld_qty = sum(
+                    int(item.get("tot_ccld_qty", 0))
+                    for item in unique_data
+                    if item.get("tot_ccld_qty")
+                )
+                tot_ccld_amt = sum(
+                    float(item.get("tot_ccld_amt", 0))
+                    for item in unique_data
+                    if item.get("tot_ccld_amt")
+                )
+
                 logging.info(
                     f"일별주문체결 조회 완료: 총 {page_count}페이지, {len(unique_data)}건"
                 )
-                
+
                 # 최종 결과 반환
                 return {
                     "rt_cd": "0",
@@ -844,10 +870,10 @@ class AccountAPI(BaseAPI):
                         "tot_ccld_qty": str(tot_ccld_qty),
                         "tot_ccld_amt": str(tot_ccld_amt),
                         "page_count": page_count,
-                        "total_count": len(unique_data)
-                    }
+                        "total_count": len(unique_data),
+                    },
                 }
-            
+
             # 빈 결과 반환
             return {
                 "rt_cd": "0",
@@ -859,10 +885,10 @@ class AccountAPI(BaseAPI):
                     "tot_ccld_qty": "0",
                     "tot_ccld_amt": "0",
                     "page_count": 0,
-                    "total_count": 0
-                }
+                    "total_count": 0,
+                },
             }
-            
+
         except Exception as e:
             logging.error(f"일별주문체결 연속조회 실패: {e}")
             return None
@@ -972,7 +998,7 @@ class AccountAPI(BaseAPI):
                     "COST_ICLD_YN": "N",
                     "CTX_AREA_FK100": "",
                     "CTX_AREA_NK100": "",
-                }
+                },
             )
         except Exception as e:
             logging.error(f"실현손익 잔고 조회 실패: {e}")
