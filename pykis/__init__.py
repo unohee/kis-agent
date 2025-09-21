@@ -2,4 +2,4 @@ from .core.agent import Agent
 from .websocket.client import KisWebSocket
 
 __version__ = "0.1.22"
-__all__ = ['Agent', 'KisWebSocket']
+__all__ = ["Agent", "KisWebSocket"]

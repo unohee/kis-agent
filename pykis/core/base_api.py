@@ -34,20 +34,20 @@ class BaseAPI:
         if enable_cache:
             cache_config = cache_config or {}
             self.cache = APICache(
-                default_ttl=cache_config.get('default_ttl', 5),
-                max_size=cache_config.get('max_size', 1000)
+                default_ttl=cache_config.get("default_ttl", 5),
+                max_size=cache_config.get("max_size", 1000),
             )
         else:
             self.cache = None
 
         # 각 API별 숫자형 필드 매핑 테이블
         self.numeric_field_mappings = self._get_numeric_field_mappings()
-        
+
         # API 요청 관리자 초기화 (Factory Pattern)
         self.request_manager = APIRequestManager(
             client=client,
             metadata_adder=self._add_response_metadata,
-            field_converter=self._convert_numeric_fields
+            field_converter=self._convert_numeric_fields,
         )
 
     def _get_numeric_field_mappings(self) -> Dict[str, List[str]]:
@@ -259,7 +259,6 @@ class BaseAPI:
         df["msg1"] = response.get("msg1", "")
         return df
 
-
     def _make_request_dict(
         self,
         endpoint: str,
@@ -287,14 +286,14 @@ class BaseAPI:
             cache_key = self.cache._make_key(
                 {"endpoint": endpoint, "tr_id": tr_id, "params": params}
             )
-            
+
             # 캐시 조회
             cached_value = self.cache.get(cache_key)
             if cached_value is not None:
                 # 캐시 히트 시 _cached 플래그 추가
                 cached_value["_cached"] = True
                 return cached_value
-        
+
         try:
             response = self.client.make_request(
                 endpoint=endpoint, tr_id=tr_id, params=params
@@ -306,7 +305,11 @@ class BaseAPI:
             # 성공 응답을 캐시에 저장
             if use_cache and self.cache and response.get("rt_cd") == "0":
                 # TTL 결정 (지정값 또는 엔드포인트별 기본값)
-                ttl = cache_ttl if cache_ttl is not None else self.cache.get_ttl_for_endpoint(endpoint)
+                ttl = (
+                    cache_ttl
+                    if cache_ttl is not None
+                    else self.cache.get_ttl_for_endpoint(endpoint)
+                )
                 cache_key = self.cache._make_key(
                     {"endpoint": endpoint, "tr_id": tr_id, "params": params}
                 )
@@ -316,8 +319,13 @@ class BaseAPI:
             return response
         except Exception as e:
             import logging
-            logging.error(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")
-            raise Exception(f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}") from e
+
+            logging.error(
+                f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}"
+            )
+            raise Exception(
+                f"API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}"
+            ) from e
 
     def _make_request_dataframe(
         self,
@@ -334,15 +342,20 @@ class BaseAPI:
         if use_cache and self.cache:
             # 캐시 키 생성
             cache_key = self.cache._make_key(
-                {"endpoint": endpoint, "tr_id": tr_id, "params": params, "dataframe": True}
+                {
+                    "endpoint": endpoint,
+                    "tr_id": tr_id,
+                    "params": params,
+                    "dataframe": True,
+                }
             )
-            
+
             # 캐시 조회
             cached_value = self.cache.get(cache_key)
             if cached_value is not None:
                 # DataFrame으로 복원
                 return cached_value
-        
+
         try:
             # request_manager를 사용하여 DataFrame가져오기
             result = self.request_manager.make_request_with_processing(
@@ -350,20 +363,34 @@ class BaseAPI:
                 tr_id=tr_id,
                 params=params,
                 field_type=field_type,
-                return_dataframe=True
+                return_dataframe=True,
             )
-            
+
             # 성공 응답을 캐시에 저장
             if use_cache and self.cache and result is not None and not result.empty:
                 # TTL 결정 (지정값 또는 엔드포인트별 기본값)
-                ttl = cache_ttl if cache_ttl is not None else self.cache.get_ttl_for_endpoint(endpoint)
+                ttl = (
+                    cache_ttl
+                    if cache_ttl is not None
+                    else self.cache.get_ttl_for_endpoint(endpoint)
+                )
                 cache_key = self.cache._make_key(
-                    {"endpoint": endpoint, "tr_id": tr_id, "params": params, "dataframe": True}
+                    {
+                        "endpoint": endpoint,
+                        "tr_id": tr_id,
+                        "params": params,
+                        "dataframe": True,
+                    }
                 )
                 self.cache.set(cache_key, result, ttl)
-            
+
             return result
         except Exception as e:
             import logging
-            logging.error(f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}")
-            raise Exception(f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}") from e
+
+            logging.error(
+                f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}"
+            )
+            raise Exception(
+                f"DataFrame API 요청 실패 - TR_ID: {tr_id}, Endpoint: {endpoint}, Error: {e}"
+            ) from e

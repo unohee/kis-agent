@@ -23,20 +23,21 @@ from datetime import datetime
 from pykis.core.client import KISClient
 from pykis.stock.api import StockAPI
 
+
 class TestStockAPI(unittest.TestCase):
     """
     StockAPI 클래스의 단위 테스트 클래스입니다.
-    
+
     이 클래스는 StockAPI의 각 메서드를 실제 API 호출로 테스트합니다.
     """
-    
+
     @classmethod
     def setUpClass(cls):
         """테스트 클래스 설정"""
         # 실제 계좌 정보는 환경변수에서 읽음
         cls.account_info = {
             "CANO": os.getenv("KIS_ACCOUNT_NO"),
-            "ACNT_PRDT_CD": os.getenv("KIS_ACCOUNT_CODE", "01")
+            "ACNT_PRDT_CD": os.getenv("KIS_ACCOUNT_CODE", "01"),
         }
         cls.client = KISClient()
         cls.api = StockAPI(cls.client, cls.account_info)
@@ -117,7 +118,7 @@ class TestStockAPI(unittest.TestCase):
             self.assertIsInstance(net_buy_amount, (int, float))
             self.assertIsInstance(detail_info, dict)
             # 상세정보 구조 확인
-            required_keys = ['brokers', 'buy_total', 'sell_total']
+            required_keys = ["brokers", "buy_total", "sell_total"]
             for key in required_keys:
                 if key in detail_info:
                     break
@@ -140,5 +141,6 @@ class TestStockAPI(unittest.TestCase):
             # rt_cd가 '2'인 경우는 INVALID FID_COND_MRKT_DIV_CODE 에러
             self.assertIn("rt_cd", result)
 
+
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

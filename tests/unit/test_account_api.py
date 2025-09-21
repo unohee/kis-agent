@@ -15,25 +15,22 @@ from pykis.account.api import AccountAPI
 
 class TestAccountAPI(unittest.TestCase):
     """AccountAPI 클래스의 포괄적인 테스트"""
-    
+
     def setUp(self):
         """각 테스트마다 새로운 인스턴스 생성"""
         self.client = MagicMock(spec=KISClient)
-        self.account_info = {
-            "CANO": "12345678",
-            "ACNT_PRDT_CD": "01"
-        }
+        self.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
         # 캐시 비활성화하여 테스트 독립성 보장
         self.api = AccountAPI(self.client, self.account_info, enable_cache=False)
         self.test_code = "005930"
-        
+
     def test_init(self):
         """AccountAPI 초기화 테스트"""
         api = AccountAPI(self.client, self.account_info)
         self.assertEqual(api.client, self.client)
         self.assertEqual(api.account, self.account_info)
-        self.assertEqual(api.account['CANO'], "12345678")
-        self.assertEqual(api.account['ACNT_PRDT_CD'], "01")
+        self.assertEqual(api.account["CANO"], "12345678")
+        self.assertEqual(api.account["ACNT_PRDT_CD"], "01")
 
     def test_get_account_balance_success(self):
         """계좌 잔고 조회 성공 테스트"""
@@ -46,7 +43,7 @@ class TestAccountAPI(unittest.TestCase):
                     "hldg_qty": "10",
                     "pchs_avg_pric": "60000",
                     "evlu_amt": "650000",
-                    "evlu_pfls_amt": "50000"
+                    "evlu_pfls_amt": "50000",
                 },
                 {
                     "pdno": "000660",
@@ -54,19 +51,19 @@ class TestAccountAPI(unittest.TestCase):
                     "hldg_qty": "5",
                     "pchs_avg_pric": "120000",
                     "evlu_amt": "650000",
-                    "evlu_pfls_amt": "50000"
-                }
-            ]
+                    "evlu_pfls_amt": "50000",
+                },
+            ],
         }
-        
+
         result = self.api.get_account_balance()
-        
+
         self.assertIsInstance(result, dict)
         self.assertIn("output1", result)
         self.assertEqual(len(result["output1"]), 2)
         self.assertEqual(result["output1"][0]["pdno"], "005930")
         self.assertEqual(result["output1"][0]["prdt_name"], "삼성전자")
-        
+
         # API 호출 파라미터 확인
         self.client.make_request.assert_called_once()
         args, kwargs = self.client.make_request.call_args
@@ -77,13 +74,10 @@ class TestAccountAPI(unittest.TestCase):
 
     def test_get_account_balance_no_output1(self):
         """계좌 잔고 조회 output1 없음 테스트"""
-        self.client.make_request.return_value = {
-            "rt_cd": "0",
-            "output2": ["some data"]
-        }
-        
+        self.client.make_request.return_value = {"rt_cd": "0", "output2": ["some data"]}
+
         result = self.api.get_account_balance()
-        
+
         # Dict 반환되지만 output1이 없음
         self.assertIsInstance(result, dict)
         self.assertNotIn("output1", result)
@@ -91,9 +85,9 @@ class TestAccountAPI(unittest.TestCase):
     def test_get_account_balance_no_response(self):
         """계좌 잔고 조회 응답 없음 테스트"""
         self.client.make_request.return_value = None
-        
+
         result = self.api.get_account_balance()
-        
+
         self.assertIsNone(result)
 
     def test_get_cash_available_success(self):
@@ -103,16 +97,16 @@ class TestAccountAPI(unittest.TestCase):
             "output": {
                 "ord_psbl_cash": "1000000",
                 "ord_psbl_sbst": "950000",
-                "ruse_psbl_amt": "50000"
-            }
+                "ruse_psbl_amt": "50000",
+            },
         }
-        
+
         result = self.api.get_cash_available()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "0")
         self.assertIn("output", result)
-        
+
         # API 호출 파라미터 확인
         self.client.make_request.assert_called_once()
         args, kwargs = self.client.make_request.call_args
@@ -130,11 +124,11 @@ class TestAccountAPI(unittest.TestCase):
         """현금 매수 가능 금액 조회 JSON 디코드 오류 테스트"""
         self.client.make_request.return_value = {
             "rt_cd": "JSON_DECODE_ERROR",
-            "msg1": "서버 오류"
+            "msg1": "서버 오류",
         }
-        
+
         result = self.api.get_cash_available()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "JSON_DECODE_ERROR")
         self.assertIn("디버깅_정보", result)
@@ -145,11 +139,11 @@ class TestAccountAPI(unittest.TestCase):
         self.client.make_request.return_value = {
             "status_code": 404,
             "rt_cd": "ERROR",
-            "msg1": "서비스 이용 불가"
+            "msg1": "서비스 이용 불가",
         }
-        
+
         result = self.api.get_cash_available()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "ERROR")
         self.assertEqual(result["status_code"], 404)
@@ -158,11 +152,11 @@ class TestAccountAPI(unittest.TestCase):
         """현금 매수 가능 금액 조회 정상 응답 테스트"""
         self.client.make_request.return_value = {
             "rt_cd": "0",
-            "output": {"ord_psbl_cash": "1000000"}
+            "output": {"ord_psbl_cash": "1000000"},
         }
-        
+
         result = self.api.get_cash_available()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "0")
         self.assertIn("output", result)
@@ -175,16 +169,16 @@ class TestAccountAPI(unittest.TestCase):
                 "tot_evlu_amt": "5000000",
                 "evlu_pfls_smtl_amt": "500000",
                 "pchs_amt_smtl_amt": "4500000",
-                "evlu_amt_smtl_amt": "5000000"
-            }
+                "evlu_amt_smtl_amt": "5000000",
+            },
         }
-        
+
         result = self.api.get_total_asset()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "0")
         self.assertIn("output2", result)
-        
+
         # API 호출 파라미터 확인
         self.client.make_request.assert_called_once()
         args, kwargs = self.client.make_request.call_args
@@ -193,17 +187,19 @@ class TestAccountAPI(unittest.TestCase):
         self.assertEqual(params["CANO"], "12345678")
         self.assertEqual(params["ACNT_PRDT_CD"], "01")
         self.assertEqual(params["INQR_DVSN_1"], "")  # 조회구분1 공백
-        self.assertEqual(params["BSPR_BF_DT_APLY_YN"], "")  # 기준가이전일자적용여부 공백
+        self.assertEqual(
+            params["BSPR_BF_DT_APLY_YN"], ""
+        )  # 기준가이전일자적용여부 공백
 
     def test_get_total_asset_json_decode_error(self):
         """총 자산 평가 조회 JSON 디코드 오류 테스트"""
         self.client.make_request.return_value = {
             "rt_cd": "JSON_DECODE_ERROR",
-            "msg1": "서버 오류"
+            "msg1": "서버 오류",
         }
-        
+
         result = self.api.get_total_asset()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "JSON_DECODE_ERROR")
         self.assertIn("디버깅_정보", result)
@@ -214,11 +210,11 @@ class TestAccountAPI(unittest.TestCase):
         self.client.make_request.return_value = {
             "status_code": 404,
             "rt_cd": "ERROR",
-            "msg1": "서비스 이용 불가"
+            "msg1": "서비스 이용 불가",
         }
-        
+
         result = self.api.get_total_asset()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "ERROR")
         self.assertEqual(result["status_code"], 404)
@@ -227,17 +223,14 @@ class TestAccountAPI(unittest.TestCase):
         """계좌별 주문 수량 조회 성공 테스트"""
         self.client.make_request.return_value = {
             "rt_cd": "0",
-            "output": {
-                "ord_psbl_qty": "100",
-                "ord_unpr": "60000"
-            }
+            "output": {"ord_psbl_qty": "100", "ord_unpr": "60000"},
         }
-        
+
         result = self.api.get_account_order_quantity(self.test_code)
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "0")
-        
+
         # API 호출 파라미터 확인
         self.client.make_request.assert_called_once()
         args, kwargs = self.client.make_request.call_args
@@ -250,26 +243,23 @@ class TestAccountAPI(unittest.TestCase):
     def test_get_account_order_quantity_exception(self):
         """계좌별 주문 수량 조회 예외 테스트"""
         self.client.make_request.side_effect = Exception("API 오류")
-        
+
         result = self.api.get_account_order_quantity(self.test_code)
-        
+
         self.assertIsNone(result)
 
     def test_get_possible_order_amount_success(self):
         """주문 가능 금액 조회 성공 테스트"""
         self.client.make_request.return_value = {
             "rt_cd": "0",
-            "output": {
-                "ord_psbl_cash": "1000000",
-                "max_buy_amt": "950000"
-            }
+            "output": {"ord_psbl_cash": "1000000", "max_buy_amt": "950000"},
         }
-        
+
         result = self.api.get_possible_order_amount()
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "0")
-        
+
         # API 호출 파라미터 확인
         self.client.make_request.assert_called_once()
         args, kwargs = self.client.make_request.call_args
@@ -283,25 +273,22 @@ class TestAccountAPI(unittest.TestCase):
     def test_get_possible_order_amount_exception(self):
         """주문 가능 금액 조회 예외 테스트"""
         self.client.make_request.side_effect = Exception("API 오류")
-        
+
         result = self.api.get_possible_order_amount()
-        
+
         self.assertIsNone(result)
 
     def test_account_info_validation(self):
         """계좌 정보 유효성 검증 테스트"""
         # 올바른 계좌 정보로 초기화된 API 확인
-        self.assertEqual(self.api.account['CANO'], "12345678")
-        self.assertEqual(self.api.account['ACNT_PRDT_CD'], "01")
-        
+        self.assertEqual(self.api.account["CANO"], "12345678")
+        self.assertEqual(self.api.account["ACNT_PRDT_CD"], "01")
+
         # 다른 계좌 정보로 새 API 생성
-        different_account = {
-            "CANO": "87654321",
-            "ACNT_PRDT_CD": "02"
-        }
+        different_account = {"CANO": "87654321", "ACNT_PRDT_CD": "02"}
         different_api = AccountAPI(self.client, different_account)
-        self.assertEqual(different_api.account['CANO'], "87654321")
-        self.assertEqual(different_api.account['ACNT_PRDT_CD'], "02")
+        self.assertEqual(different_api.account["CANO"], "87654321")
+        self.assertEqual(different_api.account["ACNT_PRDT_CD"], "02")
 
 
 if __name__ == "__main__":

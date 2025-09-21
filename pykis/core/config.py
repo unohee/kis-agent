@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class KISConfig:
     """API 인증 및 계좌 정보를 관리하는 설정 클래스
-    
+
     Note:
-        .env 파일 지원이 제거되었습니다. 
+        .env 파일 지원이 제거되었습니다.
         API 키는 반드시 매개변수로 직정 전달해야 합니다.
     """
 
@@ -15,10 +16,17 @@ class KISConfig:
     ACCOUNT_NO: str = ""
     ACCOUNT_CODE: str = ""
 
-    def __init__(self, app_key: str = None, app_secret: str = None, base_url: str = None, account_no: str = None, account_code: str = None):
+    def __init__(
+        self,
+        app_key: str = None,
+        app_secret: str = None,
+        base_url: str = None,
+        account_no: str = None,
+        account_code: str = None,
+    ):
         """
         설정을 초기화합니다.
-        
+
         Args:
             app_key (str): API 앱 키 (필수)
             app_secret (str): API 앱 시크릿 (필수)
@@ -32,7 +40,7 @@ class KISConfig:
         self.BASE_URL = base_url or "https://openapi.koreainvestment.com:9443"
         self.ACCOUNT_NO = account_no or ""
         self.ACCOUNT_CODE = account_code or ""
-        
+
         self._validate()
 
     @property
@@ -44,27 +52,27 @@ class KISConfig:
     def account_product(self) -> str:
         """계좌 상품 코드 반환"""
         return self.ACCOUNT_CODE
-    
+
     @property
     def app_key(self) -> str:
         """APP KEY 반환"""
         return self.APP_KEY
-    
+
     @property
     def app_secret(self) -> str:
         """APP SECRET 반환"""
         return self.APP_SECRET
-    
+
     @property
     def account_no(self) -> str:
         """계좌 번호 반환"""
         return self.ACCOUNT_NO
-    
+
     @property
     def account_product_code(self) -> str:
         """계좌 상품 코드 반환"""
         return self.ACCOUNT_CODE
-    
+
     @property
     def is_real(self) -> bool:
         """실투자 여부 (BASE_URL로 판단)"""
@@ -82,11 +90,12 @@ class KISConfig:
             missing_fields.append("account_no")
         if not self.ACCOUNT_CODE:
             missing_fields.append("account_code")
-        
+
         if missing_fields:
             raise ValueError(
                 f"필수 설정 값이 누락되었습니다: {', '.join(missing_fields)}\n"
                 "필요한 모든 매개변수를 제공해주세요."
             )
+
 
 __all__ = ["KISConfig"]

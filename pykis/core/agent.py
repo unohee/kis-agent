@@ -108,7 +108,7 @@ class Agent(BaseExceptionHandler):
             ...     account_no="12345678",
             ...     account_code="01"
             ... )
-            >>> 
+            >>>
             >>> # 모의투자 Agent 생성
             >>> agent = Agent(
             ...     app_key="YOUR_APP_KEY",
@@ -117,7 +117,7 @@ class Agent(BaseExceptionHandler):
             ...     account_code="01",
             ...     base_url="https://openapivts.koreainvestment.com:29443"
             ... )
-            >>> 
+            >>>
             >>> # Rate Limiter 비활성화
             >>> agent = Agent(
             ...     app_key="YOUR_APP_KEY",
@@ -133,7 +133,7 @@ class Agent(BaseExceptionHandler):
         """
         # BaseExceptionHandler 초기화
         super().__init__("Agent")
-        
+
         # 필수 매개변수 검증
         if not all([app_key, app_secret, account_no, account_code]):
             raise ValueError(
@@ -163,29 +163,33 @@ class Agent(BaseExceptionHandler):
                     "requests_per_minute": 500,  # 보수적 설정
                     "min_interval_ms": 100,  # 최소 100ms 간격
                     "burst_size": 5,  # 순간 처리량 제한
-                    "enable_adaptive": True
+                    "enable_adaptive": True,
                 }
                 if rate_limiter_config:
                     default_config.update(rate_limiter_config)
-                
+
                 self.rate_limiter = RateLimiter(**default_config)
         else:
             self.rate_limiter = None
 
         # 설정 객체 생성
-        config = KISConfig(
-            app_key=app_key,
-            app_secret=app_secret,
-            base_url=base_url,
-            account_no=account_no,
-            account_code=account_code
-        ) if not client else None
-        
+        config = (
+            KISConfig(
+                app_key=app_key,
+                app_secret=app_secret,
+                base_url=base_url,
+                account_no=account_no,
+                account_code=account_code,
+            )
+            if not client
+            else None
+        )
+
         # 클라이언트 초기화
         self.client = client or KISClient(
-            config=config, 
+            config=config,
             enable_rate_limiter=enable_rate_limiter,
-            rate_limiter=self.rate_limiter
+            rate_limiter=self.rate_limiter,
         )
 
         # 토큰 자동 검증 및 재발급
@@ -272,17 +276,17 @@ class Agent(BaseExceptionHandler):
     def get_stock_price(self, code: str) -> Optional[Dict[str, Any]]:
         """
         주식 현재가 조회
-        
+
         지정된 종목의 실시간 현재가와 시세 정보를 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
-            
+
         Returns:
             Optional[Dict[str, Any]]: 현재가 시세 데이터
                 - 성공 시: rt_cd와 함께 시세 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_stock_price("005930")  # 삼성전자
@@ -292,7 +296,9 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.get_stock_price(code)
 
-    def get_daily_price(self, code: str, period: str = "D", org_adj_prc: str = "1") -> Optional[Dict[str, Any]]:
+    def get_daily_price(
+        self, code: str, period: str = "D", org_adj_prc: str = "1"
+    ) -> Optional[Dict[str, Any]]:
         """
         일별 시세 조회 (Postman 검증된 방식)
 
@@ -303,7 +309,9 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.get_daily_price(code, period, org_adj_prc)
 
-    def get_daily_credit_balance(self, code: str, date: str) -> Optional[Dict[str, Any]]:
+    def get_daily_credit_balance(
+        self, code: str, date: str
+    ) -> Optional[Dict[str, Any]]:
         """
         국내주식 신용잔고 일별추이 조회
 
@@ -316,7 +324,9 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.get_daily_credit_balance(code, date)
 
-    def get_minute_price(self, code: str, hour: str = "153000") -> Optional[Dict[str, Any]]:
+    def get_minute_price(
+        self, code: str, hour: str = "153000"
+    ) -> Optional[Dict[str, Any]]:
         """
         주식당일분봉조회 (Postman 검증된 방식)
 
@@ -326,7 +336,9 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.get_minute_price(code, hour)
 
-    def get_daily_minute_price(self, code: str, date: str, hour: str = "153000") -> Optional[Dict[str, Any]]:
+    def get_daily_minute_price(
+        self, code: str, date: str, hour: str = "153000"
+    ) -> Optional[Dict[str, Any]]:
         """
         일별분봉시세조회 - 과거일자 분봉 데이터 조회
 
@@ -349,17 +361,17 @@ class Agent(BaseExceptionHandler):
     def get_member(self, code: str) -> Optional[Dict[str, Any]]:
         """
         거래원별 매매 현황 조회
-        
+
         특정 종목의 거래원별 매수/매도 현황을 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
-            
+
         Returns:
             Optional[Dict[str, Any]]: 거래원별 매매 현황 데이터
                 - 성공 시: rt_cd와 함께 거래원 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_member("005930")
@@ -374,19 +386,19 @@ class Agent(BaseExceptionHandler):
     ) -> Optional[Dict[str, Any]]:
         """
         외국계 증권사 순매수 현황 조회
-        
+
         특정 종목에 대한 외국계 증권사들의 순매수 거래량을 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
             foreign_brokers (list, optional): 외국계 증권사 목록. None이면 기본 목록 사용.
             date (str, optional): 조회 날짜 (YYYYMMDD). None이면 당일.
-            
+
         Returns:
             Optional[Dict[str, Any]]: 외국계 순매수 현황 데이터
                 - 성공 시: 외국계 증권사별 순매수량 정보
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_foreign_broker_net_buy("005930")
@@ -398,17 +410,17 @@ class Agent(BaseExceptionHandler):
     def get_program_trade_by_stock(self, code: str) -> Optional[Dict[str, Any]]:
         """
         종목별 프로그램매매 추이 조회
-        
+
         특정 종목의 프로그램매매 체결 현황을 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
-            
+
         Returns:
             Optional[Dict[str, Any]]: 프로그램매매 추이 데이터
                 - 성공 시: rt_cd와 함께 프로그램매매 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_program_trade_by_stock("005930")
@@ -417,21 +429,23 @@ class Agent(BaseExceptionHandler):
         """
         return self.program_api.get_program_trade_by_stock(code)
 
-    def get_member_transaction(self, code: str, mem_code: str = "99999") -> Optional[Dict[str, Any]]:
+    def get_member_transaction(
+        self, code: str, mem_code: str = "99999"
+    ) -> Optional[Dict[str, Any]]:
         """
         회원사별 매매 정보 조회
-        
+
         특정 종목의 회원사별 매수/매도 거래 정보를 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
             mem_code (str, optional): 회원사 코드. Defaults to "99999" (전체).
-            
+
         Returns:
             Optional[Dict[str, Any]]: 회원사별 매매 정보 데이터
                 - 성공 시: rt_cd와 함께 회원사 매매 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_member_transaction("005930")
@@ -444,17 +458,17 @@ class Agent(BaseExceptionHandler):
     def get_volume_power(self, volume: int = 0) -> Optional[Dict[str, Any]]:
         """
         체결강도 순위 조회
-        
+
         체결강도가 높은 종목들의 순위를 조회합니다.
-        
+
         Args:
             volume (int, optional): 최소 거래량 조건. Defaults to 0.
-            
+
         Returns:
             Optional[Dict[str, Any]]: 체결강도 순위 데이터
                 - 성공 시: rt_cd와 함께 체결강도 순위 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_volume_power(volume=1000000)  # 100만주 이상
@@ -523,14 +537,14 @@ class Agent(BaseExceptionHandler):
     def get_account_balance(self) -> Optional[Dict[str, Any]]:
         """
         계좌 잔고 조회
-        
+
         현재 계좌의 보유 종목, 평가손익, 총 자산 등의 잔고 정보를 조회합니다.
-        
+
         Returns:
             Optional[Dict[str, Any]]: 계좌 잔고 정보 데이터
                 - 성공 시: rt_cd와 함께 잔고 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_account_balance()
@@ -540,22 +554,24 @@ class Agent(BaseExceptionHandler):
         """
         return self.account_api.get_account_balance()
 
-    def get_possible_order_amount(self, code: str, price: str, order_type: str = "01") -> Optional[Dict[str, Any]]:
+    def get_possible_order_amount(
+        self, code: str, price: str, order_type: str = "01"
+    ) -> Optional[Dict[str, Any]]:
         """
         주문 가능 금액 조회
-        
+
         특정 종목에 대한 매수/매도 가능 금액을 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
             price (str): 주문 단가
             order_type (str, optional): 주문 구분. Defaults to "01" (매수).
-            
+
         Returns:
             Optional[Dict[str, Any]]: 주문 가능 금액 정보 데이터
                 - 성공 시: rt_cd와 함께 주문 가능 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_possible_order_amount("005930", "70000", "01")
@@ -568,17 +584,17 @@ class Agent(BaseExceptionHandler):
     def get_account_order_quantity(self, code: str) -> Optional[Dict[str, Any]]:
         """
         계좌별 주문 수량 조회
-        
+
         특정 종목에 대한 계좌별 주문 가능 수량을 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
-            
+
         Returns:
             Optional[Dict[str, Any]]: 계좌별 주문 수량 정보 데이터
                 - 성공 시: rt_cd와 함께 주문 수량 정보 딕셔너리
                 - 실패 시: None
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> result = agent.get_account_order_quantity("005930")
@@ -595,57 +611,63 @@ class Agent(BaseExceptionHandler):
     def get_program_trade_hourly_trend(self, code: str) -> Optional[Dict[str, Any]]:
         """
         시간별 프로그램 매매 추이 조회
-        
+
         특정 종목의 시간대별 프로그램 매매 동향을 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
-            
+
         Returns:
             Optional[Dict[str, Any]]: 시간별 프로그램 매매 추이 데이터
         """
         return self.program_api.get_program_trade_hourly_trend(code)
 
-    def get_program_trade_daily_summary(self, code: str, date_str: str) -> Optional[Dict[str, Any]]:
+    def get_program_trade_daily_summary(
+        self, code: str, date_str: str
+    ) -> Optional[Dict[str, Any]]:
         """
         종목별 일별 프로그램 매매 집계 조회
-        
+
         특정 날짜의 특정 종목 프로그램 매매 집계를 조회합니다.
-        
+
         Args:
             code (str): 종목코드 (6자리, 예: "005930")
             date_str (str): 조회 날짜 (YYYYMMDD 형식)
-            
+
         Returns:
             Optional[Dict[str, Any]]: 일별 프로그램 매매 집계 데이터
         """
         return self.program_api.get_program_trade_daily_summary(code, date_str)
 
-    def get_program_trade_period_detail(self, start_date: str, end_date: str) -> Optional[Dict[str, Any]]:
+    def get_program_trade_period_detail(
+        self, start_date: str, end_date: str
+    ) -> Optional[Dict[str, Any]]:
         """
         기간별 프로그램 매매 상세 조회
-        
+
         지정된 기간 동안의 프로그램 매매 상세 내역을 조회합니다.
-        
+
         Args:
             start_date (str): 시작 날짜 (YYYYMMDD 형식)
             end_date (str): 종료 날짜 (YYYYMMDD 형식)
-            
+
         Returns:
             Optional[Dict[str, Any]]: 기간별 프로그램 매매 상세 데이터
         """
         return self.program_api.get_program_trade_period_detail(start_date, end_date)
 
-    def get_program_trade_market_daily(self, start_date: str, end_date: str) -> Optional[Dict[str, Any]]:
+    def get_program_trade_market_daily(
+        self, start_date: str, end_date: str
+    ) -> Optional[Dict[str, Any]]:
         """
         시장 전체 프로그램 매매 종합현황 조회
-        
+
         지정된 기간의 시장 전체 프로그램 매매 현황을 조회합니다.
-        
+
         Args:
             start_date (str): 시작 날짜 (YYYYMMDD 형식)
             end_date (str): 종료 날짜 (YYYYMMDD 형식)
-            
+
         Returns:
             Optional[Dict[str, Any]]: 시장 전체 프로그램 매매 현황 데이터
         """
@@ -655,7 +677,9 @@ class Agent(BaseExceptionHandler):
     # 기타 유틸리티 메서드들
     # ============================================================================
 
-    def get_all_methods(self, show_details: bool = False, category: str = None) -> Dict[str, Any]:
+    def get_all_methods(
+        self, show_details: bool = False, category: str = None
+    ) -> Dict[str, Any]:
         """
         Agent에서 사용 가능한 모든 메서드를 카테고리별로 정리하여 반환합니다.
 
@@ -1009,9 +1033,7 @@ class Agent(BaseExceptionHandler):
             return "기타"
 
     @exception_handler(
-        message="휴장일 정보 조회 실패",
-        reraise=False,
-        default_return=None
+        message="휴장일 정보 조회 실패", reraise=False, default_return=None
     )
     def get_holiday_info(self) -> Optional[Dict[str, Any]]:
         """휴장일 정보를 조회합니다.
@@ -1021,11 +1043,7 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.get_holiday_info()
 
-    @exception_handler(
-        message="휴장일 확인 실패",
-        reraise=False,
-        default_return=None
-    )
+    @exception_handler(message="휴장일 확인 실패", reraise=False, default_return=None)
     def is_holiday(self, date: str) -> Optional[bool]:
         """주어진 날짜(YYYYMMDD)가 한국 주식 시장 휴장일인지 확인합니다.
 
@@ -1065,7 +1083,9 @@ class Agent(BaseExceptionHandler):
             logging.error(f"분봉 DB 초기화 실패: {e}")
             return False
 
-    def migrate_minute_csv_to_db(self, code: str, db_path: str = "db/stonks_candles.db") -> bool:
+    def migrate_minute_csv_to_db(
+        self, code: str, db_path: str = "db/stonks_candles.db"
+    ) -> bool:
         """기존 csv 분봉 데이터를 DB로 이관 (한 번만)"""
         cache_dir = "cache"
         csv_file_path = os.path.join(cache_dir, f"{code}_minute_data.csv")
@@ -1134,7 +1154,9 @@ class Agent(BaseExceptionHandler):
         # 영업일을 찾지 못했을 경우 오늘 날짜 반환
         return current_date.strftime("%Y%m%d")
 
-    def fetch_minute_data(self, code: str, date: Optional[str] = None, cache_dir: str = "cache") -> 'pd.DataFrame':
+    def fetch_minute_data(
+        self, code: str, date: Optional[str] = None, cache_dir: str = "cache"
+    ) -> "pd.DataFrame":
         """
         분봉 데이터 수집 (4번 호출 방식으로 효율적 수집)
 
@@ -1606,14 +1628,14 @@ class Agent(BaseExceptionHandler):
     def get_top_gainers(self) -> Optional[List[Dict[str, Any]]]:
         """
         상승률 상위 종목 조회
-        
+
         국내주식 등락률 순위를 조회하여 상승률이 높은 종목 목록을 반환합니다.
-        
+
         Returns:
             Optional[List[Dict[str, Any]]]: 상승률 상위 종목 리스트
                 - 성공 시: 등락률 순위 정보 리스트
                 - 실패 시: 빈 리스트
-                
+
         Example:
             >>> agent = Agent(env_path=".env")
             >>> top_gainers = agent.get_top_gainers()
@@ -1918,25 +1940,26 @@ class Agent(BaseExceptionHandler):
             pdno, qty, price, order_type, credit_type
         )
 
-    def order_stock_cash(self,
-                        ord_dv: str,  # 매수매도구분 (buy:매수, sell:매도)
-                        pdno: str,  # 종목코드
-                        ord_dvsn: str,  # 주문구분
-                        ord_qty: str,  # 주문수량
-                        ord_unpr: str,  # 주문단가
-                        excg_id_dvsn_cd: str = "KRX",  # 거래소ID구분코드
-                        sll_type: str = "",  # 매도유형
-                        cndt_pric: str = ""  # 조건가격
-                        ) -> Optional[Dict[str, Any]]:
+    def order_stock_cash(
+        self,
+        ord_dv: str,  # 매수매도구분 (buy:매수, sell:매도)
+        pdno: str,  # 종목코드
+        ord_dvsn: str,  # 주문구분
+        ord_qty: str,  # 주문수량
+        ord_unpr: str,  # 주문단가
+        excg_id_dvsn_cd: str = "KRX",  # 거래소ID구분코드
+        sll_type: str = "",  # 매도유형
+        cndt_pric: str = "",  # 조건가격
+    ) -> Optional[Dict[str, Any]]:
         """
         국내주식주문(현금) API - StockAPI 기반
-        
+
         StockAPI의 order_cash 메서드를 사용하여 현금매수/매도 주문을 실행합니다.
-        
+
         Args:
             ord_dv (str): 매수매도구분 (buy:매수, sell:매도)
             pdno (str): 종목코드 (6자리)
-            ord_dvsn (str): 주문구분 
+            ord_dvsn (str): 주문구분
                 - 00:지정가, 01:시장가, 02:조건부지정가, 03:최유리지정가
                 - 04:최우선지정가, 05:장전시간외, 06:장후시간외
                 - 07:시간외단일가, 08:자기주식, 09:자기주식S-Option
@@ -1947,21 +1970,21 @@ class Agent(BaseExceptionHandler):
             excg_id_dvsn_cd (str): 거래소ID구분코드 (KRX:한국거래소)
             sll_type (str): 매도유형 (01:일반매도, 02:임의매매, 05:대차매도)
             cndt_pric (str): 조건가격 (스탑지정가 주문 시 사용)
-            
+
         Returns:
             Optional[Dict[str, Any]]: 주문 결과 데이터
                 - rt_cd: 응답코드 ("0": 성공)
                 - msg1: 응답메시지
                 - output: 주문 상세 정보
-                
+
         Example:
             >>> # 삼성전자 1주 70000원 지정가 매수
             >>> result = agent.order_stock_cash("buy", "005930", "00", "1", "70000")
             >>> print(result['msg1'])
-            
+
             >>> # 삼성전자 1주 시장가 매도
             >>> result = agent.order_stock_cash("sell", "005930", "01", "1", "0")
-            
+
             >>> # 최유리지정가로 빠른 매수 (추천)
             >>> result = agent.order_stock_cash("buy", "009470", "03", "1", "0")
         """
@@ -1973,29 +1996,30 @@ class Agent(BaseExceptionHandler):
             ord_unpr=ord_unpr,
             excg_id_dvsn_cd=excg_id_dvsn_cd,
             sll_type=sll_type,
-            cndt_pric=cndt_pric
+            cndt_pric=cndt_pric,
         )
 
-    def order_stock_credit(self,
-                          ord_dv: str,  # 매수매도구분 (buy:매수, sell:매도)
-                          pdno: str,  # 종목코드
-                          crdt_type: str,  # 신용유형
-                          ord_dvsn: str,  # 주문구분
-                          ord_qty: str,  # 주문수량
-                          ord_unpr: str,  # 주문단가
-                          loan_dt: str = "",  # 대출일자 (기본값: 빈 문자열)
-                          excg_id_dvsn_cd: str = "KRX",  # 거래소ID구분코드
-                          sll_type: str = "",  # 매도유형
-                          rsvn_ord_yn: str = "N",  # 예약주문여부
-                          emgc_ord_yn: str = "",  # 비상주문여부
-                          cndt_pric: str = ""  # 조건가격
-                          ) -> Optional[Dict[str, Any]]:
+    def order_stock_credit(
+        self,
+        ord_dv: str,  # 매수매도구분 (buy:매수, sell:매도)
+        pdno: str,  # 종목코드
+        crdt_type: str,  # 신용유형
+        ord_dvsn: str,  # 주문구분
+        ord_qty: str,  # 주문수량
+        ord_unpr: str,  # 주문단가
+        loan_dt: str = "",  # 대출일자 (기본값: 빈 문자열)
+        excg_id_dvsn_cd: str = "KRX",  # 거래소ID구분코드
+        sll_type: str = "",  # 매도유형
+        rsvn_ord_yn: str = "N",  # 예약주문여부
+        emgc_ord_yn: str = "",  # 비상주문여부
+        cndt_pric: str = "",  # 조건가격
+    ) -> Optional[Dict[str, Any]]:
         """
         국내주식주문(신용) API - StockAPI 기반
-        
+
         StockAPI의 order_credit 메서드를 사용하여 신용매수/매도 주문을 실행합니다.
         (모의투자 미지원)
-        
+
         Args:
             ord_dv (str): 매수매도구분 (buy:매수, sell:매도)
             pdno (str): 종목코드 (6자리)
@@ -2016,22 +2040,22 @@ class Agent(BaseExceptionHandler):
             rsvn_ord_yn (str): 예약주문여부 (Y:예약주문, N:신용주문)
             emgc_ord_yn (str): 비상주문여부
             cndt_pric (str): 조건가격
-            
+
         Returns:
             Optional[Dict[str, Any]]: 주문 결과 데이터
                 - rt_cd: 응답코드 ("0": 성공)
                 - msg1: 응답메시지
                 - output: 주문 상세 정보
-                
+
         Example:
             >>> # 삼성전자 1주 자기융자신규 매수
             >>> from datetime import datetime
             >>> today = datetime.now().strftime("%Y%m%d")
             >>> result = agent.order_stock_credit(
-            ...     ord_dv="buy", pdno="005930", crdt_type="21", 
+            ...     ord_dv="buy", pdno="005930", crdt_type="21",
             ...     ord_dvsn="00", ord_qty="1", ord_unpr="70000", loan_dt=today
             ... )
-            
+
             >>> # 최유리지정가로 빠른 체결
             >>> result = agent.order_stock_credit(
             ...     ord_dv="buy", pdno="009470", crdt_type="21",
@@ -2050,21 +2074,22 @@ class Agent(BaseExceptionHandler):
             sll_type=sll_type,
             rsvn_ord_yn=rsvn_ord_yn,
             emgc_ord_yn=emgc_ord_yn,
-            cndt_pric=cndt_pric
+            cndt_pric=cndt_pric,
         )
 
-    def inquire_order_psbl(self,
-                          pdno: str,  # 종목코드
-                          ord_unpr: str,  # 주문단가
-                          ord_dvsn: str = "00",  # 주문구분
-                          cma_evlu_amt_icld_yn: str = "Y",  # CMA평가금액포함여부
-                          ovrs_icld_yn: str = "Y"  # 해외포함여부
-                          ) -> Optional[Dict[str, Any]]:
+    def inquire_order_psbl(
+        self,
+        pdno: str,  # 종목코드
+        ord_unpr: str,  # 주문단가
+        ord_dvsn: str = "00",  # 주문구분
+        cma_evlu_amt_icld_yn: str = "Y",  # CMA평가금액포함여부
+        ovrs_icld_yn: str = "Y",  # 해외포함여부
+    ) -> Optional[Dict[str, Any]]:
         """
         매수가능조회 - StockAPI 기반
-        
+
         StockAPI의 inquire_psbl_order 메서드를 사용하여 특정 종목의 매수 가능 수량과 금액을 조회합니다.
-        
+
         Args:
             pdno (str): 종목코드 (6자리)
             ord_unpr (str): 주문단가
@@ -2076,7 +2101,7 @@ class Agent(BaseExceptionHandler):
                 - 13:IOC시장가, 14:FOK시장가, 15:IOC최유리, 16:FOK최유리
             cma_evlu_amt_icld_yn (str): CMA평가금액포함여부 (Y:포함, N:미포함)
             ovrs_icld_yn (str): 해외포함여부 (Y:포함, N:미포함)
-            
+
         Returns:
             Optional[Dict[str, Any]]: 매수가능 정보
                 - rt_cd: 응답코드 ("0": 성공)
@@ -2085,7 +2110,7 @@ class Agent(BaseExceptionHandler):
                     - ord_psbl_cash: 주문가능현금
                     - max_buy_qty: 최대매수수량
                     - ord_psbl_qty: 주문가능수량
-                    
+
         Example:
             >>> # 삼성전자 70000원 지정가 매수가능 조회
             >>> result = agent.inquire_order_psbl("005930", "70000")
@@ -2096,22 +2121,23 @@ class Agent(BaseExceptionHandler):
             ord_unpr=ord_unpr,
             ord_dvsn=ord_dvsn,
             cma_evlu_amt_icld_yn=cma_evlu_amt_icld_yn,
-            ovrs_icld_yn=ovrs_icld_yn
+            ovrs_icld_yn=ovrs_icld_yn,
         )
 
-    def inquire_credit_order_psbl(self,
-                                 pdno: str,  # 종목코드
-                                 ord_unpr: str,  # 주문단가
-                                 ord_dvsn: str = "00",  # 주문구분
-                                 crdt_type: str = "21",  # 신용유형
-                                 cma_evlu_amt_icld_yn: str = "N",  # CMA평가금액포함여부
-                                 ovrs_icld_yn: str = "N"  # 해외포함여부
-                                 ) -> Optional[Dict[str, Any]]:
+    def inquire_credit_order_psbl(
+        self,
+        pdno: str,  # 종목코드
+        ord_unpr: str,  # 주문단가
+        ord_dvsn: str = "00",  # 주문구분
+        crdt_type: str = "21",  # 신용유형
+        cma_evlu_amt_icld_yn: str = "N",  # CMA평가금액포함여부
+        ovrs_icld_yn: str = "N",  # 해외포함여부
+    ) -> Optional[Dict[str, Any]]:
         """
         신용매수가능조회 - StockAPI 기반
-        
+
         StockAPI의 inquire_credit_psamount 메서드를 사용하여 특정 종목의 신용매수 가능 수량과 금액을 조회합니다.
-        
+
         Args:
             pdno (str): 종목코드 (6자리)
             ord_unpr (str): 주문단가
@@ -2126,7 +2152,7 @@ class Agent(BaseExceptionHandler):
                 - Y:포함, N:불포함
             ovrs_icld_yn (str): 해외포함여부 (기본값: "N")
                 - Y:포함, N:불포함
-                
+
         Returns:
             Optional[Dict[str, Any]]: 신용매수가능 정보
                 - rt_cd: 응답코드 ("0": 성공)
@@ -2135,7 +2161,7 @@ class Agent(BaseExceptionHandler):
                     - crdt_buy_psbl_amt: 신용매수가능금액
                     - max_buy_qty: 최대매수수량
                     - crdt_psbl_qty: 신용매수가능수량
-                    
+
         Example:
             >>> # 삼성전자 70000원 신용매수가능 조회
             >>> result = agent.inquire_credit_order_psbl("005930", "70000")
@@ -2147,7 +2173,7 @@ class Agent(BaseExceptionHandler):
             ord_dvsn=ord_dvsn,
             crdt_type=crdt_type,
             cma_evlu_amt_icld_yn=cma_evlu_amt_icld_yn,
-            ovrs_icld_yn=ovrs_icld_yn
+            ovrs_icld_yn=ovrs_icld_yn,
         )
 
     def inquire_intgr_margin(self) -> Optional[Dict[str, Any]]:
@@ -2202,7 +2228,7 @@ class Agent(BaseExceptionHandler):
     def get_rate_limiter_status(self) -> Optional[Dict[str, Any]]:
         """
         Rate Limiter 상태 조회
-        
+
         Returns:
             Dict: Rate Limiter 상태 정보
                 - requests_per_second: 현재 초당 요청 수
@@ -2214,7 +2240,7 @@ class Agent(BaseExceptionHandler):
                 - throttled_count: 제한된 요청 수
                 - avg_wait_time: 평균 대기 시간
             None: Rate Limiter가 비활성화된 경우
-            
+
         Example:
             >>> status = agent.get_rate_limiter_status()
             >>> if status:
@@ -2224,28 +2250,28 @@ class Agent(BaseExceptionHandler):
         if self.rate_limiter:
             return self.rate_limiter.get_current_rate()
         return None
-    
+
     def set_rate_limits(
         self,
         requests_per_second: Optional[int] = None,
         requests_per_minute: Optional[int] = None,
-        min_interval_ms: Optional[int] = None
+        min_interval_ms: Optional[int] = None,
     ):
         """
         Rate Limiter 제한 값 동적 변경
-        
+
         Args:
             requests_per_second: 초당 최대 요청 수 (None이면 변경 안 함)
             requests_per_minute: 분당 최대 요청 수 (None이면 변경 안 함)
             min_interval_ms: 최소 간격 (밀리초) (None이면 변경 안 함)
-            
+
         Example:
             >>> # 더 보수적인 설정으로 변경
             >>> agent.set_rate_limits(
             ...     requests_per_second=10,
             ...     requests_per_minute=500
             ... )
-            >>> 
+            >>>
             >>> # 최소 간격만 변경
             >>> agent.set_rate_limits(min_interval_ms=100)
         """
@@ -2253,19 +2279,19 @@ class Agent(BaseExceptionHandler):
             self.rate_limiter.set_limits(
                 requests_per_second=requests_per_second,
                 requests_per_minute=requests_per_minute,
-                min_interval_ms=min_interval_ms
+                min_interval_ms=min_interval_ms,
             )
             logging.info(f"Rate limits 업데이트 완료")
         else:
             logging.warning("Rate Limiter가 비활성화 상태입니다")
-    
+
     def reset_rate_limiter(self):
         """
         Rate Limiter 상태 초기화
-        
+
         모든 요청 기록과 통계를 초기화합니다.
         백오프 배수도 1.0으로 리셋됩니다.
-        
+
         Example:
             >>> agent.reset_rate_limiter()
             >>> print("Rate limiter 초기화 완료")
@@ -2275,14 +2301,14 @@ class Agent(BaseExceptionHandler):
             logging.info("Rate limiter 초기화 완료")
         else:
             logging.warning("Rate Limiter가 비활성화 상태입니다")
-    
+
     def enable_adaptive_rate_limiting(self, enable: bool = True):
         """
         적응형 속도 조절 활성화/비활성화
-        
+
         Args:
             enable: True면 활성화, False면 비활성화
-            
+
         Example:
             >>> # 적응형 속도 조절 비활성화
             >>> agent.enable_adaptive_rate_limiting(False)

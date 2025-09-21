@@ -22,6 +22,7 @@ from unittest.mock import patch, MagicMock
 from pykis.core.client import KISClient
 from pykis.core.config import KISConfig
 
+
 class TestKISClient(unittest.TestCase):
     """
     KISClient 클래스의 통합 테스트 클래스입니다.
@@ -37,7 +38,7 @@ class TestKISClient(unittest.TestCase):
         self.config = KISConfig()
         self.client = KISClient(self.config)
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_refresh_token(self, mock_post):
         """
         refresh_token 메서드를 실제 API 호출로 테스트합니다.
@@ -45,7 +46,7 @@ class TestKISClient(unittest.TestCase):
         # Mock 응답 설정
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            'access_token': 'test_token',
+            "access_token": "test_token",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
@@ -66,14 +67,11 @@ class TestKISClient(unittest.TestCase):
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-price",
             tr_id="FHKST01010100",
-            params={
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": "005930"
-            }
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930"},
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
-        self.assertEqual(response['rt_cd'], '0')
+        self.assertEqual(response["rt_cd"], "0")
 
     def test_make_request_daily_price(self):
         """
@@ -87,13 +85,13 @@ class TestKISClient(unittest.TestCase):
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": "005930",
                 "FID_INPUT_DATE_1": "20240601",
-                "FID_INPUT_DATE_2": "20240618"
-            }
+                "FID_INPUT_DATE_2": "20240618",
+            },
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
         if response:
-            self.assertEqual(response['rt_cd'], '0')
+            self.assertEqual(response["rt_cd"], "0")
 
     def test_make_request_orderbook(self):
         """
@@ -103,14 +101,11 @@ class TestKISClient(unittest.TestCase):
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn",
             tr_id="FHKST01010200",
-            params={
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": "005930"
-            }
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930"},
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
-        self.assertEqual(response['rt_cd'], '0')
+        self.assertEqual(response["rt_cd"], "0")
 
     def test_make_request_investor(self):
         """
@@ -120,14 +115,11 @@ class TestKISClient(unittest.TestCase):
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-investor",
             tr_id="FHKST01010900",
-            params={
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": "005930"
-            }
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930"},
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
-        self.assertEqual(response['rt_cd'], '0')
+        self.assertEqual(response["rt_cd"], "0")
 
     def test_enforce_rate_limit(self):
         """
@@ -150,13 +142,13 @@ class TestKISClient(unittest.TestCase):
                 "FID_INPUT_ISCD": "005930",
                 "FID_INPUT_DATE_1": "",
                 "FID_INPUT_DATE_2": "",
-                "FID_PERIOD_DIV_CODE": "D"
-            }
+                "FID_PERIOD_DIV_CODE": "D",
+            },
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
-        if response.get('rt_cd') == '0':
-            self.assertEqual(response['rt_cd'], '0')
+        if response.get("rt_cd") == "0":
+            self.assertEqual(response["rt_cd"], "0")
 
     def test_make_request_market_cap(self):
         """
@@ -177,13 +169,14 @@ class TestKISClient(unittest.TestCase):
                 "FID_INPUT_PRICE_1": "",
                 "FID_INPUT_PRICE_2": "",
                 "FID_VOL_CNT": "",
-                "FID_INPUT_DATE_1": ""
-            }
+                "FID_INPUT_DATE_1": "",
+            },
         )
         # API 응답이 정상인지 확인
         self.assertIsNotNone(response)
-        if response.get('rt_cd') == '0':
-            self.assertEqual(response['rt_cd'], '0')
+        if response.get("rt_cd") == "0":
+            self.assertEqual(response["rt_cd"], "0")
 
-if __name__ == '__main__':
-    unittest.main() 
+
+if __name__ == "__main__":
+    unittest.main()

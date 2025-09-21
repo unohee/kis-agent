@@ -18,8 +18,9 @@ from datetime import datetime, timedelta  # [변경 이유] 날짜 계산을 위
 from pykis import Agent
 import logging
 
-if not os.getenv('RUN_LIVE_TESTS'):
-    pytest.skip('실제 API 테스트 건너뜀', allow_module_level=True)
+if not os.getenv("RUN_LIVE_TESTS"):
+    pytest.skip("실제 API 테스트 건너뜀", allow_module_level=True)
+
 
 def safe_call(name, func, *args, **kwargs):
     """안전한 함수 호출을 위한 헬퍼 함수"""
@@ -31,64 +32,68 @@ def safe_call(name, func, *args, **kwargs):
         print(f"{name} Error: {e}\n")
         return None
 
+
 def test_account_balance(account_info):
     """계좌 잔고 조회 테스트"""
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
     agent = Agent(env_path=env_path)
     df = agent.get_account_balance_df()
     assert df is not None and not df.empty, "잔고 데이터가 없거나 오류가 발생했습니다."
 
+
 def test_agent_api(account_info, test_stock_code):
     """Agent의 주요 API 기능 테스트"""
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
     agent = Agent(env_path=env_path)
-    
+
     # 주식 가격 조회 테스트
     print("\n[주식 가격 조회 테스트]")
     price = safe_call("get_stock_price", agent.get_stock_price, test_stock_code)
     assert price is not None, "주식 가격 조회 실패"
-    
+
     # [변경 이유] Agent.get_daily_price는 code만 받으므로 인자 개수 수정
     daily_price = safe_call("get_daily_price", agent.get_daily_price, test_stock_code)
     assert daily_price is not None, "일별 가격 조회 실패"
-    
+
     # 계좌 잔고 조회 테스트
     print("\n[계좌 잔고 조회 테스트]")
     balance = safe_call("get_account_balance", agent.get_account_balance)
     assert balance is not None, "계좌 잔고 조회 실패"
-    
+
     cash = safe_call("get_cash_available", agent.get_cash_available)
     assert cash is not None, "현금 잔고 조회 실패"
-    
+
     total = safe_call("get_total_asset", agent.get_total_asset)
     assert total is not None, "총 자산 조회 실패"
 
+
 def test_stock_api(account_info, test_stock_code):
     """Agent 시세/투자자/호가 테스트"""
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
     agent = Agent(env_path=env_path)
-    
+
     price = agent.get_stock_price(test_stock_code)
     assert price is not None, "주식 가격 조회 실패"
-    
+
     # [변경 이유] get_daily_price 인자 추가 (최근 1개월)
-    end_date = datetime.today().strftime('%Y%m%d')
-    start_date = (datetime.today() - timedelta(days=30)).strftime('%Y%m%d')
+    end_date = datetime.today().strftime("%Y%m%d")
+    start_date = (datetime.today() - timedelta(days=30)).strftime("%Y%m%d")
     daily = agent.get_daily_price(test_stock_code, start_date, end_date)
     assert daily is not None, "일별 가격 조회 실패"
-    
+
     orderbook = agent.get_orderbook(test_stock_code)
     assert orderbook is not None, "호가 조회 실패"
-    
+
     member = agent.get_stock_member(test_stock_code)
     assert member is not None, "회원사 조회 실패"
-    
+
     investor = agent.get_stock_investor(test_stock_code)
     assert investor is not None, "투자자 조회 실패"
 
+
 def test_program_trade(test_stock_code):
     """Agent 프로그램 매매 테스트"""
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
     agent = Agent(env_path=env_path)
     trend = agent.get_program_trade_trend(test_stock_code)
     assert trend is not None, "프로그램 매매 추이 조회 실패"
@@ -97,26 +102,27 @@ def test_program_trade(test_stock_code):
     analysis = agent.analyze_trade_trend(test_stock_code)
     assert analysis is not None, "매매 동향 분석 실패"
 
+
 def test_condition_search():
     """조건검색 테스트"""
     # 로깅 레벨을 임시로 변경하여 조건검색 종목 조회 성공 메시지 숨김
     original_level = logging.getLogger().level
     logging.getLogger().setLevel(logging.WARNING)
-    
+
     try:
-        env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+        env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
         agent = Agent(env_path=env_path)
         # 조건검색 목록 조회
         conditions = agent.get_condition_list()
         assert conditions is not None, "조건검색 목록 조회 실패"
         assert isinstance(conditions, list), "조건검색 목록이 리스트가 아닙니다"
-        
+
         if conditions:
             # 첫 번째 조건으로 종목 조회
             condition = conditions[0]
-            stocks = agent.get_condition_stocks(condition['condition_index'])
+            stocks = agent.get_condition_stocks(condition["condition_index"])
             assert stocks is not None, "조건검색 종목 조회 실패"
             assert isinstance(stocks, list), "조건검색 종목이 리스트가 아닙니다"
     finally:
         # 로깅 레벨 복원
-        logging.getLogger().setLevel(original_level) 
+        logging.getLogger().setLevel(original_level)

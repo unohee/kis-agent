@@ -19,7 +19,7 @@ from ..core.exceptions import (
     NetworkException,
     handle_exceptions,
     ensure_not_none,
-    ensure_type
+    ensure_type,
 )
 
 
@@ -56,8 +56,9 @@ class StockAPI(BaseAPI, ExceptionHandler):
         self.ACNT_PRDT_CD = account["ACNT_PRDT_CD"]
 
     @handle_exceptions(context="API 요청 실행 (Dict 반환)", reraise_as=APIException)
-    def _make_request_dict(self, endpoint: str, tr_id: str, params: dict,
-                           retries: int = 5) -> Dict:
+    def _make_request_dict(
+        self, endpoint: str, tr_id: str, params: dict, retries: int = 5
+    ) -> Dict:
         """
         공통 요청 함수: 응답을 Dict으로 변환
 
@@ -65,15 +66,14 @@ class StockAPI(BaseAPI, ExceptionHandler):
             APIException: API 호출 실패 또는 응답 오류
         """
         response = self.client.make_request(
-            endpoint=endpoint,
-            tr_id=tr_id,
-            params=params,
-            retries=retries
+            endpoint=endpoint, tr_id=tr_id, params=params, retries=retries
         )
 
         # 응답 검증
         if not response:
-            raise APIException(f"API 응답이 없습니다. endpoint={endpoint}, tr_id={tr_id}")
+            raise APIException(
+                f"API 응답이 없습니다. endpoint={endpoint}, tr_id={tr_id}"
+            )
 
         if response.get("rt_cd") != "0":
             error_msg = response.get("msg1", "알 수 없는 오류")
@@ -82,9 +82,12 @@ class StockAPI(BaseAPI, ExceptionHandler):
 
         return response
 
-    @handle_exceptions(context="API 요청 실행 (DataFrame 반환)", reraise_as=APIException)
-    def _make_request_dataframe(self, endpoint: str, tr_id: str, params: dict,
-                                retries: int = 5) -> pd.DataFrame:
+    @handle_exceptions(
+        context="API 요청 실행 (DataFrame 반환)", reraise_as=APIException
+    )
+    def _make_request_dataframe(
+        self, endpoint: str, tr_id: str, params: dict, retries: int = 5
+    ) -> pd.DataFrame:
         """
         공통 요청 함수: 응답을 DataFrame으로 변환
 
@@ -127,14 +130,15 @@ class StockAPI(BaseAPI, ExceptionHandler):
             raise ValidationException(f"종목코드는 6자리여야 합니다: {code}")
 
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS['INQUIRE_PRICE'],
+            endpoint=API_ENDPOINTS["INQUIRE_PRICE"],
             tr_id="FHKST01010100",
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code}
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
         )
 
     @handle_exceptions(context="일별 시세 조회", reraise_as=APIException)
-    def get_daily_price(self, code: str, period: str = "D",
-                       org_adj_prc: str = "1") -> Dict[str, Any]:
+    def get_daily_price(
+        self, code: str, period: str = "D", org_adj_prc: str = "1"
+    ) -> Dict[str, Any]:
         """
         일별 시세 조회
 
@@ -158,20 +162,24 @@ class StockAPI(BaseAPI, ExceptionHandler):
             raise ValidationException(f"종목코드는 6자리여야 합니다: {code}")
 
         if period not in ["D", "W", "M", "Y"]:
-            raise ValidationException(f"잘못된 기간구분: {period}. D, W, M, Y 중 하나여야 합니다.")
+            raise ValidationException(
+                f"잘못된 기간구분: {period}. D, W, M, Y 중 하나여야 합니다."
+            )
 
         if org_adj_prc not in ["0", "1"]:
-            raise ValidationException(f"잘못된 수정주가구분: {org_adj_prc}. 0 또는 1이어야 합니다.")
+            raise ValidationException(
+                f"잘못된 수정주가구분: {org_adj_prc}. 0 또는 1이어야 합니다."
+            )
 
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS['INQUIRE_DAILY_ITEMCHARTPRICE'],
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
             tr_id="FHKST01010400",
             params={
                 "fid_cond_mrkt_div_code": "J",
                 "fid_input_iscd": code,
                 "fid_period_div_code": period,
-                "fid_org_adj_prc": org_adj_prc
-            }
+                "fid_org_adj_prc": org_adj_prc,
+            },
         )
 
     @handle_exceptions(context="주식 회원사 정보 조회")
@@ -198,10 +206,10 @@ class StockAPI(BaseAPI, ExceptionHandler):
         for attempt in range(retries):
             try:
                 response = self.client.make_request(
-                    endpoint=API_ENDPOINTS['INQUIRE_MEMBER'],
+                    endpoint=API_ENDPOINTS["INQUIRE_MEMBER"],
                     tr_id="FHKST01010600",
                     params={"fid_cond_mrkt_div_code": "J", "fid_input_iscd": ticker},
-                    retries=1  # 내부 재시도는 1회만
+                    retries=1,  # 내부 재시도는 1회만
                 )
 
                 if response and response.get("rt_cd") == "0":
@@ -216,7 +224,9 @@ class StockAPI(BaseAPI, ExceptionHandler):
 
             except Exception as e:
                 last_exception = e
-                self._log_warning(f"주식 회원사 조회 실패 (시도 {attempt+1}/{retries}): {e}")
+                self._log_warning(
+                    f"주식 회원사 조회 실패 (시도 {attempt+1}/{retries}): {e}"
+                )
 
                 # 마지막 시도가 아니면 계속
                 if attempt < retries - 1:
@@ -224,7 +234,9 @@ class StockAPI(BaseAPI, ExceptionHandler):
 
         # 모든 재시도 실패 후 예외 발생
         if last_exception:
-            raise APIException(f"{retries}회 재시도 후에도 회원사 정보 조회 실패: {ticker}") from last_exception
+            raise APIException(
+                f"{retries}회 재시도 후에도 회원사 정보 조회 실패: {ticker}"
+            ) from last_exception
         else:
             raise APIException(f"회원사 정보 조회 실패: {ticker}")
 
@@ -255,7 +267,7 @@ class StockAPI(BaseAPI, ExceptionHandler):
 
         # API 호출
         response = self._make_request_dict(
-            endpoint=API_ENDPOINTS['INQUIRE_DAILY_TRADE'],
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_TRADE"],
             tr_id="FHKST01010900",
             params={
                 "fid_cond_mrkt_div_code": "J",
@@ -263,8 +275,8 @@ class StockAPI(BaseAPI, ExceptionHandler):
                 "fid_input_date_1": date,
                 "fid_input_date_2": date,
                 "fid_period_div_code": "D",
-                "fid_org_adj_prc": "0"
-            }
+                "fid_org_adj_prc": "0",
+            },
         )
 
         output = response.get("output", [])
@@ -281,7 +293,7 @@ class StockAPI(BaseAPI, ExceptionHandler):
             "frgn_ntby_qty": frgn_ntby_qty,
             "frgn_ntby_tr_pbmn": int(latest.get("frgn_ntby_tr_pbmn", 0)),
             "frgn_hldn_qty": int(latest.get("frgn_hldn_qty", 0)),
-            "frgn_hldn_rate": float(latest.get("frgn_hldn_rate", 0))
+            "frgn_hldn_rate": float(latest.get("frgn_hldn_rate", 0)),
         }
 
         return frgn_ntby_qty, details
@@ -307,17 +319,11 @@ class StockAPI(BaseAPI, ExceptionHandler):
         if len(year) != 4 or not year.isdigit():
             raise ValidationException(f"연도는 YYYY 형식이어야 합니다: {year}")
 
-        params = {
-            "BASS_DT": f"{year}0101",
-            "CTX_AREA_NK": "",
-            "CTX_AREA_FK": ""
-        }
+        params = {"BASS_DT": f"{year}0101", "CTX_AREA_NK": "", "CTX_AREA_FK": ""}
 
         # DataFrame으로 반환
         return self._make_request_dataframe(
-            endpoint=API_ENDPOINTS['INQUIRE_HOLIDAY'],
-            tr_id="CTCA0903R",
-            params=params
+            endpoint=API_ENDPOINTS["INQUIRE_HOLIDAY"], tr_id="CTCA0903R", params=params
         )
 
 
