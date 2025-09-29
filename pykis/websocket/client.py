@@ -9,11 +9,9 @@ from collections import defaultdict
 from datetime import date, datetime
 
 import pandas as pd
-import requests
 import websockets
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-from dotenv import load_dotenv
 
 from ..core.client import KISClient
 from ..stock.api import StockAPI
@@ -520,7 +518,6 @@ class KisWebSocket:
         # (종목코드, 종목명, 체결가, 거래량, 체결강도, 매입가격, 보유수량, 평가금액, 매입가 대비,
         #  RSI, MACD, ATR, 시가 대비 변동, 20 EMA, 120 EMA) 튜플로 구성된 dict입니다.
         summary = self.trade_summary()
-        import sys
 
         sys.stdout.write("\033[H\033[J")  # 화면 클리어
         for code, data in summary.items():
@@ -896,9 +893,9 @@ class KisWebSocket:
         체결통보 메시지 처리 (AES256 복호화).
         필요한 경우 여기에 추가 처리를 할 수 있습니다.
         """
-        decrypted = self.aes_cbc_base64_dec(key, iv, data)
-        # 체결통보 출력 제거
-        pass
+        self.aes_cbc_base64_dec(key, iv, data)
+        # 체결통보 출력 제거 (로그만 유지)
+        return None
 
     @staticmethod
     def aes_cbc_base64_dec(key, iv, cipher_text):
@@ -1036,8 +1033,6 @@ class KisWebSocket:
                     )
                     if hasattr(self, "ws") and self.ws:
                         await self.ws.close()
-                    import sys
-
                     sys.exit(0)
             await asyncio.sleep(0.1)
 
@@ -1059,8 +1054,6 @@ class KisWebSocket:
                         )
                         if hasattr(self, "ws") and self.ws:
                             await self.ws.close()
-                        import sys
-
                         sys.exit(0)
                 await asyncio.sleep(0.1)
         except ImportError:
@@ -1342,7 +1335,6 @@ class KisWebSocket:
         self.display_balance_info()  # 초기 화면 표시
 
         import asyncio
-        import sys
         from datetime import datetime
         from datetime import time as dt_time
 

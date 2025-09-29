@@ -13,16 +13,12 @@ Created on Wed Feb 15 16:57:19 2023
 import copy
 import json
 import os
-import time
-from base64 import b64decode
+# [변경 이유] 린트 정리: 사용하지 않는 import 제거, lambda(E731) 제거
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-import pandas as pd
 import requests
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
 from dotenv import load_dotenv
 
 # 환경설정 파일 로드 우선순위: 1) 현재 작업 디렉토리 .env, 2) PyKIS 패키지 루트 .env
@@ -35,7 +31,15 @@ if os.path.exists(current_dir_env):
 elif os.path.exists(pykis_root_env):
     load_dotenv(dotenv_path=pykis_root_env, override=True)  # PyKIS 루트 .env 대체
 
-clearConsole = lambda: os.system("cls" if os.name in ("nt", "dos") else "clear")
+
+def clearConsole() -> int:
+    """터미널 화면을 지웁니다.
+
+    Returns:
+        int: 시스템 호출 반환 코드
+    """
+    # [변경 이유] E731(lambda 사용 금지) 해결을 위해 함수로 변경
+    return os.system("cls" if os.name in ("nt", "dos") else "clear")
 
 key_bytes = 32
 
@@ -126,7 +130,7 @@ def read_token(path: str = token_tmp) -> Optional[Dict[str, Any]]:
         else:
             # print('Need new token: ', tkg_tmp['valid-date'])
             return None
-    except Exception as e:
+    except Exception:
         # print('read token error: ', e)
         return None
 

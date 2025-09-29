@@ -28,7 +28,7 @@ price = stock.get_stock_price("005930")
 # import pandas as pd  # 지역 import로 변경
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import pandas as pd
 
@@ -845,7 +845,6 @@ class StockAPI(BaseAPI):
             - 시간 순서로 정렬되어 반환
         """
         # [변경 이유] 하루 전체 분봉 데이터 수집을 위해 4번 호출하여 합치는 메서드 추가
-        import time
 
         # 4번 호출할 시간 기준점 설정 (HHMMSS 형식)
         time_points = ["090000", "110000", "130000", "153000"]
@@ -853,7 +852,7 @@ class StockAPI(BaseAPI):
         all_minute_data = []
         output1_data = None
 
-        for hour in enumerate(time_points):
+        for hour in time_points:
             try:
                 result = self.get_daily_minute_price(code, date, hour)
 

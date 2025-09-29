@@ -4,7 +4,6 @@
 책임이 분리되고 디자인 패턴이 적용된 깔끔한 WebSocket 클라이언트입니다.
 """
 
-import asyncio
 import json
 import logging
 from datetime import datetime

@@ -5,10 +5,8 @@ Base exception handler for consistent error handling across PyKIS.
 """
 
 import logging
-import sys
-import traceback
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Callable, Optional, Type, Union
 
 
 class BaseExceptionHandler:
@@ -223,7 +221,7 @@ class SafeDict(dict):
     def __getitem__(self, key):
         try:
             return super().__getitem__(key)
-        except KeyError as e:
+        except KeyError:
             self.logger.warning(f"키 '{key}'를 찾을 수 없습니다", exc_info=True)
             raise
 

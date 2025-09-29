@@ -3,7 +3,7 @@ API Response Processor - API 응답 처리 전용 모듈
 
 Factory Pattern을 적용하여 BaseAPI의 복잡한 응답 처리 로직을 분리
 - 응답 검증
-- 데이터 추출  
+- 데이터 추출
 - DataFrame 변환
 - 메타데이터 추가
 """

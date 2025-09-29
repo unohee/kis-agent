@@ -1,10 +1,8 @@
-from datetime import datetime
 from typing import Any, Dict, Optional
-
-import pandas as pd
+from datetime import datetime
 
 from ..core.base_api import BaseAPI
-from ..core.client import API_ENDPOINTS, KISClient
+from ..core.client import API_ENDPOINTS
 
 """
 program_trade_api.py - 프로그램 매매 정보 조회 전용 모듈

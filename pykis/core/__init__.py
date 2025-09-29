@@ -13,7 +13,7 @@ KIS Core 모듈
 
 from .agent import Agent
 from .auth import auth
-from .client import API_ENDPOINTS, KISClient
+from .client import KISClient
 from .config import KISConfig
 
 __all__ = ["KISClient", "KISConfig", "auth", "Agent"]

@@ -7,7 +7,7 @@ WebSocket 연결의 생명주기를 관리하는 모듈입니다.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import websockets
 

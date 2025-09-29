@@ -15,15 +15,10 @@
 """
 
 import logging
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-import openpyxl
+from datetime import datetime
+from typing import List, Optional
 import pandas as pd
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from ..account.api import AccountAPI
 from ..core.client import KISClient

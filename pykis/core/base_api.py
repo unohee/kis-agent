@@ -8,7 +8,7 @@
 - API 응답 정규화
 """
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import pandas as pd
 

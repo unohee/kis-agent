@@ -1379,7 +1379,6 @@ class Agent(BaseExceptionHandler):
             dict: 매물대 분석 결과
         """
         # [변경 이유] 분봉 데이터를 활용한 매물대 분석 기능 추가
-        import numpy as np
         import pandas as pd
 
         # 분봉 데이터 가져오기
@@ -2293,7 +2292,8 @@ class Agent(BaseExceptionHandler):
                 requests_per_minute=requests_per_minute,
                 min_interval_ms=min_interval_ms,
             )
-            logging.info(f"Rate limits 업데이트 완료")
+            # [변경 이유] 불필요한 f-string 사용으로 F541 경고 발생 -> 리터럴 문자열로 변경
+            logging.info("Rate limits 업데이트 완료")
         else:
             logging.warning("Rate Limiter가 비활성화 상태입니다")
 

@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import os
@@ -8,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional
 import pandas as pd
 
 from ..account.api import AccountAPI
-from ..core.base_exception_handler import BaseExceptionHandler, exception_handler
+from ..core.base_exception_handler import BaseExceptionHandler
 from ..core.client import KISClient
 from ..stock.api import StockAPI
 from .ws_agent import SubscriptionType, WSAgent
@@ -149,7 +148,7 @@ class EnhancedWebSocketClient(BaseExceptionHandler):
         """
         """
         콜백 등록
-        
+
         Args:
             event_type: 이벤트 타입 (on_trade, on_ask_bid, on_index 등)
             callback: 콜백 함수

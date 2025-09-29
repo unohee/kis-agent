@@ -8,7 +8,7 @@ Facade Pattern을 적용하여 복잡한 하위 시스템을 단순화
 - 기존 StockAPI와 동일한 인터페이스 유지 (하위 호환성)
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient

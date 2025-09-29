@@ -22,11 +22,10 @@ db.save_daily_position(position_data)
 positions = db.get_30day_positions("005930")
 """
 
-import json
 import logging
 import os
 import sqlite3
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
