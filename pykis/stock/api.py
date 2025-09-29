@@ -507,13 +507,12 @@ class StockAPI(BaseAPI):
             params=params,
         )
 
-    def get_frgnmem_pchs_trend(self, code: str, date: str) -> Optional[Dict[str, Any]]:
+    def get_frgnmem_pchs_trend(self, code: str) -> Optional[Dict[str, Any]]:
         """
-        종목별 외국계 순매수추이 조회 (날짜별 API) (rt_cd 메타데이터가 포함된)
+        종목별 외국계 순매수추이 조회 (rt_cd 메타데이터가 포함된)
 
         Args:
             code: 종목코드
-            date: 조회일자 (YYYYMMDD)
 
         Returns:
             Dict: 외국계 순매수추이 데이터
@@ -524,7 +523,7 @@ class StockAPI(BaseAPI):
             params={
                 "fid_cond_mrkt_div_code": "J",
                 "fid_input_iscd": code,
-                "fid_input_date_1": date,
+                "fid_input_iscd_2": '99999',
             },
         )
 
@@ -2289,3 +2288,116 @@ class StockAPI(BaseAPI):
             tr_id="TTTC8909R",
             params=params,
         )
+
+    def get_index_minute_data(
+        self,
+        fid_input_iscd: str = "0001",
+        fid_input_hour_1: str = "120",
+        fid_cond_mrkt_div_code: str = "U",
+        fid_pw_data_incu_yn: str = "Y",
+        fid_etc_cls_code: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        업종 분봉 조회 (기본값: KOSPI 종합)
+
+        Args:
+            fid_input_iscd (str): 종목코드 (기본값 "0001": KOSPI 종합, "1001": KOSDAQ 종합)
+            fid_input_hour_1 (str): 입력 시간(초) - 조회 시간 범위 (기본값 "120": 2분)
+            fid_cond_mrkt_div_code (str): 시장 분류 코드 (기본값 "U": 업종)
+            fid_pw_data_incu_yn (str): 과거 데이터 포함 여부 (기본값 "Y": 포함)
+            fid_etc_cls_code (str): 기타 구분 코드 (기본값 "0")
+
+        Returns:
+            Dict containing:
+                - output1: 업종 현재가 정보
+                - output2: 분봉 데이터 리스트
+
+        Example:
+            >>> agent.get_index_minute_data()  # KOSPI 종합 2분봉 데이터
+            >>> agent.get_index_minute_data("1001")  # KOSDAQ 종합 2분봉 데이터
+        """
+        # 직접 client.make_request 호출 (BaseAPI 경유하지 않음)
+        # POSTMAN에서 확인된 대문자 파라미터 사용
+        params = {
+            "FID_COND_MRKT_DIV_CODE": fid_cond_mrkt_div_code,
+            "FID_INPUT_ISCD": fid_input_iscd,
+            "FID_INPUT_HOUR_1": fid_input_hour_1,
+            "FID_PW_DATA_INCU_YN": fid_pw_data_incu_yn,
+            "FID_ETC_CLS_CODE": fid_etc_cls_code,
+        }
+
+        # client 직접 호출 - FHKUP03500200 사용 (실제 작동하는 TR_ID)
+        result = self.client.make_request(
+            endpoint=API_ENDPOINTS["INQUIRE_TIME_INDEXCHARTPRICE"],
+            tr_id="FHKUP03500200",
+            params=params,
+            method="GET"
+        )
+
+        # 응답 메타데이터 추가
+        if result:
+            if "rt_cd" not in result:
+                result["rt_cd"] = ""
+            if "msg1" not in result:
+                result["msg1"] = ""
+
+        return result
+
+    def get_index_timeprice(
+        self,
+        fid_input_iscd: str = "1029",
+        fid_input_hour_1: str = "600",
+        fid_cond_mrkt_div_code: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 시간별 지수 조회 (기본값: KOSPI200)
+
+        Args:
+            fid_input_iscd (str): 종목코드 (기본값 "1029": KOSPI200)
+                - "1001": KOSPI
+                - "2001": KOSDAQ
+                - "1029": KOSPI200
+            fid_input_hour_1 (str): 입력 시간(초) - 조회 시간 범위 (기본값 "600": 10분봉)
+                - "60": 1분봉
+                - "120": 2분봉
+                - "180": 3분봉
+                - "300": 5분봉
+                - "600": 10분봉
+                - "900": 15분봉
+                - "1800": 30분봉
+                - "3600": 60분봉
+            fid_cond_mrkt_div_code (str): 시장 분류 코드 (기본값 "U": 업종)
+
+        Returns:
+            Dict containing:
+                - output1: 업종 현재가 정보
+                - output2: 시간별 지수 데이터 리스트
+
+        Example:
+            >>> agent.get_index_timeprice()  # KOSPI200 10분봉 데이터
+            >>> agent.get_index_timeprice("1001", "300")  # KOSPI 5분봉 데이터
+            >>> agent.get_index_timeprice("2001", "60")  # KOSDAQ 1분봉 데이터
+        """
+        # 대문자 파라미터 사용 (실제 API 스펙)
+        params = {
+            "fid_cond_mrkt_div_code": fid_cond_mrkt_div_code,
+            "fid_input_iscd": fid_input_iscd,
+            "fid_input_hour_1": fid_input_hour_1,
+        }
+
+        # client 직접 호출 - FHPUP02110200 TR_ID 사용
+        result = self.client.make_request(
+            endpoint=API_ENDPOINTS["INQUIRE_INDEX_TIMEPRICE"],
+            tr_id="FHPUP02110200",
+            params=params,
+            method="GET"
+        )
+
+        # 응답 메타데이터 추가
+        if result:
+            if "rt_cd" not in result:
+                result["rt_cd"] = ""
+            if "msg1" not in result:
+                result["msg1"] = ""
+
+        return result

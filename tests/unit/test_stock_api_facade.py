@@ -268,11 +268,11 @@ class TestStockAPIFacade(unittest.TestCase):
             return_value=expected_result
         )
 
-        result = self.api.get_frgnmem_pchs_trend("005930", "20231215")
+        result = self.api.get_frgnmem_pchs_trend("005930")
 
         self.assertEqual(result, expected_result)
         self.api.investor_api.get_frgnmem_pchs_trend.assert_called_once_with(
-            "005930", "20231215"
+            "005930"
         )
 
     def test_get_foreign_broker_net_buy_delegation(self):

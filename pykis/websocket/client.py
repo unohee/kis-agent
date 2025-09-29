@@ -35,6 +35,8 @@ class KisWebSocket:
         enable_index: bool = True,
         enable_program_trading: bool = True,
         enable_ask_bid: bool = False,
+        enable_expected_index: bool = False,
+        enable_expected_stock: bool = False,
     ):
         """
         Args:
@@ -56,6 +58,8 @@ class KisWebSocket:
         self.enable_index = enable_index
         self.enable_program_trading = enable_program_trading
         self.enable_ask_bid = enable_ask_bid
+        self.enable_expected_index = enable_expected_index
+        self.enable_expected_stock = enable_expected_stock
 
         self.approval_key = None
         self.aes_key = None
@@ -68,12 +72,14 @@ class KisWebSocket:
 
         # 실시간 지수 데이터 저장소
         self.latest_index = {}  # {'KOSPI200': data, 'KOSPI': data, 'KOSDAQ': data}
+        self.latest_index_expected = {}  # {'KOSPI': raw, 'KOSPI200': raw}
 
         # 실시간 프로그램매매 데이터 저장소
         self.latest_program_trading = {}  # {종목코드: 프로그램매매 데이터}
 
         # 실시간 호가 데이터 저장소
         self.latest_ask_bid = {}  # {종목코드: 호가 데이터}
+        self.latest_expected_stock = {}  # {종목코드: raw}
 
         # 매입 정보: {'종목코드': (매입가격, 보유 수량)}
         self.purchase_prices = purchase_prices or {}
@@ -799,11 +805,23 @@ class KisWebSocket:
                     self.latest_index[index_name] = recv_parts[3]
                     self.display_index_info(index_name, index_data)
 
+            elif trid == "H0UPANC0" and self.enable_expected_index:
+                # 지수 예상체결 데이터 처리
+                idx = recv_parts[3].split("^")
+                if len(idx) >= 3:
+                    index_code = idx[0]
+                    index_name = self.get_index_name(index_code)
+                    self.latest_index_expected[index_name] = recv_parts[3]
+
             elif trid == "H0GSCNT0" and self.enable_program_trading:
                 # 프로그램매매 실시간 데이터 처리
                 stock_code = recv_parts[3].split("^")[0]
                 self.latest_program_trading[stock_code] = recv_parts[3]
                 self.display_program_trading_info(stock_code, recv_parts[3])
+
+            elif trid == "H0UNANC0" and self.enable_expected_stock:
+                stock_code = recv_parts[3].split("^")[0]
+                self.latest_expected_stock[stock_code] = recv_parts[3]
 
             elif trid in ["H0STCNI0", "H0STCNI9"]:
                 # 기존 체결통보 메시지를 이용해 신규 종목 추가
@@ -1366,6 +1384,28 @@ class KisWebSocket:
                             sys.stdout.flush()
                             await asyncio.sleep(0.1)
 
+                    # 지수 예상체결 구독 (활성화된 경우)
+                    if self.enable_expected_index:
+                        idx_codes = ["0001", "2001"]  # KOSPI, KOSPI200
+                        for index_code in idx_codes:
+                            index_name = self.get_index_name(index_code)
+                            logging.info(
+                                f"[INFO] {index_name}({index_code}) 지수 예상체결 구독 요청 중..."
+                            )
+                            senddata_idx_exp = {
+                                "header": {
+                                    "approval_key": self.approval_key,
+                                    "custtype": "P",
+                                    "tr_type": "1",
+                                    "content-type": "utf-8",
+                                },
+                                "body": {
+                                    "input": {"tr_id": "H0UPANC0", "tr_key": index_code}
+                                },
+                            }
+                            await websocket.send(json.dumps(senddata_idx_exp))
+                            await asyncio.sleep(0.1)
+
                     # 종목별 구독 요청 전송
                     for stock_code in self.stock_codes:
                         logging.info(f"[INFO] {stock_code} 구독 요청 중...")
@@ -1424,6 +1464,22 @@ class KisWebSocket:
                             sys.stdout.flush()
 
                         await asyncio.sleep(0.1)  # 구독 요청 간 약간의 딜레이
+
+                        # 종목 예상체결(H0UNANC0) 구독 (활성화된 경우)
+                        if self.enable_expected_stock:
+                            senddata_stock_exp = {
+                                "header": {
+                                    "approval_key": self.approval_key,
+                                    "custtype": "P",
+                                    "tr_type": "1",
+                                    "content-type": "utf-8",
+                                },
+                                "body": {
+                                    "input": {"tr_id": "H0UNANC0", "tr_key": stock_code}
+                                },
+                            }
+                            await websocket.send(json.dumps(senddata_stock_exp))
+                            await asyncio.sleep(0.05)
 
                     logging.info("\n" + "-" * 50)
                     logging.info("[INFO] 모든 구독 요청 완료. 데이터 수신 대기 중...")

@@ -218,15 +218,18 @@ class Agent(BaseExceptionHandler):
 
             if saved_token is None:
                 # 토큰이 없거나 만료된 경우 새로 발급
-                print("[Agent] 토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다.")
+                if not os.environ.get('PYKIS_SILENT'):
+                    print("[Agent] 토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다.")
                 auth(config=config)
-                print("[Agent] 토큰 발급이 완료되었습니다.")
+                if not os.environ.get('PYKIS_SILENT'):
+                    print("[Agent] 토큰 발급이 완료되었습니다.")
             else:
                 # 유효한 토큰이 있는 경우
-                print("[Agent] 유효한 토큰이 확인되었습니다.")
+                if not os.environ.get('PYKIS_SILENT'):
+                    print("[Agent] 유효한 토큰이 확인되었습니다.")
 
         except Exception as e:
-            print(f"[Agent] 토큰 검증/발급 중 오류 발생: {e}")
+            logger.error(f"[Agent] 토큰 검증/발급 중 오류 발생: {e}")
             # 토큰 발급 실패는 중요한 문제이므로 예외 재발생
             raise RuntimeError(f"토큰 자동 발급 실패: {e}")
 

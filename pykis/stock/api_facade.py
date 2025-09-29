@@ -117,15 +117,71 @@ class StockAPI(BaseAPI):
         """특정 거래원의 매매 내역 조회"""
         return self.investor_api.get_member_transaction(code, mem_code)
 
-    def get_frgnmem_pchs_trend(self, code: str, date: str) -> Optional[Dict[str, Any]]:
+    def get_frgnmem_pchs_trend(self, code: str) -> Optional[Dict[str, Any]]:
         """외국인 매수 추이 조회"""
-        return self.investor_api.get_frgnmem_pchs_trend(code, date)
+        return self.investor_api.get_frgnmem_pchs_trend(code)
 
     def get_foreign_broker_net_buy(
         self, code: str, foreign_brokers=None, date: str = None
     ) -> Optional[tuple]:
         """외국계 증권사 순매수 집계"""
         return self.investor_api.get_foreign_broker_net_buy(code, foreign_brokers, date)
+
+    def get_index_minute_data(
+        self,
+        fid_input_iscd: str = "0001",
+        fid_input_hour_1: str = "120",
+        fid_cond_mrkt_div_code: str = "U",
+        fid_pw_data_incu_yn: str = "Y",
+        fid_etc_cls_code: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        업종 분봉 조회
+
+        Args:
+            fid_input_iscd (str): 종목코드 (0001: 종합, 1001: 코스닥종합)
+            fid_input_hour_1 (str): 입력 시간(초) - 조회 시간 범위
+            fid_cond_mrkt_div_code (str): 시장 분류 코드 (U: 업종)
+            fid_pw_data_incu_yn (str): 과거 데이터 포함 여부 (Y/N)
+            fid_etc_cls_code (str): 기타 구분 코드
+
+        Returns:
+            Dict containing:
+                - output1: 업종 현재가 정보
+                - output2: 분봉 데이터 리스트
+        """
+        return self.price_api.get_index_minute_data(
+            fid_input_iscd,
+            fid_input_hour_1,
+            fid_cond_mrkt_div_code,
+            fid_pw_data_incu_yn,
+            fid_etc_cls_code,
+        )
+
+    def get_index_timeprice(
+        self,
+        fid_input_iscd: str = "1029",
+        fid_input_hour_1: str = "600",
+        fid_cond_mrkt_div_code: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 시간별 지수 조회 (기본값: KOSPI200)
+
+        Args:
+            fid_input_iscd (str): 종목코드 (기본값 "1029": KOSPI200, "1001": KOSPI, "2001": KOSDAQ)
+            fid_input_hour_1 (str): 입력 시간(초) - 조회 시간 범위 (기본값 "600": 10분봉)
+            fid_cond_mrkt_div_code (str): 시장 분류 코드 (기본값 "U": 업종)
+
+        Returns:
+            Dict containing:
+                - output1: 업종 현재가 정보
+                - output2: 시간별 지수 데이터 리스트
+        """
+        return self.price_api.get_index_timeprice(
+            fid_input_iscd,
+            fid_input_hour_1,
+            fid_cond_mrkt_div_code,
+        )
 
 
 # 하위 호환성을 위한 별칭

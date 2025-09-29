@@ -58,7 +58,7 @@ class StockInvestorAPI(BaseAPI):
             },
         )
 
-    def get_frgnmem_pchs_trend(self, code: str, date: str) -> Optional[Dict[str, Any]]:
+    def get_frgnmem_pchs_trend(self, code: str) -> Optional[Dict[str, Any]]:
         """외국인 매수 추이 조회 (rt_cd 메타데이터가 포함된)"""
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FRGNMEM_PCHS_TREND"],
@@ -66,7 +66,7 @@ class StockInvestorAPI(BaseAPI):
             params={
                 "fid_cond_mrkt_div_code": "J",
                 "fid_input_iscd": code,
-                "fid_input_date_1": date,
+                "fid_input_iscd_2": '99999',
             },
         )
 

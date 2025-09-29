@@ -25,6 +25,7 @@ analysis = investor.analyze_30day_position("005930")
 
 import sys
 import os
+from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -34,7 +35,18 @@ import logging
 from ..core.client import KISClient, API_ENDPOINTS
 
 # Open Trading API 예제 의존성 (동적 import)
-sys.path.append("/home/unohee/STONKS/modules/pykis/open-trading-api/examples_llm")
+# 우선순위: 환경변수 OPEN_TRADING_API_EXAMPLES_PATH → 표준 로컬 경로 → 벤더 폴더
+_EXAMPLES_HINTS = [
+    os.getenv("OPEN_TRADING_API_EXAMPLES_PATH"),
+    "/home/unohee/dev/open-trading-api/examples_llm",
+    str(Path.home() / "dev/open-trading-api/examples_llm"),
+    str(Path(__file__).resolve().parents[2] / "examples_llm"),  # vendor fallback
+]
+for _hint in _EXAMPLES_HINTS:
+    if _hint and Path(_hint).exists():
+        if _hint not in sys.path:
+            sys.path.append(_hint)
+        break
 
 
 @dataclass
