@@ -7,12 +7,12 @@ Stock Market API - 시장 정보 및 순위 조회 전용 모듈
 - 종목 기본 정보
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import pandas as pd
 
 from ..core.base_api import BaseAPI
-from ..core.client import API_ENDPOINTS, KISClient
+from ..core.client import API_ENDPOINTS
 
 
 class StockMarketAPI(BaseAPI):

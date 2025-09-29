@@ -1,5 +1,5 @@
 [flake8]
-max-line-length = 120
+max-line-length = 200
 extend-ignore = E203, W503
 per-file-ignores =
     tests/*: F401,F841,E712,E402

@@ -41,6 +41,7 @@ def clearConsole() -> int:
     # [변경 이유] E731(lambda 사용 금지) 해결을 위해 함수로 변경
     return os.system("cls" if os.name in ("nt", "dos") else "clear")
 
+
 key_bytes = 32
 
 # 토큰 저장 경로 설정 - 다른 프로젝트에서 사용할 때도 항상 pykis 패키지 내부의 credit 디렉토리 사용

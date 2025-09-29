@@ -475,11 +475,6 @@ class KISClient:
                             if data and isinstance(data, dict)
                             else None
                         )
-                        final_http_error_code = (
-                            http_error_code_from_json
-                            if http_error_code_from_json
-                            else str(response.status_code)
-                        )
                         log_entry = f"[{tr_id}] HTTP 오류 응답 (시도 {attempt+1}/{retries}): Status {response.status_code}, Message: {http_error_msg}"
                         if http_error_code_from_json:
                             log_entry += (

@@ -3,7 +3,7 @@ Stock API Facade - 주식 관련 API 통합 인터페이스
 
 Facade Pattern을 적용하여 복잡한 하위 시스템을 단순화
 - StockPriceAPI: 시세 정보
-- StockMarketAPI: 시장 정보  
+- StockMarketAPI: 시장 정보
 - StockInvestorAPI: 투자자 정보
 - 기존 StockAPI와 동일한 인터페이스 유지 (하위 호환성)
 """

@@ -29,7 +29,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 # PyKIS 의존성
 from ..core.client import API_ENDPOINTS, KISClient
@@ -434,7 +434,7 @@ class InvestorPositionAnalyzer:
                 score += 0.3  # 당일만 순매수
 
             # 개인 점수 (20% 가중치) - 개인은 보통 반대 지표로 작용
-            indiv_daily = daily_data.get("individual", {}).get("net_amount", 0)
+            # 개인 당일 데이터는 현재 점수 로직에 직접 사용하지 않음
             indiv_cumul = cumulative_data.get("individual", {}).get("net_amount", 0)
 
             if indiv_cumul < 0 and (foreign_cumul > 0 or inst_cumul > 0):

@@ -239,7 +239,7 @@ class InvestorPositionDB:
 
                 cursor.execute(
                     """
-                SELECT * FROM investor_positions 
+                SELECT * FROM investor_positions
                 WHERE stock_code = ? AND date BETWEEN ? AND ?
                 ORDER BY date DESC
                 LIMIT 30
@@ -298,7 +298,7 @@ class InvestorPositionDB:
 
                 cursor.execute(
                     """
-                SELECT * FROM investor_positions 
+                SELECT * FROM investor_positions
                 WHERE stock_code = ? AND date = ?
                 """,
                     (stock_code, date),
@@ -384,9 +384,9 @@ class InvestorPositionDB:
                 # KOSPI + KOSDAQ 동향 조회
                 cursor.execute(
                     """
-                SELECT market_type, foreign_net_amt, institution_net_amt, 
+                SELECT market_type, foreign_net_amt, institution_net_amt,
                        individual_net_amt, total_trading_value
-                FROM market_trends 
+                FROM market_trends
                 WHERE date = ?
                 """,
                     (date,),
@@ -537,7 +537,7 @@ class InvestorPositionDB:
                 where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
                 query = f"""
-                SELECT * FROM investor_positions 
+                SELECT * FROM investor_positions
                 {where_clause}
                 ORDER BY stock_code, date
                 """

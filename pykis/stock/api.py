@@ -1206,24 +1206,7 @@ class StockAPI(BaseAPI):
             params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
         )
 
-    def get_stock_member(self, code: str) -> Optional[Dict[str, Any]]:
-        """
-        주식 회원사(거래원) 정보 조회 (rt_cd 메타데이터가 포함된)
-
-        Args:
-            code (str): 종목코드 (6자리)
-
-        Returns:
-            Dict: 회원사 매매 정보
-
-        Example:
-            >>> stock_api.get_stock_member("005930")
-        """
-        return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_MEMBER"],
-            tr_id="FHKST01010600",
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
-        )
+    # [변경 이유] 중복 메서드 정의(F811) 제거: get_stock_member(code)는 상단에 재시도 버전으로 구현됨
 
     def get_daily_credit_balance(
         self, code: str, date: str

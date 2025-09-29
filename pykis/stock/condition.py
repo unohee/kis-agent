@@ -23,8 +23,6 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-import pandas as pd
-
 from ..core.base_api import BaseAPI
 from ..core.client import API_ENDPOINTS, KISClient
 

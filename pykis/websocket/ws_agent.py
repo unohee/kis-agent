@@ -6,17 +6,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
-
 import websockets
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-
 logger = logging.getLogger(__name__)
 
 
 class SubscriptionType(Enum):
     """구독 타입 정의"""
-
     STOCK_TRADE = "H0STCNT0"  # 국내주식 체결
     STOCK_ASK_BID = "H0STASP0"  # 국내주식 호가
     STOCK_NOTICE = "H0STCNI0"  # 국내주식 체결통보
@@ -153,13 +150,13 @@ class WSAgent:
         """
         """
         구독 추가
-        
+
         Args:
             sub_type: 구독 타입
             key: 종목코드/지수코드 등
             handler: 개별 핸들러 (옵션)
             **metadata: 추가 메타데이터
-            
+
         Returns:
             구독 ID
         """
@@ -224,7 +221,7 @@ class WSAgent:
         """
         """
         타입별 핸들러 등록
-        
+
         Args:
             sub_type: 구독 타입
             handler: 핸들러 함수 (data, metadata를 인자로 받음)

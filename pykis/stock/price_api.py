@@ -7,10 +7,10 @@ Stock Price API - 주식 시세 조회 전용 모듈
 - 호가 정보
 """
 
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from ..core.base_api import BaseAPI
-from ..core.client import API_ENDPOINTS, KISClient
+from ..core.client import API_ENDPOINTS
 
 
 class StockPriceAPI(BaseAPI):

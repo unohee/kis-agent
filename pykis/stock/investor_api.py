@@ -3,18 +3,16 @@ Stock Investor API - 투자자별 매매 정보 전용 모듈
 
 투자자 유형별 매매 동향과 거래원 정보를 담당
 - 투자자별 순매수 동향
-- 거래원별 매매 정보  
+- 거래원별 매매 정보
 - 외국인 매매 추이
 """
 
 import logging
+from typing import Any, Dict, Optional
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
-
-import pandas as pd
 
 from ..core.base_api import BaseAPI
-from ..core.client import API_ENDPOINTS, KISClient
+from ..core.client import API_ENDPOINTS
 
 
 class StockInvestorAPI(BaseAPI):
