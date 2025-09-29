@@ -7,12 +7,14 @@ Stock Investor API - 투자자별 매매 정보 전용 모듈
 - 외국인 매매 추이
 """
 
-from typing import Optional, Dict, Any, List, Tuple
-import pandas as pd
 import logging
-from ..core.client import KISClient, API_ENDPOINTS
-from ..core.base_api import BaseAPI
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+import pandas as pd
+
+from ..core.base_api import BaseAPI
+from ..core.client import API_ENDPOINTS, KISClient
 
 
 class StockInvestorAPI(BaseAPI):
@@ -66,7 +68,7 @@ class StockInvestorAPI(BaseAPI):
             params={
                 "fid_cond_mrkt_div_code": "J",
                 "fid_input_iscd": code,
-                "fid_input_iscd_2": '99999',
+                "fid_input_iscd_2": "99999",
             },
         )
 

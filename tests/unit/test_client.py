@@ -16,9 +16,10 @@ KISClient 클래스의 통합 테스트 모듈입니다.
     >>> python -m unittest tests/unit/test_client.py
 """
 
-import unittest
 import os
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
+
 from pykis.core.client import KISClient
 from pykis.core.config import KISConfig
 

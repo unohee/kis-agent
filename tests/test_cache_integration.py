@@ -4,10 +4,12 @@
 """
 
 import time
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pykis.core.cache import APICache, TTLCache
+
 from pykis.core.base_api import BaseAPI
+from pykis.core.cache import APICache, TTLCache
 
 
 class TestCacheIntegration:

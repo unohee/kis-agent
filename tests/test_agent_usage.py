@@ -4,9 +4,11 @@ KIS_Agent 사용 예시를 보여주는 테스트 스크립트입니다.
 이 스크립트는 KIS_Agent의 주요 기능을 테스트하고 사용 방법을 보여줍니다.
 """
 
-import os
 import logging
+import os
+
 import pytest
+
 from pykis import Agent
 
 # 로깅 설정

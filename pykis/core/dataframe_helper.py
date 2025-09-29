@@ -2,8 +2,9 @@
 # 생성일: 2025-01-21
 # 목적: API 응답을 DataFrame으로 변환할 때 rt_cd 등 메타데이터 추가
 
-import pandas as pd
 from typing import Any, Optional
+
+import pandas as pd
 
 
 def add_api_metadata_to_dataframe(df: pd.DataFrame, response: dict) -> pd.DataFrame:

@@ -2,12 +2,12 @@
 
 import time
 import unittest
-from unittest.mock import Mock, patch, MagicMock
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from unittest.mock import MagicMock, Mock, patch
 
-from pykis.core.rate_limiter import RateLimiter
 from pykis.core.agent import Agent
 from pykis.core.client import KISClient
+from pykis.core.rate_limiter import RateLimiter
 
 
 class TestRateLimiter(unittest.TestCase):

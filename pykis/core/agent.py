@@ -1,19 +1,21 @@
-from .client import KISClient
-from .rate_limiter import RateLimiter
-from ..account.api import AccountAPI
-from ..stock.api import StockAPI
-from ..stock import StockMarketAPI
-from ..program.trade import ProgramTradeAPI
-from ..websocket.client import KisWebSocket
-from .base_exception_handler import BaseExceptionHandler, exception_handler
-from typing import Optional, Dict, Any, List
-import pandas as pd
 import logging
-from datetime import datetime
-import sqlite3
 import os
+import sqlite3
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+
+from ..account.api import AccountAPI
+from ..program.trade import ProgramTradeAPI
+from ..stock import StockMarketAPI
+from ..stock.api import StockAPI
+from ..websocket.client import KisWebSocket
 from .auth import auth, read_token
+from .base_exception_handler import BaseExceptionHandler, exception_handler
+from .client import KISClient
 from .config import KISConfig
+from .rate_limiter import RateLimiter
 
 
 class Agent(BaseExceptionHandler):
@@ -60,6 +62,8 @@ class Agent(BaseExceptionHandler):
         >>> from pykis.utils.trading_report import generate_trading_report
         >>> report = generate_trading_report(agent.client, account_info, "20250101", "20250131")
     """
+    # [변경 이유] 로거 미정의로 flake8 F821 경고 발생. 모듈 레벨 로거를 명시적으로 생성합니다.
+    logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -218,18 +222,21 @@ class Agent(BaseExceptionHandler):
 
             if saved_token is None:
                 # 토큰이 없거나 만료된 경우 새로 발급
-                if not os.environ.get('PYKIS_SILENT'):
-                    print("[Agent] 토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다.")
+                if not os.environ.get("PYKIS_SILENT"):
+                    print(
+                        "[Agent] 토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다."
+                    )
                 auth(config=config)
-                if not os.environ.get('PYKIS_SILENT'):
+                if not os.environ.get("PYKIS_SILENT"):
                     print("[Agent] 토큰 발급이 완료되었습니다.")
             else:
                 # 유효한 토큰이 있는 경우
-                if not os.environ.get('PYKIS_SILENT'):
+                if not os.environ.get("PYKIS_SILENT"):
                     print("[Agent] 유효한 토큰이 확인되었습니다.")
 
         except Exception as e:
-            logger.error(f"[Agent] 토큰 검증/발급 중 오류 발생: {e}")
+            # [변경 이유] 미정의 logger 사용 오류 수정 -> 클래스 로거 사용
+            self.logger.error(f"[Agent] 토큰 검증/발급 중 오류 발생: {e}")
             # 토큰 발급 실패는 중요한 문제이므로 예외 재발생
             raise RuntimeError(f"토큰 자동 발급 실패: {e}")
 
@@ -1175,8 +1182,9 @@ class Agent(BaseExceptionHandler):
         """
         # [변경 이유] 4번 호출 방식으로 변경하여 효율성 향상, 영업일 계산 추가
         import datetime
-        import pandas as pd
         import os
+
+        import pandas as pd
 
         os.makedirs(cache_dir, exist_ok=True)
         now = datetime.datetime.now()
@@ -1290,8 +1298,9 @@ class Agent(BaseExceptionHandler):
         """
         # [변경 이유] 캐시 확인 로직을 별도 함수로 분리하여 가독성 향상
         import datetime
-        import pandas as pd
         import os
+
+        import pandas as pd
 
         if not os.path.exists(csv_file_path):
             return None
@@ -1370,8 +1379,8 @@ class Agent(BaseExceptionHandler):
             dict: 매물대 분석 결과
         """
         # [변경 이유] 분봉 데이터를 활용한 매물대 분석 기능 추가
-        import pandas as pd
         import numpy as np
+        import pandas as pd
 
         # 분봉 데이터 가져오기
         df = self.fetch_minute_data(code, date)

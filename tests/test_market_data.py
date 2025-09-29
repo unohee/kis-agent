@@ -1,7 +1,9 @@
-import pytest
-from pykis.stock.api import StockAPI
-from pykis.core.client import KISClient
 import os
+
+import pytest
+
+from pykis.core.client import KISClient
+from pykis.stock.api import StockAPI
 
 
 @pytest.fixture

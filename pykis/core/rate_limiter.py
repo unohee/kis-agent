@@ -1,8 +1,8 @@
-import time
-import threading
-from collections import deque
-from typing import Optional, Dict, Any
 import logging
+import threading
+import time
+from collections import deque
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

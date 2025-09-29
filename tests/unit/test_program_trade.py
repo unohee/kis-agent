@@ -1,8 +1,10 @@
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime
-from pykis.program.trade import ProgramTradeAPI
+from unittest.mock import Mock, patch
+
+import pytest
+
 from pykis.core.client import KISClient
+from pykis.program.trade import ProgramTradeAPI
 
 
 class TestProgramTradeAPI:

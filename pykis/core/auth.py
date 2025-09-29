@@ -10,18 +10,20 @@ Created on Wed Feb 15 16:57:19 2023
 # ====|  API 호출 공통 함수 포함                                  |=====================
 
 
-import time, copy
-import requests
+import copy
 import json
 import os
-from typing import Optional, Dict, Any
-from dotenv import load_dotenv
-import pandas as pd
+import time
+from base64 import b64decode
 from collections import namedtuple
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+import pandas as pd
+import requests
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-from base64 import b64decode
+from dotenv import load_dotenv
 
 # 환경설정 파일 로드 우선순위: 1) 현재 작업 디렉토리 .env, 2) PyKIS 패키지 루트 .env
 # 다른 프로젝트에서 PyKIS를 사용할 때는 해당 프로젝트의 .env를 우선 사용
@@ -238,7 +240,8 @@ def auth(
     Returns:
         Any: 인증 토큰 정보를 포함한 응답 객체
     """
-    global _cfg, _TRENV, _base_headers
+    # [변경 이유] flake8 F824 (unused global) 경고 제거: 실제 재할당하는 전역 변수만 선언
+    global _cfg
 
     if config is not None:
         _cfg = {

@@ -1,10 +1,12 @@
-import pytest
+import asyncio
+import json
 import os
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from pykis import Agent
 from pykis.websocket.client import KisWebSocket
-import json
-import asyncio
 
 
 @pytest.fixture

@@ -8,12 +8,13 @@ PyKIS Agent 종합 테스트
     >>> pytest tests/integration/test_agent_comprehensive.py -v
 """
 
-import pytest
-import pandas as pd
-import time
 import os
+import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+import pytest
 
 from pykis import Agent
 

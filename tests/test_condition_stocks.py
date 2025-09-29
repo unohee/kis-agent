@@ -2,8 +2,10 @@
 조건검색식 종목 조회 테스트
 """
 
-import pytest
 import os
+
+import pytest
+
 from pykis import Agent
 
 if not os.getenv("RUN_LIVE_TESTS"):

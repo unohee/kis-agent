@@ -7,23 +7,23 @@ WebSocket 모듈
 
 # 기존 클라이언트 (하위 호환성)
 from .client import KisWebSocket
-from .ws_agent import WSAgent, SubscriptionType
+from .connection import ConnectionManager
+from .data_processor import DataProcessor
 from .enhanced_client import EnhancedWebSocketClient
+from .event_manager import Event, EventManager, EventType
+from .factory import ClientType, WebSocketClientBuilder, WebSocketClientFactory
+from .message_handlers import (
+    IndexHandler,
+    MessageHandler,
+    MessageHandlerRegistry,
+    OrderbookHandler,
+    ProgramTradingHandler,
+    TradeHandler,
+)
 
 # 리팩토링된 모듈
 from .refactored_client import RefactoredWebSocketClient
-from .connection import ConnectionManager
-from .data_processor import DataProcessor
-from .event_manager import EventManager, EventType, Event
-from .message_handlers import (
-    MessageHandler,
-    TradeHandler,
-    OrderbookHandler,
-    IndexHandler,
-    ProgramTradingHandler,
-    MessageHandlerRegistry,
-)
-from .factory import WebSocketClientFactory, WebSocketClientBuilder, ClientType
+from .ws_agent import SubscriptionType, WSAgent
 
 __all__ = [
     # 기존 클라이언트

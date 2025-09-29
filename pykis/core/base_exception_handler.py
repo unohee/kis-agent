@@ -5,10 +5,10 @@ Base exception handler for consistent error handling across PyKIS.
 """
 
 import logging
-import traceback
-from typing import Optional, Any, Callable, Union, Type, Dict
-from functools import wraps
 import sys
+import traceback
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 
 class BaseExceptionHandler:

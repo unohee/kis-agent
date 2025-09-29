@@ -15,9 +15,10 @@ agent 모듈의 통합 테스트 모듈입니다.
     >>> python -m unittest tests/unit/test_agent.py
 """
 
-import unittest
 import os
+import unittest
 from unittest.mock import Mock, patch
+
 from pykis import Agent
 from pykis.core.client import KISClient
 

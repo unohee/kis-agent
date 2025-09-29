@@ -24,15 +24,16 @@ stock = StockAPI(client, account)
 price = stock.get_stock_price("005930")
 """
 
-from typing import Optional, Dict, Any, List
-
 # [변경 이유] pandas 로딩 시간 단축을 위해 필요한 메서드에서만 지역 import 사용
 # import pandas as pd  # 지역 import로 변경
 import logging
-import pandas as pd
-from ..core.client import KISClient, API_ENDPOINTS
-from ..core.base_api import BaseAPI
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+
+from ..core.base_api import BaseAPI
+from ..core.client import API_ENDPOINTS, KISClient
 
 
 def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
@@ -523,7 +524,7 @@ class StockAPI(BaseAPI):
             params={
                 "fid_cond_mrkt_div_code": "J",
                 "fid_input_iscd": code,
-                "fid_input_iscd_2": '99999',
+                "fid_input_iscd_2": "99999",
             },
         )
 
@@ -2331,7 +2332,7 @@ class StockAPI(BaseAPI):
             endpoint=API_ENDPOINTS["INQUIRE_TIME_INDEXCHARTPRICE"],
             tr_id="FHKUP03500200",
             params=params,
-            method="GET"
+            method="GET",
         )
 
         # 응답 메타데이터 추가
@@ -2390,7 +2391,7 @@ class StockAPI(BaseAPI):
             endpoint=API_ENDPOINTS["INQUIRE_INDEX_TIMEPRICE"],
             tr_id="FHPUP02110200",
             params=params,
-            method="GET"
+            method="GET",
         )
 
         # 응답 메타데이터 추가

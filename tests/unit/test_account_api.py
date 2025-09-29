@@ -9,8 +9,9 @@ AccountAPI 클래스의 계좌 관련 메서드들을 테스트합니다.
 
 import unittest
 from unittest.mock import MagicMock
-from pykis.core.client import KISClient
+
 from pykis.account.api import AccountAPI
+from pykis.core.client import KISClient
 
 
 class TestAccountAPI(unittest.TestCase):

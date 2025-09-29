@@ -2,12 +2,13 @@
 투자자 데이터베이스 모듈 테스트
 """
 
-import sqlite3
 import os
+import sqlite3
 import tempfile
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from pykis.stock.investor_db import InvestorPositionDB, InvestorPositionRecord
 

@@ -1,18 +1,19 @@
-import websockets
-import json
-import requests
-import os
 import asyncio
+import json
+import logging
+import os
+import select
+import sys
+from base64 import b64decode
+from collections import defaultdict
+from datetime import date, datetime
+
+import pandas as pd
+import requests
+import websockets
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-from base64 import b64decode
-from datetime import datetime, date
-from collections import defaultdict
-import pandas as pd
-import sys
-import select
 from dotenv import load_dotenv
-import logging
 
 from ..core.client import KISClient
 from ..stock.api import StockAPI
@@ -1340,9 +1341,10 @@ class KisWebSocket:
         self.load_initial_balance()  # 초기 잔고 정보 로드
         self.display_balance_info()  # 초기 화면 표시
 
-        from datetime import datetime, time as dt_time
         import asyncio
         import sys
+        from datetime import datetime
+        from datetime import time as dt_time
 
         while True:  # 자동 재연결을 위한 외부 루프
             try:

@@ -5,11 +5,12 @@ Facade Pattern이 적용된 주식 API 통합 인터페이스를 테스트합니
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 
-from pykis.stock.api_facade import StockAPI, StockAPIFacade
 from pykis.core.client import KISClient
+from pykis.stock.api_facade import StockAPI, StockAPIFacade
 
 
 class TestStockAPIFacade(unittest.TestCase):
@@ -271,9 +272,7 @@ class TestStockAPIFacade(unittest.TestCase):
         result = self.api.get_frgnmem_pchs_trend("005930")
 
         self.assertEqual(result, expected_result)
-        self.api.investor_api.get_frgnmem_pchs_trend.assert_called_once_with(
-            "005930"
-        )
+        self.api.investor_api.get_frgnmem_pchs_trend.assert_called_once_with("005930")
 
     def test_get_foreign_broker_net_buy_delegation(self):
         """get_foreign_broker_net_buy 메서드 위임 테스트"""

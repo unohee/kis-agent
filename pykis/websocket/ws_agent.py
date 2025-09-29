@@ -1,14 +1,15 @@
 import asyncio
 import json
 import logging
-from typing import Dict, List, Callable, Optional, Any, Set
+from base64 import b64decode
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set
+
 import websockets
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-from base64 import b64decode
 
 logger = logging.getLogger(__name__)
 

@@ -4,10 +4,11 @@ PyKIS 실제 성능 벤치마크
 실제 API 호출 속도를 측정합니다.
 """
 
-import time
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from pykis import Agent
 
 

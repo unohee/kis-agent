@@ -94,3 +94,4 @@ markers = [
 ]
 python_files = ["test_*.py"]
 addopts = "-v --cov=pykis --ignore=tests/unit/test_auth.py --ignore=tests/unit/test_client.py" 
+

@@ -23,16 +23,16 @@ investor = InvestorPositionAnalyzer(client, account)
 analysis = investor.analyze_30day_position("005930")
 """
 
-import sys
-import os
-from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime, timedelta
-from dataclasses import dataclass
 import logging
+import os
+import sys
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 # PyKIS 의존성
-from ..core.client import KISClient, API_ENDPOINTS
+from ..core.client import API_ENDPOINTS, KISClient
 
 # Open Trading API 예제 의존성 (동적 import)
 # 우선순위: 환경변수 OPEN_TRADING_API_EXAMPLES_PATH → 표준 로컬 경로 → 벤더 폴더
@@ -92,14 +92,14 @@ class InvestorPositionAnalyzer:
     def _import_investor_apis(self):
         """투자자 관련 API 동적 import"""
         try:
+            from domestic_stock.foreign_institution_total.foreign_institution_total import (
+                foreign_institution_total,
+            )
             from domestic_stock.inquire_investor.inquire_investor import (
                 inquire_investor,
             )
             from domestic_stock.inquire_investor_daily_by_market.inquire_investor_daily_by_market import (
                 inquire_investor_daily_by_market,
-            )
-            from domestic_stock.foreign_institution_total.foreign_institution_total import (
-                foreign_institution_total,
             )
             from domestic_stock.inquire_investor_time_by_market.inquire_investor_time_by_market import (
                 inquire_investor_time_by_market,

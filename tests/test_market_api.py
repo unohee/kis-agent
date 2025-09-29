@@ -4,9 +4,11 @@
 이 스크립트는 국내주식 관련 API들이 정상적으로 작동하는지 테스트합니다.
 """
 
-import os
 import logging
+import os
+
 import pytest
+
 from pykis import Agent
 
 # 로깅 설정

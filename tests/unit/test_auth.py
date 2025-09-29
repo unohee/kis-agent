@@ -16,13 +16,14 @@ auth 모듈의 단위 테스트 모듈입니다.
     >>> python -m unittest tests/unit/test_auth.py
 """
 
-import unittest
-from unittest.mock import patch, MagicMock
 import json
 import os
+import unittest
+from unittest.mock import MagicMock, patch
+
 import requests
 
-from pykis.core.auth import auth, reAuth, read_token
+from pykis.core.auth import auth, read_token, reAuth
 from pykis.core.config import KISConfig
 
 

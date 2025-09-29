@@ -12,11 +12,13 @@ KIS(한국투자증권) API 통합 테스트
 ※ 실계좌 주문/매수 등은 실제 주문이 발생할 수 있으니 주의하세요.
 """
 
-import pytest
+import logging
 import os
 from datetime import datetime, timedelta  # [변경 이유] 날짜 계산을 위해 추가
+
+import pytest
+
 from pykis import Agent
-import logging
 
 if not os.getenv("RUN_LIVE_TESTS"):
     pytest.skip("실제 API 테스트 건너뜀", allow_module_level=True)

@@ -1,6 +1,7 @@
+import os
 import unittest
 from unittest.mock import patch
-import os
+
 from pykis.core.config import KISConfig
 
 

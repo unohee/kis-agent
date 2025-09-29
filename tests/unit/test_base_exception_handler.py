@@ -4,17 +4,18 @@ Base Exception Handler 모듈 테스트
 일관된 예외 처리를 위한 베이스 클래스와 데코레이터를 테스트합니다.
 """
 
-import unittest
 import logging
-from unittest.mock import Mock, patch, MagicMock
-import pytest
+import unittest
 from io import StringIO
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from pykis.core.base_exception_handler import (
     BaseExceptionHandler,
+    SafeDict,
     exception_handler,
     safe_execute,
-    SafeDict,
 )
 
 

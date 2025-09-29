@@ -4,16 +4,17 @@
 토큰 읽기/쓰기 기능 테스트 스크립트
 """
 
-import os
-import sys
 import json
+import os
 import shutil
+import sys
 from datetime import datetime, timedelta
 
 # pykis 모듈 경로 추가
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pykis.core.auth import save_token, read_token, token_tmp
+from pykis.core.auth import read_token, save_token, token_tmp
+
 
 def test_token_functions():
     """토큰 읽기/쓰기 기능을 테스트합니다."""

@@ -1,6 +1,8 @@
-import pytest
 import os
 from unittest.mock import Mock, patch
+
+import pytest
+
 from pykis import Agent
 from pykis.core.client import KISClient
 

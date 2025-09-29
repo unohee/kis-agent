@@ -1,11 +1,12 @@
 """WSAgent 테스트"""
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
 import json
+from unittest.mock import AsyncMock, Mock, patch
 
-from pykis.websocket.ws_agent import WSAgent, SubscriptionType, Subscription
+import pytest
+
+from pykis.websocket.ws_agent import Subscription, SubscriptionType, WSAgent
 
 
 class TestWSAgent:

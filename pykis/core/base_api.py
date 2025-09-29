@@ -8,10 +8,12 @@
 - API 응답 정규화
 """
 
+from typing import Dict, List, Optional, Union
+
 import pandas as pd
-from typing import Optional, Dict, List, Union
-from .response_processor import APIRequestManager
+
 from .cache import APICache
+from .response_processor import APIRequestManager
 
 
 class BaseAPI:

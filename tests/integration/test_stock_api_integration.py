@@ -18,8 +18,10 @@ stock.api 모듈의 단위 테스트 모듈입니다.
 
 import os
 import unittest
-import pandas as pd
 from datetime import datetime
+
+import pandas as pd
+
 from pykis.core.client import KISClient
 from pykis.stock.api import StockAPI
 
