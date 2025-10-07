@@ -104,7 +104,7 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
         # 현재 날짜가 만기일을 지났는지 확인
         if today.date() > expiry_date.date():
             # 만기일을 지났으면 다음 만기월 찾기
-            for i, month in enumerate(expiry_months):
+            for _i, month in enumerate(expiry_months):
                 if month > current_month:
                     expiry = month
                     break
@@ -2007,10 +2007,11 @@ class StockAPI(BaseAPI):
 
         # TR ID 설정 (실전/모의에 따라 다름)
         is_mock = getattr(self.client, "is_mock", False)
-        if is_mock:
-            tr_id = "VTTC0011U" if ord_dv == "sell" else "VTTC0012U"
-        else:
-            tr_id = "TTTC0011U" if ord_dv == "sell" else "TTTC0012U"
+        tr_id = (
+            ("VTTC0011U" if ord_dv == "sell" else "VTTC0012U")
+            if is_mock
+            else "TTTC0011U" if ord_dv == "sell" else "TTTC0012U"
+        )
 
         # 계좌 정보 확인
         if not hasattr(self, "account") or not self.account:

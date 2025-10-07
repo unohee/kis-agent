@@ -239,10 +239,11 @@ class KISClient:
         if self.token_expired:
             try:
                 # 토큰 만료 시간 파싱
-                if isinstance(self.token_expired, str):
-                    exp_dt = datetime.strptime(self.token_expired, "%Y-%m-%d %H:%M:%S")
-                else:
-                    exp_dt = self.token_expired
+                exp_dt = (
+                    datetime.strptime(self.token_expired, "%Y-%m-%d %H:%M:%S")
+                    if isinstance(self.token_expired, str)
+                    else self.token_expired
+                )
 
                 # 현재 시간
                 now_dt = datetime.now()

@@ -13,12 +13,14 @@
 - **🔧 편의성**: Excel 거래 보고서 자동 생성
 - **🤖 자동화**: CI/CD 파이프라인과 자동 테스트 (232개 테스트)     
 
+[![CI/CD](https://github.com/unohee/pykis/workflows/PyKIS%20CI/CD%20Pipeline/badge.svg)](https://github.com/unohee/pykis/actions)
 [![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/unohee/pykis)
 [![Coverage](https://img.shields.io/badge/coverage-52%25-orange)](https://github.com/unohee/pykis)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![NXT](https://img.shields.io/badge/NXT--green)](https://www.nextrade.co.kr/)
 [![Rate Limiting](https://img.shields.io/badge/rate%20limiting-18%20RPS%2F900%20RPM-blue)](https://github.com/unohee/pykis)
-[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-green)](https://github.com/unohee/pykis/actions)
 
 ## 📦 설치
 
@@ -248,7 +250,42 @@ python minute_candle_crawler.py
   - `websocket/ws_agent.py`: 64%
 
 ```bash
-#  
+#
+pytest tests/ -v --cov=pykis
+```
+
+## 🛠️ 개발 도구 및 코드 품질
+
+PyKIS는 현대적인 Python 개발 도구를 사용하여 높은 코드 품질을 유지합니다:
+
+### 린팅 및 포맷팅
+- **Ruff**: 초고속 통합 린터 및 포맷터 (Black, Flake8, isort 통합)
+- **Black**: 코드 스타일 포맷터
+- **isort**: import 정렬
+- **Flake8**: 코드 스타일 체커
+- **MyPy**: 타입 체커
+
+### CI/CD 파이프라인
+- **GitHub Actions**: 자동화된 테스트 및 배포
+- **Python 3.8-3.12**: 5개 버전 동시 테스트
+- **자동 보안 스캔**: Trivy 보안 취약점 검사
+- **자동 배포**: PyPI 패키지 자동 배포
+
+### 로컬 개발 환경 설정
+```bash
+# 개발 의존성 설치
+pip install -e ".[dev]"
+
+# 코드 린팅 및 포맷팅
+ruff check pykis tests
+ruff format pykis tests
+black pykis tests
+isort pykis tests
+
+# 타입 체크
+mypy pykis
+
+# 테스트 실행
 pytest tests/ -v --cov=pykis
 ```
 

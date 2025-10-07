@@ -5,7 +5,7 @@ This file is kept for backward compatibility and editable installs.
 Configuration is primarily handled through pyproject.toml.
 """
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 # Minimal setup.py for compatibility with pip install -e .
 # All configuration is in pyproject.toml

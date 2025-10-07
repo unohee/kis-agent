@@ -1,5 +1,5 @@
-from typing import Any, Dict, Optional
 import datetime  # noqa: F401
+from typing import Any, Dict, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import API_ENDPOINTS

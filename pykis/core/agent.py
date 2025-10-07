@@ -2,7 +2,7 @@ import logging
 import os
 import sqlite3
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -62,6 +62,7 @@ class Agent(BaseExceptionHandler):
         >>> from pykis.utils.trading_report import generate_trading_report
         >>> report = generate_trading_report(agent.client, account_info, "20250101", "20250131")
     """
+
     # [변경 이유] 로거 미정의로 flake8 F821 경고 발생. 모듈 레벨 로거를 명시적으로 생성합니다.
     logger = logging.getLogger(__name__)
 
@@ -1138,10 +1139,11 @@ class Agent(BaseExceptionHandler):
         # [변경 이유] 영업일 계산을 위한 헬퍼 함수 추가
         import datetime
 
-        if date_str:
-            current_date = datetime.datetime.strptime(date_str, "%Y%m%d")
-        else:
-            current_date = datetime.datetime.now()
+        current_date = (
+            datetime.datetime.strptime(date_str, "%Y%m%d")
+            if date_str
+            else datetime.datetime.now()
+        )
 
         # 최대 10일까지만 확인 (무한 루프 방지)
         for i in range(10):
@@ -1667,7 +1669,15 @@ class Agent(BaseExceptionHandler):
         end_date: str = "",
         pdno: str = "",
         ord_dvsn_cd: str = "00",
-    ) -> Optional[pd.DataFrame]:
+        pagination: bool = False,
+        ccld_dvsn: str = "00",
+        inqr_dvsn: str = "01",
+        inqr_dvsn_3: str = "00",
+        max_pages: int = 100,
+        page_callback: Optional[
+            Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
+        ] = None,
+    ) -> Optional[Dict[str, Any]]:
         """주식일별주문체결조회
 
         특정 기간 동안의 주문 및 체결 내역을 조회합니다.
@@ -1677,15 +1687,30 @@ class Agent(BaseExceptionHandler):
             end_date: 조회종료일자 (YYYYMMDD). 기본값: 오늘
             pdno: 종목코드 (6자리). 기본값: 전체
             ord_dvsn_cd: 주문구분코드. 기본값: "00"(전체)
+            pagination: 연속조회 사용 여부. 기본값: False
+            ccld_dvsn: 체결구분 ("00":전체, "01":체결, "02":미체결)
+            inqr_dvsn: 조회구분/정렬 ("00":역순, "01":정순)
+            inqr_dvsn_3: 조회구분3 ("00":전체, "01":현금, "02":신용)
+            max_pages: 최대 페이지 수 (pagination=True일 때)
+            page_callback: 페이지 콜백 함수 (pagination=True일 때)
 
         Returns:
-            Optional[pd.DataFrame]: 주문체결내역 DataFrame
+            Optional[Dict[str, Any]]: 주문체결내역 (pagination=True) 또는 DataFrame (pagination=False)
 
         See Also:
             AccountAPI.inquire_daily_ccld: 상세 구현
         """
         return self.account_api.inquire_daily_ccld(
-            start_date, end_date, pdno, ord_dvsn_cd
+            start_date,
+            end_date,
+            pdno,
+            ord_dvsn_cd,
+            pagination,
+            ccld_dvsn,
+            inqr_dvsn,
+            inqr_dvsn_3,
+            max_pages,
+            page_callback,
         )
 
     def inquire_period_trade_profit(

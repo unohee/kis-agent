@@ -122,16 +122,15 @@ class TestInvestorPositionDB:
     def test_save_daily_position_error(self, temp_db):
         """데이터베이스 오류 처리"""
         # 데이터베이스 오류 시뮬레이션 (실제 DB 파일 권한 변경으로 오류 발생)
-        with patch.object(temp_db, "logger") as mock_logger:
-            with patch(
-                "sqlite3.connect",
-                side_effect=sqlite3.OperationalError("database error"),
-            ):
-                record = InvestorPositionRecord("005930", "20250127")
-                result = temp_db.save_daily_position(record)
+        with patch.object(temp_db, "logger") as mock_logger, patch(
+            "sqlite3.connect",
+            side_effect=sqlite3.OperationalError("database error"),
+        ):
+            record = InvestorPositionRecord("005930", "20250127")
+            result = temp_db.save_daily_position(record)
 
-                assert result is False
-                mock_logger.error.assert_called()
+            assert result is False
+            mock_logger.error.assert_called()
 
     def test_get_30day_positions_success(self, temp_db):
         """30일 포지션 조회 성공"""
@@ -314,13 +313,12 @@ class TestInvestorPositionDB:
     def test_database_error_handling(self, temp_db):
         """데이터베이스 오류 처리 테스트"""
         # 잘못된 경로로 새 DB 인스턴스 생성 시뮬레이션
-        with patch.object(temp_db, "logger") as mock_logger:
-            with patch(
-                "sqlite3.connect",
-                side_effect=sqlite3.OperationalError("database error"),
-            ):
-                record = InvestorPositionRecord("005930", "20250127")
-                result = temp_db.save_daily_position(record)
+        with patch.object(temp_db, "logger") as mock_logger, patch(
+            "sqlite3.connect",
+            side_effect=sqlite3.OperationalError("database error"),
+        ):
+            record = InvestorPositionRecord("005930", "20250127")
+            result = temp_db.save_daily_position(record)
 
-                assert result is False
-                mock_logger.error.assert_called()
+            assert result is False
+            mock_logger.error.assert_called()

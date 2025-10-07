@@ -1,20 +1,19 @@
-import sys
-import os
+import argparse
 import asyncio
+import atexit  # atexit 추가
+import json  # json 모듈 임포트
+import logging  # 로깅 모듈 임포트
+import os
+import select  # 비동기 입력을 위한 select 모듈 임포트
+import subprocess
+import sys
+import termios  # 터미널 속성 제어를 위한 termios 모듈 임포트
+
 # import schedule # schedule 라이브러리 제거
 import time
-from datetime import datetime, time as dt_time, timedelta # timedelta 추가
-import select # 비동기 입력을 위한 select 모듈 임포트
-import tty    # 터미널 모드 변경을 위한 tty 모듈 임포트
-import termios # 터미널 속성 제어를 위한 termios 모듈 임포트
-import json # json 모듈 임포트
-import logging # 로깅 모듈 임포트
-import atexit # atexit 추가
-import argparse
-import subprocess
-
-import logging
-import sys
+import tty  # 터미널 모드 변경을 위한 tty 모듈 임포트
+from datetime import datetime, timedelta  # timedelta 추가
+from datetime import time as dt_time
 
 logging.basicConfig(
     level=logging.DEBUG,  # 디버그 레벨 포함
@@ -46,15 +45,14 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # StockMonitor 임포트 경로 수정
-from src.StockMonitor import StockMonitor
 # KIS_Agent 임포트 추가
-from src.agent import KIS_Agent
 from src.discord_notifier import DiscordNotifier
+
 # StockMonitor.py 에서 설정 로드 함수 임포트 (경로 확인 필요)
 # 만약 StockMonitor.py가 load_config 함수를 정의하고 있다면:
-from src.StockMonitor import load_config 
+from src.StockMonitor import StockMonitor, load_config
 
-# --- 전역 설정 로드 --- 
+# --- 전역 설정 로드 ---
 config = load_config() # config.json 로드
 monitor_config = config.get('stock_monitor', {}) # stock_monitor 설정 가져오기
 # --- 전역 설정 로드 끝 ---
@@ -69,7 +67,7 @@ try:
 except ValueError as e:
     logging.error(f"디스코드 알림 봇 초기화 실패: {e}")
     notifier = None # 봇 초기화 실패 시 None으로 설정
-except Exception as e:
+except Exception:
     logging.exception("디스코드 알림 봇 설정 중 예기치 않은 오류 발생")
     notifier = None
 # --- 디스코드 봇 초기화 끝 ---
@@ -82,7 +80,7 @@ def cleanup():
         import time
         time.sleep(2) # 메시지 전송 시간 확보
         notifier.stop()
-atexit.register(cleanup)    
+atexit.register(cleanup)
 # --- 종료 함수 끝 ---
 
 # --- 결과 로깅 함수 (경로 변경) ---
@@ -129,7 +127,7 @@ def run_monitor_once(target_date_str=None):
         print(" -> Starting scans...")
         sys.stdout.flush()
         monitor.scan_transaction_power()
-        
+
         # 조건검색식 종목 처리 추가 (장시간과 관계없이 실행)
         print(" -> Processing condition stocks...")
         sys.stdout.flush()
@@ -255,12 +253,12 @@ def main():
         app_secret = os.environ.get('KIS_APP_SECRET')
         account_no = os.environ.get('KIS_ACCOUNT_NO')
         account_code = os.environ.get('KIS_ACCOUNT_CODE', '01')
-        
+
         if not all([app_key, app_secret, account_no]):
             print("Error: Required environment variables not set")
             print("Please set: KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO")
             sys.exit(1)
-        
+
         from pykis import Agent
         agent = Agent(
             app_key=app_key,
@@ -282,7 +280,7 @@ def main():
             logging.warning(f"Market holiday ({today_str}). Finding last trading day for news fetching.")
             sys.stdout.flush()
 
-            # --- 마지막 거래일 찾기 --- 
+            # --- 마지막 거래일 찾기 ---
             last_trading_day = None
             check_date = now_dt.date() - timedelta(days=1)
             attempts = 0
@@ -306,11 +304,11 @@ def main():
                  elif is_check_day_holiday is True:
                       check_date -= timedelta(days=1)
                       attempts += 1
-                 else: 
+                 else:
                       logging.warning(f"Holiday check failed for {check_date_str}. Stopping search.")
                       break
                  time.sleep(0.5)
-            # --- 마지막 거래일 찾기 끝 --- 
+            # --- 마지막 거래일 찾기 끝 ---
 
             if last_trading_day:
                 scan_target_date = last_trading_day
@@ -322,7 +320,7 @@ def main():
                     logging.error(f"Error during holiday scan: {holiday_scan_err}", exc_info=True)
                     print(f"\nError during holiday scan: {holiday_scan_err}")
                     processed_data_for_ranking = None # 오류 시 None 처리
-                
+
                 # 휴일 스캔 결과 분석 및 출력
                 print_strength_ranking(processed_data_for_ranking, scan_type="Holiday Scan")
                 print("Exiting after holiday scan and analysis.")
@@ -364,11 +362,11 @@ def main():
             if notifier: notifier.notify_error("휴장일 확인 API 오류", critical=True)
             sys.exit(0)
 
-    except Exception as agent_init_err:
+    except Exception:
         # ... (Agent 초기화 오류 처리 동일) ...
         sys.exit(1)
 
-    # --- 시간 기준 오프라인 모드 결정 --- 
+    # --- 시간 기준 오프라인 모드 결정 ---
     is_trading_hours = market_open <= now_time <= market_close
     offline_mode = not is_trading_hours
 

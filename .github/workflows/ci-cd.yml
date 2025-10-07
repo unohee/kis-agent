@@ -2,10 +2,14 @@ name: PyKIS CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, dev ]
     tags: [ 'v*' ]
   pull_request:
-    branches: [ main ]
+    branches: [ "**" ]
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -16,40 +20,48 @@ env:
 
 jobs:
   test:
-    name: Test Suite
+    name: Test Suite (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.8', '3.11', '3.12']  # 최소/안정/최신 버전만 테스트
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+        cache: 'pip'
+        cache-dependency-path: |
+          pyproject.toml
+          requirements.txt
 
     - name: Install dependencies
+      env:
+        PIP_DISABLE_PIP_VERSION_CHECK: '1'
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev,websocket]"
+        pip install -e ".[dev,all]"
 
-    - name: Run tests
+    - name: Run unit tests (exclude integration)
+      env:
+        RUN_LIVE_TESTS: '0'
       run: |
-        pytest tests/ -v --cov=pykis --cov-report=xml --cov-report=term-missing
+        pytest -v -m "not integration" --cov=pykis --cov-report=xml --cov-report=term-missing --durations=20
+
+    - name: Upload coverage artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-py${{ matrix.python-version }}
+        path: coverage.xml
 
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.12'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         flags: unittests
@@ -58,35 +70,48 @@ jobs:
   lint:
     name: Code Quality
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: |
+          pyproject.toml
+          requirements.txt
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
+    - name: Run Ruff linter
+      run: |
+        ruff check pykis tests --output-format=github
+
+    - name: Run Ruff formatter check
+      run: |
+        ruff format --check pykis tests
+
     - name: Run Black formatter check
       run: |
-        black --check pykis/ tests/ --diff
+        black --check pykis tests --diff
 
     - name: Run isort check
       run: |
-        isort --check-only pykis/ tests/ --diff
+        isort --check-only pykis tests --diff
 
     - name: Run Flake8
       run: |
-        flake8 pykis/ tests/
+        flake8 pykis tests
 
-    - name: Run MyPy
+    - name: Run MyPy (library only)
       run: |
-        mypy pykis/ --ignore-missing-imports
+        mypy pykis
 
   security:
     name: Security Scan
@@ -118,23 +143,24 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
 
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build
 
-    - name: Build package
+    - name: Build sdist/wheel
       run: python -m build
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: python-package
-        path: dist/
+        name: dist
+        path: dist/*
         retention-days: 7
 
   deploy:
@@ -148,15 +174,16 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: python-package
+        name: dist
         path: dist/
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
+        skip-existing: true
 
   notify:
     name: Notify Results

@@ -52,9 +52,8 @@ class TestStockAPI(unittest.TestCase):
         # DataFrame 또는 dict 형태로 반환될 수 있음
         if isinstance(result, pd.DataFrame):
             self.assertGreater(len(result), 0)
-        elif isinstance(result, dict) and "rt_cd" in result:
-            if result["rt_cd"] == "0":
-                self.assertIn("output", result)
+        elif isinstance(result, dict) and "rt_cd" in result and result["rt_cd"] == "0":
+            self.assertIn("output", result)
 
     def test_get_daily_price(self):
         """일별 시세 조회 테스트"""
@@ -63,10 +62,9 @@ class TestStockAPI(unittest.TestCase):
         # DataFrame 또는 dict 형태로 반환될 수 있음
         if isinstance(result, pd.DataFrame):
             self.assertGreater(len(result), 0)
-        elif isinstance(result, dict) and "rt_cd" in result:
-            if result["rt_cd"] == "0":
-                self.assertIn("output", result)
-                self.assertIsInstance(result["output"], list)
+        elif isinstance(result, dict) and "rt_cd" in result and result["rt_cd"] == "0":
+            self.assertIn("output", result)
+            self.assertIsInstance(result["output"], list)
 
     def test_get_orderbook(self):
         """호가 정보 조회 테스트"""

@@ -17,6 +17,7 @@
 import logging
 from datetime import datetime
 from typing import List, Optional
+
 import pandas as pd
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
@@ -140,7 +141,6 @@ class TradingReportGenerator:
 
             # Excel Writer 생성
             with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-
                 if tickers and separate_sheets:
                     # 종목별로 시트 분리
                     for ticker in tickers:
@@ -242,9 +242,7 @@ class TradingReportGenerator:
             }
 
             # 필요한 컬럼만 선택
-            selected_columns = [
-                col for col in column_mapping.keys() if col in df.columns
-            ]
+            selected_columns = [col for col in column_mapping if col in df.columns]
             df = df[selected_columns].copy()
             df.rename(columns=column_mapping, inplace=True)
 

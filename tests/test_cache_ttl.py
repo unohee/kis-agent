@@ -1,6 +1,6 @@
 """
- TTL   
-   TTL   
+TTL
+  TTL
 """
 
 import time

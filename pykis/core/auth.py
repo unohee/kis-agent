@@ -1,18 +1,18 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Feb 15 16:57:19 2023
 
 @author: Administrator
 """
+
 # ====|  토큰 발급에 필요한 API 호출 샘플 아래 참고하시기 바랍니다.  |=====================
 # ====|  토큰 발급에 필요한 API 호출 샘플 아래 참고하시기 바랍니다.  |=====================
 # ====|  토큰 발급에 필요한 API 호출 샘플 아래 참고하시기 바랍니다.  |=====================
 # ====|  API 호출 공통 함수 포함                                  |=====================
 
-
 import copy
 import json
 import os
+
 # [변경 이유] 린트 정리: 사용하지 않는 import 제거, lambda(E731) 제거
 from collections import namedtuple
 from datetime import datetime
@@ -75,7 +75,7 @@ _cfg = {
 # Configuration file loading has been removed.
 # API keys must be passed directly as parameters.
 
-_TRENV = tuple()
+_TRENV = ()
 _last_auth_time = datetime.now()
 _autoReAuth = False
 _DEBUG = False
@@ -103,7 +103,7 @@ def read_token(path: str = token_tmp) -> Optional[Dict[str, Any]]:
     try:
         if not os.path.exists(path):
             return None
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             tkg_tmp = json.load(f)
 
         # 테스트 호환을 위해 두 가지 포맷을 모두 처리합니다.
@@ -180,7 +180,7 @@ def changeTREnv(
     product: str = _cfg["my_prod"],
     config: Optional[Dict[str, Any]] = None,
 ) -> None:
-    cfg = dict()
+    cfg = {}
 
     global _isPaper
     if svr == "prod":  # 실전투자
@@ -195,13 +195,13 @@ def changeTREnv(
     cfg["my_app"] = _cfg.get(ak1, "")
     cfg["my_sec"] = _cfg.get(ak2, "")
 
-    if svr == "prod" and product == "01":  # 실전투자 주식투자, 위탁계좌, 투자계좌
+    if (
+        svr == "prod" and product == "01" or svr == "prod" and product == "30"
+    ):  # 실전투자 주식투자, 위탁계좌, 투자계좌
         cfg["my_acct"] = _cfg.get("my_acct_stock", "")
-    elif svr == "prod" and product == "30":  # 실전투자 증권저축계좌
-        cfg["my_acct"] = _cfg.get("my_acct_stock", "")
-    elif svr == "prod" and product == "03":  # 실전투자 선물옵션(파생)
-        cfg["my_acct"] = _cfg.get("my_acct_future", "")
-    elif svr == "prod" and product == "08":  # 실전투자 해외선물옵션(파생)
+    elif (
+        svr == "prod" and product == "03" or svr == "prod" and product == "08"
+    ):  # 실전투자 선물옵션(파생)
         cfg["my_acct"] = _cfg.get("my_acct_future", "")
     elif svr == "vps" and product == "01":  # 모의투자 주식투자, 위탁계좌, 투자계좌
         cfg["my_acct"] = _cfg.get("my_paper_stock", "")
@@ -305,10 +305,11 @@ def auth(
             raise RuntimeError("KIS API 토큰 발급 실패")
     else:
         # 저장된 포맷이 딕셔너리일 경우 access_token 필드 사용
-        if isinstance(saved_token, dict) and "access_token" in saved_token:
-            my_token = saved_token["access_token"]
-        else:
-            my_token = saved_token
+        my_token = (
+            saved_token["access_token"]
+            if isinstance(saved_token, dict) and "access_token" in saved_token
+            else saved_token
+        )
         # 저장된 토큰 사용 시 만료일이 필요 없으므로 임시 값 사용
         my_expired = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -441,19 +442,19 @@ class APIResp:
         return self._error_message
 
     def printAll(self):
-        print("STATUS: %s" % self.getResCode())
-        print("HEADER: %s" % self.getHeader())
-        print("BODY: %s" % self.getBody())
-        print("ErrorCode: %s" % self.getErrorCode())
-        print("ErrorMessage: %s" % self.getErrorMessage())
+        print(f"STATUS: {self.getResCode()}")
+        print(f"HEADER: {self.getHeader()}")
+        print(f"BODY: {self.getBody()}")
+        print(f"ErrorCode: {self.getErrorCode()}")
+        print(f"ErrorMessage: {self.getErrorMessage()}")
 
     def printError(self, url):
-        print("Error: %s" % self.getResCode())
-        print("URL: %s" % url)
-        print("Header: %s" % self.getHeader())
-        print("Body: %s" % self.getBody())
-        print("ErrorCode: %s" % self.getErrorCode())
-        print("ErrorMessage: %s" % self.getErrorMessage())
+        print(f"Error: {self.getResCode()}")
+        print(f"URL: {url}")
+        print(f"Header: {self.getHeader()}")
+        print(f"Body: {self.getBody()}")
+        print(f"ErrorCode: {self.getErrorCode()}")
+        print(f"ErrorMessage: {self.getErrorMessage()}")
 
 
 # 공통 API 호출부분, 모든 API 호출은 이 함수를 통해서 호출된다.
@@ -472,10 +473,9 @@ def _url_fetch(
     headers["tr_id"] = tr_id
     headers["tr_cont"] = tr_cont
 
-    if appendHeaders is not None:
-        if len(appendHeaders) > 0:
-            for header in appendHeaders:
-                headers[header] = appendHeaders[header]
+    if appendHeaders is not None and len(appendHeaders) > 0:
+        for header in appendHeaders:
+            headers[header] = appendHeaders[header]
 
     if postFlag:  # POST로 호출
         if hashFlag:

@@ -21,7 +21,7 @@ def benchmark_sequential(agent: Agent, codes: List[str], iterations: int = 3):
     start_time = time.time()
     success_count = 0
 
-    for i in range(iterations):
+    for _i in range(iterations):
         for code in codes:
             try:
                 result = agent.get_stock_price(code)
@@ -178,7 +178,7 @@ def main():
     # Rate Limiter 최종 통계
     if agent.client.rate_limiter:
         stats = agent.client.rate_limiter.get_current_rate()
-        print(f"\n Rate Limiter 통계:")
+        print("\n Rate Limiter 통계:")
         print(f"  - 총 요청: {stats['total_requests']}")
         print(f"  - 스로틀링: {stats['throttled_count']}회")
         print(f"  - 평균 대기: {stats['avg_wait_time']:.3f}초")

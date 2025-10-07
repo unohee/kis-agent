@@ -550,7 +550,7 @@ class AccountAPI(BaseAPI):
             페이지당 최대 100건, 100페이지면 최대 10,000건.
         page_callback : callable, optional
             각 페이지 조회 후 호출되는 콜백 함수 (pagination=True일 때).
-            함수 시그니처: (page_num: int, page_data: pd.DataFrame, ctx_info: dict) -> None
+            함수 시그니처: (page_num: int, page_data: List[Dict], ctx_info: dict) -> None
             ctx_info 딕셔너리 포함 내용:
             - "FK100": 연속조회키 FK100 (str)
             - "NK100": 연속조회키 NK100 (str)
@@ -602,12 +602,36 @@ class AccountAPI(BaseAPI):
 
         Notes
         -----
-        - 실전계좌에서는 한 번에 최대 100건까지만 조회 가능합니다.
-        - pagination=True 설정 시 CTX_AREA_FK100, CTX_AREA_NK100을 활용한 연속조회를 수행합니다.
-        - 연속조회 시 중복 데이터는 자동으로 제거됩니다.
-        - 조회 기간은 최대 3개월까지 권장됩니다.
+        **단일 조회 vs 연속조회 (Pagination)**
 
-        **중요: 수수료 정보 (prsm_tlex_smtl) 정확도**
+        - 실전계좌에서는 한 번에 최대 100건까지만 조회 가능합니다.
+        - pagination=False (기본값): 단일 API 호출로 최대 100건 조회
+        - pagination=True: CTX_AREA_FK100, CTX_AREA_NK100 연속조회키를 활용하여
+          여러 페이지를 순차적으로 조회합니다.
+        - 연속조회 시 중복 데이터는 자동으로 제거됩니다 (ord_dt, odno, pdno 기준).
+
+        **TR_ID 자동 선택 로직**
+
+        조회 기간에 따라 자동으로 적절한 TR_ID가 선택됩니다:
+        - start_date가 3개월 이내: TTTC0081R (최근 데이터 조회용)
+        - start_date가 3개월 이전: CTSC9215R (과거 데이터 조회용)
+
+        이 자동 선택은 한국투자증권 API의 제약사항에 따른 것으로,
+        사용자가 별도로 TR_ID를 지정할 필요가 없습니다.
+
+        **Pagination 메커니즘**
+
+        연속조회(pagination=True) 사용 시 다음과 같이 동작합니다:
+        1. 첫 번째 요청: tr_cont 헤더 없이 호출
+        2. 이후 요청: tr_cont="N" 헤더와 함께 이전 응답의 연속조회키 사용
+        3. 종료 조건:
+           - msg1에 "계속"이 포함되지 않음
+           - 연속조회키(CTX_AREA_FK100, CTX_AREA_NK100)가 모두 비어있음
+           - 조회된 데이터가 100건 미만
+           - max_pages에 도달
+
+        **수수료 정보 (prsm_tlex_smtl) 정확도**
+
         - **일별 조회 권장**: start_date와 end_date를 동일하게 설정하여 일별로 조회하면
           prsm_tlex_smtl (추정제비용합계)이 정확하게 제공됩니다.
         - **장기간 조회 시**: 여러 날짜를 포함하여 조회하면 prsm_tlex_smtl이 0 또는
@@ -622,6 +646,13 @@ class AccountAPI(BaseAPI):
         >>> # ⚠️  비권장: 장기간 조회 (수수료 부정확)
         >>> result = api.inquire_daily_ccld("20250901", "20251002", pagination=True)
         >>> fee = result['output2']['prsm_tlex_smtl']  # 0 또는 부정확
+
+        **Edge Cases**
+
+        - 빈 start_date/end_date: API가 기본값(최근 30일)으로 처리
+        - 조회 결과 없음: rt_cd="0"이지만 output1=[] 빈 리스트 반환
+        - API 오류: rt_cd != "0"이며 msg1에 오류 메시지 포함
+        - 연속조회 중 오류: 현재까지 수집된 데이터 반환 (첫 페이지 오류 시 None)
 
         Examples
         --------
@@ -671,6 +702,14 @@ class AccountAPI(BaseAPI):
         >>> # DataFrame으로 변환하려면:
         >>> if result and result['rt_cd'] == '0':
         ...     df = pd.DataFrame(result['output1'])
+
+        3개월 이전 데이터 조회 (자동으로 CTSC9215R 사용):
+
+        >>> result = api.inquire_daily_ccld(
+        ...     start_date="20241001",  # 3개월 이전
+        ...     end_date="20241031",
+        ...     pagination=True
+        ... )
         """
         # 연속조회 사용
         if pagination:
@@ -690,8 +729,9 @@ class AccountAPI(BaseAPI):
         try:
             # 조회 기간에 따라 TR ID 선택
             from datetime import datetime, timedelta
+
             today = datetime.now()
-            three_months_ago = (today - timedelta(days=90)).strftime('%Y%m%d')
+            three_months_ago = (today - timedelta(days=90)).strftime("%Y%m%d")
 
             # start_date가 3개월 이전이면 CTSC9215R, 이내면 TTTC0081R
             if start_date and start_date < three_months_ago:
@@ -742,9 +782,9 @@ class AccountAPI(BaseAPI):
     ) -> Optional[Dict[str, Any]]:
         """내부 헬퍼 메서드: 연속조회를 통한 일별주문체결 조회.
 
-        CTX_AREA_FK100과 CTX_AREA_NK100을 활용하여 페이지네이션을 구현합니다.
+        CTX_AREA_FK100과 CTX_AREA_NK100 연속조회키를 활용하여 페이지네이션을 구현합니다.
         실전계좌에서 호출당 최대 100건의 데이터를 가져오며,
-        연속조회키를 통해 다음 페이지를 요청합니다.
+        tr_cont 헤더와 연속조회키를 통해 다음 페이지를 순차적으로 요청합니다.
 
         Parameters
         ----------
@@ -752,25 +792,123 @@ class AccountAPI(BaseAPI):
             조회시작일자 (YYYYMMDD 형식)
         end_date : str
             조회종료일자 (YYYYMMDD 형식)
-        sll_buy_dvsn_cd : str
-            매도매수구분코드 (00:전체, 01:매도, 02:매수)
-        inqr_dvsn : str
-            조회구분 (00:역순, 01:정순)
-        pdno : str
-            상품번호 (종목코드, 빈 문자열이면 전체)
-        ccld_dvsn : str
-            체결구분 (00:전체, 01:체결, 02:미체결)
-        inqr_dvsn_3 : str
-            조회구분3 (00:전체, 01:현금, 02:신용, 03:담보, 04:대출)
-        max_pages : int
-            최대 조회 페이지 수
+        sll_buy_dvsn_cd : str, optional
+            매도매수구분코드 (기본값: "00")
+            - "00": 전체
+            - "01": 매도
+            - "02": 매수
+        inqr_dvsn : str, optional
+            조회구분/정렬 (기본값: "01")
+            - "00": 역순 (최신 데이터부터)
+            - "01": 정순 (과거 데이터부터)
+        pdno : str, optional
+            상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목.
+        ccld_dvsn : str, optional
+            체결구분 (기본값: "01")
+            - "00": 전체
+            - "01": 체결
+            - "02": 미체결
+        inqr_dvsn_3 : str, optional
+            조회구분3 (기본값: "00")
+            - "00": 전체 (현금+신용+담보+대출)
+            - "01": 현금
+            - "02": 신용
+            - "03": 담보
+            - "04": 대출
+        max_pages : int, optional
+            최대 조회 페이지 수 (기본값: 100)
         page_callback : callable, optional
-            페이지별 콜백 함수
+            각 페이지 조회 후 호출되는 콜백 함수.
+            함수 시그니처: (page_num: int, page_data: List[Dict], ctx_info: dict) -> None
 
         Returns
         -------
-        pd.DataFrame or None
-            전체 주문체결내역 DataFrame 또는 실패 시 None
+        dict or None
+            전체 주문체결내역이 담긴 딕셔너리 또는 실패 시 None.
+
+            반환 딕셔너리 구조:
+            - rt_cd (str): "0" (성공)
+            - msg_cd (str): "SUCCESSFUL" 또는 "NO_DATA"
+            - msg1 (str): 상태 메시지
+            - output1 (list): 전체 주문체결내역 리스트 (중복 제거됨)
+            - output2 (dict): 요약 정보
+                - tot_ord_qty (str): 총주문수량
+                - tot_ccld_qty (str): 총체결수량
+                - tot_ccld_amt (str): 총체결금액
+                - prsm_tlex_smtl (str, optional): 추정제비용합계
+                - pchs_avg_pric (str, optional): 매입평균가격
+                - page_count (int): 조회한 페이지 수
+                - total_count (int): 전체 조회 건수
+
+        Notes
+        -----
+        **TR_ID 자동 선택**
+
+        조회 기간에 따라 자동으로 적절한 TR_ID가 선택됩니다:
+        - start_date가 3개월 이내: TTTC0081R
+        - start_date가 3개월 이전: CTSC9215R
+
+        **tr_cont 헤더 메커니즘**
+
+        한국투자증권 API의 연속조회는 tr_cont 헤더를 통해 제어됩니다:
+        - 첫 번째 페이지: tr_cont 헤더 미포함 (또는 빈 문자열)
+        - 두 번째 페이지 이후: tr_cont="N" 헤더 포함
+
+        이 헤더를 통해 API는 연속조회 모드를 인식하고 적절한 데이터를 반환합니다.
+
+        **연속조회키 (Continuation Keys) 동작 방식**
+
+        CTX_AREA_FK100과 CTX_AREA_NK100은 다음 페이지를 가리키는 커서 역할을 합니다:
+        - 첫 요청: 빈 문자열로 전송
+        - 응답: API가 다음 페이지를 위한 연속조회키 반환 (ctx_area_fk100, ctx_area_nk100)
+        - 다음 요청: 이전 응답의 연속조회키를 파라미터로 전송
+        - 마지막 페이지: 연속조회키가 빈 문자열로 반환됨
+
+        **페이지네이션 종료 조건**
+
+        다음 조건 중 하나라도 만족하면 연속조회가 종료됩니다:
+        1. msg1에 "계속" 또는 "조회가 계속됩니다"가 포함되지 않음
+        2. ctx_area_fk100과 ctx_area_nk100이 모두 빈 문자열
+        3. 조회된 데이터가 100건 미만 (더 이상 데이터 없음)
+        4. max_pages에 도달
+        5. API 오류 발생 (첫 페이지 오류 시 None 반환, 이후 오류 시 현재까지 데이터 반환)
+
+        **중복 제거 로직**
+
+        여러 페이지에서 동일한 데이터가 반환될 수 있으므로 다음 기준으로 중복을 제거합니다:
+        - 키: (ord_dt, odno, pdno) 튜플
+        - 방법: 첫 번째 출현만 유지 (set 기반 중복 제거)
+
+        **정렬 처리**
+
+        중복 제거 후 다음과 같이 정렬됩니다:
+        - inqr_dvsn="01" (정순): ord_dt, ord_tmd 오름차순
+        - inqr_dvsn="00" (역순): ord_dt, ord_tmd 내림차순
+
+        **수수료 필드 처리**
+
+        연속조회 시 prsm_tlex_smtl과 pchs_avg_pric는 마지막 API 응답의 output2에서
+        추출됩니다. 장기간 조회 시 이 값들이 부정확할 수 있으므로 주의가 필요합니다.
+
+        **오류 처리**
+
+        - 첫 페이지 오류: None 반환 및 에러 로그 기록
+        - 중간 페이지 오류: 경고 로그 기록 후 현재까지 수집된 데이터 반환
+        - 조회 결과 없음: rt_cd="0", output1=[], output2에 0값들로 구성된 딕셔너리 반환
+
+        Examples
+        --------
+        이 메서드는 내부 헬퍼이므로 직접 호출하지 말고 inquire_daily_ccld(pagination=True)를 사용하세요.
+
+        >>> # 올바른 사용법
+        >>> result = api.inquire_daily_ccld(
+        ...     start_date="20250501",
+        ...     end_date="20250901",
+        ...     pagination=True
+        ... )
+
+        >>> # 잘못된 사용법 (내부 메서드 직접 호출)
+        >>> result = api._inquire_daily_ccld_pagination(...)  # 권장하지 않음
         """
         all_data = []
         ctx_area_fk100 = ""
@@ -779,8 +917,9 @@ class AccountAPI(BaseAPI):
 
         # 조회 기간에 따라 TR ID 선택
         from datetime import datetime, timedelta
+
         today = datetime.now()
-        three_months_ago = (today - timedelta(days=90)).strftime('%Y%m%d')
+        three_months_ago = (today - timedelta(days=90)).strftime("%Y%m%d")
 
         # start_date가 3개월 이전이면 CTSC9215R, 이내면 TTTC0081R
         # 주의: 단일 조회와 동일한 TR ID 사용

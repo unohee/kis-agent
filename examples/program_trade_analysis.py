@@ -13,28 +13,29 @@
 """
 
 import sys
-import os
+
 sys.path.append('..')
 
-from pykis.core.agent import Agent
-from datetime import datetime
-from typing import Optional, Dict, Any
-import time
 import random
+import time
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from pykis.core.agent import Agent
 
 
 class ProgramTradeAnalyzer:
     """프로그램 매매 데이터 분석기"""
-    
+
     def __init__(self, agent: Optional[Agent] = None):
         """
         분석기 초기화
-        
+
         Args:
             agent: PyKIS Agent 인스턴스 (None이면 자동 생성)
         """
         self.agent = agent or Agent()
-    
+
     def analyze_program_trade(self, code: str, ref_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         프로그램 매매 정보를 종합적으로 분석합니다.
@@ -68,25 +69,25 @@ class ProgramTradeAnalyzer:
         # 최대 5번까지 재시도하며 데이터 조회
         max_retries = 5
         res = None
-        for attempt in range(max_retries):
+        for _attempt in range(max_retries):
             res = self.agent.get_program_trade_daily_summary(code, ref_date)
             if res and isinstance(res, dict) and 'output' in res and isinstance(res['output'], list):
                 break
             time.sleep(random.uniform(0.05, 0.15))  # 초당 7~20개 사이
-            
+
         if not res or 'output' not in res or not isinstance(res['output'], list) or len(res['output']) == 0:
             return None
 
         return self._calculate_program_trade_metrics(res['output'], ref_date)
-    
+
     def _calculate_program_trade_metrics(self, rows: list, ref_date: str) -> Optional[Dict[str, Any]]:
         """
         프로그램 매매 지표 계산 (내부 메서드)
-        
+
         Args:
             rows: API 응답 데이터
             ref_date: 기준 일자
-            
+
         Returns:
             계산된 프로그램 매매 지표
         """
@@ -131,29 +132,29 @@ class ProgramTradeAnalyzer:
             'program_day_total_volume': total_vol,
             'program_day_buy_ratio': round(buy_ratio, 2) if buy_ratio is not None else None
         }
-    
+
     def get_program_trade_trend(self, code: str, days: int = 30) -> Optional[Dict[str, Any]]:
         """
         프로그램 매매 트렌드 분석
-        
+
         Args:
             code: 종목 코드
             days: 분석 기간 (일)
-            
+
         Returns:
             트렌드 분석 결과
         """
         # 여기에 추가 분석 로직 구현 가능
         pass
-    
+
     def compare_program_trade(self, codes: list, ref_date: Optional[str] = None) -> Dict[str, Any]:
         """
         여러 종목의 프로그램 매매 비교 분석
-        
+
         Args:
             codes: 종목 코드 리스트
             ref_date: 기준 일자
-            
+
         Returns:
             비교 분석 결과
         """
@@ -168,13 +169,13 @@ def main():
     print("=" * 60)
     print("🔬 프로그램 매매 종합 분석 스크립트")
     print("=" * 60)
-    
+
     # 분석기 초기화
     analyzer = ProgramTradeAnalyzer()
-    
+
     # 테스트 종목들
     test_stocks = ["005930", "000660", "035420"]  # 삼성전자, SK하이닉스, 네이버
-    
+
     print("\n 개별 종목 분석:")
     for stock in test_stocks:
         print(f"\n🏢 종목: {stock}")
@@ -186,15 +187,15 @@ def main():
             print(f"    총 거래량: {result['program_day_total_volume']:,}주")
         else:
             print("    데이터 조회 실패")
-    
+
     print("\n 비교 분석:")
     comparison = analyzer.compare_program_trade(test_stocks)
     for code, data in comparison.items():
         if data:
             print(f"   {code}: 매수비율 {data['today_ratio']}%, 순매수 {data['today']:,}주")
-    
+
     print("\n 분석 완료!")
 
 
 if __name__ == "__main__":
-    main() 
+    main()

@@ -5,7 +5,7 @@ Factory Pattern과 Template Method Pattern이 적용된 API 응답 처리기를 
 
 이 모듈은 다음 디자인 패턴들의 구현을 검증합니다:
 - Factory Pattern: ResponseProcessorFactory를 통한 프로세서 생성
-- Template Method Pattern: BaseResponseProcessor의 템플릿 메서드 구조  
+- Template Method Pattern: BaseResponseProcessor의 템플릿 메서드 구조
 - Strategy Pattern: 다양한 응답 처리 전략 (Dict, DataFrame, Raw)
 
 테스트 범위:

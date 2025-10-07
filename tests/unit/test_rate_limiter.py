@@ -152,7 +152,7 @@ class TestRateLimiter(unittest.TestCase):
 """
 class TestAgentRateLimiterIntegration(unittest.TestCase):
     # Agent와 Rate Limiter 통합 테스트
-    
+
     @patch('pykis.core.agent.KISConfig')
     @patch('pykis.core.agent.auth')
     @patch('pykis.core.agent.read_token')
@@ -166,7 +166,7 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         mock_config.return_value = mock_config_instance
         mock_auth.return_value = {'access_token': 'test_token'}
         mock_read_token.return_value = True
-        
+
         # Agent 생성
         with patch('pykis.core.agent.load_dotenv'):
             agent = Agent(
@@ -177,11 +177,11 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
                     'requests_per_minute': 500
                 }
             )
-        
+
         # Rate Limiter 확인
         self.assertIsNotNone(agent.rate_limiter)
         self.assertEqual(agent.rate_limiter.requests_per_second, 10)
-        
+
     @patch('pykis.core.agent.KISConfig')
     @patch('pykis.core.agent.auth')
     @patch('pykis.core.agent.read_token')
@@ -195,30 +195,30 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         mock_config.return_value = mock_config_instance
         mock_auth.return_value = {'access_token': 'test_token'}
         mock_read_token.return_value = True
-        
+
         # Agent 생성
         with patch('pykis.core.agent.load_dotenv'):
             agent = Agent(env_path='.env', enable_rate_limiter=True)
-        
+
         # 상태 조회
         status = agent.get_rate_limiter_status()
         self.assertIsNotNone(status)
         self.assertIn('requests_per_second', status)
-        
+
         # 제한 변경
         agent.set_rate_limits(requests_per_second=20)
         status = agent.get_rate_limiter_status()
         self.assertEqual(status['limit_per_second'], 20)
-        
+
         # 리셋
         agent.reset_rate_limiter()
         status = agent.get_rate_limiter_status()
         self.assertEqual(status['total_requests'], 0)
-        
+
         # 적응형 조절 비활성화
         agent.enable_adaptive_rate_limiting(False)
         self.assertFalse(agent.rate_limiter.enable_adaptive)
-        
+
     @patch('pykis.core.agent.KISConfig')
     @patch('pykis.core.agent.auth')
     @patch('pykis.core.agent.read_token')
@@ -232,14 +232,14 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         mock_config.return_value = mock_config_instance
         mock_auth.return_value = {'access_token': 'test_token'}
         mock_read_token.return_value = True
-        
+
         # Agent 생성 (Rate Limiter 비활성화)
         with patch('pykis.core.agent.load_dotenv'):
             agent = Agent(env_path='.env', enable_rate_limiter=False)
-        
+
         # Rate Limiter가 없음
         self.assertIsNone(agent.rate_limiter)
-        
+
         # 메서드 호출 시 None 반환
         status = agent.get_rate_limiter_status()
         self.assertIsNone(status)
@@ -249,36 +249,36 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
 """
 class TestKISClientRateLimiter(unittest.TestCase):
     # KISClient의 Rate Limiter 통합 테스트
-    
+
     @patch('pykis.core.client.auth')
     def test_client_with_rate_limiter(self, mock_auth):
         # KISClient의 Rate Limiter 사용 테스트
         mock_auth.return_value = {'access_token': 'test_token'}
-        
+
         # Client 생성
         client = KISClient(enable_rate_limiter=True)
-        
+
         # Rate Limiter 확인
         self.assertIsNotNone(client.rate_limiter)
         self.assertTrue(client.enable_rate_limiter)
-        
+
     @patch('pykis.core.client.auth')
     def test_client_enforce_rate_limit(self, mock_auth):
         # KISClient의 rate limit 적용 테스트
         mock_auth.return_value = {'access_token': 'test_token'}
-        
+
         # Client 생성
         client = KISClient(enable_rate_limiter=True)
-        
+
         # _enforce_rate_limit 호출
         start_time = time.time()
         client._enforce_rate_limit(priority=0)
         client._enforce_rate_limit(priority=0)
         elapsed = time.time() - start_time
-        
+
         # 최소 간격 적용 확인
         self.assertGreaterEqual(elapsed, 0.07)  # 70ms
-        
+
     @patch('pykis.core.client.requests.request')
     @patch('pykis.core.client.auth')
     def test_client_api_call_with_rate_limiter(self, mock_auth, mock_request):
@@ -288,10 +288,10 @@ class TestKISClientRateLimiter(unittest.TestCase):
         mock_response.status_code = 200
         mock_response.json.return_value = {'rt_cd': '0', 'data': 'test'}
         mock_request.return_value = mock_response
-        
+
         # Client 생성
         client = KISClient(enable_rate_limiter=True)
-        
+
         # API 호출
         result = client.make_request(
             endpoint='/test',
@@ -299,11 +299,11 @@ class TestKISClientRateLimiter(unittest.TestCase):
             params={},
             priority=1
         )
-        
+
         # 결과 확인
         self.assertIsNotNone(result)
         self.assertEqual(result['rt_cd'], '0')
-        
+
         # Rate Limiter 성공 보고 확인
         self.assertEqual(client.rate_limiter.consecutive_errors, 0)
 """

@@ -8,8 +8,8 @@ Stock Investor API - 투자자별 매매 정보 전용 모듈
 """
 
 import logging
-from typing import Any, Dict, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import API_ENDPOINTS

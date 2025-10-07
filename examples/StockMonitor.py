@@ -1,10 +1,9 @@
+import logging
 import os
 import sys
 import time
-import logging
-import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional
 
 # 현재 디렉토리를 Python 경로에 추가
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -247,11 +246,11 @@ def main():
     메인 함수
     """
     monitor = StockMonitor()
-    
+
     # 모니터링할 종목 추가
     monitor.add_stock("005930", "삼성전자", 60)  # 1분 간격
     monitor.add_stock("035720", "카카오", 300)   # 5분 간격
-    
+
     # 모니터링 시작
     monitor.run()
 

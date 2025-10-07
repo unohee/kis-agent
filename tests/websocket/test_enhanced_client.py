@@ -414,7 +414,6 @@ class TestAsyncOperations:
         with patch.object(client, "ws_agent") as mock_agent, patch.object(
             client.stock_api, "get_stock_info"
         ) as mock_get_info:
-
             # 모의 주식 정보 반환
             mock_get_info.return_value = {
                 "005930": {"name": "삼성전자", "market": "KOSPI"}
@@ -457,7 +456,6 @@ class TestIntegration:
         with patch("pykis.websocket.enhanced_client.StockAPI") as mock_stock_api, patch(
             "pykis.websocket.enhanced_client.WSAgent"
         ) as mock_ws_agent:
-
             # StockAPI 모킹
             stock_api_instance = mock_stock_api.return_value
             stock_api_instance.get_stock_info.return_value = {

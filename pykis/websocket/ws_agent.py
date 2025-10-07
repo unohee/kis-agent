@@ -6,14 +6,17 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
+
 import websockets
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+
 logger = logging.getLogger(__name__)
 
 
 class SubscriptionType(Enum):
     """구독 타입 정의"""
+
     STOCK_TRADE = "H0STCNT0"  # 국내주식 체결
     STOCK_ASK_BID = "H0STASP0"  # 국내주식 호가
     STOCK_NOTICE = "H0STCNI0"  # 국내주식 체결통보
@@ -444,7 +447,6 @@ class WSAgent:
                     ping_interval=self.ping_interval,
                     ping_timeout=self.ping_timeout,
                 ) as websocket:
-
                     self.ws = websocket
                     self.connected = True
                     logger.info("웹소켓 연결 성공")

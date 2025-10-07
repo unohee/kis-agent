@@ -39,10 +39,7 @@ class BaseExceptionHandler:
             exception: 예외 객체
             include_traceback: traceback 포함 여부
         """
-        if exception:
-            full_message = f"{message}: {exception}"
-        else:
-            full_message = message
+        full_message = f"{message}: {exception}" if exception else message
 
         if include_traceback:
             self.logger.error(full_message, exc_info=True)
@@ -57,10 +54,7 @@ class BaseExceptionHandler:
             message: 로그 메시지
             exception: 예외 객체
         """
-        if exception:
-            full_message = f"{message}: {exception}"
-        else:
-            full_message = message
+        full_message = f"{message}: {exception}" if exception else message
         self.logger.warning(full_message)
 
     def handle_exception(

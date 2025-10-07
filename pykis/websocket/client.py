@@ -520,7 +520,7 @@ class KisWebSocket:
         summary = self.trade_summary()
 
         sys.stdout.write("\033[H\033[J")  # 화면 클리어
-        for code, data in summary.items():
+        for _code, data in summary.items():
             # data 인덱스별로 값 할당 (None이면 "N/A" 처리)
             stock_code = data[0] if data[0] is not None else "N/A"
             stock_name = data[1] if data[1] is not None else "N/A"
@@ -629,10 +629,11 @@ class KisWebSocket:
 
             # 당일 시가 대비 변동률
             open_price = self.open_prices.get(code, None)
-            if cp_val is not None and open_price is not None and open_price != 0:
-                daily_change = (cp_val - open_price) / open_price * 100
-            else:
-                daily_change = None
+            daily_change = (
+                (cp_val - open_price) / open_price * 100
+                if cp_val is not None and open_price is not None and open_price != 0
+                else None
+            )
 
             # 20 EMA, 120 EMA 계산 (1분봉 캔들 기준)
             one_min_candles = self.compute_candles(code, interval_minutes=1)
@@ -939,9 +940,12 @@ class KisWebSocket:
                 if ticker not in self.stock_names or not self.stock_names[ticker]:
                     res = self.stock_api.get_stock_info(ticker)
                     stock_name = ticker  # fallback
-                    if isinstance(res, pd.DataFrame):
-                        if not res.empty and "prdt_name" in res.columns:
-                            stock_name = res["prdt_name"].iloc[0]
+                    if (
+                        isinstance(res, pd.DataFrame)
+                        and not res.empty
+                        and "prdt_name" in res.columns
+                    ):
+                        stock_name = res["prdt_name"].iloc[0]
                     # 무조건 self.stock_names[ticker]에 할당
                     self.stock_names[ticker] = stock_name
             except Exception as e:
@@ -1312,10 +1316,9 @@ class KisWebSocket:
         """
         초기 잔고 정보를 표시하고, 이후에는 update_price_and_indicators를 호출
         """
-        if self.balance_info is None:
-            if not self.load_initial_balance():
-                logging.error("잔고 정보를 가져오지 못했습니다.")
-                return
+        if self.balance_info is None and not self.load_initial_balance():
+            logging.error("잔고 정보를 가져오지 못했습니다.")
+            return
         self.update_price_and_indicators()
 
     async def connect(self):

@@ -18,7 +18,6 @@ class TestAgentOrderAPI:
         with patch("pykis.core.agent.KISClient"), patch("pykis.core.agent.auth"), patch(
             "pykis.core.agent.read_token"
         ):
-
             agent = Agent(
                 app_key="test_key",
                 app_secret="test_secret",

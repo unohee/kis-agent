@@ -5,7 +5,7 @@ Stock Price API 모듈 테스트
 
 테스트 대상 기능:
 - 실시간 주식 현재가 조회 (get_stock_price)
-- 일별 시세 데이터 조회 (get_daily_price) 
+- 일별 시세 데이터 조회 (get_daily_price)
 - 호가 정보 조회 (get_orderbook, get_orderbook_raw)
 - 분봉 시세 데이터 (get_minute_price, get_daily_minute_price)
 

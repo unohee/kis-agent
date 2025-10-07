@@ -1,6 +1,7 @@
 import os
-from pykis.stock.api import StockAPI
+
 from pykis.core.client import KISClient
+from pykis.stock.api import StockAPI
 
 # Set up the KISClient and StockAPI
 client = KISClient()
@@ -23,7 +24,7 @@ futures_response = stock_api.get_futures_price(futures_code)
 
 if futures_response and futures_response['rt_cd'] == '0':
     futures_price = float(futures_response['output']['stck_prpr'])
-    
+
     if kospi200_index_response and kospi200_index_response['rt_cd'] == '0':
         kospi200_index = float(kospi200_index_response['output2']['bstp_nmix_prpr'])
         basis = futures_price - kospi200_index

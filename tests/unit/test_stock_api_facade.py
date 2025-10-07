@@ -23,7 +23,6 @@ class TestStockAPIFacade(unittest.TestCase):
         with patch("pykis.stock.api_facade.StockPriceAPI"), patch(
             "pykis.stock.api_facade.StockMarketAPI"
         ), patch("pykis.stock.api_facade.StockInvestorAPI"):
-
             self.api = StockAPI(
                 client=self.mock_client,
                 account_info=self.account_info,
@@ -45,7 +44,6 @@ class TestStockAPIFacade(unittest.TestCase):
         with patch("pykis.stock.api_facade.StockPriceAPI"), patch(
             "pykis.stock.api_facade.StockMarketAPI"
         ), patch("pykis.stock.api_facade.StockInvestorAPI"):
-
             api = StockAPI(client=self.mock_client)
             self.assertEqual(api.client, self.mock_client)
             self.assertIsNone(api.account)

@@ -243,7 +243,9 @@ class TestTradingReportGenerator:
             mock_inquire.return_value = sample_trading_data
 
             output_path = generator.export_to_excel(
-                "20250101", "20250131", output_path=None  # 자동 생성
+                "20250101",
+                "20250131",
+                output_path=None,  # 자동 생성
             )
 
             try:

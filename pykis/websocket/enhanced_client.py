@@ -450,7 +450,7 @@ class EnhancedWebSocketClient(BaseExceptionHandler):
             }
 
         # 지수 정보
-        for code, data in self.market_data["index"].items():
+        for _code, data in self.market_data["index"].items():
             summary["indices"][data["name"]] = {
                 "value": data["value"],
                 "change_rate": data["change_rate"],
