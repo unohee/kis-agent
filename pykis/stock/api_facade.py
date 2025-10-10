@@ -127,6 +127,71 @@ class StockAPI(BaseAPI):
         """외국계 증권사 순매수 집계"""
         return self.investor_api.get_foreign_broker_net_buy(code, foreign_brokers, date)
 
+    def get_frgnmem_trade_estimate(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "16441",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+        fid_rank_sort_cls_code_2: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """외국계 매매종목 가집계 조회"""
+        return self.investor_api.get_frgnmem_trade_estimate(
+            fid_cond_mrkt_div_code,
+            fid_cond_scr_div_code,
+            fid_input_iscd,
+            fid_rank_sort_cls_code,
+            fid_rank_sort_cls_code_2,
+        )
+
+    def get_frgnmem_trade_trend(
+        self,
+        fid_cond_scr_div_code: str = "20432",
+        fid_cond_mrkt_div_code: str = "J",
+        fid_input_iscd: str = "",
+        fid_input_iscd_2: str = "99999",
+        fid_mrkt_cls_code: str = "A",
+        fid_vol_cnt: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """회원사 실시간 매매동향(틱) 조회"""
+        return self.investor_api.get_frgnmem_trade_trend(
+            fid_cond_scr_div_code,
+            fid_cond_mrkt_div_code,
+            fid_input_iscd,
+            fid_input_iscd_2,
+            fid_mrkt_cls_code,
+            fid_vol_cnt,
+        )
+
+    def get_investor_program_trade_today(
+        self, mrkt_div_cls_code: str = "1"
+    ) -> Optional[Dict[str, Any]]:
+        """프로그램매매 투자자매매동향(당일) 조회"""
+        return self.investor_api.get_investor_program_trade_today(mrkt_div_cls_code)
+
+    def get_investor_trade_by_stock_daily(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_input_iscd: str = "",
+        fid_input_date_1: str = "",
+        fid_org_adj_prc: str = "",
+        fid_etc_cls_code: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """종목별 투자자매매동향(일별) 조회"""
+        return self.investor_api.get_investor_trade_by_stock_daily(
+            fid_cond_mrkt_div_code,
+            fid_input_iscd,
+            fid_input_date_1,
+            fid_org_adj_prc,
+            fid_etc_cls_code,
+        )
+
+    def get_investor_trend_estimate(
+        self, mksc_shrn_iscd: str
+    ) -> Optional[Dict[str, Any]]:
+        """종목별 외국인/기관 추정가집계 조회"""
+        return self.investor_api.get_investor_trend_estimate(mksc_shrn_iscd)
+
     def get_index_minute_data(
         self,
         fid_input_iscd: str = "0001",

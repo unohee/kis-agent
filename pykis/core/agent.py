@@ -10,6 +10,7 @@ from ..account.api import AccountAPI
 from ..program.trade import ProgramTradeAPI
 from ..stock import StockMarketAPI
 from ..stock.api import StockAPI
+from ..stock.investor_api import StockInvestorAPI
 from ..websocket.client import KisWebSocket
 from .auth import auth, read_token
 from .base_exception_handler import BaseExceptionHandler, exception_handler
@@ -245,6 +246,7 @@ class Agent(BaseExceptionHandler):
         """API 모듈들을 초기화합니다."""
         self.account_api = AccountAPI(self.client, self.account_info)
         self.stock_api = StockAPI(self.client, self.account_info)
+        self.investor_api = StockInvestorAPI(self.client, self.account_info)
         self.program_api = ProgramTradeAPI(self.client, self.account_info)
         self.market_api = StockMarketAPI(self.client, self.account_info)
 
@@ -368,6 +370,461 @@ class Agent(BaseExceptionHandler):
         """
         # [변경 이유] 한국투자증권 새로운 일별분봉시세조회 API 추가
         return self.stock_api.get_daily_minute_price(code, date, hour)
+
+    def inquire_time_itemconclusion(
+        self, code: str, hour: str = "153000", market: str = "J"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        주식현재가 당일시간대별체결 조회
+
+        Args:
+            code: 종목코드 (6자리)
+            hour: 조회 시간 (HHMMSS, 기본값: 153000)
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합)
+
+        Returns:
+            시간대별 체결 데이터 (output1: 요약, output2: 시간별 체결 리스트)
+        """
+        return self.stock_api.inquire_time_itemconclusion(code, hour, market)
+
+    def inquire_ccnl(
+        self, code: str, market: str = "J"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        주식현재가 체결 조회 (최근 30건)
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합)
+
+        Returns:
+            최근 체결 데이터 (최대 30건)
+        """
+        return self.stock_api.inquire_ccnl(code, market)
+
+    def inquire_price_2(
+        self, code: str, market: str = "J"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        주식현재가 시세2 조회 (추가 정보 포함)
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합)
+
+        Returns:
+            주식현재가 시세2 데이터
+        """
+        return self.stock_api.inquire_price_2(code, market)
+
+    def search_stock_info(
+        self, code: str, product_type: str = "300"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        주식 기본정보 조회
+
+        Args:
+            code: 종목코드 (6자리, ETN의 경우 Q로 시작)
+            product_type: 상품유형코드 (300:주식/ETF/ETN/ELW, 301:선물옵션, 302:채권, 306:ELS)
+
+        Returns:
+            주식 기본정보 (종목명, 업종, 상장일, 자본금 등)
+        """
+        return self.stock_api.search_stock_info(code, product_type)
+
+    def news_title(
+        self,
+        code: str = "",
+        news_provider: str = "2",
+        market_cls: str = "00",
+        title_content: str = "",
+        date: str = "",
+        hour: str = "000000",
+        sort_code: str = "01",
+        serial_no: str = "1",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        종합 시황/공시 뉴스 제목 조회
+
+        Args:
+            code: 종목코드 (공백: 전체)
+            news_provider: 뉴스제공업체코드 (2:전체)
+            market_cls: 시장구분코드 (00:전체)
+            title_content: 제목내용 (검색어)
+            date: 조회날짜 (YYYYMMDD, 공백: 당일)
+            hour: 조회시간 (HHMMSS)
+            sort_code: 정렬코드 (01:시간순)
+            serial_no: 일련번호
+
+        Returns:
+            뉴스 제목 리스트
+        """
+        return self.stock_api.news_title(
+            code, news_provider, market_cls, title_content, date, hour, sort_code, serial_no
+        )
+
+    def fluctuation(
+        self,
+        market: str = "J",
+        screen_code: str = "20170",
+        stock_code: str = "0000",
+        sort_code: str = "0",
+        count: str = "30",
+        price_cls: str = "0",
+        price_from: str = "",
+        price_to: str = "",
+        volume: str = "",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        div_cls: str = "0",
+        rate_from: str = "",
+        rate_to: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        등락률 순위 조회
+
+        Args:
+            market: 시장구분 (J:주식, W:ELW, Q:ETF)
+            screen_code: 화면코드 (20170:등락률)
+            stock_code: 종목코드 (0000:전체)
+            sort_code: 정렬코드 (0:상승률순)
+            count: 조회건수
+            price_cls: 가격구분 (0:전체)
+            price_from: 가격하한
+            price_to: 가격상한
+            volume: 거래량하한
+            target_cls: 대상구분코드 (0:전체)
+            exclude_cls: 제외구분코드 (0:없음)
+            div_cls: 분류구분 (0:전체)
+            rate_from: 등락률하한
+            rate_to: 등락률상한
+
+        Returns:
+            등락률 순위 데이터
+        """
+        return self.stock_api.fluctuation(
+            market, screen_code, stock_code, sort_code, count, price_cls,
+            price_from, price_to, volume, target_cls, exclude_cls, div_cls,
+            rate_from, rate_to
+        )
+
+    def volume_rank(
+        self,
+        market: str = "J",
+        screen_code: str = "20171",
+        stock_code: str = "0000",
+        div_cls: str = "0",
+        sort_cls: str = "0",
+        target_cls: str = "111111111",
+        exclude_cls: str = "0000000000",
+        price_from: str = "",
+        price_to: str = "",
+        volume: str = "",
+        date: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        거래량 순위 조회
+
+        Args:
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합, W:ELW)
+            screen_code: 화면코드 (20171:거래량)
+            stock_code: 종목코드 (0000:전체)
+            div_cls: 분류구분 (0:전체, 1:보통주, 2:우선주)
+            sort_cls: 정렬구분 (0:평균거래량, 1:거래증가율, 2:평균거래회전율, 3:거래금액순, 4:평균거래금액회전율)
+            target_cls: 대상구분코드 (9자리, 증거금비율)
+            exclude_cls: 제외구분코드 (10자리, 투자위험/관리종목 등)
+            price_from: 가격하한
+            price_to: 가격상한
+            volume: 거래량하한
+            date: 조회날짜 (YYYYMMDD, 공백:당일)
+
+        Returns:
+            거래량 순위 데이터
+        """
+        return self.stock_api.volume_rank(
+            market, screen_code, stock_code, div_cls, sort_cls, target_cls,
+            exclude_cls, price_from, price_to, volume, date
+        )
+
+    def market_cap(
+        self,
+        market: str = "J",
+        screen_code: str = "20174",
+        stock_code: str = "0000",
+        div_cls: str = "0",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        price_from: str = "",
+        price_to: str = "",
+        volume: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        시가총액 순위 조회
+
+        Args:
+            market: 시장구분 (J:KRX, NX:NXT)
+            screen_code: 화면코드 (20174:시가총액)
+            stock_code: 종목코드 (0000:전체, 0001:거래소, 1001:코스닥, 2001:코스피200)
+            div_cls: 분류구분 (0:전체, 1:보통주, 2:우선주)
+            target_cls: 대상구분 (0:전체)
+            exclude_cls: 제외구분 (0:전체)
+            price_from: 가격하한
+            price_to: 가격상한
+            volume: 거래량하한
+
+        Returns:
+            시가총액 순위 데이터
+        """
+        return self.stock_api.market_cap(
+            market, screen_code, stock_code, div_cls, target_cls, exclude_cls,
+            price_from, price_to, volume
+        )
+
+    def inquire_daily_overtimeprice(
+        self, code: str, market: str = "J"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        주식현재가 시간외 일자별주가 조회 (최근 30건)
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합)
+
+        Returns:
+            시간외 일자별주가 데이터 (output1: 요약, output2: 일자별 리스트)
+        """
+        return self.stock_api.inquire_daily_overtimeprice(code, market)
+
+    def inquire_elw_price(self, code: str, market: str = "W") -> Optional[Dict[str, Any]]:
+        """
+        ELW 현재가 조회
+
+        Args:
+            code: ELW 종목코드
+            market: 시장구분 (W:ELW)
+
+        Returns:
+            ELW 현재가 데이터
+        """
+        return self.stock_api.inquire_elw_price(code, market)
+
+    def inquire_index_category_price(
+        self,
+        index_code: str,
+        screen_code: str = "20214",
+        market_cls: str = "K",
+        belong_cls: str = "0",
+        market: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 구분별 전체시세 조회
+
+        Args:
+            index_code: 업종코드 (0001:코스피, 1001:코스닥, 2001:코스피200)
+            screen_code: 화면코드 (20214:고정값)
+            market_cls: 시장구분코드 (K:거래소, Q:코스닥, K2:코스피200)
+            belong_cls: 소속구분코드 (0:전업종, 1:기타구분, 2:자본금/벤처구분, 3:상업별/일반구분)
+            market: 시장구분 (U:업종)
+
+        Returns:
+            업종별 전체시세 데이터 (output1: 요약, output2: 업종별 리스트)
+        """
+        return self.stock_api.inquire_index_category_price(
+            index_code, screen_code, market_cls, belong_cls, market
+        )
+
+    def inquire_index_price(
+        self, index_code: str, market: str = "U"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 현재지수 조회
+
+        Args:
+            index_code: 업종코드 (0001:코스피, 1001:코스닥, 2001:코스피200)
+            market: 시장구분 (U:업종)
+
+        Returns:
+            업종 현재지수 데이터
+        """
+        return self.stock_api.inquire_index_price(index_code, market)
+
+    def inquire_index_tickprice(
+        self, index_code: str, market: str = "U"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 시간별지수(틱) 조회
+
+        Args:
+            index_code: 업종코드 (0001:거래소, 1001:코스닥, 2001:코스피200, 3003:KSQ150)
+            market: 시장구분 (U:업종)
+
+        Returns:
+            시간별지수 틱 데이터
+        """
+        return self.stock_api.inquire_index_tickprice(index_code, market)
+
+    def inquire_index_timeprice(
+        self, index_code: str, market: str = "U", time_div: str = "0"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 지수 분/일봉 시세 조회
+
+        Args:
+            index_code: 업종코드 (0001:코스피, 1001:코스닥, 2001:코스피200)
+            market: 시장구분 (U:업종)
+            time_div: 시간구분 (0:분봉, 1:일봉)
+
+        Returns:
+            지수 분/일봉 시세 데이터
+        """
+        return self.stock_api.inquire_index_timeprice(index_code, market, time_div)
+
+    def inquire_overtime_asking_price(
+        self, code: str, market: str = "J"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식 시간외호가 조회
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT)
+
+        Returns:
+            시간외호가 데이터
+        """
+        return self.stock_api.inquire_overtime_asking_price(code, market)
+
+    def inquire_overtime_price(
+        self, code: str, market: str = "J"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식 시간외현재가 조회
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT)
+
+        Returns:
+            시간외현재가 데이터
+        """
+        return self.stock_api.inquire_overtime_price(code, market)
+
+    def disparity(
+        self,
+        market: str = "J",
+        screen_code: str = "20178",
+        div_cls: str = "0",
+        sort_code: str = "0",
+        hour_cls: str = "5",
+        stock_code: str = "0000",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        price_from: str = "",
+        volume: str = "",
+        price_to: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식 이격도 순위 조회
+
+        Args:
+            market: 시장구분 (J:KRX, NX:NXT)
+            screen_code: 화면코드 (20178:이격도)
+            div_cls: 분류구분 (0:전체, 1:관리종목, 2:투자주의 등)
+            sort_code: 정렬코드 (0:이격도상위순, 1:이격도하위순)
+            hour_cls: 시간구분 (5:이격도5, 10:이격도10, 20:이격도20, 60:이격도60, 120:이격도120)
+            stock_code: 종목코드 (0000:전체, 0001:거래소, 1001:코스닥, 2001:코스피200)
+            target_cls: 대상구분 (0:전체)
+            exclude_cls: 제외구분 (0:전체)
+            price_from: 가격하한
+            volume: 거래량하한
+            price_to: 가격상한
+
+        Returns:
+            이격도 순위 데이터
+        """
+        return self.stock_api.disparity(
+            market, screen_code, div_cls, sort_code, hour_cls, stock_code,
+            target_cls, exclude_cls, price_from, volume, price_to
+        )
+
+    def dividend_rate(
+        self,
+        cts_area: str = " ",
+        gb1: str = "1",
+        upjong: str = "0001",
+        gb2: str = "0",
+        gb3: str = "1",
+        f_dt: str = "",
+        t_dt: str = "",
+        gb4: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식 배당률 상위 조회
+
+        Args:
+            cts_area: 연속영역 (공백)
+            gb1: 시장구분 (0:전체, 1:코스피, 2:코스피200, 3:코스닥)
+            upjong: 업종구분 (0001:종합, 0002:대형주 등)
+            gb2: 종목선택 (0:전체, 6:보통주, 7:우선주)
+            gb3: 배당구분 (1:주식배당, 2:현금배당)
+            f_dt: 기준일From (YYYYMMDD)
+            t_dt: 기준일To (YYYYMMDD)
+            gb4: 결산/중간배당 (0:전체, 1:결산배당, 2:중간배당)
+
+        Returns:
+            배당률 상위 데이터
+        """
+        return self.stock_api.dividend_rate(cts_area, gb1, upjong, gb2, gb3, f_dt, t_dt, gb4)
+
+    def market_time(self) -> Optional[Dict[str, Any]]:
+        """
+        국내주식 시장영업시간 조회
+
+        Returns:
+            시장영업시간 데이터 (개장시간, 폐장시간, 휴장일 등)
+        """
+        return self.stock_api.market_time()
+
+    def market_value(self, code: str, market: str = "J") -> Optional[Dict[str, Any]]:
+        """
+        국내주식 종목별 시가총액 조회
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT)
+
+        Returns:
+            종목별 시가총액 데이터
+        """
+        return self.stock_api.market_value(code, market)
+
+    def profit_asset_index(
+        self, index_code: str = "0001", market: str = "U"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내주식 자산/수익지수 조회
+
+        Args:
+            index_code: 지수코드 (0001:코스피, 1001:코스닥)
+            market: 시장구분 (U:업종)
+
+        Returns:
+            자산/수익지수 데이터
+        """
+        return self.stock_api.profit_asset_index(index_code, market)
+
+    def intstock_multprice(self, codes: str, market: str = "J") -> Optional[Dict[str, Any]]:
+        """
+        국내주식 복수종목 현재가 조회
+
+        Args:
+            codes: 종목코드 (복수 종목은 ','로 구분, 최대 50종목)
+            market: 시장구분 (J:KRX, NX:NXT)
+
+        Returns:
+            복수종목 현재가 데이터
+        """
+        return self.stock_api.intstock_multprice(codes, market)
 
     def get_member(self, code: str) -> Optional[Dict[str, Any]]:
         """
@@ -540,6 +997,253 @@ class Agent(BaseExceptionHandler):
             Dict: 투자자별 매매 원시 데이터
         """
         return self.stock_api.get_stock_investor(code)
+
+    def get_frgnmem_trade_estimate(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "16441",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+        fid_rank_sort_cls_code_2: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        외국계 매매종목 가집계 조회
+
+        Args:
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J: 주식)
+            fid_cond_scr_div_code: 조건화면분류코드 (16441: 기본)
+            fid_input_iscd: 입력종목코드 (0000: 전체, 1001: 코스피, 2001: 코스닥)
+            fid_rank_sort_cls_code: 순위정렬구분코드 (0: 금액순, 1: 수량순)
+            fid_rank_sort_cls_code_2: 순위정렬구분코드2 (0: 매수순, 1: 매도순)
+
+        Returns:
+            Optional[Dict[str, Any]]: 외국계 매매종목 가집계 데이터
+        """
+        return self.investor_api.get_frgnmem_trade_estimate(
+            fid_cond_mrkt_div_code,
+            fid_cond_scr_div_code,
+            fid_input_iscd,
+            fid_rank_sort_cls_code,
+            fid_rank_sort_cls_code_2,
+        )
+
+    def get_frgnmem_trade_trend(
+        self,
+        fid_cond_scr_div_code: str = "20432",
+        fid_cond_mrkt_div_code: str = "J",
+        fid_input_iscd: str = "",
+        fid_input_iscd_2: str = "99999",
+        fid_mrkt_cls_code: str = "A",
+        fid_vol_cnt: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        회원사 실시간 매매동향(틱) 조회
+
+        Args:
+            fid_cond_scr_div_code: 조건화면분류코드 (20432)
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J 고정)
+            fid_input_iscd: 종목코드 (예: 005930)
+            fid_input_iscd_2: 회원사코드 (99999: 전체)
+            fid_mrkt_cls_code: 시장구분코드 (A: 전체, K: 코스피, Q: 코스닥)
+            fid_vol_cnt: 거래량
+
+        Returns:
+            Optional[Dict[str, Any]]: 회원사 실시간 매매동향 데이터
+        """
+        return self.investor_api.get_frgnmem_trade_trend(
+            fid_cond_scr_div_code,
+            fid_cond_mrkt_div_code,
+            fid_input_iscd,
+            fid_input_iscd_2,
+            fid_mrkt_cls_code,
+            fid_vol_cnt,
+        )
+
+    def get_investor_program_trade_today(
+        self, mrkt_div_cls_code: str = "1"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        프로그램매매 투자자매매동향(당일) 조회
+
+        Args:
+            mrkt_div_cls_code: 시장구분코드 (1: 코스피, 4: 코스닥)
+
+        Returns:
+            Optional[Dict[str, Any]]: 프로그램매매 투자자매매동향 데이터
+        """
+        return self.investor_api.get_investor_program_trade_today(mrkt_div_cls_code)
+
+    def get_investor_trade_by_stock_daily(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_input_iscd: str = "",
+        fid_input_date_1: str = "",
+        fid_org_adj_prc: str = "",
+        fid_etc_cls_code: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        종목별 투자자매매동향(일별) 조회
+
+        Args:
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J: KRX, NX: NXT, UN: 통합)
+            fid_input_iscd: 종목코드 (6자리)
+            fid_input_date_1: 조회날짜 (YYYYMMDD)
+            fid_org_adj_prc: 수정주가원주가가격 (공란)
+            fid_etc_cls_code: 기타구분코드 (공란)
+
+        Returns:
+            Optional[Dict[str, Any]]: 종목별 투자자매매동향 데이터
+        """
+        return self.investor_api.get_investor_trade_by_stock_daily(
+            fid_cond_mrkt_div_code,
+            fid_input_iscd,
+            fid_input_date_1,
+            fid_org_adj_prc,
+            fid_etc_cls_code,
+        )
+
+    def get_investor_trend_estimate(
+        self, mksc_shrn_iscd: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        종목별 외국인/기관 추정가집계 조회
+
+        장중에 증권사 직원이 집계한 외국인/기관 매매 추정치를 조회합니다.
+        입력시간: 외국인 09:30, 11:20, 13:20, 14:30 / 기관종합 10:00, 11:20, 13:20, 14:30
+
+        Args:
+            mksc_shrn_iscd: 종목코드 (6자리)
+
+        Returns:
+            Optional[Dict[str, Any]]: 종목별 외국인/기관 추정가집계 데이터
+        """
+        return self.investor_api.get_investor_trend_estimate(mksc_shrn_iscd)
+
+    def foreign_institution_total(
+        self,
+        market: str = "J",
+        screen_code: str = "20449",
+        stock_code: str = "0000",
+        div_cls: str = "0",
+        sort_cls: str = "0",
+        etc_cls: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        외국인/기관 종합 매매동향 조회
+
+        Args:
+            market: 시장구분 (J:KRX, NX:NXT)
+            screen_code: 화면코드 (20449:외국인/기관종합)
+            stock_code: 종목코드 (0000:전체)
+            div_cls: 분류구분 (0:전체, 1:보통주, 2:우선주)
+            sort_cls: 정렬구분 (0:순매수상위, 1:순매도상위)
+            etc_cls: 기타구분 (0:전체, 1:외국인, 2:기관계, 3:기타)
+
+        Returns:
+            Optional[Dict[str, Any]]: 외국인/기관 종합 매매동향 데이터
+        """
+        return self.stock_api.foreign_institution_total(
+            market, screen_code, stock_code, div_cls, sort_cls, etc_cls
+        )
+
+    def daily_credit_balance(
+        self, code: str, market: str = "J", screen_code: str = "20476", date: str = ""
+    ) -> Optional[Dict[str, Any]]:
+        """
+        신용잔고 일별추이 조회
+
+        Args:
+            code: 종목코드 (6자리)
+            market: 시장구분 (J:KRX, NX:NXT)
+            screen_code: 화면코드 (20476:신용잔고)
+            date: 조회날짜 (YYYYMMDD, 공백:당일)
+
+        Returns:
+            Optional[Dict[str, Any]]: 신용잔고 일별추이 데이터
+        """
+        return self.stock_api.daily_credit_balance(code, market, screen_code, date)
+
+    def short_sale(
+        self,
+        market: str = "J",
+        screen_code: str = "20482",
+        stock_code: str = "0000",
+        period: str = "0",
+        count: str = "30",
+        exclude_cls: str = "0",
+        target_cls: str = "0",
+        volume: str = "",
+        price_from: str = "",
+        price_to: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        공매도 상위종목 조회
+
+        Args:
+            market: 시장구분 (J:KRX, NX:NXT)
+            screen_code: 화면코드 (20482:공매도)
+            stock_code: 종목코드 (0000:전체)
+            period: 조회구분 (0:일, 1:월)
+            count: 조회일수/월수
+            exclude_cls: 제외구분 (0:없음)
+            target_cls: 대상구분 (0:전체)
+            volume: 거래량하한
+            price_from: 가격하한
+            price_to: 가격상한
+
+        Returns:
+            Optional[Dict[str, Any]]: 공매도 상위종목 데이터
+        """
+        return self.stock_api.short_sale(
+            market,
+            screen_code,
+            stock_code,
+            period,
+            count,
+            exclude_cls,
+            target_cls,
+            volume,
+            price_from,
+            price_to,
+        )
+
+    def inquire_vi_status(
+        self,
+        div_cls: str = "0",
+        screen_code: str = "20139",
+        market: str = "0",
+        stock_code: str = "",
+        sort_cls: str = "0",
+        date: str = "",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        VI(변동성완화장치) 발동 현황 조회
+
+        Args:
+            div_cls: 분류구분 (0:전체, 1:정적, 2:동적)
+            screen_code: 화면코드 (20139:VI발동현황)
+            market: 시장구분 (0:전체, 1:KOSPI, 2:KOSDAQ)
+            stock_code: 종목코드 (공백:전체)
+            sort_cls: 정렬구분 (0:VI발동시간순)
+            date: 조회날짜 (YYYYMMDD, 공백:당일)
+            target_cls: 대상구분 (0:전체)
+            exclude_cls: 제외구분 (0:없음)
+
+        Returns:
+            Optional[Dict[str, Any]]: VI 발동 현황 데이터
+        """
+        return self.stock_api.inquire_vi_status(
+            div_cls,
+            screen_code,
+            market,
+            stock_code,
+            sort_cls,
+            date,
+            target_cls,
+            exclude_cls,
+        )
 
     # ============================================================================
     # 계좌 관련 메서드들 (AccountAPI 위임)

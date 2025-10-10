@@ -58,6 +58,28 @@ if not os.path.exists(token_tmp):
     with open(token_tmp, "w+", encoding="utf-8") as f:
         json.dump({}, f)  # 빈 JSON 객체로 초기화
 
+
+def _get_token_path_for_app_key(app_key: str, base_path: str = token_tmp) -> str:
+    """APP_KEY별로 분리된 토큰 파일 경로 반환
+
+    Args:
+        app_key: 애플리케이션 키
+        base_path: 기본 토큰 파일 경로
+
+    Returns:
+        str: APP_KEY별 토큰 파일 경로
+    """
+    if not app_key:
+        return base_path
+
+    # APP_KEY의 앞 8자리를 파일명에 포함 (보안상 전체 키는 사용하지 않음)
+    key_prefix = app_key[:8] if len(app_key) >= 8 else app_key
+    dir_path = os.path.dirname(base_path)
+    base_name = os.path.basename(base_path).replace(".json", "")
+
+    return os.path.join(dir_path, f"{base_name}_{key_prefix}.json")
+
+
 # 환경 변수 기반 설정 로드 - STONKS 환경변수도 인식
 _cfg = {
     "my_app": os.getenv("KIS_APP_KEY") or os.getenv("MY_APP") or "",
@@ -86,12 +108,26 @@ _base_headers = {"Content-Type": "application/json"}
 
 
 # 토큰 발급 받아 저장 (토큰값, 토큰 유효시간,1일, 6시간 이내 발급신청시는 기존 토큰값과 동일, 발급시 알림톡 발송)
-def save_token(my_token: str, my_expired: str, path: str = token_tmp) -> None:
+def save_token(my_token: str, my_expired: str, path: str = token_tmp, app_key: str = None) -> None:
+    """토큰을 APP_KEY별로 분리하여 저장
+
+    Args:
+        my_token: 토큰 값
+        my_expired: 토큰 만료 시간
+        path: 기본 저장 경로
+        app_key: APP_KEY (제공시 별도 파일로 저장)
+    """
+    # APP_KEY가 제공되면 해당 키 전용 파일에 저장
+    if app_key:
+        path = _get_token_path_for_app_key(app_key, path)
+
     valid_date = datetime.strptime(my_expired, "%Y-%m-%d %H:%M:%S")
     token_data = {
         "token": my_token,
         # valid-date를 ISO 형식 문자열로 저장 (JSON 호환)
         "valid-date": valid_date.isoformat(),
+        # APP_KEY의 앞 8자리를 저장하여 토큰 매칭 검증에 사용
+        "app_key_prefix": app_key[:8] if app_key and len(app_key) >= 8 else "",
     }
     # print('Save token date: ', valid_date)
     with open(path, "w", encoding="utf-8") as f:
@@ -99,8 +135,21 @@ def save_token(my_token: str, my_expired: str, path: str = token_tmp) -> None:
 
 
 # 토큰 확인 (토큰값, 토큰 유효시간_1일, 6시간 이내 발급신청시는 기존 토큰값과 동일, 발급시 알림톡 발송)
-def read_token(path: str = token_tmp) -> Optional[Dict[str, Any]]:
+def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str, Any]]:
+    """APP_KEY별로 분리된 토큰 파일에서 토큰 읽기
+
+    Args:
+        path: 기본 토큰 파일 경로
+        app_key: APP_KEY (제공시 해당 키 전용 파일에서 읽기)
+
+    Returns:
+        Optional[Dict[str, Any]]: 유효한 토큰 정보 또는 None
+    """
     try:
+        # APP_KEY가 제공되면 해당 키 전용 파일에서 읽기
+        if app_key:
+            path = _get_token_path_for_app_key(app_key, path)
+
         if not os.path.exists(path):
             return None
         with open(path, encoding="utf-8") as f:
@@ -111,6 +160,13 @@ def read_token(path: str = token_tmp) -> Optional[Dict[str, Any]]:
             return tkg_tmp
         if not tkg_tmp or "valid-date" not in tkg_tmp or "token" not in tkg_tmp:
             return None
+
+        # APP_KEY 일치 여부 검증 (app_key_prefix가 저장되어 있는 경우)
+        if app_key and "app_key_prefix" in tkg_tmp:
+            key_prefix = app_key[:8] if len(app_key) >= 8 else app_key
+            if tkg_tmp["app_key_prefix"] != key_prefix:
+                # APP_KEY가 일치하지 않으면 None 반환 (새 토큰 발급 필요)
+                return None
 
         # 토큰 만료 일,시간 (ISO 형식 문자열에서 datetime 객체로 파싱)
         exp_dt_str = tkg_tmp["valid-date"]
@@ -275,8 +331,11 @@ def auth(
         "appsecret": _cfg.get(ak2, ""),
     }
 
-    # 기존 발급된 토큰이 있는지 확인
-    saved_token = read_token()
+    # 현재 APP_KEY 가져오기 (토큰 파일 분리를 위해)
+    current_app_key = _cfg.get(ak1, "")
+
+    # 기존 발급된 토큰이 있는지 확인 (APP_KEY별로 조회)
+    saved_token = read_token(app_key=current_app_key)
 
     if saved_token is None:  # 기존 발급 토큰 확인이 안되면 발급처리
         # config.BASE_URL이 비어 있으면 환경 변수에서 직접 가져옴 (이중 안전장치)
@@ -296,7 +355,7 @@ def auth(
             my_expired = _getResultObject(
                 res.json()
             ).access_token_token_expired  # 토큰값 만료일시 가져오기
-            save_token(my_token, my_expired)  # 새로 발급 받은 토큰 저장
+            save_token(my_token, my_expired, app_key=current_app_key)  # APP_KEY별로 저장
         else:
             print(
                 f"Get Authentification token fail!\nYou have to restart your app!!!\n[디버그] 응답코드: {rescode}, 응답내용: {res.text}"
@@ -350,7 +409,14 @@ def reAuth(
         if product is None:
             product = _cfg.get("my_prod", "")
         return auth(config, svr, product)
-    return read_token()
+
+    # APP_KEY 가져오기 (토큰 파일 분리를 위해)
+    if svr == "prod":
+        app_key = _cfg.get("my_app", "")
+    else:  # vps (모의투자)
+        app_key = _cfg.get("paper_app", "")
+
+    return read_token(app_key=app_key)
 
 
 def getEnv() -> Dict[str, Any]:
