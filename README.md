@@ -11,7 +11,9 @@
 - **📊 실시간**: WebSocket을 통한 실시간 데이터 스트리밍
 - **📈 완전성**: KOSPI, KOSDAQ, NXT 시장 완벽 지원
 - **🔧 편의성**: Excel 거래 보고서 자동 생성
-- **🤖 자동화**: CI/CD 파이프라인과 자동 테스트 (232개 테스트)     
+- **🤖 자동화**: CI/CD 파이프라인과 자동 테스트 (232개 테스트)
+- **🎯 타입 안정성**: 57개 TypedDict 응답 모델, 176개 메서드 100% 타입힌팅
+- **📚 명확한 문서**: 한국투자증권 API 공식 문서와 용어 일치 (디버깅 최적화)     
 
 [![CI/CD](https://github.com/unohee/pykis/workflows/PyKIS%20CI/CD%20Pipeline/badge.svg)](https://github.com/unohee/pykis/actions)
 [![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/unohee/pykis)
@@ -287,6 +289,89 @@ mypy pykis
 
 # 테스트 실행
 pytest tests/ -v --cov=pykis
+```
+
+## 🎯 타입 안정성 및 문서화 철학
+
+### TypedDict 응답 모델
+
+PyKIS는 모든 API 응답에 대한 명시적 타입 정의를 제공합니다:
+
+```python
+from pykis.responses.stock import StockPriceResponse
+from pykis.responses.account import AccountBalanceResponse
+
+def get_stock_price(code: str) -> Optional[StockPriceResponse]:
+    """주식 현재가 조회
+
+    Args:
+        code: 종목코드 6자리 (예: "005930")
+
+    Returns:
+        StockPriceResponse: 현재가 정보
+            - output.stck_prpr: 주식 현재가
+            - output.prdy_vrss: 전일 대비
+            - output.acml_vol: 누적 거래량
+    """
+    ...
+```
+
+**제공되는 응답 타입** (57개):
+- **주식 시세**: `StockPriceResponse`, `OrderbookResponse`, `DailyPriceResponse` 등 20개
+- **계좌 정보**: `AccountBalanceResponse`, `PossibleOrderResponse` 등 18개
+- **주문 처리**: `OrderCashResponse`, `OrderRvsecnclResponse` 등 19개
+
+### 한국어 Docstring 철학
+
+**PyKIS는 의도적으로 한국어 docstring을 사용합니다.**
+
+#### 이유:
+1. **API 공식 문서와 용어 일치**
+   ```python
+   # 한국투자증권 API 응답 필드
+   {
+       "stck_prpr": "70000",   # 주식 현재가
+       "prdy_vrss": "1000",    # 전일 대비
+       "prdy_ctrt": "1.45"     # 전일 대비율
+   }
+
+   # PyKIS docstring - 공식 문서 용어 그대로 사용
+   """
+   Returns:
+       - output.stck_prpr: 주식 현재가  ← API 문서 그대로!
+       - output.prdy_vrss: 전일 대비   ← 직접 매칭 가능
+   """
+   ```
+
+2. **디버깅 효율성**
+   - API 에러 메시지: 한글 (`"주문가능수량이 부족합니다"`)
+   - PyKIS docstring: 한글 → **즉시 매칭 가능**
+   - 공식 문서 대조 시간 단축
+
+3. **주 사용자층 최적화**
+   - 타겟 유저: 한국 개발자
+   - 한국투자증권 API: 국내 전용
+   - 실용성 > 국제 표준
+
+#### 국제화 정책:
+> 영문 번역이 필요하다면 커뮤니티 기여를 환영합니다.
+> 오픈소스로 공개 시 i18n은 커뮤니티가 자연스럽게 해결할 것으로 기대합니다.
+
+### IDE 자동완성 지원
+
+타입힌팅 덕분에 모든 주요 IDE에서 완벽한 자동완성을 지원합니다:
+
+```python
+# VS Code, PyCharm, Cursor 등에서 자동완성
+response = agent.get_stock_price("005930")
+if response:
+    price = response['output']['stck_prpr']  # ← 자동완성!
+    #                           ^
+    #                           |- stck_prpr
+    #                           |- prdy_vrss
+    #                           |- prdy_ctrt
+    #                           |- acml_vol
+    #                           |- ...
 ```
 
 ##   
