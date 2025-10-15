@@ -1507,59 +1507,88 @@ class StockAPI(BaseAPI):
         )
 
     def get_investor_daily_by_market(
-        self, market_code: str = "STK", input_date: str = ""
+        self,
+        fid_cond_mrkt_div_code: str = "U",
+        fid_input_iscd: str = "0001",
+        fid_input_date_1: str = "",
+        fid_input_iscd_1: str = "KSP",
+        fid_input_date_2: str = "",
+        fid_input_iscd_2: str = "0001",
     ) -> Optional[Dict[str, Any]]:
         """
         시장별 투자자별 일별 매매동향 조회 (rt_cd 메타데이터가 포함된)
+        한국투자 HTS(eFriend Plus) > [0404] 시장별 일별동향
 
         Args:
-            market_code (str): 시장구분코드 (STK:전체, KSP:코스피, KSQ:코스닥)
-            input_date (str): 조회일자 (YYYYMMDD 형식)
+            fid_cond_mrkt_div_code (str): 조건 시장 분류 코드 (U:업종). Defaults to "U".
+            fid_input_iscd (str): 입력 종목코드 (업종코드, ex: 0001). Defaults to "0001".
+            fid_input_date_1 (str): 입력 날짜1 (YYYYMMDD). 미입력시 당일. Defaults to "".
+            fid_input_iscd_1 (str): 시장 구분 (KSP:코스피, KSQ:코스닥). Defaults to "KSP".
+            fid_input_date_2 (str): 입력 날짜2 (날짜1과 동일). 미입력시 자동설정. Defaults to "".
+            fid_input_iscd_2 (str): 업종분류코드. Defaults to "0001".
 
         Returns:
             Dict: 투자자별 일별 매매동향 데이터, 실패 시 None
 
         Example:
-            >>> stock_api.get_investor_daily_by_market("STK", "20240126")
+            >>> # 코스피 전체 업종 당일 조회
+            >>> agent.get_investor_daily_by_market()
+            >>> # 코스닥 특정일 조회
+            >>> agent.get_investor_daily_by_market(
+            ...     fid_input_date_1="20250701",
+            ...     fid_input_iscd_1="KSQ"
+            ... )
         """
         from datetime import datetime
 
-        if not input_date:
-            input_date = datetime.now().strftime("%Y%m%d")
+        if not fid_input_date_1:
+            fid_input_date_1 = datetime.now().strftime("%Y%m%d")
+
+        if not fid_input_date_2:
+            fid_input_date_2 = fid_input_date_1
 
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_INVESTOR_DAILY_BY_MARKET"],
-            tr_id="FHPTJ04400000",
+            tr_id="FHPTJ04040000",
             params={
-                "fid_cond_mrkt_div_code": market_code,
-                "fid_input_date_1": input_date,
+                "fid_cond_mrkt_div_code": fid_cond_mrkt_div_code,
+                "fid_input_iscd": fid_input_iscd,
+                "fid_input_date_1": fid_input_date_1,
+                "fid_input_iscd_1": fid_input_iscd_1,
+                "fid_input_date_2": fid_input_date_2,
+                "fid_input_iscd_2": fid_input_iscd_2,
             },
         )
 
     def get_investor_time_by_market(
-        self, market_code: str = "STK", time_div: str = "0"
+        self, fid_input_iscd: str = "999", fid_input_iscd_2: str = "S001"
     ) -> Optional[Dict[str, Any]]:
         """
-        시장별 투자자별 당일 시간대별 매매동향 조회 (rt_cd 메타데이터가 포함된)
+        시장별 투자자별 당일 시간대별 매매동향 조회 (시세성) (rt_cd 메타데이터가 포함된)
+        한국투자 HTS(eFriend Plus) > [0403] 시장별 시간동향
 
         Args:
-            market_code (str): 시장구분코드 (STK:전체, KSP:코스피, KSQ:코스닭)
-            time_div (str): 시간구분 (0:당일전체, 1:1분, 2:10분, 3:30분)
+            fid_input_iscd (str): 시장구분. Defaults to "999".
+            fid_input_iscd_2 (str): 업종구분. Defaults to "S001".
 
         Returns:
             Dict: 투자자별 시간대별 매매동향 데이터, 실패 시 None
 
         Example:
-            >>> stock_api.get_investor_time_by_market("STK", "1")  # 1분 단위
+            >>> # 기본 조회
+            >>> agent.get_investor_time_by_market()
+            >>> # 특정 시장/업종 조회
+            >>> agent.get_investor_time_by_market(
+            ...     fid_input_iscd="999",
+            ...     fid_input_iscd_2="S001"
+            ... )
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_INVESTOR_TIME_BY_MARKET"],
-            tr_id="FHPTJ04410000",
+            tr_id="FHPTJ04030000",
             params={
-                "fid_cond_mrkt_div_code": market_code,
-                "fid_input_hour_1": "",
-                "fid_pw_data_incu_yn": "Y",
-                "fid_hour_cls_code": time_div,
+                "fid_input_iscd": fid_input_iscd,
+                "fid_input_iscd_2": fid_input_iscd_2,
             },
         )
 
