@@ -1,0 +1,222 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "프로젝트 구조 및 개발 환경 설정",
+        "description": "MCP 서버 프로젝트의 기본 구조를 설정하고 개발 환경을 구축합니다.",
+        "details": "pykis-mcp-server 디렉토리 생성, pyproject.toml 설정, src/ 구조 생성, 가상환경 설정, 테스트 환경 구축. MCP SDK와 PyKIS 의존성 설정. GitHub Actions CI/CD 파이프라인 설정. 개발용 .env.example 파일 생성.",
+        "testStrategy": "프로젝트 구조 유효성 검증, 의존성 설치 테스트, 기본 import 테스트",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "프로젝트 디렉토리 구조 생성 및 기본 파일 설정",
+            "description": "pykis-mcp-server 프로젝트의 기본 디렉토리 구조를 생성하고 필수 설정 파일들을 작성합니다.",
+            "dependencies": [],
+            "details": "pykis-mcp-server/ 루트 디렉토리 생성, src/pykis_mcp/ 패키지 구조 생성, tests/ 디렉토리 생성, __init__.py 파일들 생성, .gitignore 파일 작성, LICENSE 파일 생성",
+            "status": "done",
+            "testStrategy": "디렉토리 구조 존재 확인, 패키지 import 가능성 테스트",
+            "updatedAt": "2025-10-20T04:21:41.454Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "pyproject.toml 및 의존성 설정 구성",
+            "description": "프로젝트 메타데이터와 의존성을 정의하는 pyproject.toml 파일을 작성하고 MCP SDK, PyKIS 라이브러리 등 필요한 의존성을 설정합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "pyproject.toml에서 build-system, project metadata, dependencies (mcp, pykis, typing-extensions 등) 설정, optional-dependencies로 dev 그룹 설정, entry points 설정",
+            "status": "done",
+            "testStrategy": "pip install -e . 실행하여 의존성 설치 확인, 패키지 버전 정보 확인",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-20T06:24:49.801Z"
+          },
+          {
+            "id": 3,
+            "title": "가상환경 설정 및 개발용 환경변수 파일 생성",
+            "description": "파이썬 가상환경을 생성하고 개발에 필요한 환경변수 템플릿 파일을 작성합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "python -m venv venv 실행, requirements-dev.txt 생성 (pytest, black, ruff, mypy 포함), .env.example 파일 생성 (KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NUMBER 등), .env를 .gitignore에 추가",
+            "status": "done",
+            "testStrategy": "가상환경 활성화 테스트, 개발 의존성 설치 확인, 환경변수 파일 템플릿 유효성 검증",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-20T06:25:19.933Z"
+          },
+          {
+            "id": 4,
+            "title": "GitHub Actions CI/CD 파이프라인 설정",
+            "description": "자동화된 테스트, 린팅, 타입 체크를 위한 GitHub Actions 워크플로우를 구성합니다.",
+            "dependencies": [
+              3
+            ],
+            "details": ".github/workflows/ci.yml 파일 생성, Python 3.8-3.12 매트릭스 테스트 설정, pytest, ruff, mypy 실행 단계 구성, coverage 리포트 생성, PyPI 배포용 workflow 별도 생성",
+            "status": "done",
+            "testStrategy": "GitHub Actions 문법 유효성 검증, 로컬에서 동일한 명령어 실행하여 정상 동작 확인",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-20T06:25:45.101Z"
+          },
+          {
+            "id": 5,
+            "title": "기본 테스트 환경 및 프로젝트 구조 검증 테스트 작성",
+            "description": "프로젝트 구조가 올바르게 설정되었는지 확인하는 기본 테스트들을 작성합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "tests/test_project_structure.py 생성, 패키지 import 테스트, 버전 정보 확인 테스트, 환경변수 로드 테스트, conftest.py에서 공통 테스트 픽스처 설정, pytest.ini 설정 파일 작성",
+            "status": "done",
+            "testStrategy": "pytest 실행하여 모든 구조 검증 테스트 통과 확인, coverage 80% 이상 달성",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-20T06:26:14.666Z"
+          }
+        ],
+        "updatedAt": "2025-10-20T06:26:14.666Z"
+      },
+      {
+        "id": "2",
+        "title": "MCP 서버 핵심 구조 및 설정 구현",
+        "description": "MCP 서버의 기본 구조와 설정 관리 시스템을 구현합니다.",
+        "details": "server.py 생성 및 MCP 서버 초기화, config.py에서 환경변수 기반 설정 관리, PyKIS Agent 싱글턴 패턴 구현, stdio transport 설정, 서버 초기화 옵션 구성. 에러 핸들링 클래스 구현.",
+        "testStrategy": "서버 초기화 테스트, 설정값 로드 테스트, Agent 인스턴스 생성 테스트",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:27:16.184Z"
+      },
+      {
+        "id": "3",
+        "title": "주식 시세 및 시장 데이터 Tools 구현",
+        "description": "15개의 주식 시세 조회 및 시장 데이터 관련 MCP Tools를 구현합니다.",
+        "details": "get_stock_price, get_daily_price, get_minute_price, get_daily_minute_price, get_orderbook, get_stock_investor, calculate_support_resistance, get_top_gainers, get_index_daily_price 등의 Tools 구현. 각 Tool은 PyKIS Agent의 해당 메서드를 호출하고 적절한 에러 처리 및 응답 변환을 수행.",
+        "testStrategy": "각 Tool별 단위 테스트, Mock Agent를 사용한 테스트, 실제 API 연동 테스트",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:28:05.317Z"
+      },
+      {
+        "id": "4",
+        "title": "계좌 관리 Tools 구현",
+        "description": "10개의 계좌 잔고, 주문 가능 수량 등 계좌 관리 관련 MCP Tools를 구현합니다.",
+        "details": "get_account_balance, get_possible_order_amount, inquire_daily_ccld, inquire_balance_rlz_pl, inquire_psbl_sell, inquire_period_trade_profit 등의 계좌 관리 Tools 구현. 민감한 계좌 정보 처리 시 보안 고려사항 적용.",
+        "testStrategy": "계좌 정보 조회 테스트, 권한 검증 테스트, 데이터 형식 검증",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:28:43.536Z"
+      },
+      {
+        "id": "5",
+        "title": "주문 실행 Tools 구현",
+        "description": "12개의 주식 주문 실행 관련 MCP Tools를 구현합니다.",
+        "details": "order_stock_cash, order_stock_credit, order_cash, order_cash_sor, order_credit_buy, order_credit_sell, order_rvsecncl, order_resv 등의 주문 Tools 구현. 주문 검증 로직과 에러 처리 강화. 실전/모의투자 환경 분리 처리.",
+        "testStrategy": "모의투자 환경에서 주문 테스트, 주문 검증 로직 테스트, 에러 시나리오 테스트",
+        "priority": "high",
+        "dependencies": [
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:29:58.267Z"
+      },
+      {
+        "id": "6",
+        "title": "투자자 동향 및 프로그램 매매 Tools 구현",
+        "description": "10개의 투자자 동향과 프로그램 매매 분석 관련 MCP Tools를 구현합니다.",
+        "details": "get_stock_investor, get_investor_daily_by_market, get_foreign_broker_net_buy, get_stock_member, get_program_trade_by_stock, get_program_trade_daily_summary, get_program_trade_market_daily 등의 Tools 구현. 대용량 데이터 처리 최적화.",
+        "testStrategy": "투자자 동향 데이터 조회 테스트, 프로그램 매매 데이터 검증, 성능 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:31:59.353Z"
+      },
+      {
+        "id": "7",
+        "title": "유틸리티 및 헬퍼 Tools 구현",
+        "description": "7개의 유틸리티 및 시스템 관리 관련 MCP Tools를 구현합니다.",
+        "details": "get_holiday_info, is_holiday, get_daily_credit_balance, get_condition_stocks, search_methods, get_all_methods, show_method_usage 등의 유틸리티 Tools 구현. PyKIS Agent의 메타 기능들을 MCP로 노출.",
+        "testStrategy": "유틸리티 기능 테스트, 메타 기능 테스트, 조건검색 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:34:04.603Z"
+      },
+      {
+        "id": "8",
+        "title": "Rate Limiter 및 시스템 관리 Tools 구현",
+        "description": "4개의 Rate Limiter 관리 및 시스템 설정 관련 MCP Tools를 구현합니다.",
+        "details": "get_rate_limiter_status, reset_rate_limiter, set_rate_limits, enable_adaptive_rate_limiting Tools 구현. PyKIS의 Rate Limiter 기능을 MCP를 통해 제어 가능하도록 구현. 실시간 상태 모니터링 기능 포함.",
+        "testStrategy": "Rate Limiter 상태 조회 테스트, 설정 변경 테스트, 적응형 Rate Limiting 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:35:27.134Z"
+      },
+      {
+        "id": "9",
+        "title": "에러 처리 및 로깅 시스템 구현",
+        "description": "포괄적인 에러 처리와 로깅 시스템을 구현합니다.",
+        "details": "PyKISMCPError 예외 클래스 정의, API 에러 코드를 MCP ErrorCode로 매핑, 구조화된 로깅 시스템 구현, 에러 복구 메커니즘 구현. 모든 Tools에 일관된 에러 처리 적용.",
+        "testStrategy": "에러 시나리오별 테스트, 로그 형식 검증, 에러 복구 테스트",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "4",
+          "5"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:36:39.698Z"
+      },
+      {
+        "id": "10",
+        "title": "통합 테스트 및 문서화",
+        "description": "전체 시스템의 통합 테스트와 사용자 문서를 작성합니다.",
+        "details": "58개 모든 Tools의 통합 테스트 작성, Claude Desktop 연동 테스트, .mcp.json 설정 가이드 작성, README.md 작성, API 레퍼런스 문서 생성, 사용 예제 및 트러블슈팅 가이드 작성. PyPI 패키지 배포 준비.",
+        "testStrategy": "end-to-end 테스트, Claude Desktop 실제 연동 테스트, 문서 정확성 검증",
+        "priority": "high",
+        "dependencies": [
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-10-20T06:39:17.327Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-10-20T06:39:17.328Z",
+      "taskCount": 10,
+      "completedCount": 10,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}
