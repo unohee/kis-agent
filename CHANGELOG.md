@@ -2,6 +2,64 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [1.2.0] - 2025-10-10
+
+### 🚀 신규 API 추가 (31개)
+
+#### 고우선순위 API (8개)
+- **시간별 체결 조회**: `inquire_time_itemconclusion()` - 특정 시간 이후 체결 내역 조회
+- **실시간 체결 조회**: `inquire_ccnl()` - 30건 체결 데이터 (체결강도 포함)
+- **주식현재가 시세2**: `inquire_price_2()` - 상세 시세 정보
+- **종목 기본정보**: `search_stock_info()` - 종목명, 시가총액, 상장주식수 등
+- **뉴스 제목 조회**: `news_title()` - 종목 관련 뉴스
+- **등락률 순위**: `fluctuation()` - 시장 등락률 상위 종목
+- **거래량 순위**: `volume_rank()` - 거래량 상위 종목
+- **시가총액 순위**: `market_cap()` - 시가총액 상위 종목
+
+#### 중우선순위 API (5개)
+- **외국인/기관 종합**: `foreign_institution_total()` - 매매동향 종합
+- **신용잔고**: `daily_credit_balance()` - 일별 신용잔고 추이
+- **공매도**: `short_sale()` - 공매도 상위 종목
+- **ELW 현재가**: `inquire_elw_price()` - ELW 시세 조회
+- **VI 발동 현황**: `inquire_vi_status()` - 변동성 완화장치 발동 현황
+
+#### 시세조회 API (13개)
+- **시간외 주가**: `inquire_daily_overtimeprice()`, `inquire_overtime_price()`, `inquire_overtime_asking_price()`
+- **업종 지수**: `inquire_index_category_price()`, `inquire_index_tickprice()`, `inquire_index_timeprice()`
+- **순위/지표**: `disparity()`, `dividend_rate()`, `profit_asset_index()`
+- **복수종목**: `intstock_multprice()` - 한 번에 여러 종목 조회
+- **서버 미지원 API**: `inquire_index_price()`, `market_time()`, `market_value()` - NotImplementedError 발생 및 대안 API 안내
+
+#### 투자자동향 API (5개)
+- **외국계 가집계**: `get_frgnmem_trade_estimate()` - 외국계 매매종목 가집계
+- **회원사 동향**: `get_frgnmem_trade_trend()` - 실시간 매매동향
+- **프로그램매매**: `get_investor_program_trade_today()` - 투자자별 프로그램매매
+- **종목별 동향**: `get_investor_trade_by_stock_daily()` - 종목별 투자자 매매동향
+- **추정가집계**: `get_investor_trend_estimate()` - 외국인/기관 추정가집계
+
+### 🛠️ 시스템 개선
+- **StockInvestorAPI 모듈 신규 생성**: 투자자 동향 API 분리 (`pykis/stock/investor_api.py`)
+- **Agent 클래스 통합**: 모든 신규 API를 Agent에서 직접 호출 가능
+- **명확한 에러 처리**: 서버 미지원 API는 NotImplementedError 발생 + 대안 API 제시
+- **통합 테스트**: 실제 API 호출 테스트 20개 (100% 성공)
+
+### 📋 테스트
+- **유닛 테스트**: 31개 메서드 시그니처 검증 (100%)
+- **통합 테스트**: 20개 실제 API 호출 테스트 (100%)
+- **테스트 파일**:
+  - `testing/test_all_new_apis_251010.py` - 메서드 존재 여부 검증
+  - `tests/test_new_apis_integration_251010.py` - 실제 API 호출 검증
+
+### 📊 API 통계
+- **구현 완료**: 28개 API (실제 서버 지원)
+- **서버 미지원**: 3개 API (명확한 에러 메시지 + 대안 제시)
+- **성공률**: 100% (서버 미지원 API는 예상된 동작)
+
+### 🔧 기술 부채 해소
+- **보일러플레이트 자동화**: Task agent를 활용한 반복 작업 자동화
+- **코드 품질**: 일관된 BaseAPI 패턴 적용
+- **문서화**: 모든 메서드에 docstring 포함
+
 ## [1.1.0+] - 2025-09-21
 
 ### 🚀 성능 최적화

@@ -1667,7 +1667,7 @@ class AccountAPI(BaseAPI):
             logging.error(f"기간별권리현황 조회 실패: {e}")
             return None
 
-    def inquire_psbl_order(self, price: int, pdno: str = "", ord_dvsn: str = "01"):
+    def inquire_psbl_order(self, price: int, pdno: str = "", ord_dvsn: str = "01") -> Optional[Dict]:
         """
         매수가능 조회
 

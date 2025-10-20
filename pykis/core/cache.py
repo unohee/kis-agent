@@ -146,34 +146,36 @@ class APICache(TTLCache):
     API 전용 캐시 - 특정 API 엔드포인트별로 다른 TTL 설정
     """
 
-    # API별 기본 TTL 설정 (초) - 데이터 변동성 기준
+    # API별 기본 TTL 설정 (초) - 사용 빈도 및 데이터 변동성 기준
+    # 우선순위: P0 (실시간) > P1 (빈번) > P2 (보통) > P3 (드물게) > P4 (매우 드물게)
     DEFAULT_TTLS = {
-        # === 실시간 시세 (10초 이하) ===
-        "inquire-price": 10,  # 현재가 - 10초 (실시간 변동)
-        "inquire-asking-price": 10,  # 호가 - 10초 (실시간 변동)
-        "inquire-time-itemconclusion": 5,  # 체결 - 5초 (매우 빈번한 변동)
-        "inquire-ccnl": 5,  # 체결내역 - 5초
-        # === 분/시간 단위 데이터 (30초) ===
-        "inquire-investor": 30,  # 투자자 동향 - 30초 (분 단위 집계)
-        "inquire-member": 30,  # 거래원 - 30초 (분 단위 변동)
-        "inquire-program": 30,  # 프로그램 매매 - 30초
-        "inquire-minutechart": 30,  # 분봉 - 30초
-        # === 일 단위 데이터 (60초) ===
-        "inquire-daily-itemchartprice": 60,  # 일봉 - 60초 (장중 고/저/종가 변동)
-        "inquire-daily-indexchartprice": 60,  # 지수 일봉 - 60초
-        "inquire-daily-program": 60,  # 일별 프로그램 - 60초
-        "volume-rank": 60,  # 거래량 순위 - 60초
-        # === 계좌/잔고 정보 (60-120초) ===
-        "inquire-balance": 60,  # 잔고 - 60초 (주문 시에만 변동)
-        "inquire-psbl-order": 30,  # 주문가능금액 - 30초 (시세 연동)
-        "inquire-account": 120,  # 계좌정보 - 120초
-        "inquire-profit": 60,  # 수익률 - 60초
-        # === 정적 정보 (300초 이상) ===
-        "inquire-stock-info": 300,  # 종목 기본정보 - 300초 (5분)
-        "inquire-holiday": 86400,  # 휴장일 - 86400초 (1일)
-        "inquire-product": 300,  # 상품정보 - 300초
-        "inquire-condition": 300,  # 조건검색 - 300초
-        "search": 300,  # 종목검색 - 300초
+        # === P0: 실시간 시세 (10-30초) - 트레이딩용 ===
+        "inquire-price": 30,  # 현재가 - 30초 (실시간 변동, 너무 빈번한 호출 불필요)
+        "inquire-asking-price": 30,  # 호가 - 30초 (실시간 변동)
+        "inquire-time-itemconclusion": 10,  # 체결 - 10초 (빈번한 변동, 실시간 중요)
+        "inquire-ccnl": 10,  # 체결내역 - 10초
+        # === P1: 분/시간 단위 데이터 (5-10분) - 모니터링용 ===
+        "inquire-time-itemchartprice": 300,  # 분봉 (당일) - 5분
+        "inquire-minutechart": 300,  # 분봉 (과거일) - 5분 (분 단위 변동, 자주 조회)
+        "inquire-program": 600,  # 프로그램 매매 - 10분 (분 단위 집계, 빈번한 조회 불필요)
+        "inquire-member": 600,  # 거래원 - 10분 (분 단위 변동)
+        "inquire-investor": 600,  # 투자자 동향 - 10분 (일 단위 집계, 장중 누적)
+        "inquire-psbl-order": 300,  # 주문가능금액 - 5분 (시세 연동, 주문 전에만 확인)
+        # === P2: 시간/일 단위 데이터 (10-30분) - 분석용 ===
+        "volume-rank": 600,  # 거래량 순위 - 10분 (시간 단위 변동)
+        "inquire-daily-program": 600,  # 일별 프로그램 - 10분 (일 단위 집계)
+        "inquire-daily-itemchartprice": 1800,  # 일봉 - 30분 (일 단위, 장중 고/저/종가만 변동)
+        "inquire-daily-indexchartprice": 1800,  # 지수 일봉 - 30분
+        "inquire-balance": 600,  # 잔고 - 10분 (주문 시에만 변동, 빈번한 조회 불필요)
+        "inquire-profit": 600,  # 수익률 - 10분
+        # === P3: 드물게 조회하는 데이터 (30분-1시간) - 참고용 ===
+        "inquire-account": 1800,  # 계좌정보 - 30분 (거의 불변)
+        "inquire-condition": 1800,  # 조건검색 - 30분 (조건식 결과 캐시)
+        "inquire-stock-info": 3600,  # 종목 기본정보 - 1시간 (거의 불변)
+        "inquire-product": 3600,  # 상품정보 - 1시간 (거의 불변)
+        "search": 3600,  # 종목검색 - 1시간 (검색 결과 캐시)
+        # === P4: 정적 정보 (1시간 이상) - 메타데이터 ===
+        "inquire-holiday": 86400,  # 휴장일 - 1일 (완전 정적, 연초에만 변경)
         # === 주문 관련 (캐시 안함) ===
         "order": 0,  # 주문 - 캐시 안함
         "modify": 0,  # 정정 - 캐시 안함

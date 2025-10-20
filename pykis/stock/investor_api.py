@@ -71,7 +71,7 @@ class StockInvestorAPI(BaseAPI):
         )
 
     def get_foreign_broker_net_buy(
-        self, code: str, foreign_brokers=None, date: str = None
+        self, code: str, foreign_brokers: Optional[list] = None, date: Optional[str] = None
     ) -> Optional[tuple]:
         """
         거래원 정보를 활용해 외국계 증권사의 순매수(매수-매도) 합계를 집계합니다.
@@ -256,3 +256,152 @@ class StockInvestorAPI(BaseAPI):
         except Exception as e:
             logging.error(f"[{code}] 외국계 순매수 집계 실패: {e}")
             return None
+
+    def get_frgnmem_trade_estimate(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "16441",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+        fid_rank_sort_cls_code_2: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        외국계 매매종목 가집계 조회
+
+        Args:
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J: 주식)
+            fid_cond_scr_div_code: 조건화면분류코드 (16441: 기본)
+            fid_input_iscd: 입력종목코드 (0000: 전체, 1001: 코스피, 2001: 코스닥)
+            fid_rank_sort_cls_code: 순위정렬구분코드 (0: 금액순, 1: 수량순)
+            fid_rank_sort_cls_code_2: 순위정렬구분코드2 (0: 매수순, 1: 매도순)
+
+        Returns:
+            Optional[Dict[str, Any]]: 외국계 매매종목 가집계 데이터
+        """
+        params = {
+            "FID_COND_MRKT_DIV_CODE": fid_cond_mrkt_div_code,
+            "FID_COND_SCR_DIV_CODE": fid_cond_scr_div_code,
+            "FID_INPUT_ISCD": fid_input_iscd,
+            "FID_RANK_SORT_CLS_CODE": fid_rank_sort_cls_code,
+            "FID_RANK_SORT_CLS_CODE_2": fid_rank_sort_cls_code_2,
+        }
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["FRGNMEM_TRADE_ESTIMATE"],
+            tr_id="FHKST644100C0",
+            params=params,
+        )
+
+    def get_frgnmem_trade_trend(
+        self,
+        fid_cond_scr_div_code: str = "20432",
+        fid_cond_mrkt_div_code: str = "J",
+        fid_input_iscd: str = "",
+        fid_input_iscd_2: str = "99999",
+        fid_mrkt_cls_code: str = "A",
+        fid_vol_cnt: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        회원사 실시간 매매동향(틱) 조회
+
+        Args:
+            fid_cond_scr_div_code: 조건화면분류코드 (20432)
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J 고정)
+            fid_input_iscd: 종목코드 (예: 005930)
+            fid_input_iscd_2: 회원사코드 (99999: 전체)
+            fid_mrkt_cls_code: 시장구분코드 (A: 전체, K: 코스피, Q: 코스닥)
+            fid_vol_cnt: 거래량
+
+        Returns:
+            Optional[Dict[str, Any]]: 회원사 실시간 매매동향 데이터
+        """
+        params = {
+            "FID_COND_SCR_DIV_CODE": fid_cond_scr_div_code,
+            "FID_COND_MRKT_DIV_CODE": fid_cond_mrkt_div_code,
+            "FID_INPUT_ISCD": fid_input_iscd,
+            "FID_INPUT_ISCD_2": fid_input_iscd_2,
+            "FID_MRKT_CLS_CODE": fid_mrkt_cls_code,
+            "FID_VOL_CNT": fid_vol_cnt,
+        }
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["FRGNMEM_TRADE_TREND"],
+            tr_id="FHPST04320000",
+            params=params,
+        )
+
+    def get_investor_program_trade_today(
+        self, mrkt_div_cls_code: str = "1"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        프로그램매매 투자자매매동향(당일) 조회
+
+        Args:
+            mrkt_div_cls_code: 시장구분코드 (1: 코스피, 4: 코스닥)
+
+        Returns:
+            Optional[Dict[str, Any]]: 프로그램매매 투자자매매동향 데이터
+        """
+        params = {"MRKT_DIV_CLS_CODE": mrkt_div_cls_code}
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INVESTOR_PROGRAM_TRADE_TODAY"],
+            tr_id="HHPPG046600C1",
+            params=params,
+        )
+
+    def get_investor_trade_by_stock_daily(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_input_iscd: str = "",
+        fid_input_date_1: str = "",
+        fid_org_adj_prc: str = "",
+        fid_etc_cls_code: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        종목별 투자자매매동향(일별) 조회
+
+        Args:
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J: KRX, NX: NXT, UN: 통합)
+            fid_input_iscd: 종목코드 (6자리)
+            fid_input_date_1: 조회날짜 (YYYYMMDD)
+            fid_org_adj_prc: 수정주가원주가가격 (공란)
+            fid_etc_cls_code: 기타구분코드 (공란)
+
+        Returns:
+            Optional[Dict[str, Any]]: 종목별 투자자매매동향 데이터
+        """
+        params = {
+            "FID_COND_MRKT_DIV_CODE": fid_cond_mrkt_div_code,
+            "FID_INPUT_ISCD": fid_input_iscd,
+            "FID_INPUT_DATE_1": fid_input_date_1,
+            "FID_ORG_ADJ_PRC": fid_org_adj_prc,
+            "FID_ETC_CLS_CODE": fid_etc_cls_code,
+        }
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS.get(
+                "INVESTOR_TRADE_BY_STOCK_DAILY",
+                "/uapi/domestic-stock/v1/quotations/investor-trade-by-stock-daily",
+            ),
+            tr_id="FHPTJ04160001",
+            params=params,
+        )
+
+    def get_investor_trend_estimate(
+        self, mksc_shrn_iscd: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        종목별 외국인/기관 추정가집계 조회
+
+        장중에 증권사 직원이 집계한 외국인/기관 매매 추정치를 조회합니다.
+        입력시간: 외국인 09:30, 11:20, 13:20, 14:30 / 기관종합 10:00, 11:20, 13:20, 14:30
+
+        Args:
+            mksc_shrn_iscd: 종목코드 (6자리)
+
+        Returns:
+            Optional[Dict[str, Any]]: 종목별 외국인/기관 추정가집계 데이터
+        """
+        params = {"MKSC_SHRN_ISCD": mksc_shrn_iscd}
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INVESTOR_TREND_ESTIMATE"],
+            tr_id="HHPTJ04160200",
+            params=params,
+        )
