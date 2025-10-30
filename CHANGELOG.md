@@ -2,6 +2,132 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [1.3.1] - 2025-10-30
+
+### 📚 API 응답 타입 완전 문서화
+
+#### 🎯 주요 개선사항
+
+**1. TypedDict 응답 모델 완전 문서화**
+- **334개 API 엔드포인트** 응답 구조 추출 (`open-trading-api/examples_llm/` 분석)
+- **106개 필드 추가** (기존 57개 → 163개 필드)
+  - `StockPriceOutput`: 39 → **82 fields** (+43)
+  - `DailyPriceItem`: 13 → **18 fields** (+5)
+  - `StockInvestorOutput`: 13 → **27 fields** (+14)
+  - `MinutePriceItem`: 8 → **14 fields** (+6)
+  - `InquireBalanceRlzPlOutput`: 12 → **15 fields** (+3)
+  - **NEW** `InquirePeriodTradeProfitOutput`: **35 fields** (신규 추가)
+
+**2. 메서드 Docstring 완전 개선**
+- **6개 주요 API** 메서드에 상세 응답 필드 문서 추가:
+  - `get_stock_price()` - 주식 현재가 조회 (82개 필드 문서화)
+  - `get_daily_price()` - 일별 시세 조회
+  - `get_stock_investor()` - 투자자 매매 동향
+  - `get_minute_price()` - 분봉 시세 조회
+  - `inquire_balance_rlz_pl()` - 잔고 평가 및 실현 손익
+  - `inquire_period_trade_profit()` - 기간별 매매 손익 (신규)
+
+**3. 자동화 도구 개발**
+- `extract_response_mappings.py` - 334개 예제 파일에서 COLUMN_MAPPING 추출
+- `generate_complete_typeddict.py` - 완전한 TypedDict 모델 자동 생성
+- `response_mappings.json` - 모든 API 응답 필드 매핑 (334 APIs, 288 categories)
+
+**4. 개발자 경험 향상**
+- IDE 자동완성 지원 강화 (163개 응답 필드)
+- 타입 안전성 향상 (모든 필드에 한글 설명 포함)
+- API 문서 접근성 개선 (docstring에 주요 필드 포함)
+
+#### 📁 수정된 파일 (6개, +442줄)
+- `pykis/responses/stock.py` - 향상된 stock 응답 타입
+- `pykis/responses/account.py` - 향상된 account 응답 타입 + 신규 API
+- `pykis/responses/__init__.py` - 새로운 응답 타입 export
+- `pykis/stock/price_api.py` - 향상된 docstrings
+- `pykis/stock/investor_api.py` - 향상된 docstrings
+- `pykis/account/api.py` - 향상된 docstrings
+
+#### 🐛 버그 수정
+- `price_api.py:991` - 미사용 `retries` 파라미터 경고 해결 (`_retries`로 변경)
+
+#### ✅ 검증 완료
+- ✅ 248개 unit tests 통과 (breaking changes 없음)
+- ✅ TypedDict `total=False` 일관성 유지
+- ✅ 한국어 문서화 철학 유지 (API 필드명 1:1 매핑)
+
+## [1.3.0] - 2025-10-24
+
+### 🎯 파사드 패턴 완성 및 API 안정성 개선
+
+#### 🔧 주요 수정사항
+
+**1. 404 에러 API 처리**
+- `inquire_index_price()` - 원본 KIS API 엔드포인트가 404를 반환하는 문제 해결
+  - `inquire_index_timeprice()`로 내부 리다이렉트
+  - **DeprecationWarning** 추가 (v2.0에서 제거 예정)
+  - TODO 주석 명시
+
+**2. TR_ID 수정**
+- `get_index_timeprice()` - TR_ID를 `FHPUP02110200`로 수정
+  - POSTMAN 테스트로 정상 작동 확인
+  - KOSPI/KOSDAQ 시간별 지수 조회 정상화
+
+**3. StockAPI Facade 완성 (31개 메서드 추가)**
+
+Price API (21개):
+- `inquire_index_price()`, `inquire_index_tickprice()`, `inquire_index_timeprice()`
+- `inquire_index_category_price()`, `inquire_daily_overtimeprice()`, `inquire_elw_price()`
+- `inquire_overtime_asking_price()`, `inquire_overtime_price()`, `inquire_vi_status()`
+- `get_intraday_price()`, `get_stock_ccnl()`, `daily_credit_balance()`
+- `disparity()`, `dividend_rate()`, `fluctuation()`, `foreign_institution_total()`
+- `intstock_multprice()`, `market_cap()`, `market_time()`, `market_value()`
+- `news_title()`, `profit_asset_index()`, `search_stock_info()`, `short_sale()`, `volume_rank()`
+
+Market API (6개):
+- `get_holiday_info()`, `is_holiday()`, `get_pbar_tratio()`
+- `get_fluctuation_rank()`, `get_volume_power_rank()`, `get_volume_rank()`
+
+**4. Agent 클래스 완성 (13개 메서드 추가)**
+
+Price API (5개):
+- `get_orderbook()` - 호가 정보 조회
+- `inquire_price()` - 시세 조회 (추가 정보 포함)
+- `get_stock_ccnl()` - 체결 조회
+- `get_intraday_price()` - 당일 분봉 전체 데이터
+- `get_index_minute_data()` - 업종 분봉 조회
+
+Market API (7개):
+- `get_market_fluctuation()` - 시장 변동성 정보
+- `get_market_rankings()` - 거래량 기준 종목 순위
+- `get_stock_info()` - 종목 기본 정보
+- `get_fluctuation_rank()` - 등락률 순위
+- `get_volume_power_rank()` - 체결강도 순위
+- `get_volume_rank()` - 거래량 순위
+- `get_pbar_tratio()` - PBR/PER 비율 순위
+
+Investor API (1개):
+- `get_frgnmem_pchs_trend()` - 외국인 매수 추이
+
+### 📊 통계
+- **StockAPI Facade**: 58개 메서드 (완성)
+- **Agent Stock API**: 90개 메서드 (완성)
+- **파사드 패턴**: 100% 구현 완료
+
+### 🏗️ 아키텍처 개선
+- Agent → StockAPI Facade → (StockPriceAPI | StockMarketAPI | StockInvestorAPI) 계층 구조 완성
+- 모든 하위 API 메서드가 Facade와 Agent를 통해 접근 가능
+- `__getattr__()` 동적 위임으로 향후 추가 메서드 자동 지원
+
+### 🐛 버그 수정
+- 404 에러 발생하는 `inquire_index_price()` 대체 메서드 제공
+- `get_index_timeprice()` TR_ID 오류 수정
+- StockAPI Facade에서 누락된 31개 메서드 추가
+- Agent에서 누락된 13개 Stock API 메서드 추가
+
+### ⚠️ Deprecation 경고
+- `inquire_index_price()` - v2.0에서 제거 예정
+  - 대안: `inquire_index_timeprice()` 또는 `get_index_timeprice()` 사용
+
+---
+
 ## [1.2.0] - 2025-10-10
 
 ### 🚀 신규 API 추가 (31개)

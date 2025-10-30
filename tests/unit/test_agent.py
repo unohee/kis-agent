@@ -47,9 +47,16 @@ class TestAgent(unittest.TestCase):
         )
         self.test_stock_code = "005930"  # 삼성전자
 
+    @patch("pykis.core.agent.auth")
+    @patch("pykis.core.agent.read_token")
     @patch("pykis.core.agent.KISClient")
-    def test_init_without_client(self, mock_client_class):
+    def test_init_without_client(self, mock_client_class, mock_read_token, mock_auth):
         """클라이언트 없이 초기화 테스트"""
+        # Mock token validation to skip auth
+        mock_read_token.return_value = {
+            "access_token": "test_token",
+            "access_token_token_expired": "2099-12-31 23:59:59",
+        }
         mock_client_instance = Mock(spec=KISClient)
         mock_client_class.return_value = mock_client_instance
 
@@ -262,27 +269,26 @@ class TestAgent(unittest.TestCase):
 
     def test_search_methods(self):
         """search_methods 메서드 테스트 - Mock 사용"""
-        expected_result = [
-            {
-                "name": "get_stock_price",
-                "description": "Get stock price",
-                "category": "stock",
-            }
-        ]
-        self.agent.search_methods = Mock(return_value=expected_result)
-
+        # search_methods는 실제 메서드를 호출해서 결과를 확인
         result = self.agent.search_methods("price")
 
-        self.assertEqual(result, expected_result)
-        self.agent.search_methods.assert_called_once_with("price")
+        # 결과가 리스트인지 확인
+        self.assertIsInstance(result, list)
+        # "price" 키워드가 포함된 메서드가 있는지 확인
+        if len(result) > 0:
+            self.assertTrue(any("price" in method.get("name", "").lower() for method in result))
 
     def test_show_method_usage(self):
         """show_method_usage 메서드 테스트 - Mock 사용"""
-        self.agent.show_method_usage = Mock()
+        # show_method_usage는 실제 메서드를 호출 (print만 하므로 에러 없음)
+        # 예외 발생 안 하면 성공
+        try:
+            self.agent.show_method_usage("get_stock_price")
+            success = True
+        except Exception:
+            success = False
 
-        self.agent.show_method_usage("get_stock_price")
-
-        self.agent.show_method_usage.assert_called_once_with("get_stock_price")
+        self.assertTrue(success)
 
 
 if __name__ == "__main__":

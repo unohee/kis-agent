@@ -382,6 +382,22 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.get_daily_price(code, period, org_adj_prc)
 
+    def get_orderbook(self, code: str) -> Optional[Dict[str, Any]]:
+        """주식 호가 정보 조회"""
+        return self.stock_api.get_orderbook(code)
+
+    def inquire_price(self, code: str, market: str = "J") -> Optional[Dict[str, Any]]:
+        """주식현재가 시세 조회 (추가 정보 포함)"""
+        return self.stock_api.inquire_price(code, market)
+
+    def get_stock_ccnl(self, code: str, market: str = "J") -> Optional[Dict[str, Any]]:
+        """주식현재가 체결 조회"""
+        return self.stock_api.get_stock_ccnl(code, market)
+
+    def get_intraday_price(self, code: str) -> Optional[Dict[str, Any]]:
+        """주식 당일 분봉 데이터 조회 (전체)"""
+        return self.stock_api.get_intraday_price(code)
+
     def get_daily_credit_balance(self, code: str, date: str) -> Optional[Dict[str, Any]]:
         """
         국내주식 신용잔고 일별추이 조회
@@ -660,6 +676,71 @@ class Agent(BaseExceptionHandler):
         """
         return self.stock_api.market_cap(market, screen_code, stock_code, div_cls, target_cls, exclude_cls, price_from, price_to, volume)
 
+    def get_market_fluctuation(self) -> Optional[Dict[str, Any]]:
+        """시장 변동성 정보 조회"""
+        return self.stock_api.get_market_fluctuation()
+
+    def get_market_rankings(self, volume: int = 5000000) -> Optional[Dict[str, Any]]:
+        """거래량 기준 종목 순위 조회"""
+        return self.stock_api.get_market_rankings(volume)
+
+    def get_stock_info(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """종목 기본 정보 조회"""
+        return self.stock_api.get_stock_info(ticker)
+
+    def get_fluctuation_rank(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "20171",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+        fid_input_cnt_1: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """등락률 순위 조회"""
+        return self.stock_api.get_fluctuation_rank(
+            fid_cond_mrkt_div_code,
+            fid_cond_scr_div_code,
+            fid_input_iscd,
+            fid_rank_sort_cls_code,
+            fid_input_cnt_1,
+        )
+
+    def get_volume_power_rank(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "20172",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """체결강도 순위 조회"""
+        return self.stock_api.get_volume_power_rank(
+            fid_cond_mrkt_div_code, fid_cond_scr_div_code, fid_input_iscd, fid_rank_sort_cls_code
+        )
+
+    def get_volume_rank(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "20170",
+        fid_input_iscd: str = "0000",
+        fid_div_cls_code: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """거래량 순위 조회"""
+        return self.stock_api.get_volume_rank(
+            fid_cond_mrkt_div_code, fid_cond_scr_div_code, fid_input_iscd, fid_div_cls_code
+        )
+
+    def get_pbar_tratio(
+        self,
+        fid_input_iscd: str = "",
+        fid_cond_mrkt_div_code: str = "J",
+        fid_trgt_cls_code: str = "0",
+        fid_trgt_exls_cls_code: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """PBR/PER 비율 순위 조회"""
+        return self.stock_api.get_pbar_tratio(
+            fid_input_iscd, fid_cond_mrkt_div_code, fid_trgt_cls_code, fid_trgt_exls_cls_code
+        )
+
     def inquire_daily_overtimeprice(self, code: str, market: str = "J") -> Optional[Dict[str, Any]]:
         """
         주식현재가 시간외 일자별주가 조회 (최근 30건)
@@ -713,12 +794,18 @@ class Agent(BaseExceptionHandler):
         """
         국내업종 현재지수 조회
 
+        DEPRECATION WARNING:
+            이 메서드는 deprecated되었습니다.
+            get_index_timeprice() 또는 inquire_index_timeprice() 사용을 권장합니다.
+
+        TODO: v2.0에서 제거 예정
+
         Args:
             index_code: 업종코드 (0001:코스피, 1001:코스닥, 2001:코스피200)
             market: 시장구분 (U:업종)
 
         Returns:
-            업종 현재지수 데이터
+            업종 지수 데이터
         """
         return self.stock_api.inquire_index_price(index_code, market)
 
@@ -748,6 +835,76 @@ class Agent(BaseExceptionHandler):
             지수 분/일봉 시세 데이터
         """
         return self.stock_api.inquire_index_timeprice(index_code, market, time_div)
+
+    def get_index_timeprice(
+        self,
+        fid_input_iscd: str = "1029",
+        fid_input_hour_1: str = "600",
+        fid_cond_mrkt_div_code: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 시간별 지수 조회 (기본값: KOSPI200)
+
+        Args:
+            fid_input_iscd: 종목코드 (기본값 "1029": KOSPI200, "1001": KOSPI, "2001": KOSDAQ)
+            fid_input_hour_1: 입력 시간(초) - 조회 시간 범위 (기본값 "600": 10분봉)
+            fid_cond_mrkt_div_code: 시장 분류 코드 (기본값 "U": 업종)
+
+        Returns:
+            Dict containing:
+                - output1: 업종 현재가 정보
+                - output2: 시간별 지수 데이터 리스트
+
+        Example:
+            >>> agent.get_index_timeprice()  # KOSPI200 10분봉 데이터
+            >>> agent.get_index_timeprice("1001", "300")  # KOSPI 5분봉 데이터
+            >>> agent.get_index_timeprice("2001", "60")  # KOSDAQ 1분봉 데이터
+        """
+        return self.stock_api.get_index_timeprice(
+            fid_input_iscd, fid_input_hour_1, fid_cond_mrkt_div_code
+        )
+
+    def get_index_minute_data(
+        self,
+        fid_input_iscd: str = "0001",
+        fid_input_hour_1: str = "120",
+        fid_cond_mrkt_div_code: str = "U",
+        fid_pw_data_incu_yn: str = "Y",
+        fid_etc_cls_code: str = "0",
+    ) -> Optional[Dict[str, Any]]:
+        """업종 분봉 조회"""
+        return self.stock_api.get_index_minute_data(
+            fid_input_iscd,
+            fid_input_hour_1,
+            fid_cond_mrkt_div_code,
+            fid_pw_data_incu_yn,
+            fid_etc_cls_code,
+        )
+
+    def get_future_option_price(
+        self, market_div_code: str = "F", input_iscd: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        선물옵션 시세 조회
+
+        KOSPI200 선물/옵션, 주식선물/옵션의 실시간 시세를 조회합니다.
+
+        Args:
+            market_div_code: 시장분류코드
+                - "F": 지수선물 (KOSPI200 선물)
+                - "O": 지수옵션 (KOSPI200 옵션)
+                - "JF": 주식선물 (개별주식 선물)
+                - "JO": 주식옵션 (개별주식 옵션)
+            input_iscd: 선물옵션종목코드 (None이면 자동으로 KOSPI200 선물코드 사용)
+
+        Returns:
+            선물옵션 시세 데이터
+
+        Example:
+            >>> agent.get_future_option_price()  # KOSPI200 선물
+            >>> agent.get_future_option_price("O", "201T12370")  # KOSPI200 옵션
+        """
+        return self.stock_api.get_future_option_price(market_div_code, input_iscd)
 
     def inquire_overtime_asking_price(self, code: str, market: str = "J") -> Optional[Dict[str, Any]]:
         """
@@ -1148,6 +1305,10 @@ class Agent(BaseExceptionHandler):
             - 분석 활용: 외국인+기관 동반 매수 시 강세 신호로 해석 (Combined foreign+institutional buying indicates bullish signal)
         """
         return self.stock_api.get_stock_investor(code)
+
+    def get_frgnmem_pchs_trend(self, code: str) -> Optional[Dict[str, Any]]:
+        """외국인 매수 추이 조회"""
+        return self.stock_api.get_frgnmem_pchs_trend(code)
 
     def get_frgnmem_trade_estimate(
         self,

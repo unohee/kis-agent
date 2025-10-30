@@ -13,13 +13,13 @@ from pykis.core.cache import APICache, TTLCache
 
 
 def test_price_data_caching():
-    """시세 데이터 10초 TTL 실제 동작 테스트"""
+    """시세 데이터 30초 TTL 실제 동작 테스트"""
     cache = APICache()
     endpoint = "/uapi/domestic-stock/v1/quotations/inquire-price"
 
     # TTL 확인
     ttl = cache.get_ttl_for_endpoint(endpoint)
-    assert ttl == 10, f"시세 데이터는 10초 TTL이어야 합니다. 실제: {ttl}"
+    assert ttl == 30, f"시세 데이터는 30초 TTL이어야 합니다. 실제: {ttl}"
 
     # 데이터 저장
     test_data = {
@@ -41,15 +41,15 @@ def test_price_data_caching():
     cached = cache.get(cache_key)
     assert cached is not None, "캐시된 데이터를 찾을 수 없습니다"
 
-    # 5초 후 - 아직 유효
-    time.sleep(5)
+    # 15초 후 - 아직 유효
+    time.sleep(15)
     cached = cache.get(cache_key)
-    assert cached is not None, "5초 후에도 캐시가 유효해야 합니다"
+    assert cached is not None, "15초 후에도 캐시가 유효해야 합니다"
 
-    # 11초 후 - 만료됨
-    time.sleep(6)
+    # 31초 후 - 만료됨
+    time.sleep(16)
     cached = cache.get(cache_key)
-    assert cached is None, "11초 후에는 캐시가 만료되어야 합니다"
+    assert cached is None, "31초 후에는 캐시가 만료되어야 합니다"
 
 
 def _get_test_cases():
@@ -58,25 +58,25 @@ def _get_test_cases():
         {
             "name": "체결내역 (실시간)",
             "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-ccnl",
-            "expected_ttl": 5,
+            "expected_ttl": 10,
             "data": {"rt_cd": "0", "output": [{"체결가": "70000"}]},
         },
         {
             "name": "투자자 동향 (준실시간)",
             "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-investor",
-            "expected_ttl": 30,
+            "expected_ttl": 600,
             "data": {"rt_cd": "0", "output": {"개인": "매수"}},
         },
         {
             "name": "일봉 차트 (일단위)",
             "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
-            "expected_ttl": 60,
+            "expected_ttl": 1800,
             "data": {"rt_cd": "0", "output": [{"종가": "70000"}]},
         },
         {
             "name": "종목 정보 (정적)",
             "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-stock-info",
-            "expected_ttl": 300,
+            "expected_ttl": 3600,
             "data": {"rt_cd": "0", "output": {"종목명": "삼성전자"}},
         },
     ]
@@ -101,7 +101,7 @@ def _verify_ttl_expiry(cache, stored_keys):
     """TTL 만료 검증"""
     for name, key, ttl in stored_keys:
         cached = cache.get(key)
-        if ttl <= 5:
+        if ttl <= 10:
             assert cached is None, f"{name}은(는) 만료되어야 합니다"
         else:
             assert cached is not None, f"{name}은(는) 유효해야 합니다"
@@ -113,8 +113,8 @@ def test_different_context_ttls():
     test_cases = _get_test_cases()
     stored_keys = _store_test_data(cache, test_cases)
 
-    # 6초 후 체크 - 5초 TTL만 만료
-    time.sleep(6)
+    # 11초 후 체크 - 10초 TTL만 만료
+    time.sleep(11)
     _verify_ttl_expiry(cache, stored_keys)
 
 

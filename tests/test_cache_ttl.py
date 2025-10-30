@@ -12,65 +12,65 @@ def test_cache_ttl_configuration():
     """API  TTL"""
     cache = APICache()
 
-    #    (10 )
+    # 실시간 시세 (10-30초)
     ttl = cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/quotations/inquire-price")
-    assert ttl == 10, f"Expected 10, got {ttl}"
+    assert ttl == 30, f"Expected 30, got {ttl}"  # 현재가: 30초
 
     ttl = cache.get_ttl_for_endpoint(
         "/uapi/domestic-stock/v1/quotations/inquire-asking-price"
     )
-    assert ttl == 10, f"Expected 10, got {ttl}"
+    assert ttl == 30, f"Expected 30, got {ttl}"  # 호가: 30초
 
     ttl = cache.get_ttl_for_endpoint(
         "/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion"
     )
-    assert ttl == 5, f"Expected 5, got {ttl}"
+    assert ttl == 10, f"Expected 10, got {ttl}"  # 체결: 10초
 
-    # /   (30)
+    # 분/시간 단위 데이터 (5-10분)
     assert (
         cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-investor"
         )
-        == 30
+        == 600  # 투자자 동향: 10분
     )
     assert (
         cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/quotations/inquire-member")
-        == 30
+        == 600  # 거래원: 10분
     )
     assert (
         cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/quotations/inquire-program")
-        == 30
+        == 600  # 프로그램 매매: 10분
     )
 
-    #    (60)
+    # 일봉 데이터 (30분)
     assert (
         cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
         )
-        == 60
+        == 1800  # 일봉: 30분
     )
-    assert cache.get_ttl_for_endpoint("/uapi/volume-rank") == 60
+    assert cache.get_ttl_for_endpoint("/uapi/volume-rank") == 600  # 거래량 순위: 10분
 
-    # /  (60-120)
+    # 계좌/주문 데이터 (5-30분)
     assert (
         cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/trading/inquire-balance")
-        == 60
+        == 600  # 잔고: 10분
     )
     assert (
         cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/trading/inquire-psbl-order")
-        == 30
+        == 300  # 주문가능금액: 5분
     )
     assert (
         cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/trading/inquire-account")
-        == 120
+        == 1800  # 계좌정보: 30분
     )
 
-    #   (300 )
+    # 정적 정보 (1시간+)
     assert (
         cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-stock-info"
         )
-        == 300
+        == 3600  # 종목 기본정보: 1시간
     )
     assert (
         cache.get_ttl_for_endpoint("/uapi/domestic-stock/v1/quotations/inquire-holiday")
@@ -109,7 +109,7 @@ def test_cache_performance_with_different_ttls():
     """TTL"""
     cache = APICache()
 
-    #  (10 TTL)
+    # 시세 데이터 (30초 TTL)
     price_endpoint = "/uapi/domestic-stock/v1/quotations/inquire-price"
     cache_key_price = cache._make_key({"endpoint": price_endpoint, "code": "005930"})
     cache.set(
@@ -118,17 +118,17 @@ def test_cache_performance_with_different_ttls():
         ttl=cache.get_ttl_for_endpoint(price_endpoint),
     )
 
-    #   (300 TTL)
+    # 종목 정보 (3600초 TTL)
     info_endpoint = "/uapi/domestic-stock/v1/quotations/inquire-stock-info"
     cache_key_info = cache._make_key({"endpoint": info_endpoint, "code": "005930"})
     cache.set(
-        cache_key_info, {"name": ""}, ttl=cache.get_ttl_for_endpoint(info_endpoint)
+        cache_key_info, {"name": "삼성전자"}, ttl=cache.get_ttl_for_endpoint(info_endpoint)
     )
 
-    # 10  -  ,
-    time.sleep(11)
-    assert cache.get(cache_key_price) is None  #
-    assert cache.get(cache_key_info) is not None  #
+    # 31초 후 - 시세는 만료, 종목정보는 유효
+    time.sleep(31)
+    assert cache.get(cache_key_price) is None  # 만료됨
+    assert cache.get(cache_key_info) is not None  # 유효
 
     print(" TTL    ")
 

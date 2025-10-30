@@ -58,18 +58,40 @@ class AccountAPI(BaseAPI):
         super().__init__(client, account_info, enable_cache, cache_config)
 
     def get_account_balance(self) -> Optional[Dict]:
-        """Return current holdings and profit/loss information.
+        """
+        계좌 잔고 조회 - 보유 종목 및 손익 정보 반환
 
-        Returns
-        -------
-        Optional[Dict]
-            API response with rt_cd metadata included.
+        Returns:
+            AccountBalanceResponse 형식의 Dict:
+                output1[]: 보유 종목 리스트
+                    - pdno: 상품번호 (종목코드)
+                    - prdt_name: 상품명
+                    - hldg_qty: 보유수량
+                    - ord_psbl_qty: 주문가능수량
+                    - pchs_avg_pric: 매입평균가격
+                    - pchs_amt: 매입금액
+                    - prpr: 현재가
+                    - evlu_amt: 평가금액
+                    - evlu_pfls_amt: 평가손익금액
+                    - evlu_pfls_rt: 평가손익률 (%)
+                    - loan_dt: 대출일자
+                    - loan_amt: 대출금액
+                output2: 계좌 요약 정보
+                    - dnca_tot_amt: 예수금총액
+                    - tot_evlu_amt: 총평가금액
+                    - nass_amt: 순자산금액
+                    - pchs_amt_smtl_amt: 매입금액합계
+                    - evlu_amt_smtl_amt: 평가금액합계
+                    - evlu_pfls_smtl_amt: 평가손익합계
+                    - asst_icdc_amt: 자산증감액
+                    - asst_icdc_erng_rt: 자산증감수익률
 
-        Example
-        -------
-        >>> result = api.get_account_balance()
-        >>> if result:
-        >>>     holdings = result.get('output1', [])
+        Example:
+            >>> result = api.get_account_balance()
+            >>> if result:
+            ...     for stock in result['output1']:
+            ...         print(f"{stock['prdt_name']}: {stock['evlu_pfls_rt']}%")
+            ...     print(f"총평가: {result['output2']['tot_evlu_amt']}")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",

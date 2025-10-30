@@ -115,8 +115,9 @@ postman_collections/
 # Excel files
 *.xlsx
 
-# Empty directories
+# Scripts (but keep response_documentation tools)
 scripts/
+!scripts/response_documentation/
 
 logs
 npm-debug.log*

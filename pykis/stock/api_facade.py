@@ -270,6 +270,359 @@ class StockAPI(BaseAPI):
             fid_cond_mrkt_div_code,
         )
 
+    def get_future_option_price(
+        self, market_div_code: str = "F", input_iscd: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        선물옵션 시세 조회
+
+        [변경 이유] StockPriceAPI에 구현된 선물옵션 시세 조회 메서드를 Facade에서 일관되게 노출하여
+        Agent 파사드를 통해 접근 시 명시적으로 사용 가능하도록 합니다.
+
+        Args:
+            market_div_code (str): 시장분류코드 ("F": 지수선물, "O": 지수옵션, "JF": 주식선물, "JO": 주식옵션)
+            input_iscd (Optional[str]): 선물옵션종목코드 (None이면 자동으로 KOSPI200 선물코드 사용)
+
+        Returns:
+            Optional[Dict[str, Any]]: 선물옵션 시세 데이터
+        """
+        return self.price_api.get_future_option_price(market_div_code, input_iscd)
+
+    # ===== 추가 Price API 메서드 위임 =====
+
+    def inquire_index_price(self, index_code: str, market: str = "U") -> Optional[Dict]:
+        """
+        국내업종 현재지수 조회
+
+        DEPRECATION WARNING:
+            이 메서드는 deprecated되었습니다. inquire_index_timeprice() 사용을 권장합니다.
+
+        TODO: v2.0에서 제거 예정
+        """
+        return self.price_api.inquire_index_price(index_code, market)
+
+    def inquire_index_tickprice(self, index_code: str, market: str = "U") -> Optional[Dict]:
+        """국내업종 시간별지수(틱) 조회"""
+        return self.price_api.inquire_index_tickprice(index_code, market)
+
+    def inquire_index_timeprice(
+        self, index_code: str, market: str = "U", time_div: str = "0"
+    ) -> Optional[Dict]:
+        """국내업종 지수 분/일봉 시세 조회"""
+        return self.price_api.inquire_index_timeprice(index_code, market, time_div)
+
+    def inquire_index_category_price(
+        self,
+        index_code: str,
+        screen_code: str = "20214",
+        market_cls: str = "K",
+        belong_cls: str = "0",
+        market: str = "U",
+    ) -> Optional[Dict]:
+        """업종별 전체시세 조회"""
+        return self.price_api.inquire_index_category_price(
+            index_code, screen_code, market_cls, belong_cls, market
+        )
+
+    def inquire_daily_overtimeprice(self, code: str, market: str = "J") -> Optional[Dict]:
+        """국내주식 당일 시간외 체결 조회"""
+        return self.price_api.inquire_daily_overtimeprice(code, market)
+
+    def inquire_elw_price(self, code: str, market: str = "W") -> Optional[Dict]:
+        """ELW 현재가 시세 조회"""
+        return self.price_api.inquire_elw_price(code, market)
+
+    def inquire_overtime_asking_price(self, code: str, market: str = "J") -> Optional[Dict]:
+        """국내주식 시간외호가 조회"""
+        return self.price_api.inquire_overtime_asking_price(code, market)
+
+    def inquire_overtime_price(self, code: str, market: str = "J") -> Optional[Dict]:
+        """국내주식 시간외현재가 조회"""
+        return self.price_api.inquire_overtime_price(code, market)
+
+    def inquire_vi_status(
+        self,
+        div_cls: str = "0",
+        screen_code: str = "20139",
+        market: str = "0",
+        stock_code: str = "",
+        sort_cls: str = "0",
+        date: str = "",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+    ) -> Optional[Dict]:
+        """변동성완화장치(VI) 현황 조회"""
+        return self.price_api.inquire_vi_status(
+            div_cls, screen_code, market, stock_code, sort_cls, date, target_cls, exclude_cls
+        )
+
+    def get_intraday_price(self, code: str) -> Optional[Dict]:
+        """주식 당일 분봉 데이터 조회"""
+        return self.price_api.get_intraday_price(code)
+
+    def get_stock_ccnl(self, code: str, market: str = "J") -> Optional[Dict]:
+        """주식현재가 체결 조회"""
+        return self.price_api.get_stock_ccnl(code, market)
+
+    def daily_credit_balance(
+        self, code: str, market: str = "J", screen_code: str = "20476", date: str = ""
+    ) -> Optional[Dict]:
+        """일자별 신용잔고 조회"""
+        return self.price_api.daily_credit_balance(code, market, screen_code, date)
+
+    def disparity(
+        self,
+        market: str = "J",
+        screen_code: str = "20178",
+        div_cls: str = "0",
+        sort_code: str = "0",
+        hour_cls: str = "5",
+        stock_code: str = "0000",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        price_from: str = "",
+        volume: str = "",
+        price_to: str = "",
+    ) -> Optional[Dict]:
+        """국내주식 이격도 순위 조회"""
+        return self.price_api.disparity(
+            market,
+            screen_code,
+            div_cls,
+            sort_code,
+            hour_cls,
+            stock_code,
+            target_cls,
+            exclude_cls,
+            price_from,
+            volume,
+            price_to,
+        )
+
+    def dividend_rate(
+        self,
+        cts_area: str = "",
+        gb1: str = "0",
+        upjong: str = "",
+        gb2: str = "0",
+        gb3: str = "0",
+        f_dt: str = "",
+        t_dt: str = "",
+        gb4: str = "0",
+    ) -> Optional[Dict]:
+        """배당률 순위 조회"""
+        return self.price_api.dividend_rate(cts_area, gb1, upjong, gb2, gb3, f_dt, t_dt, gb4)
+
+    def fluctuation(
+        self,
+        market: str = "J",
+        screen_code: str = "20171",
+        stock_code: str = "",
+        sort_code: str = "0",
+        count: str = "0",
+        price_cls: str = "",
+        price_from: str = "",
+        price_to: str = "",
+        volume: str = "",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        div_cls: str = "0",
+        rate_from: str = "",
+        rate_to: str = "",
+    ) -> Optional[Dict]:
+        """국내주식 등락률 순위 조회"""
+        return self.price_api.fluctuation(
+            market,
+            screen_code,
+            stock_code,
+            sort_code,
+            count,
+            price_cls,
+            price_from,
+            price_to,
+            volume,
+            target_cls,
+            exclude_cls,
+            div_cls,
+            rate_from,
+            rate_to,
+        )
+
+    def foreign_institution_total(
+        self,
+        market: str = "J",
+        screen_code: str = "20449",
+        stock_code: str = "0000",
+        div_cls: str = "0",
+        sort_cls: str = "0",
+        etc_cls: str = "0",
+    ) -> Optional[Dict]:
+        """외국인/기관 종합 동향 조회"""
+        return self.price_api.foreign_institution_total(market, screen_code, stock_code, div_cls, sort_cls, etc_cls)
+
+    def intstock_multprice(self, codes: str, market: str = "J") -> Optional[Dict]:
+        """복수종목 현재가 조회"""
+        return self.price_api.intstock_multprice(codes, market)
+
+    def market_cap(
+        self,
+        market: str = "J",
+        screen_code: str = "20174",
+        stock_code: str = "",
+        div_cls: str = "0",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        price_from: str = "",
+        price_to: str = "",
+        volume: str = "",
+    ) -> Optional[Dict]:
+        """시가총액 순위 조회"""
+        return self.price_api.market_cap(
+            market, screen_code, stock_code, div_cls, target_cls, exclude_cls, price_from, price_to, volume
+        )
+
+    def market_time(self) -> Optional[Dict]:
+        """국내 증시 거래시간 조회"""
+        return self.price_api.market_time()
+
+    def market_value(self, code: str, market: str = "J") -> Optional[Dict]:
+        """종목별 시가총액 조회"""
+        return self.price_api.market_value(code, market)
+
+    def news_title(
+        self,
+        code: str,
+        news_provider: str = "",
+        market_cls: str = "0",
+        title_content: str = "",
+        date: str = "",
+        hour: str = "",
+        sort_code: str = "0",
+        serial_no: str = "",
+    ) -> Optional[Dict]:
+        """종목 뉴스 제목 조회"""
+        return self.price_api.news_title(
+            code, news_provider, market_cls, title_content, date, hour, sort_code, serial_no
+        )
+
+    def profit_asset_index(self, index_code: str, market: str = "U") -> Optional[Dict]:
+        """업종 수익/자산 지수 조회"""
+        return self.price_api.profit_asset_index(index_code, market)
+
+    def search_stock_info(self, code: str, product_type: str = "300") -> Optional[Dict]:
+        """종목 기본정보 조회"""
+        return self.price_api.search_stock_info(code, product_type)
+
+    def short_sale(
+        self,
+        market: str = "J",
+        screen_code: str = "20482",
+        stock_code: str = "0000",
+        period: str = "0",
+        count: str = "30",
+        exclude_cls: str = "0",
+        target_cls: str = "0",
+        volume: str = "",
+        price_from: str = "",
+        price_to: str = "",
+    ) -> Optional[Dict]:
+        """공매도 상위종목 조회"""
+        return self.price_api.short_sale(
+            market, screen_code, stock_code, period, count, exclude_cls, target_cls, volume, price_from, price_to
+        )
+
+    def volume_rank(
+        self,
+        market: str = "J",
+        screen_code: str = "20170",
+        stock_code: str = "",
+        div_cls: str = "0",
+        sort_cls: str = "0",
+        target_cls: str = "0",
+        exclude_cls: str = "0",
+        price_from: str = "",
+        price_to: str = "",
+        volume: str = "",
+        date: str = "",
+    ) -> Optional[Dict]:
+        """거래량 순위 조회"""
+        return self.price_api.volume_rank(
+            market,
+            screen_code,
+            stock_code,
+            div_cls,
+            sort_cls,
+            target_cls,
+            exclude_cls,
+            price_from,
+            price_to,
+            volume,
+            date,
+        )
+
+    # ===== Market API 메서드 위임 =====
+
+    def get_holiday_info(self) -> Optional[Dict]:
+        """휴장일 정보 조회"""
+        return self.market_api.get_holiday_info()
+
+    def is_holiday(self, date: str) -> bool:
+        """특정일 휴장일 여부 확인"""
+        return self.market_api.is_holiday(date)
+
+    def get_pbar_tratio(
+        self,
+        fid_input_iscd: str = "",
+        fid_cond_mrkt_div_code: str = "J",
+        fid_trgt_cls_code: str = "0",
+        fid_trgt_exls_cls_code: str = "0",
+    ) -> Optional[Dict]:
+        """PBR/PER 비율 순위 조회"""
+        return self.market_api.get_pbar_tratio(
+            fid_input_iscd, fid_cond_mrkt_div_code, fid_trgt_cls_code, fid_trgt_exls_cls_code
+        )
+
+    def get_fluctuation_rank(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "20171",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+        fid_input_cnt_1: str = "0",
+    ) -> Optional[Dict]:
+        """등락률 순위 조회"""
+        return self.market_api.get_fluctuation_rank(
+            fid_cond_mrkt_div_code,
+            fid_cond_scr_div_code,
+            fid_input_iscd,
+            fid_rank_sort_cls_code,
+            fid_input_cnt_1,
+        )
+
+    def get_volume_power_rank(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "20172",
+        fid_input_iscd: str = "0000",
+        fid_rank_sort_cls_code: str = "0",
+    ) -> Optional[Dict]:
+        """체결강도 순위 조회"""
+        return self.market_api.get_volume_power_rank(
+            fid_cond_mrkt_div_code, fid_cond_scr_div_code, fid_input_iscd, fid_rank_sort_cls_code
+        )
+
+    def get_volume_rank(
+        self,
+        fid_cond_mrkt_div_code: str = "J",
+        fid_cond_scr_div_code: str = "20170",
+        fid_input_iscd: str = "0000",
+        fid_div_cls_code: str = "0",
+    ) -> Optional[Dict]:
+        """거래량 순위 조회"""
+        return self.market_api.get_volume_rank(
+            fid_cond_mrkt_div_code, fid_cond_scr_div_code, fid_input_iscd, fid_div_cls_code
+        )
+
     def __getattr__(self, name: str):
         """하위 모듈로 동적 위임
 

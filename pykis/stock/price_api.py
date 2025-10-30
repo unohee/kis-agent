@@ -7,7 +7,7 @@ Stock Price API - 주식 시세 조회 전용 모듈
 - 호가 정보
 """
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import API_ENDPOINTS
@@ -17,7 +17,40 @@ class StockPriceAPI(BaseAPI):
     """주식 시세 조회 전용 API 클래스"""
 
     def get_stock_price(self, code: str) -> Optional[Dict]:
-        """주식 현재가 조회"""
+        """
+        주식 현재가 조회
+
+        Args:
+            code: 종목코드 (6자리, 예: '005930')
+
+        Returns:
+            StockPriceResponse 형식의 Dict (82개 필드):
+                - output.stck_prpr: 주식 현재가
+                - output.prdy_vrss: 전일 대비
+                - output.prdy_vrss_sign: 전일 대비 부호 (1:상한, 2:상승, 3:보합, 4:하한, 5:하락)
+                - output.prdy_ctrt: 전일 대비율 (%)
+                - output.acml_vol: 누적 거래량
+                - output.acml_tr_pbmn: 누적 거래대금
+                - output.stck_oprc: 주식 시가
+                - output.stck_hgpr: 주식 최고가
+                - output.stck_lwpr: 주식 최저가
+                - output.stck_mxpr: 주식 상한가
+                - output.stck_llam: 주식 하한가
+                - output.per: PER (Price Earning Ratio)
+                - output.pbr: PBR (Price Book-value Ratio)
+                - output.eps: EPS (Earning Per Share)
+                - output.bps: BPS (Book-value Per Share)
+                - output.hts_frgn_ehrt: HTS 외국인 소진율
+                - output.frgn_ntby_qty: 외국인 순매수 수량
+                - output.w52_hgpr: 52주일 최고가
+                - output.w52_lwpr: 52주일 최저가
+                - 기타 60여개 필드 (상세는 StockPriceOutput TypedDict 참조)
+
+        Example:
+            >>> price = agent.stock.get_stock_price("005930")
+            >>> print(price['output']['stck_prpr'])  # 현재가
+            >>> print(price['output']['per'])        # PER
+        """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_PRICE"],
             tr_id="FHKST01010100",
@@ -34,6 +67,27 @@ class StockPriceAPI(BaseAPI):
             code: 종목코드 (6자리)
             period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
             org_adj_prc: 수정주가구분 (0: 수정주가 미사용, 1: 수정주가 사용)
+
+        Returns:
+            DailyPriceResponse 형식의 Dict:
+                - output[]: List[DailyPriceItem] (최대 100개)
+                    - stck_bsop_date: 주식 영업일자 (YYYYMMDD)
+                    - stck_clpr: 주식 종가
+                    - stck_oprc: 주식 시가
+                    - stck_hgpr: 주식 최고가
+                    - stck_lwpr: 주식 최저가
+                    - acml_vol: 누적 거래량
+                    - acml_tr_pbmn: 누적 거래대금
+                    - prdy_vrss: 전일 대비
+                    - prdy_vrss_sign: 전일 대비 부호
+                    - prdy_ctrt: 전일 대비율
+                    - hts_frgn_ehrt: HTS 외국인 소진율
+                    - frgn_ntby_qty: 외국인 순매수 수량
+
+        Example:
+            >>> daily = agent.stock.get_daily_price("005930", period="D")
+            >>> for day in daily['output']:
+            ...     print(day['stck_bsop_date'], day['stck_clpr'])
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
@@ -47,7 +101,29 @@ class StockPriceAPI(BaseAPI):
         )
 
     def get_orderbook(self, code: str) -> Optional[Dict]:
-        """주식 호가 정보 조회"""
+        """
+        주식 호가 정보 조회
+
+        Args:
+            code: 종목코드 (6자리)
+
+        Returns:
+            OrderbookResponse 형식의 Dict:
+                - output.askp1~10: 매도호가 1~10
+                - output.bidp1~10: 매수호가 1~10
+                - output.askp_rsqn1~10: 매도호가 잔량 1~10
+                - output.bidp_rsqn1~10: 매수호가 잔량 1~10
+                - output.total_askp_rsqn: 총 매도호가 잔량
+                - output.total_bidp_rsqn: 총 매수호가 잔량
+                - output.antc_cnpr: 예상 체결가
+                - output.antc_cnqn: 예상 체결량
+                - output.stck_prpr: 주식 현재가
+
+        Example:
+            >>> orderbook = agent.stock.get_orderbook("005930")
+            >>> print(orderbook['output']['askp1'])  # 매도1호가
+            >>> print(orderbook['output']['bidp1'])  # 매수1호가
+        """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_ASKING_PRICE_EXP_CCN"],
             tr_id="FHKST01010200",
@@ -474,21 +550,30 @@ class StockPriceAPI(BaseAPI):
         """
         국내업종 현재지수 조회
 
+        DEPRECATION WARNING:
+            이 메서드는 원본 KIS API 엔드포인트(FHPUP02100000)가 404를 반환하여
+            내부적으로 inquire_index_timeprice()를 호출합니다.
+            향후 버전에서 제거될 수 있으니 inquire_index_timeprice() 사용을 권장합니다.
+
+        TODO: v2.0에서 제거 예정 - inquire_index_timeprice() 또는 get_index_timeprice() 사용
+
         Args:
             index_code: 업종코드 (0001:코스피, 1001:코스닥, 2001:코스피200)
             market: 시장구분 (U:업종)
 
         Returns:
-            업종 현재지수 데이터
+            업종 지수 데이터 (분봉 시세)
         """
-        return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_INDEX_PRICE"],
-            tr_id="FHPUP02100000",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": index_code,
-            },
+        import warnings
+        warnings.warn(
+            "inquire_index_price()는 deprecated되었습니다. "
+            "inquire_index_timeprice() 또는 get_index_timeprice() 사용을 권장합니다. "
+            "(원본 API 엔드포인트 404 에러)",
+            DeprecationWarning,
+            stacklevel=2
         )
+        # 404 에러 발생하는 원본 엔드포인트 대신 정상 작동하는 메서드 사용
+        return self.inquire_index_timeprice(index_code, market, time_div="0")
 
     def inquire_index_tickprice(
         self, index_code: str, market: str = "U"
@@ -903,14 +988,14 @@ class StockPriceAPI(BaseAPI):
             },
         )
 
-    def get_stock_ccnl(self, code: str, retries: int = 10) -> Optional[dict]:
+    def get_stock_ccnl(self, code: str, _retries: int = 10) -> Optional[dict]:
         """주식현재가 체결(최근30건) 조회 - inquire_ccnl 래퍼
 
         최근 30건의 체결 내역과 함께 당일 체결강도(tday_rltv)를 포함한 상세한 체결 정보를 제공합니다.
 
         Args:
             code: 종목코드 (6자리)
-            retries: 재시도 횟수 (미사용, 호환성 유지)
+            _retries: 재시도 횟수 (미사용, 호환성 유지용)
 
         Returns:
             Optional[dict]: 최근 30건 체결 내역
@@ -992,3 +1077,107 @@ class StockPriceAPI(BaseAPI):
             "msg_cd": "MCA00000",
             "msg1": f"하루 전체 분봉 데이터 수집 완료 (총 {len(unique_minute_data)}건)",
         }
+
+    def get_index_timeprice(
+        self,
+        fid_input_iscd: str = "1029",
+        fid_input_hour_1: str = "600",
+        fid_cond_mrkt_div_code: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        국내업종 시간별 지수 조회 (기본값: KOSPI200)
+
+        Args:
+            fid_input_iscd (str): 종목코드 (기본값 "1029": KOSPI200)
+                - "1001": KOSPI
+                - "2001": KOSDAQ
+                - "1029": KOSPI200
+            fid_input_hour_1 (str): 입력 시간(초) - 조회 시간 범위 (기본값 "600": 10분봉)
+                - "60": 1분봉
+                - "120": 2분봉
+                - "180": 3분봉
+                - "300": 5분봉
+                - "600": 10분봉
+                - "900": 15분봉
+                - "1800": 30분봉
+                - "3600": 60분봉
+            fid_cond_mrkt_div_code (str): 시장 분류 코드 (기본값 "U": 업종)
+
+        Returns:
+            Dict containing:
+                - output: 시간별 지수 데이터 리스트 (각 시간대별 업종 정보)
+
+        Example:
+            >>> agent.get_index_timeprice()  # KOSPI200 10분봉 데이터
+            >>> agent.get_index_timeprice("1001", "120")  # KOSPI 2분봉 데이터
+            >>> agent.get_index_timeprice("2001", "60")  # KOSDAQ 1분봉 데이터
+        """
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INQUIRE_INDEX_TIMEPRICE"],
+            tr_id="FHPUP02110200",
+            params={
+                "fid_cond_mrkt_div_code": fid_cond_mrkt_div_code,
+                "fid_input_iscd": fid_input_iscd,
+                "fid_input_hour_1": fid_input_hour_1,
+            },
+        )
+
+    def get_future_option_price(
+        self, market_div_code: str = "F", input_iscd: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        선물옵션 시세 조회 (rt_cd 메타데이터가 포함된)
+
+        KOSPI200 선물/옵션, 주식선물/옵션의 실시간 시세를 조회합니다.
+        종목코드를 지정하지 않으면 가장 활발한 KOSPI200 선물 시세를 조회합니다.
+
+        Args:
+            market_div_code (str, optional): 시장분류코드. Defaults to "F".
+                - "F": 지수선물 (KOSPI200 선물)
+                - "O": 지수옵션 (KOSPI200 옵션)
+                - "JF": 주식선물 (개별주식 선물)
+                - "JO": 주식옵션 (개별주식 옵션)
+            input_iscd (Optional[str], optional): 선물옵션종목코드. Defaults to None.
+                - None인 경우 가장 활발한 KOSPI200 선물코드 자동 사용
+                - 선물: 6자리 (예: "101T12", "101S03")
+                - 옵션: 9자리 (예: "201T12370", "201S03370")
+
+        Returns:
+            Optional[Dict[str, Any]]: 선물옵션 시세 데이터
+                - 성공 시: rt_cd와 함께 시세 정보 딕셔너리
+                - 실패 시: None
+
+        Example:
+            >>> # 가장 활발한 KOSPI200 선물 시세 조회 (기본값)
+            >>> result = stock_api.get_future_option_price()
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"현재가: {result['output']['stck_prpr']}")
+
+            >>> # 특정 KOSPI200 선물 시세 조회
+            >>> result = stock_api.get_future_option_price("F", "101T12")
+
+            >>> # KOSPI200 옵션 시세 조회
+            >>> result = stock_api.get_future_option_price("O", "201T12370")
+
+            >>> # 개별주식 선물 시세 조회
+            >>> result = stock_api.get_future_option_price("JF", "005930T12")
+
+        Note:
+            - 실시간 데이터이므로 시장 개장 시간에만 유효한 데이터 제공
+            - 옵션의 경우 행사가가 포함된 9자리 코드 필요
+            - rt_cd가 '0'이면 성공, 그 외는 오류
+            - 주식선물/옵션은 종목별로 상장 여부 확인 필요
+        """
+        if input_iscd is None:
+            # get_kospi200_futures_code는 pykis.stock.api 모듈에 있으므로 import
+            from .api import get_kospi200_futures_code
+
+            input_iscd = get_kospi200_futures_code()
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["FUTUREOPTION_INQUIRE_PRICE"],
+            tr_id="FHMIF10000000",
+            params={
+                "fid_cond_mrkt_div_code": market_div_code,
+                "fid_input_iscd": input_iscd,
+            },
+        )

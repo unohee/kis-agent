@@ -56,6 +56,9 @@ from .account import (
     InquireDailyCcldOutput1Item,
     InquireDailyCcldOutput2,
     InquireDailyCcldResponse,
+    InquirePeriodTradeProfitOutput1Item,
+    InquirePeriodTradeProfitOutput2,
+    InquirePeriodTradeProfitResponse,
     InquirePsblSellOutput,
     InquirePsblSellResponse,
     PossibleOrderOutput,
@@ -120,6 +123,9 @@ __all__ = [
     "GetTotalAssetOutput2",
     "InquireBalanceRlzPlResponse",
     "InquireBalanceRlzPlOutput1Item",
+    "InquirePeriodTradeProfitResponse",
+    "InquirePeriodTradeProfitOutput1Item",
+    "InquirePeriodTradeProfitOutput2",
     # Order
     "OrderCashResponse",
     "OrderCashOutput",
@@ -139,4 +145,4 @@ __all__ = [
     "OrderResvCcnlItem",
 ]
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"

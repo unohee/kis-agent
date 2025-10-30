@@ -21,7 +21,43 @@ class StockInvestorAPI(BaseAPI):
     def get_stock_investor(
         self, ticker: str = "", retries: int = 10, force_refresh: bool = False
     ) -> Optional[Dict]:
-        """투자자별 매매동향 조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        투자자별 매매동향 조회
+
+        Args:
+            ticker: 종목코드 (6자리)
+            retries: 재시도 횟수 (기본값: 10)
+            force_refresh: 캐시 무시 여부
+
+        Returns:
+            StockInvestorResponse 형식의 Dict:
+                - output.stck_bsop_date: 주식 영업일자
+                - output.stck_clpr: 주식 종가
+                - output.prdy_vrss: 전일 대비
+                - output.prdy_vrss_sign: 전일 대비 부호
+                - output.prdy_ctrt: 전일 대비율
+                - output.acml_vol: 누적 거래량
+                개인:
+                - output.prsn_ntby_qty: 개인 순매수 수량
+                - output.prsn_ntby_tr_pbmn: 개인 순매수 거래대금
+                - output.prsn_shnu_vol: 개인 매수 거래량
+                - output.prsn_seln_vol: 개인 매도 거래량
+                외국인:
+                - output.frgn_ntby_qty: 외국인 순매수 수량
+                - output.frgn_ntby_tr_pbmn: 외국인 순매수 거래대금
+                - output.frgn_shnu_vol: 외국인 매수 거래량
+                - output.frgn_seln_vol: 외국인 매도 거래량
+                기관:
+                - output.orgn_ntby_qty: 기관 순매수 수량
+                - output.orgn_ntby_tr_pbmn: 기관 순매수 거래대금
+                - output.orgn_shnu_vol: 기관 매수 거래량
+                - output.orgn_seln_vol: 기관 매도 거래량
+
+        Example:
+            >>> investor = agent.stock.get_stock_investor("005930")
+            >>> print(investor['output']['prsn_ntby_qty'])  # 개인 순매수
+            >>> print(investor['output']['frgn_ntby_qty'])  # 외국인 순매수
+        """
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": ticker,

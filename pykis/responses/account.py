@@ -171,6 +171,8 @@ class InquireDailyCcldOutput2(TypedDict, total=False):
     tot_ccld_amt: str  # 총체결금액 (Total Concluded Amount)
     prsm_tlex_smtl: str  # 추정제비용합계 (Presumed Tax/Levy Sum Total) - 수수료+세금
     pchs_avg_pric: str  # 매입평균가격 (Purchase Average Price)
+
+    # 페이지네이션 관련 (일부 API에서만 제공)
     page_count: int  # 조회한 페이지 수 (pagination 사용 시)
     total_count: int  # 전체 조회 건수 (pagination 사용 시)
 
@@ -277,6 +279,9 @@ class InquireBalanceRlzPlOutput1Item(TypedDict, total=False):
     evlu_erng_rt: str  # 평가수익률 (%)
     rlzt_pfls: str  # 실현손익 (Realized Profit/Loss)
     rlzt_pfls_rt: str  # 실현손익률 (Realized Profit/Loss Rate) %
+    rlzt_erng_rt: str  # 실현수익률
+    real_evlu_pfls: str  # 실평가손익
+    real_evlu_pfls_erng_rt: str  # 실평가손익수익률
     ord_psbl_qty: str  # 주문가능수량
 
 
@@ -284,3 +289,59 @@ class InquireBalanceRlzPlResponse(BaseResponse):
     """잔고실현손익 조회 응답"""
 
     output1: List[InquireBalanceRlzPlOutput1Item]
+
+
+# ============================================================
+# inquire_period_trade_profit() - 기간별매매손익현황조회
+# ============================================================
+
+
+class InquirePeriodTradeProfitOutput1Item(TypedDict, total=False):
+    """기간별매매손익 개별 항목"""
+
+    trad_dt: str  # 매매일자 (Trade Date)
+    pdno: str  # 상품번호 (종목코드)
+    prdt_name: str  # 상품명
+    trad_dvsn_name: str  # 매매구분명
+    loan_dt: str  # 대출일자
+    hldg_qty: str  # 보유수량
+    pchs_unpr: str  # 매입단가
+    buy_qty: str  # 매수수량
+    buy_amt: str  # 매수금액
+    sll_pric: str  # 매도가격
+    sll_qty: str  # 매도수량
+    sll_amt: str  # 매도금액
+    rlzt_pfls: str  # 실현손익
+    pfls_rt: str  # 손익률
+    fee: str  # 수수료
+    tl_tax: str  # 제세금
+    loan_int: str  # 대출이자
+
+
+class InquirePeriodTradeProfitOutput2(TypedDict, total=False):
+    """기간별매매손익 요약 정보"""
+
+    sll_qty_smtl: str  # 매도수량합계
+    sll_tr_amt_smtl: str  # 매도거래금액합계
+    sll_fee_smtl: str  # 매도수수료합계
+    sll_tltx_smtl: str  # 매도제세금합계
+    sll_excc_amt_smtl: str  # 매도정산금액합계
+    buyqty_smtl: str  # 매수수량합계
+    buy_tr_amt_smtl: str  # 매수거래금액합계
+    buy_fee_smtl: str  # 매수수수료합계
+    buy_tax_smtl: str  # 매수제세금합계
+    buy_excc_amt_smtl: str  # 매수정산금액합계
+    tot_qty: str  # 총수량
+    tot_tr_amt: str  # 총거래금액
+    tot_fee: str  # 총수수료
+    tot_tltx: str  # 총제세금
+    tot_excc_amt: str  # 총정산금액
+    tot_rlzt_pfls: str  # 총실현손익
+    tot_pftrt: str  # 총수익률
+
+
+class InquirePeriodTradeProfitResponse(BaseResponse):
+    """기간별매매손익현황조회 응답"""
+
+    output1: List[InquirePeriodTradeProfitOutput1Item]
+    output2: InquirePeriodTradeProfitOutput2

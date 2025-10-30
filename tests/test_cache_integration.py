@@ -40,29 +40,29 @@ class TestCacheIntegration:
         """엔드포인트별 TTL 설정 테스트"""
         cache = APICache()
 
-        # 시세 데이터는 10초 TTL
+        # 시세 데이터는 30초 TTL
         price_ttl = cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-price"
         )
-        assert price_ttl == 10, f"시세 데이터 TTL은 10초여야 합니다. 실제: {price_ttl}"
+        assert price_ttl == 30, f"시세 데이터 TTL은 30초여야 합니다. 실제: {price_ttl}"
 
-        # 체결 데이터는 5초 TTL
+        # 체결 데이터는 10초 TTL
         ccnl_ttl = cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-ccnl"
         )
-        assert ccnl_ttl == 5, f"체결 데이터 TTL은 5초여야 합니다. 실제: {ccnl_ttl}"
+        assert ccnl_ttl == 10, f"체결 데이터 TTL은 10초여야 합니다. 실제: {ccnl_ttl}"
 
-        # 일봉 데이터는 60초 TTL
+        # 일봉 데이터는 1800초 (30분) TTL
         daily_ttl = cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
         )
-        assert daily_ttl == 60, f"일봉 데이터 TTL은 60초여야 합니다. 실제: {daily_ttl}"
+        assert daily_ttl == 1800, f"일봉 데이터 TTL은 1800초여야 합니다. 실제: {daily_ttl}"
 
-        # 종목 정보는 300초 TTL
+        # 종목 정보는 3600초 (1시간) TTL
         info_ttl = cache.get_ttl_for_endpoint(
             "/uapi/domestic-stock/v1/quotations/inquire-stock-info"
         )
-        assert info_ttl == 300, f"종목 정보 TTL은 300초여야 합니다. 실제: {info_ttl}"
+        assert info_ttl == 3600, f"종목 정보 TTL은 3600초여야 합니다. 실제: {info_ttl}"
 
         # 주문은 캐시하지 않음 (0초)
         order_ttl = cache.get_ttl_for_endpoint(
@@ -251,14 +251,14 @@ class TestCacheTTLVerification:
     """캐시 TTL 설정 검증"""
 
     def test_realtime_data_ttl(self):
-        """실시간 데이터 TTL 검증 (10초 이하)"""
+        """실시간 데이터 TTL 검증 (10-30초)"""
         cache = APICache()
 
         realtime_endpoints = [
-            ("/uapi/domestic-stock/v1/quotations/inquire-price", 10),
-            ("/uapi/domestic-stock/v1/quotations/inquire-asking-price", 10),
-            ("/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion", 5),
-            ("/uapi/domestic-stock/v1/quotations/inquire-ccnl", 5),
+            ("/uapi/domestic-stock/v1/quotations/inquire-price", 30),
+            ("/uapi/domestic-stock/v1/quotations/inquire-asking-price", 30),
+            ("/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion", 10),
+            ("/uapi/domestic-stock/v1/quotations/inquire-ccnl", 10),
         ]
 
         for endpoint, expected_ttl in realtime_endpoints:
@@ -266,47 +266,47 @@ class TestCacheTTLVerification:
             assert (
                 ttl == expected_ttl
             ), f"{endpoint}의 TTL은 {expected_ttl}초여야 합니다. 실제: {ttl}"
-            assert ttl <= 10, f"실시간 데이터 TTL은 10초 이하여야 합니다: {endpoint}"
+            assert ttl <= 30, f"실시간 데이터 TTL은 30초 이하여야 합니다: {endpoint}"
 
     def test_minute_data_ttl(self):
-        """분/시간 단위 데이터 TTL 검증 (30초)"""
+        """분/시간 단위 데이터 TTL 검증 (5-10분)"""
         cache = APICache()
 
         minute_endpoints = [
-            "/uapi/domestic-stock/v1/quotations/inquire-investor",
-            "/uapi/domestic-stock/v1/quotations/inquire-member",
-            "/uapi/domestic-stock/v1/quotations/inquire-program",
-            "/uapi/domestic-stock/v1/quotations/inquire-minutechart",
+            ("/uapi/domestic-stock/v1/quotations/inquire-investor", 600),
+            ("/uapi/domestic-stock/v1/quotations/inquire-member", 600),
+            ("/uapi/domestic-stock/v1/quotations/inquire-program", 600),
+            ("/uapi/domestic-stock/v1/quotations/inquire-minutechart", 300),
         ]
 
-        for endpoint in minute_endpoints:
+        for endpoint, expected_ttl in minute_endpoints:
             ttl = cache.get_ttl_for_endpoint(endpoint)
-            assert ttl == 30, f"{endpoint}의 TTL은 30초여야 합니다. 실제: {ttl}"
+            assert ttl == expected_ttl, f"{endpoint}의 TTL은 {expected_ttl}초여야 합니다. 실제: {ttl}"
 
     def test_daily_data_ttl(self):
-        """일 단위 데이터 TTL 검증 (60초)"""
+        """일 단위 데이터 TTL 검증 (10-30분)"""
         cache = APICache()
 
         daily_endpoints = [
-            "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
-            "/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice",
-            "/uapi/domestic-stock/v1/quotations/inquire-daily-program",
-            "/uapi/volume-rank",
+            ("/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice", 1800),
+            ("/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice", 1800),
+            ("/uapi/domestic-stock/v1/quotations/inquire-daily-program", 600),
+            ("/uapi/volume-rank", 600),
         ]
 
-        for endpoint in daily_endpoints:
+        for endpoint, expected_ttl in daily_endpoints:
             ttl = cache.get_ttl_for_endpoint(endpoint)
-            assert ttl == 60, f"{endpoint}의 TTL은 60초여야 합니다. 실제: {ttl}"
+            assert ttl == expected_ttl, f"{endpoint}의 TTL은 {expected_ttl}초여야 합니다. 실제: {ttl}"
 
     def test_account_data_ttl(self):
         """계좌/잔고 데이터 TTL 검증"""
         cache = APICache()
 
         account_endpoints = [
-            ("/uapi/domestic-stock/v1/trading/inquire-balance", 60),
-            ("/uapi/domestic-stock/v1/trading/inquire-psbl-order", 30),
-            ("/uapi/domestic-stock/v1/trading/inquire-account", 120),
-            ("/uapi/domestic-stock/v1/trading/inquire-profit", 60),
+            ("/uapi/domestic-stock/v1/trading/inquire-balance", 600),
+            ("/uapi/domestic-stock/v1/trading/inquire-psbl-order", 300),
+            ("/uapi/domestic-stock/v1/trading/inquire-account", 1800),
+            ("/uapi/domestic-stock/v1/trading/inquire-profit", 600),
         ]
 
         for endpoint, expected_ttl in account_endpoints:
@@ -316,14 +316,14 @@ class TestCacheTTLVerification:
             ), f"{endpoint}의 TTL은 {expected_ttl}초여야 합니다. 실제: {ttl}"
 
     def test_static_data_ttl(self):
-        """정적 데이터 TTL 검증 (300초 이상)"""
+        """정적 데이터 TTL 검증 (30분-1일)"""
         cache = APICache()
 
         static_endpoints = [
-            ("/uapi/domestic-stock/v1/quotations/inquire-stock-info", 300),
+            ("/uapi/domestic-stock/v1/quotations/inquire-stock-info", 3600),
             ("/uapi/domestic-stock/v1/quotations/inquire-holiday", 86400),
-            ("/uapi/domestic-stock/v1/quotations/inquire-product", 300),
-            ("/uapi/domestic-stock/v1/quotations/inquire-condition", 300),
+            ("/uapi/domestic-stock/v1/quotations/inquire-product", 3600),
+            ("/uapi/domestic-stock/v1/quotations/inquire-condition", 1800),
         ]
 
         for endpoint, expected_ttl in static_endpoints:
@@ -331,7 +331,7 @@ class TestCacheTTLVerification:
             assert (
                 ttl == expected_ttl
             ), f"{endpoint}의 TTL은 {expected_ttl}초여야 합니다. 실제: {ttl}"
-            assert ttl >= 300, f"정적 데이터 TTL은 300초 이상이어야 합니다: {endpoint}"
+            assert ttl >= 1800, f"정적 데이터 TTL은 1800초 이상이어야 합니다: {endpoint}"
 
     def test_order_no_cache(self):
         """주문 관련 API는 캐시하지 않음 검증"""
