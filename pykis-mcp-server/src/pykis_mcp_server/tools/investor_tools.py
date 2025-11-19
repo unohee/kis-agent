@@ -238,3 +238,99 @@ async def get_investor_program_trade_today(
     agent = get_agent()
     result = agent.get_investor_program_trade_today(market)
     return validate_api_response(result, "당일 투자자 프로그램 매매 조회")
+
+
+@server.tool()
+async def analyze_broker_accumulation(
+    broker_name: str,
+    days: int = 7,
+    top_n: int = 10
+) -> Dict[str, Any]:
+    """특정 증권사의 기간별 매집 종목 분석
+
+    지정된 증권사가 최근 N일간 가장 많이 순매수한 종목을 분석합니다.
+    주요 거래량 상위 종목을 대상으로 분석합니다.
+
+    Args:
+        broker_name: 증권사명 (예: "모건스탠리", "JP모건", "골드만삭스")
+        days: 분석 기간 (기본값: 7일)
+        top_n: 상위 N개 종목 반환 (기본값: 10)
+
+    Returns:
+        Dict: 매집 분석 결과
+            - broker: 증권사명
+            - period: 분석 기간
+            - top_accumulated: 순매수 상위 종목 리스트
+                - code: 종목코드
+                - name: 종목명
+                - net_buy_volume: 순매수량
+                - net_buy_amount: 순매수금액
+            - analysis_date: 분석 일시
+    """
+    from datetime import datetime, timedelta
+
+    agent = get_agent()
+
+    # 분석 기간 계산
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+    start_str = start_date.strftime("%Y%m%d")
+    end_str = end_date.strftime("%Y%m%d")
+
+    # 거래량 상위 종목 조회 (분석 대상)
+    top_volume = agent.get_volume_rank("0", "0", "0")
+    if not top_volume or top_volume.get("rt_cd") != "0":
+        return {
+            "success": False,
+            "message": "거래량 상위 종목 조회 실패",
+            "error_code": "VOLUME_RANK_FAILED"
+        }
+
+    # 상위 50개 종목에 대해 증권사별 거래 분석
+    accumulation_data = []
+    stocks = top_volume.get("output", [])[:50]
+
+    for stock in stocks:
+        code = stock.get("mksc_shrn_iscd", stock.get("stck_shrn_iscd", ""))
+        name = stock.get("hts_kor_isnm", "")
+
+        if not code or len(code) != 6:
+            continue
+
+        try:
+            # 증권사별 기간 거래 조회
+            member_data = agent.get_member_transaction(code, start_str, end_str)
+            if not member_data or member_data.get("rt_cd") != "0":
+                continue
+
+            # 지정 증권사 찾기
+            for member in member_data.get("output", []):
+                member_name = member.get("mbcr_name", "")
+                if broker_name.lower() in member_name.lower():
+                    net_buy = int(member.get("ntby_qty", 0))
+                    net_amount = int(member.get("ntby_tr_pbmn", 0))
+
+                    if net_buy > 0:  # 순매수인 경우만
+                        accumulation_data.append({
+                            "code": code,
+                            "name": name,
+                            "net_buy_volume": net_buy,
+                            "net_buy_amount": net_amount,
+                            "broker_detail": member_name
+                        })
+                    break
+        except Exception:
+            continue
+
+    # 순매수량 기준 정렬
+    accumulation_data.sort(key=lambda x: x["net_buy_volume"], reverse=True)
+
+    return {
+        "success": True,
+        "broker": broker_name,
+        "period": f"{start_str} ~ {end_str}",
+        "days": days,
+        "analyzed_stocks": len(stocks),
+        "top_accumulated": accumulation_data[:top_n],
+        "analysis_date": datetime.now().isoformat()
+    }
