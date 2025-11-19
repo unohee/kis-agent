@@ -1,9 +1,17 @@
 """Error handling for PyKIS MCP Server"""
 import logging
-from mcp.types import ErrorCode
+from enum import IntEnum
 from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+
+class ErrorCode(IntEnum):
+    """Custom error codes for MCP compatibility"""
+    INTERNAL_ERROR = -32603
+    INVALID_REQUEST = -32600
+    METHOD_NOT_FOUND = -32601
+    INVALID_PARAMS = -32602
 
 
 class PyKISMCPError(Exception):

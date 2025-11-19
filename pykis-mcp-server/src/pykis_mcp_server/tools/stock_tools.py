@@ -29,24 +29,161 @@ async def get_stock_price(code: str) -> Dict[str, Any]:
 
 @server.tool()
 async def get_daily_price(
-    code: str, start_date: str = "", end_date: str = ""
+    stock_code: str, start_date: str = "", end_date: str = ""
 ) -> Dict[str, Any]:
-    """일봉 데이터 조회
+    """국내주식 기간별 시세 조회 (일봉 데이터)
 
     Args:
-        code: 종목코드 6자리
+        stock_code: 종목코드 6자리
         start_date: 시작일자 (YYYYMMDD, 선택)
         end_date: 종료일자 (YYYYMMDD, 선택)
 
     Returns:
         Dict: 일봉 데이터 (최대 100건)
     """
-    if not code or len(code) != 6:
-        raise InvalidParameterError("code", "종목코드는 6자리여야 합니다")
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
 
     agent = get_agent()
-    result = agent.get_daily_price(code, start_date, end_date)
+    result = agent.inquire_daily_itemchartprice(stock_code, start_date, end_date)
     return validate_api_response(result, "일봉 데이터 조회")
+
+
+@server.tool()
+async def inquire_daily_price(
+    stock_code: str, period: str = "D", org_adj_prc: str = "1"
+) -> Dict[str, Any]:
+    """주식현재가 일자별 조회 (최근 30일/주/월)
+
+    Args:
+        stock_code: 종목코드 6자리
+        period: 기간구분 (D=일봉, W=주봉, M=월봉)
+        org_adj_prc: 수정주가 적용 (0=미반영, 1=반영)
+
+    Returns:
+        Dict: 최근 30건 시세 데이터
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_daily_price(stock_code, period, org_adj_prc)
+    return validate_api_response(result, "일자별 시세 조회")
+
+
+@server.tool()
+async def get_intraday_price(stock_code: str) -> Dict[str, Any]:
+    """주식 당일 분봉 데이터 조회 (전체)
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 당일 전체 분봉 데이터
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_intraday_price(stock_code)
+    return validate_api_response(result, "당일 분봉 조회")
+
+
+@server.tool()
+async def inquire_price(stock_code: str, market: str = "J") -> Dict[str, Any]:
+    """주식 현재가 상세 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        market: 시장구분 (J=주식, ETF, ETN)
+
+    Returns:
+        Dict: 현재가 상세 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_price(stock_code, market)
+    return validate_api_response(result, "현재가 상세 조회")
+
+
+@server.tool()
+async def inquire_price_2(stock_code: str, market: str = "J") -> Dict[str, Any]:
+    """주식 현재가 상세 조회 2
+
+    Args:
+        stock_code: 종목코드 6자리
+        market: 시장구분 (J=주식)
+
+    Returns:
+        Dict: 현재가 상세 정보 (추가 필드)
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_price_2(stock_code, market)
+    return validate_api_response(result, "현재가 상세 조회 2")
+
+
+@server.tool()
+async def inquire_ccnl(stock_code: str, market: str = "J") -> Dict[str, Any]:
+    """주식 체결 정보 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        market: 시장구분 (J=주식)
+
+    Returns:
+        Dict: 체결 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_ccnl(stock_code, market)
+    return validate_api_response(result, "체결 정보 조회")
+
+
+@server.tool()
+async def get_stock_ccnl(stock_code: str, market: str = "J") -> Dict[str, Any]:
+    """주식 체결 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        market: 시장구분 (J=주식)
+
+    Returns:
+        Dict: 주식 체결 데이터
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_stock_ccnl(stock_code, market)
+    return validate_api_response(result, "주식 체결 조회")
+
+
+@server.tool()
+async def inquire_time_itemconclusion(
+    stock_code: str, hour: str = "155900"
+) -> Dict[str, Any]:
+    """주식 시간별 체결 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        hour: 시간 (HHMMSS, 기본값: 155900)
+
+    Returns:
+        Dict: 시간별 체결 데이터
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_time_itemconclusion(stock_code, hour)
+    return validate_api_response(result, "시간별 체결 조회")
 
 
 @server.tool()
@@ -169,6 +306,105 @@ async def get_index_daily_price(index_code: str = "0001") -> Dict[str, Any]:
 
 
 @server.tool()
+async def inquire_index_price(index_code: str = "0001") -> Dict[str, Any]:
+    """지수 현재가 조회
+
+    Args:
+        index_code: 지수 코드 (0001=KOSPI, 1001=KOSDAQ)
+
+    Returns:
+        Dict: 지수 현재가 정보
+    """
+    agent = get_agent()
+    result = agent.inquire_index_price(index_code)
+    return validate_api_response(result, "지수 현재가 조회")
+
+
+@server.tool()
+async def inquire_index_category_price(
+    market: str = "U", category: str = "0001"
+) -> Dict[str, Any]:
+    """업종별 지수 조회
+
+    Args:
+        market: 시장구분 (U=업종)
+        category: 업종코드
+
+    Returns:
+        Dict: 업종별 지수 정보
+    """
+    agent = get_agent()
+    result = agent.inquire_index_category_price(market, category)
+    return validate_api_response(result, "업종별 지수 조회")
+
+
+@server.tool()
+async def inquire_index_tickprice(index_code: str = "0001") -> Dict[str, Any]:
+    """지수 틱 데이터 조회
+
+    Args:
+        index_code: 지수 코드 (0001=KOSPI, 1001=KOSDAQ)
+
+    Returns:
+        Dict: 지수 틱 데이터
+    """
+    agent = get_agent()
+    result = agent.inquire_index_tickprice(index_code)
+    return validate_api_response(result, "지수 틱 조회")
+
+
+@server.tool()
+async def inquire_index_timeprice(index_code: str = "0001") -> Dict[str, Any]:
+    """지수 시간별 데이터 조회
+
+    Args:
+        index_code: 지수 코드 (0001=KOSPI, 1001=KOSDAQ)
+
+    Returns:
+        Dict: 지수 시간별 데이터
+    """
+    agent = get_agent()
+    result = agent.inquire_index_timeprice(index_code)
+    return validate_api_response(result, "지수 시간별 조회")
+
+
+@server.tool()
+async def get_index_minute_data(
+    index_code: str = "0001", time_code: str = "093000"
+) -> Dict[str, Any]:
+    """지수 분봉 데이터 조회
+
+    Args:
+        index_code: 지수 코드 (0001=KOSPI, 1001=KOSDAQ)
+        time_code: 시간코드 (HHMMSS)
+
+    Returns:
+        Dict: 지수 분봉 데이터
+    """
+    agent = get_agent()
+    result = agent.get_index_minute_data(index_code, time_code)
+    return validate_api_response(result, "지수 분봉 조회")
+
+
+@server.tool()
+async def inquire_elw_price(stock_code: str) -> Dict[str, Any]:
+    """ELW 시세 조회
+
+    Args:
+        stock_code: ELW 종목코드 6자리
+
+    Returns:
+        Dict: ELW 시세 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_elw_price(stock_code)
+    return validate_api_response(result, "ELW 시세 조회")
+
+
+@server.tool()
 async def get_volume_power(volume: int = 0) -> Dict[str, Any]:
     """거래량 순위 조회
 
@@ -196,6 +432,153 @@ async def get_top_gainers(market: str = "ALL") -> Dict[str, Any]:
     agent = get_agent()
     result = agent.get_top_gainers(market)
     return validate_api_response(result, "등락률 순위 조회")
+
+
+@server.tool()
+async def get_market_fluctuation() -> Dict[str, Any]:
+    """시장 등락 현황 조회
+
+    Returns:
+        Dict: 시장 전체 등락 현황
+    """
+    agent = get_agent()
+    result = agent.get_market_fluctuation()
+    return validate_api_response(result, "시장 등락 현황 조회")
+
+
+@server.tool()
+async def get_market_rankings(volume: int = 5000000) -> Dict[str, Any]:
+    """시장 순위 조회
+
+    Args:
+        volume: 최소 거래량 (기본값: 5000000)
+
+    Returns:
+        Dict: 시장 순위 정보
+    """
+    agent = get_agent()
+    result = agent.get_market_rankings(volume)
+    return validate_api_response(result, "시장 순위 조회")
+
+
+@server.tool()
+async def get_fluctuation_rank(
+    market: str = "0",
+    sign: str = "0",
+    cls_code: str = "0"
+) -> Dict[str, Any]:
+    """등락률 순위 상세 조회
+
+    Args:
+        market: 시장구분 (0=전체, 1=KOSPI, 2=KOSDAQ)
+        sign: 등락구분 (0=전체, 1=상승, 2=보합, 3=하락)
+        cls_code: 분류코드
+
+    Returns:
+        Dict: 등락률 순위 종목 리스트
+    """
+    agent = get_agent()
+    result = agent.get_fluctuation_rank(market, sign, cls_code)
+    return validate_api_response(result, "등락률 순위 상세 조회")
+
+
+@server.tool()
+async def get_volume_rank(
+    market: str = "0",
+    sign: str = "0",
+    cls_code: str = "0"
+) -> Dict[str, Any]:
+    """거래량 순위 조회
+
+    Args:
+        market: 시장구분 (0=전체, 1=KOSPI, 2=KOSDAQ)
+        sign: 등락구분 (0=전체, 1=상승, 2=보합, 3=하락)
+        cls_code: 분류코드
+
+    Returns:
+        Dict: 거래량 순위 종목 리스트
+    """
+    agent = get_agent()
+    result = agent.get_volume_rank(market, sign, cls_code)
+    return validate_api_response(result, "거래량 순위 조회")
+
+
+@server.tool()
+async def get_volume_power_rank(
+    market: str = "0",
+    sign: str = "0",
+    cls_code: str = "0"
+) -> Dict[str, Any]:
+    """체결강도 순위 조회
+
+    Args:
+        market: 시장구분 (0=전체, 1=KOSPI, 2=KOSDAQ)
+        sign: 등락구분 (0=전체, 1=상승, 2=보합, 3=하락)
+        cls_code: 분류코드
+
+    Returns:
+        Dict: 체결강도 순위 종목 리스트
+    """
+    agent = get_agent()
+    result = agent.get_volume_power_rank(market, sign, cls_code)
+    return validate_api_response(result, "체결강도 순위 조회")
+
+
+@server.tool()
+async def inquire_daily_overtimeprice(
+    stock_code: str, period: str = "D"
+) -> Dict[str, Any]:
+    """시간외 일별 시세 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        period: 기간구분 (D=일봉)
+
+    Returns:
+        Dict: 시간외 일별 시세 데이터
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_daily_overtimeprice(stock_code, period)
+    return validate_api_response(result, "시간외 일별 시세 조회")
+
+
+@server.tool()
+async def inquire_overtime_price(stock_code: str) -> Dict[str, Any]:
+    """시간외 현재가 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 시간외 현재가 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_overtime_price(stock_code)
+    return validate_api_response(result, "시간외 현재가 조회")
+
+
+@server.tool()
+async def inquire_overtime_asking_price(stock_code: str) -> Dict[str, Any]:
+    """시간외 호가 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 시간외 호가 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_overtime_asking_price(stock_code)
+    return validate_api_response(result, "시간외 호가 조회")
 
 
 @server.tool()

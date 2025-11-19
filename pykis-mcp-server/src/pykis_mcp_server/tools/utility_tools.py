@@ -66,6 +66,123 @@ async def get_daily_credit_balance(code: str, date: str) -> Dict[str, Any]:
 
 
 @server.tool()
+async def get_stock_info(stock_code: str) -> Dict[str, Any]:
+    """종목 기본정보 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 종목 기본 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_stock_info(stock_code)
+    return validate_api_response(result, "종목 기본정보 조회")
+
+
+@server.tool()
+async def get_stock_basic(stock_code: str) -> Dict[str, Any]:
+    """종목 기본 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 종목 기본 데이터
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_stock_basic(stock_code)
+    return validate_api_response(result, "종목 기본 조회")
+
+
+@server.tool()
+async def get_stock_financial(stock_code: str) -> Dict[str, Any]:
+    """종목 재무정보 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 종목 재무 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_stock_financial(stock_code)
+    return validate_api_response(result, "종목 재무정보 조회")
+
+
+@server.tool()
+async def get_pbar_tratio(stock_code: str) -> Dict[str, Any]:
+    """매수매도비율 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 매수/매도 비율 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_pbar_tratio(stock_code)
+    return validate_api_response(result, "매수매도비율 조회")
+
+
+@server.tool()
+async def get_asking_price_exp_ccn(stock_code: str) -> Dict[str, Any]:
+    """호가예상체결 조회
+
+    Args:
+        stock_code: 종목코드 6자리
+
+    Returns:
+        Dict: 호가 예상 체결 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.get_asking_price_exp_ccn(stock_code)
+    return validate_api_response(result, "호가예상체결 조회")
+
+
+@server.tool()
+async def inquire_vi_status(stock_code: str = "") -> Dict[str, Any]:
+    """VI 발동 상태 조회
+
+    Args:
+        stock_code: 종목코드 6자리 (선택, 공백시 전체)
+
+    Returns:
+        Dict: VI 발동 상태 정보
+    """
+    agent = get_agent()
+    result = agent.inquire_vi_status(stock_code)
+    return validate_api_response(result, "VI 발동 상태 조회")
+
+
+@server.tool()
+async def get_rate_limiter_status() -> Dict[str, Any]:
+    """Rate Limiter 상태 조회
+
+    Returns:
+        Dict: Rate Limiter 현재 상태 정보
+    """
+    agent = get_agent()
+    result = agent.get_rate_limiter_status()
+    return {"success": True, "data": result}
+
+
+@server.tool()
 async def get_condition_stocks(
     user_id: str, seq: int, div_code: str = "N"
 ) -> Dict[str, Any]:

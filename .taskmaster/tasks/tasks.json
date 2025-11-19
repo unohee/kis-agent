@@ -2,232 +2,266 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
-        "title": "프로젝트 구조 및 개발 환경 설정",
-        "description": "MCP 서버 프로젝트의 기본 구조를 설정하고 개발 환경을 구축합니다.",
-        "details": "pykis-mcp-server 디렉토리 생성, pyproject.toml 설정, src/ 구조 생성, 가상환경 설정, 테스트 환경 구축. MCP SDK와 PyKIS 의존성 설정. GitHub Actions CI/CD 파이프라인 설정. 개발용 .env.example 파일 생성.",
-        "testStrategy": "프로젝트 구조 유효성 검증, 의존성 설치 테스트, 기본 import 테스트",
+        "id": "12",
+        "title": "Stock Price Tools 추가 및 업데이트",
+        "description": "FR-002, FR-003, FR-007~FR-012 신규 주식 시세 도구 추가. inquire_daily_price, inquire_daily_itemchartprice, get_intraday_price, inquire_price, inquire_price_2, inquire_ccnl, get_stock_ccnl, inquire_time_itemconclusion MCP 도구 구현",
+        "details": "1. stock_tools.py에 신규 도구 추가:\n\n```python\n@server.tool()\nasync def inquire_daily_price(\n    code: str, start_date: str = \"\", end_date: str = \"\"\n) -> Dict[str, Any]:\n    \"\"\"최근 30일 일봉 데이터 조회 (신규 API)\n    \n    Args:\n        code: 종목코드 6자리\n        start_date: 시작일 (YYYYMMDD, 선택)\n        end_date: 종료일 (YYYYMMDD, 선택)\n        \n    Returns:\n        Dict: 일봉 데이터 리스트\n    \"\"\"\n    if not code or len(code) != 6:\n        raise InvalidParameterError(\"code\", \"종목코드는 6자리여야 합니다\")\n    agent = get_agent()\n    result = agent.inquire_daily_price(code, start_date, end_date)\n    return validate_api_response(result, \"일봉 데이터 조회\")\n\n@server.tool()\nasync def inquire_daily_itemchartprice(\n    code: str, period_div: str = \"D\", adj_price: bool = True\n) -> Dict[str, Any]:\n    \"\"\"기간별 일봉 차트 데이터 조회\"\"\"\n    ...\n```\n\n2. 유사하게 inquire_price, inquire_price_2, inquire_ccnl, get_stock_ccnl, get_intraday_price, inquire_time_itemconclusion 도구 추가\n\n3. 모든 도구에 입력값 검증 (종목코드 6자리, 날짜 형식) 적용",
+        "testStrategy": "1. 각 신규 도구에 대한 단위 테스트 작성\n2. 모킹을 사용하여 agent 메서드 호출 검증\n3. 입력값 검증 테스트 (잘못된 종목코드, 날짜 형식)\n4. validate_api_response 반환값 검증\n5. pytest tests/unit/test_stock_tools.py -v 실행",
         "priority": "high",
         "dependencies": [],
         "status": "done",
         "subtasks": [
           {
             "id": 1,
-            "title": "프로젝트 디렉토리 구조 생성 및 기본 파일 설정",
-            "description": "pykis-mcp-server 프로젝트의 기본 디렉토리 구조를 생성하고 필수 설정 파일들을 작성합니다.",
+            "title": "입력값 검증 유틸리티 함수 추가",
+            "description": "stock_tools.py에서 반복 사용되는 종목코드, 날짜, 시장구분 검증 로직을 재사용 가능한 유틸리티 함수로 분리합니다.",
             "dependencies": [],
-            "details": "pykis-mcp-server/ 루트 디렉토리 생성, src/pykis_mcp/ 패키지 구조 생성, tests/ 디렉토리 생성, __init__.py 파일들 생성, .gitignore 파일 작성, LICENSE 파일 생성",
-            "status": "done",
-            "testStrategy": "디렉토리 구조 존재 확인, 패키지 import 가능성 테스트",
-            "updatedAt": "2025-10-20T04:21:41.454Z",
+            "details": "errors.py에 validate_stock_code(code: str), validate_date_format(date: str), validate_market_code(market: str) 함수를 추가합니다. 기존 stock_tools.py의 검증 패턴(if not code or len(code) != 6)을 참고하여 일관된 InvalidParameterError를 발생시키도록 구현합니다. 날짜는 YYYYMMDD 8자리, 시장구분은 'J', 'NX', 'UN' 중 하나인지 검증합니다.",
+            "status": "pending",
+            "testStrategy": "각 검증 함수에 대한 단위 테스트 작성: 올바른 입력/잘못된 입력(빈 문자열, 잘못된 길이, 잘못된 형식)에 대한 테스트 케이스 포함",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "pyproject.toml 및 의존성 설정 구성",
-            "description": "프로젝트 메타데이터와 의존성을 정의하는 pyproject.toml 파일을 작성하고 MCP SDK, PyKIS 라이브러리 등 필요한 의존성을 설정합니다.",
+            "title": "inquire_daily_price 및 inquire_daily_itemchartprice MCP 도구 구현",
+            "description": "pykis/stock/price_api.py의 inquire_daily_price, inquire_daily_itemchartprice 메서드를 호출하는 MCP 도구를 stock_tools.py에 추가합니다.",
             "dependencies": [
               1
             ],
-            "details": "pyproject.toml에서 build-system, project metadata, dependencies (mcp, pykis, typing-extensions 등) 설정, optional-dependencies로 dev 그룹 설정, entry points 설정",
-            "status": "done",
-            "testStrategy": "pip install -e . 실행하여 의존성 설치 확인, 패키지 버전 정보 확인",
-            "parentId": "undefined",
-            "updatedAt": "2025-10-20T06:24:49.801Z"
+            "details": "stock_tools.py에 @server.tool() 데코레이터를 사용하여 두 도구를 추가합니다. inquire_daily_price(code: str, period: str = 'D', org_adj_prc: str = '1')는 최근 30건 일봉 데이터를 조회하고, inquire_daily_itemchartprice(code: str, start_date: str = '', end_date: str = '', period: str = 'D', org_adj_prc: str = '1')는 날짜 범위 지정 일봉을 조회합니다. agent.inquire_daily_price(), agent.inquire_daily_itemchartprice() 호출 후 validate_api_response()로 검증합니다.",
+            "status": "pending",
+            "testStrategy": "Mock agent를 사용한 단위 테스트: 정상 응답 반환, 잘못된 종목코드/날짜 입력 시 InvalidParameterError 발생 확인, API 실패 응답 처리 테스트",
+            "parentId": "undefined"
           },
           {
             "id": 3,
-            "title": "가상환경 설정 및 개발용 환경변수 파일 생성",
-            "description": "파이썬 가상환경을 생성하고 개발에 필요한 환경변수 템플릿 파일을 작성합니다.",
+            "title": "inquire_price, inquire_price_2, inquire_ccnl MCP 도구 구현",
+            "description": "주식현재가 시세 조회(inquire_price), 시세2 조회(inquire_price_2), 체결 조회(inquire_ccnl) MCP 도구를 stock_tools.py에 추가합니다.",
             "dependencies": [
-              2
+              1
             ],
-            "details": "python -m venv venv 실행, requirements-dev.txt 생성 (pytest, black, ruff, mypy 포함), .env.example 파일 생성 (KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NUMBER 등), .env를 .gitignore에 추가",
-            "status": "done",
-            "testStrategy": "가상환경 활성화 테스트, 개발 의존성 설치 확인, 환경변수 파일 템플릿 유효성 검증",
-            "parentId": "undefined",
-            "updatedAt": "2025-10-20T06:25:19.933Z"
+            "details": "세 가지 도구 모두 code: str와 market: str = 'J' 파라미터를 받습니다. inquire_price는 추가 시세 정보를 포함하고, inquire_price_2는 시세2 데이터(FHPST01010000)를 조회하며, inquire_ccnl은 최근 30건 체결 데이터를 조회합니다. 각 도구는 agent의 해당 메서드를 호출하고 validate_api_response()로 결과를 검증합니다. market 파라미터는 'J', 'NX', 'UN' 중 하나여야 합니다.",
+            "status": "pending",
+            "testStrategy": "각 도구별 성공 케이스 테스트, 잘못된 market 값 검증 테스트, 종목코드 검증 테스트, API 응답 검증 테스트",
+            "parentId": "undefined"
           },
           {
             "id": 4,
-            "title": "GitHub Actions CI/CD 파이프라인 설정",
-            "description": "자동화된 테스트, 린팅, 타입 체크를 위한 GitHub Actions 워크플로우를 구성합니다.",
+            "title": "get_intraday_price, get_stock_ccnl, inquire_time_itemconclusion MCP 도구 구현",
+            "description": "당일 분봉 데이터(get_intraday_price), 체결 데이터(get_stock_ccnl), 시간대별 체결(inquire_time_itemconclusion) MCP 도구를 stock_tools.py에 추가합니다.",
             "dependencies": [
-              3
+              1
             ],
-            "details": ".github/workflows/ci.yml 파일 생성, Python 3.8-3.12 매트릭스 테스트 설정, pytest, ruff, mypy 실행 단계 구성, coverage 리포트 생성, PyPI 배포용 workflow 별도 생성",
-            "status": "done",
-            "testStrategy": "GitHub Actions 문법 유효성 검증, 로컬에서 동일한 명령어 실행하여 정상 동작 확인",
-            "parentId": "undefined",
-            "updatedAt": "2025-10-20T06:25:45.101Z"
+            "details": "get_intraday_price(code: str)는 당일 분봉 데이터를 조회하고, get_stock_ccnl(code: str, market: str = 'J')은 체결 데이터를 조회합니다. inquire_time_itemconclusion(code: str, hour: str = '153000', market: str = 'J')는 당일 시간대별 체결 데이터(output1: 요약, output2: 시간별 체결 리스트)를 조회합니다. 모든 도구에 종목코드 및 시장구분 검증을 적용하고, validate_api_response()로 결과를 검증합니다.",
+            "status": "pending",
+            "testStrategy": "각 도구별 단위 테스트: agent 메서드 호출 검증, 입력값 검증, API 응답 형식 확인, hour 파라미터 형식(HHMMSS) 검증",
+            "parentId": "undefined"
           },
           {
             "id": 5,
-            "title": "기본 테스트 환경 및 프로젝트 구조 검증 테스트 작성",
-            "description": "프로젝트 구조가 올바르게 설정되었는지 확인하는 기본 테스트들을 작성합니다.",
+            "title": "신규 Stock Price 도구 통합 테스트 및 문서화",
+            "description": "추가된 8개 신규 MCP 도구(inquire_daily_price, inquire_daily_itemchartprice, inquire_price, inquire_price_2, inquire_ccnl, get_intraday_price, get_stock_ccnl, inquire_time_itemconclusion)에 대한 통합 테스트 및 한글 docstring 완성을 수행합니다.",
             "dependencies": [
+              2,
+              3,
               4
             ],
-            "details": "tests/test_project_structure.py 생성, 패키지 import 테스트, 버전 정보 확인 테스트, 환경변수 로드 테스트, conftest.py에서 공통 테스트 픽스처 설정, pytest.ini 설정 파일 작성",
-            "status": "done",
-            "testStrategy": "pytest 실행하여 모든 구조 검증 테스트 통과 확인, coverage 80% 이상 달성",
-            "parentId": "undefined",
-            "updatedAt": "2025-10-20T06:26:14.666Z"
+            "details": "tests/unit/test_stock_tools.py에 신규 도구들의 테스트 케이스를 추가합니다. 각 도구의 docstring에 상세 한글 설명, Args/Returns 명세, 반환 필드 설명(예: output.stck_prpr: 주식 현재가)을 포함합니다. pytest tests/unit/test_stock_tools.py -v 실행하여 전체 테스트 통과를 확인하고, 코드 커버리지 95% 이상을 목표로 합니다.",
+            "status": "pending",
+            "testStrategy": "pytest tests/unit/test_stock_tools.py -v --cov=pykis_mcp_server.tools.stock_tools 실행, 전체 도구 성공/실패 케이스 커버리지 확인, docstring 파싱 테스트로 문서화 품질 검증",
+            "parentId": "undefined"
           }
         ],
-        "updatedAt": "2025-10-20T06:26:14.666Z"
+        "updatedAt": "2025-11-19T12:40:12.468Z"
       },
       {
-        "id": "2",
-        "title": "MCP 서버 핵심 구조 및 설정 구현",
-        "description": "MCP 서버의 기본 구조와 설정 관리 시스템을 구현합니다.",
-        "details": "server.py 생성 및 MCP 서버 초기화, config.py에서 환경변수 기반 설정 관리, PyKIS Agent 싱글턴 패턴 구현, stdio transport 설정, 서버 초기화 옵션 구성. 에러 핸들링 클래스 구현.",
-        "testStrategy": "서버 초기화 테스트, 설정값 로드 테스트, Agent 인스턴스 생성 테스트",
+        "id": "13",
+        "title": "Market Data Tools 신규 구현",
+        "description": "FR-013~FR-021 시장 데이터 관련 도구 구현. market_tools.py 생성하여 시장 등락, 순위, 거래량, 시간외 관련 도구 추가",
+        "details": "1. pykis-mcp-server/src/pykis_mcp_server/tools/market_tools.py 생성:\n\n```python\n\"\"\"Market data and rankings MCP tools\"\"\"\nfrom typing import Any, Dict\nfrom ..server import get_agent, server\nfrom ..errors import validate_api_response, InvalidParameterError\n\n@server.tool()\nasync def get_market_fluctuation() -> Dict[str, Any]:\n    \"\"\"시장 전체 등락 현황 조회\"\"\"\n    agent = get_agent()\n    result = agent.get_market_fluctuation()\n    return validate_api_response(result, \"시장 등락 조회\")\n\n@server.tool()\nasync def get_market_rankings(volume: int = 5000000) -> Dict[str, Any]:\n    \"\"\"시장 순위 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_fluctuation_rank(...) -> Dict[str, Any]:\n    \"\"\"등락률 순위 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_volume_rank(...) -> Dict[str, Any]:\n    \"\"\"거래량 순위 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_volume_power_rank(...) -> Dict[str, Any]:\n    \"\"\"체결강도 순위 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_daily_overtimeprice(...) -> Dict[str, Any]:\n    \"\"\"시간외 일봉 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_overtime_price(...) -> Dict[str, Any]:\n    \"\"\"시간외 현재가 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_overtime_asking_price(...) -> Dict[str, Any]:\n    \"\"\"시간외 호가 조회\"\"\"\n    ...\n```\n\n2. server.py에 market_tools import 추가\n3. tools/__init__.py에 market_tools 등록",
+        "testStrategy": "1. tests/unit/test_market_tools.py 생성\n2. 각 도구별 성공/실패 케이스 테스트\n3. 파라미터 기본값 검증\n4. 모킹 기반 agent 호출 검증",
         "priority": "high",
         "dependencies": [
-          "1"
+          "12"
         ],
         "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:27:16.184Z"
+        "updatedAt": "2025-11-19T12:40:58.020Z"
       },
       {
-        "id": "3",
-        "title": "주식 시세 및 시장 데이터 Tools 구현",
-        "description": "15개의 주식 시세 조회 및 시장 데이터 관련 MCP Tools를 구현합니다.",
-        "details": "get_stock_price, get_daily_price, get_minute_price, get_daily_minute_price, get_orderbook, get_stock_investor, calculate_support_resistance, get_top_gainers, get_index_daily_price 등의 Tools 구현. 각 Tool은 PyKIS Agent의 해당 메서드를 호출하고 적절한 에러 처리 및 응답 변환을 수행.",
-        "testStrategy": "각 Tool별 단위 테스트, Mock Agent를 사용한 테스트, 실제 API 연동 테스트",
+        "id": "14",
+        "title": "Index & Derivatives Tools 구현",
+        "description": "FR-022~FR-029 지수 및 파생상품 관련 도구 구현. index_tools.py 생성하여 지수 현재가, 틱, 시간별, ELW 관련 도구 추가",
+        "details": "1. pykis-mcp-server/src/pykis_mcp_server/tools/index_tools.py 생성:\n\n```python\n\"\"\"Index and derivatives MCP tools\"\"\"\nfrom typing import Any, Dict\nfrom ..server import get_agent, server\nfrom ..errors import validate_api_response, InvalidParameterError\n\n@server.tool()\nasync def inquire_index_price(index_code: str = \"0001\") -> Dict[str, Any]:\n    \"\"\"지수 현재가 조회\n    \n    Args:\n        index_code: 지수 코드 (0001=KOSPI, 1001=KOSDAQ)\n    \"\"\"\n    agent = get_agent()\n    result = agent.inquire_index_price(index_code)\n    return validate_api_response(result, \"지수 현재가 조회\")\n\n@server.tool()\nasync def inquire_index_category_price(...) -> Dict[str, Any]:\n    \"\"\"업종별 지수 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_index_tickprice(...) -> Dict[str, Any]:\n    \"\"\"지수 틱 데이터 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_index_timeprice(...) -> Dict[str, Any]:\n    \"\"\"지수 시간별 데이터 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_index_minute_data(...) -> Dict[str, Any]:\n    \"\"\"지수 분봉 데이터 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_elw_price(...) -> Dict[str, Any]:\n    \"\"\"ELW 시세 조회\"\"\"\n    ...\n```\n\n2. 기존 stock_tools.py의 get_index_daily_price, get_future_option_price를 index_tools.py로 이동\n3. server.py import 업데이트",
+        "testStrategy": "1. tests/unit/test_index_tools.py 생성\n2. 지수 코드 검증 테스트\n3. 다양한 지수/파생상품 API 호출 검증\n4. 기존 도구 이동 후 호환성 테스트",
         "priority": "high",
         "dependencies": [
-          "2"
+          "13"
         ],
         "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:28:05.317Z"
+        "updatedAt": "2025-11-19T12:41:27.172Z"
       },
       {
-        "id": "4",
-        "title": "계좌 관리 Tools 구현",
-        "description": "10개의 계좌 잔고, 주문 가능 수량 등 계좌 관리 관련 MCP Tools를 구현합니다.",
-        "details": "get_account_balance, get_possible_order_amount, inquire_daily_ccld, inquire_balance_rlz_pl, inquire_psbl_sell, inquire_period_trade_profit 등의 계좌 관리 Tools 구현. 민감한 계좌 정보 처리 시 보안 고려사항 적용.",
-        "testStrategy": "계좌 정보 조회 테스트, 권한 검증 테스트, 데이터 형식 검증",
-        "priority": "high",
-        "dependencies": [
-          "2"
-        ],
-        "status": "done",
-        "subtasks": [],
-        "updatedAt": "2025-10-20T06:28:43.536Z"
-      },
-      {
-        "id": "5",
-        "title": "주문 실행 Tools 구현",
-        "description": "12개의 주식 주문 실행 관련 MCP Tools를 구현합니다.",
-        "details": "order_stock_cash, order_stock_credit, order_cash, order_cash_sor, order_credit_buy, order_credit_sell, order_rvsecncl, order_resv 등의 주문 Tools 구현. 주문 검증 로직과 에러 처리 강화. 실전/모의투자 환경 분리 처리.",
-        "testStrategy": "모의투자 환경에서 주문 테스트, 주문 검증 로직 테스트, 에러 시나리오 테스트",
-        "priority": "high",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [],
-        "updatedAt": "2025-10-20T06:29:58.267Z"
-      },
-      {
-        "id": "6",
-        "title": "투자자 동향 및 프로그램 매매 Tools 구현",
-        "description": "10개의 투자자 동향과 프로그램 매매 분석 관련 MCP Tools를 구현합니다.",
-        "details": "get_stock_investor, get_investor_daily_by_market, get_foreign_broker_net_buy, get_stock_member, get_program_trade_by_stock, get_program_trade_daily_summary, get_program_trade_market_daily 등의 Tools 구현. 대용량 데이터 처리 최적화.",
-        "testStrategy": "투자자 동향 데이터 조회 테스트, 프로그램 매매 데이터 검증, 성능 테스트",
+        "id": "15",
+        "title": "Investor Analysis Tools 확장",
+        "description": "FR-030~FR-039 투자자 분석 도구 확장. 기존 investor_tools.py에 외국인 매수 추세, 투자자 추정, 일별 투자자 동향 등 누락된 도구 추가",
+        "details": "1. investor_tools.py에 신규 도구 추가:\n\n```python\n@server.tool()\nasync def get_frgnmem_pchs_trend(code: str) -> Dict[str, Any]:\n    \"\"\"외국인 매수 추세 조회\n    \n    Args:\n        code: 종목코드 6자리\n        \n    Returns:\n        Dict: 외국인 매수 추세 데이터\n    \"\"\"\n    if not code or len(code) != 6:\n        raise InvalidParameterError(\"code\", \"종목코드는 6자리여야 합니다\")\n    agent = get_agent()\n    result = agent.get_frgnmem_pchs_trend(code)\n    return validate_api_response(result, \"외국인 매수 추세 조회\")\n\n@server.tool()\nasync def get_frgnmem_trade_estimate(...) -> Dict[str, Any]:\n    \"\"\"외국인 매매 추정 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_frgnmem_trade_trend(...) -> Dict[str, Any]:\n    \"\"\"외국인 매매 추세 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_investor_trade_by_stock_daily(...) -> Dict[str, Any]:\n    \"\"\"종목별 일별 투자자 동향 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_investor_trend_estimate(...) -> Dict[str, Any]:\n    \"\"\"투자자 동향 추정 조회\"\"\"\n    ...\n```\n\n2. 모든 도구에 상세 한글 docstring 작성\n3. 필수 파라미터 검증 로직 추가",
+        "testStrategy": "1. test_investor_tools.py에 테스트 케이스 추가\n2. 기존 도구와 신규 도구 함께 테스트\n3. 외국인/기관 관련 API 응답 구조 검증\n4. 파라미터 유효성 검사 테스트",
         "priority": "medium",
         "dependencies": [
-          "3"
+          "14"
         ],
         "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:31:59.353Z"
+        "updatedAt": "2025-11-19T12:42:05.495Z"
       },
       {
-        "id": "7",
-        "title": "유틸리티 및 헬퍼 Tools 구현",
-        "description": "7개의 유틸리티 및 시스템 관리 관련 MCP Tools를 구현합니다.",
-        "details": "get_holiday_info, is_holiday, get_daily_credit_balance, get_condition_stocks, search_methods, get_all_methods, show_method_usage 등의 유틸리티 Tools 구현. PyKIS Agent의 메타 기능들을 MCP로 노출.",
-        "testStrategy": "유틸리티 기능 테스트, 메타 기능 테스트, 조건검색 테스트",
+        "id": "16",
+        "title": "Program Trading Tools 완성",
+        "description": "FR-040~FR-045 프로그램 매매 도구 완성. 기존 도구 시그니처 업데이트 및 get_investor_program_trade_today 추가",
+        "details": "1. investor_tools.py에 누락된 프로그램 매매 도구 추가:\n\n```python\n@server.tool()\nasync def get_investor_program_trade_today(\n    market_div: str = \"0\"\n) -> Dict[str, Any]:\n    \"\"\"당일 투자자별 프로그램 매매 동향\n    \n    Args:\n        market_div: 시장 구분 (0=전체, 1=KOSPI, 2=KOSDAQ)\n        \n    Returns:\n        Dict: 투자자별 프로그램 매매 현황\n    \"\"\"\n    agent = get_agent()\n    result = agent.get_investor_program_trade_today(market_div)\n    return validate_api_response(result, \"당일 투자자 프로그램 매매 조회\")\n```\n\n2. 기존 get_program_trade_by_stock에 date 파라미터 기본값 처리 확인\n3. get_program_trade_period_detail 파라미터 검증 강화\n4. get_program_trade_market_daily 날짜 범위 검증 추가",
+        "testStrategy": "1. 프로그램 매매 전용 테스트 케이스 작성\n2. 시장 구분 코드 검증 (0/1/2)\n3. 날짜 범위 유효성 테스트\n4. API 응답 구조 일관성 검증",
         "priority": "medium",
         "dependencies": [
-          "2"
+          "15"
         ],
         "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:34:04.603Z"
+        "updatedAt": "2025-11-19T12:42:08.058Z"
       },
       {
-        "id": "8",
-        "title": "Rate Limiter 및 시스템 관리 Tools 구현",
-        "description": "4개의 Rate Limiter 관리 및 시스템 설정 관련 MCP Tools를 구현합니다.",
-        "details": "get_rate_limiter_status, reset_rate_limiter, set_rate_limits, enable_adaptive_rate_limiting Tools 구현. PyKIS의 Rate Limiter 기능을 MCP를 통해 제어 가능하도록 구현. 실시간 상태 모니터링 기능 포함.",
-        "testStrategy": "Rate Limiter 상태 조회 테스트, 설정 변경 테스트, 적응형 Rate Limiting 테스트",
-        "priority": "medium",
-        "dependencies": [
-          "2"
-        ],
-        "status": "done",
-        "subtasks": [],
-        "updatedAt": "2025-10-20T06:35:27.134Z"
-      },
-      {
-        "id": "9",
-        "title": "에러 처리 및 로깅 시스템 구현",
-        "description": "포괄적인 에러 처리와 로깅 시스템을 구현합니다.",
-        "details": "PyKISMCPError 예외 클래스 정의, API 에러 코드를 MCP ErrorCode로 매핑, 구조화된 로깅 시스템 구현, 에러 복구 메커니즘 구현. 모든 Tools에 일관된 에러 처리 적용.",
-        "testStrategy": "에러 시나리오별 테스트, 로그 형식 검증, 에러 복구 테스트",
+        "id": "17",
+        "title": "Account Tools 확장 및 신규 도구 추가",
+        "description": "FR-046~FR-059 계좌 관련 도구 확장. get_total_asset, inquire_psbl_order, inquire_order_psbl, inquire_credit_order_psbl, inquire_psbl_rvsecncl 등 누락된 도구 추가",
+        "details": "1. account_tools.py에 신규 도구 추가:\n\n```python\n@server.tool()\nasync def get_total_asset() -> Dict[str, Any]:\n    \"\"\"총 자산 조회\n    \n    Returns:\n        Dict: 총 자산 정보 (평가금액, 수익률 등)\n    \"\"\"\n    agent = get_agent()\n    result = agent.get_total_asset()\n    return validate_api_response(result, \"총 자산 조회\")\n\n@server.tool()\nasync def inquire_psbl_order(code: str, ord_dv: str, ord_qty: int) -> Dict[str, Any]:\n    \"\"\"주문 가능 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_order_psbl(...) -> Dict[str, Any]:\n    \"\"\"주문 가능 상세 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_credit_order_psbl(...) -> Dict[str, Any]:\n    \"\"\"신용 주문 가능 조회\"\"\"\n    ...\n\n@server.tool()\nasync def inquire_psbl_rvsecncl() -> Dict[str, Any]:\n    \"\"\"정정/취소 가능 조회\"\"\"\n    ...\n```\n\n2. 기존 inquire_psbl_sell 시그니처 확인 (pdno 파라미터)\n3. inquire_credit_psamount 파라미터 검증 강화",
+        "testStrategy": "1. test_account_tools.py 테스트 케이스 확장\n2. 계좌 조회 API 응답 구조 검증\n3. 신용 관련 도구 파라미터 테스트\n4. 권한 필요 도구 에러 핸들링 검증",
         "priority": "high",
         "dependencies": [
-          "3",
-          "4",
-          "5"
+          "16"
         ],
         "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:36:39.698Z"
+        "updatedAt": "2025-11-19T12:42:39.271Z"
       },
       {
-        "id": "10",
-        "title": "통합 테스트 및 문서화",
-        "description": "전체 시스템의 통합 테스트와 사용자 문서를 작성합니다.",
-        "details": "58개 모든 Tools의 통합 테스트 작성, Claude Desktop 연동 테스트, .mcp.json 설정 가이드 작성, README.md 작성, API 레퍼런스 문서 생성, 사용 예제 및 트러블슈팅 가이드 작성. PyPI 패키지 배포 준비.",
-        "testStrategy": "end-to-end 테스트, Claude Desktop 실제 연동 테스트, 문서 정확성 검증",
+        "id": "18",
+        "title": "Stock Info Tools 구현",
+        "description": "FR-060~FR-066 종목 정보 관련 도구 구현. info_tools.py 생성하여 종목 기본정보, 재무정보, 호가예상체결, 체결강도 등 도구 추가",
+        "details": "1. pykis-mcp-server/src/pykis_mcp_server/tools/info_tools.py 생성:\n\n```python\n\"\"\"Stock information MCP tools\"\"\"\nfrom typing import Any, Dict\nfrom ..server import get_agent, server\nfrom ..errors import validate_api_response, InvalidParameterError\n\n@server.tool()\nasync def get_stock_info(ticker: str) -> Dict[str, Any]:\n    \"\"\"종목 기본 정보 조회\n    \n    Args:\n        ticker: 종목코드 또는 티커\n        \n    Returns:\n        Dict: 종목 기본 정보 (상장일, 자본금 등)\n    \"\"\"\n    agent = get_agent()\n    result = agent.get_stock_info(ticker)\n    return validate_api_response(result, \"종목 기본 정보 조회\")\n\n@server.tool()\nasync def get_stock_basic(code: str) -> Dict[str, Any]:\n    \"\"\"종목 기본 데이터 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_stock_financial(code: str) -> Dict[str, Any]:\n    \"\"\"종목 재무 정보 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_pbar_tratio(code: str, retries: int = 10) -> Dict[str, Any]:\n    \"\"\"매수/매도 비율 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_asking_price_exp_ccn(code: str) -> Dict[str, Any]:\n    \"\"\"호가 예상 체결 조회\"\"\"\n    ...\n\n@server.tool()\nasync def get_volume_power_detail(code: str) -> Dict[str, Any]:\n    \"\"\"체결강도 상세 조회\"\"\"\n    ...\n```\n\n2. 기존 utility_tools.py의 get_daily_credit_balance를 info_tools.py로 이동\n3. server.py에 info_tools import 추가",
+        "testStrategy": "1. tests/unit/test_info_tools.py 생성\n2. 종목 정보 API 응답 구조 검증\n3. 재무 데이터 필드 검증\n4. 호가 예상 체결 로직 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "17"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-19T12:43:16.682Z"
+      },
+      {
+        "id": "19",
+        "title": "Utility Tools 완성 및 정리",
+        "description": "FR-067~FR-073 유틸리티 도구 완성. inquire_vi_status, get_rate_limiter_status 등 누락된 도구 추가 및 기존 도구 정리",
+        "details": "1. utility_tools.py에 신규 도구 추가:\n\n```python\n@server.tool()\nasync def inquire_vi_status(code: str = \"\") -> Dict[str, Any]:\n    \"\"\"VI(변동성완화장치) 발동 상태 조회\n    \n    Args:\n        code: 종목코드 6자리 (선택, 비우면 전체)\n        \n    Returns:\n        Dict: VI 발동 현황\n    \"\"\"\n    agent = get_agent()\n    result = agent.inquire_vi_status(code)\n    return validate_api_response(result, \"VI 상태 조회\")\n\n@server.tool()\nasync def get_rate_limiter_status() -> Dict[str, Any]:\n    \"\"\"Rate Limiter 현재 상태 조회\n    \n    Returns:\n        Dict: RPS/RPM 현황, 대기 큐, 적응형 상태\n    \"\"\"\n    agent = get_agent()\n    result = agent.get_rate_limiter_status()\n    return {\"success\": True, \"data\": result}\n```\n\n2. 중복된 도구 정리 (rate_limiter_tools.py와 통합 검토)\n3. get_condition_stocks 도구 NOT_IMPLEMENTED 처리 개선\n4. calculate_support_resistance 반환 형식 통일",
+        "testStrategy": "1. VI 상태 조회 테스트\n2. Rate Limiter 상태 응답 구조 검증\n3. 도구 중복 제거 후 호환성 테스트\n4. 전체 유틸리티 도구 통합 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "18"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-19T12:43:19.187Z"
+      },
+      {
+        "id": "20",
+        "title": "MCP Server Import 구조 및 라우팅 정리",
+        "description": "server.py 및 tools/__init__.py 업데이트. 신규 생성된 market_tools, index_tools, info_tools를 서버에 등록하고 import 구조 정리",
+        "details": "1. server.py 수정:\n\n```python\n# Import tools after server instance is created\nfrom .tools import (  # noqa: E402\n    stock_tools,\n    market_tools,      # 신규\n    index_tools,       # 신규\n    account_tools,\n    order_tools,\n    investor_tools,\n    info_tools,        # 신규\n    utility_tools,\n    rate_limiter_tools,\n)\n```\n\n2. tools/__init__.py 업데이트:\n\n```python\nfrom . import (\n    stock_tools,\n    market_tools,\n    index_tools,\n    account_tools,\n    order_tools,\n    investor_tools,\n    info_tools,\n    utility_tools,\n    rate_limiter_tools,\n)\n\n__all__ = [\n    \"stock_tools\",\n    \"market_tools\",\n    \"index_tools\",\n    \"account_tools\",\n    \"order_tools\",\n    \"investor_tools\",\n    \"info_tools\",\n    \"utility_tools\",\n    \"rate_limiter_tools\",\n]\n```\n\n3. 각 도구 파일 간 중복 도구 정리\n4. 로깅 설정 일관성 확인",
+        "testStrategy": "1. 서버 시작 테스트 (import 오류 확인)\n2. 전체 도구 로딩 테스트\n3. 도구 중복 등록 없음 확인\n4. MCP 프로토콜 도구 목록 검증",
         "priority": "high",
         "dependencies": [
-          "6",
-          "7",
-          "8",
-          "9"
+          "19"
         ],
         "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:39:17.327Z"
+        "updatedAt": "2025-11-19T12:44:23.815Z"
       },
       {
-        "id": "11",
-        "title": "PyKIS 만료된 토큰 재생성 버그 분석 및 수정",
-        "description": "토큰 만료 시 자동 재생성 실패 문제를 분석하고 race condition을 포함한 토큰 관리 버그를 수정합니다.",
-        "details": "현재 `pykis/core/client.py`의 토큰 관리 시스템에서 발견된 문제점들을 종합적으로 분석하고 수정: 1) `_initialize_token()` 메서드에 thread-safe 락 구현 - 현재 `rate_limit_lock`은 있지만 토큰 재생성용 락이 없어 race condition 발생 가능, 2) `_check_and_refresh_token()`과 `make_request()` 내 토큰 재생성 로직 간 경쟁 상태 해결 - 두 곳에서 동시에 `_initialize_token()` 호출 시 중복 재생성 발생, 3) 토큰 만료 체크 로직 개선 - `token_expired` 파싱 실패 시 fallback 메커니즘 추가, 4) 에러 코드 EGW00123, EGW00124 외 추가 토큰 만료 시나리오 감지 강화, 5) `refresh_token()` 메서드에서 `token_expired` 업데이트 누락 수정, 6) 재시도 로직에서 토큰 갱신 후 헤더 업데이트 검증 추가, 7) `AuthenticationException` 활용한 토큰 관련 예외 처리 표준화. threading.Lock을 사용한 토큰 재생성 동기화, 토큰 상태 검증 로직 강화, 실패 시나리오별 세분화된 재시도 전략 구현.",
-        "testStrategy": "1) 멀티스레드 환경에서 동시 토큰 재생성 시도 테스트 - ThreadPoolExecutor로 동시 API 호출하여 race condition 검증, 2) 토큰 만료 시간 파싱 실패 시나리오 테스트 - 잘못된 형식의 token_expired 값으로 테스트, 3) 다양한 토큰 만료 에러 코드 시나리오 테스트 - EGW00123, EGW00124 외 추가 에러 코드 검증, 4) 네트워크 오류 중 토큰 재생성 실패 시나리오 테스트, 5) refresh_token() 호출 후 token_expired 업데이트 검증, 6) API 요청 중 토큰 만료 감지 시 자동 재생성 및 재시도 동작 검증, 7) 로그 분석을 통한 토큰 관리 이벤트 추적 테스트. 기존 test_refresh_token, test_client.py의 토큰 관련 테스트 확장.",
-        "status": "in-progress",
+        "id": "21",
+        "title": "단위 테스트 작성 및 커버리지 확보",
+        "description": "NFR-010~NFR-012 테스트 요구사항 충족. 모든 신규 도구에 대한 단위 테스트 작성 및 70% 이상 커버리지 확보",
+        "details": "1. 테스트 파일 구조:\n```\npykis-mcp-server/tests/\n├── conftest.py           # 공통 fixtures\n├── test_stock_tools.py   # 주식 시세 도구 테스트\n├── test_market_tools.py  # 시장 데이터 도구 테스트\n├── test_index_tools.py   # 지수/파생 도구 테스트\n├── test_investor_tools.py # 투자자 분석 도구 테스트\n├── test_account_tools.py # 계좌 도구 테스트\n├── test_info_tools.py    # 종목 정보 도구 테스트\n├── test_utility_tools.py # 유틸리티 도구 테스트\n└── test_integration.py   # 통합 테스트\n```\n\n2. conftest.py에 공통 fixture 정의:\n\n```python\nimport pytest\nfrom unittest.mock import MagicMock, patch\n\n@pytest.fixture\ndef mock_agent():\n    with patch('pykis_mcp_server.server._agent') as mock:\n        agent = MagicMock()\n        mock.return_value = agent\n        yield agent\n\n@pytest.fixture\ndef mock_api_response():\n    return {\n        \"rt_cd\": \"0\",\n        \"msg_cd\": \"MCA00000\",\n        \"msg1\": \"정상 처리되었습니다\",\n        \"output\": {}\n    }\n```\n\n3. 각 도구별 성공/실패 케이스 테스트\n4. 입력값 검증 테스트 (InvalidParameterError)",
+        "testStrategy": "1. pytest tests/ -v --cov=pykis_mcp_server --cov-report=html\n2. 커버리지 70% 이상 확인\n3. 모든 도구에 최소 2개 이상 테스트 케이스\n4. CI/CD 통합 테스트 실행",
+        "priority": "high",
         "dependencies": [
-          "9"
+          "20"
         ],
-        "priority": "medium",
+        "status": "done",
         "subtasks": [],
-        "updatedAt": "2025-10-20T06:57:49.181Z"
+        "updatedAt": "2025-11-19T12:44:26.343Z"
+      },
+      {
+        "id": "22",
+        "title": "에러 핸들링 및 입력값 검증 강화",
+        "description": "NFR-004~NFR-006 안정성 요구사항 충족. 모든 도구에 일관된 에러 핸들링 및 입력값 검증 적용",
+        "details": "1. errors.py 업데이트:\n\n```python\nclass MCPError(Exception):\n    \"\"\"MCP 서버 기본 예외\"\"\"\n    pass\n\nclass InvalidParameterError(MCPError):\n    \"\"\"잘못된 파라미터 예외\"\"\"\n    def __init__(self, param_name: str, message: str):\n        self.param_name = param_name\n        self.message = message\n        super().__init__(f\"{param_name}: {message}\")\n\nclass APIError(MCPError):\n    \"\"\"API 호출 실패 예외\"\"\"\n    def __init__(self, operation: str, message: str):\n        self.operation = operation\n        self.message = message\n        super().__init__(f\"{operation} 실패: {message}\")\n\ndef validate_stock_code(code: str) -> None:\n    \"\"\"종목코드 유효성 검사\"\"\"\n    if not code or len(code) != 6 or not code.isdigit():\n        raise InvalidParameterError(\"code\", \"종목코드는 6자리 숫자여야 합니다\")\n\ndef validate_date(date: str, param_name: str = \"date\") -> None:\n    \"\"\"날짜 형식 유효성 검사\"\"\"\n    if date and (len(date) != 8 or not date.isdigit()):\n        raise InvalidParameterError(param_name, \"날짜는 YYYYMMDD 형식이어야 합니다\")\n```\n\n2. 모든 도구에 공통 검증 함수 적용\n3. API 실패 시 상세 에러 메시지 반환\n4. Rate Limiting 에러 처리 추가",
+        "testStrategy": "1. InvalidParameterError 발생 테스트\n2. 다양한 잘못된 입력값 테스트\n3. API 실패 응답 처리 테스트\n4. 에러 메시지 한글 표시 확인",
+        "priority": "high",
+        "dependencies": [
+          "21"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-19T12:44:28.844Z"
+      },
+      {
+        "id": "23",
+        "title": "한글 문서화 및 사용 예시 추가",
+        "description": "NFR-007~NFR-009 문서화 요구사항 충족. 모든 도구에 상세 한글 docstring, Args/Returns 명세, 사용 예시 추가",
+        "details": "1. 표준 docstring 형식 적용:\n\n```python\n@server.tool()\nasync def get_stock_price(code: str) -> Dict[str, Any]:\n    \"\"\"주식 현재가 시세 조회\n    \n    특정 종목의 현재가, 전일 대비, 등락률 등 실시간 시세 정보를 조회합니다.\n    \n    Args:\n        code: 종목코드 6자리 (예: \"005930\" - 삼성전자)\n        \n    Returns:\n        Dict: 현재가 시세 정보\n            - output.stck_prpr: 주식 현재가\n            - output.prdy_vrss: 전일 대비 (양수=상승, 음수=하락)\n            - output.prdy_ctrt: 전일 대비율 (%)\n            - output.acml_vol: 누적 거래량\n            - output.acml_tr_pbmn: 누적 거래대금\n            \n    Example:\n        >>> result = await get_stock_price(\"005930\")\n        >>> print(result[\"output\"][\"stck_prpr\"])  # 현재가\n        \n    Note:\n        - 캐시 TTL: 5초\n        - Rate Limit: 18 RPS / 900 RPM\n    \"\"\"\n```\n\n2. 모든 도구에 Example 섹션 추가\n3. Note 섹션에 캐시/Rate Limit 정보 포함\n4. 복잡한 파라미터에 상세 설명 추가",
+        "testStrategy": "1. docstring 파싱 테스트 (inspect.getdoc)\n2. Args/Returns 형식 일관성 검증\n3. Example 코드 실행 가능성 확인\n4. MCP 도구 설명 노출 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "22"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-19T12:44:31.358Z"
+      },
+      {
+        "id": "24",
+        "title": "하위호환성 검증 및 기존 도구 시그니처 유지",
+        "description": "기존 58개 MCP 도구의 하위호환성 유지. 시그니처 변경 없이 내부 구현만 업데이트하고 기존 사용자 영향 최소화",
+        "details": "1. 기존 도구 시그니처 목록화:\n```\n- get_stock_price(code: str)\n- get_daily_price(code: str, start_date: str = \"\", end_date: str = \"\")\n- get_minute_price(code: str, time_code: str = \"093000\")\n- get_orderbook_raw(code: str)\n- get_account_balance()\n- get_possible_order_amount(code: str, price: str)\n... (58개)\n```\n\n2. 시그니처 변경이 필요한 경우:\n   - 새 도구로 추가 (deprecated 표시 없이)\n   - 기존 도구는 wrapper로 유지\n\n3. 반환 형식 일관성 검증:\n```python\n# 성공 응답\n{\"rt_cd\": \"0\", \"output\": {...}}\n\n# 또는\n{\"success\": True, \"data\": {...}}\n```\n\n4. 기존 MCP 클라이언트 테스트",
+        "testStrategy": "1. 기존 58개 도구 시그니처 스냅샷 테스트\n2. 반환 형식 스키마 검증\n3. 실제 MCP 클라이언트로 호출 테스트\n4. 기존 사용 예제 실행 확인",
+        "priority": "high",
+        "dependencies": [
+          "23"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-19T12:44:33.954Z"
+      },
+      {
+        "id": "25",
+        "title": "최종 통합 테스트 및 배포 준비",
+        "description": "전체 MCP 서버 통합 테스트 및 배포 준비. CI/CD 파이프라인 업데이트, CHANGELOG 작성, 버전 업데이트",
+        "details": "1. 통합 테스트 실행:\n```bash\n# 전체 도구 개수 확인\npython -c \"from pykis_mcp_server import server; print(len(server._tool_handlers))\"\n\n# 도구 목록 검증\npython -c \"from pykis_mcp_server import server; [print(t) for t in sorted(server._tool_handlers.keys())]\"\n\n# 테스트 실행\npytest pykis-mcp-server/tests/ -v --cov=pykis_mcp_server --cov-report=term-missing\n```\n\n2. CHANGELOG.md 업데이트:\n```markdown\n## [1.4.0] - 2025-11-19\n### Added\n- 신규 MCP 도구 추가 (총 75+ 도구)\n  - Stock Price Tools: inquire_daily_price, inquire_daily_itemchartprice 등\n  - Market Tools: get_market_fluctuation, get_fluctuation_rank 등\n  - Index Tools: inquire_index_price, inquire_index_tickprice 등\n  - 투자자 분석, 계좌, 종목 정보 도구 확장\n### Changed\n- 에러 핸들링 일관성 개선\n- 한글 문서화 강화\n```\n\n3. 버전 업데이트 (pyproject.toml, __init__.py)\n4. README.md 도구 목록 업데이트\n5. CI/CD 파이프라인 MCP 테스트 추가",
+        "testStrategy": "1. 전체 도구 로딩 테스트\n2. 커버리지 70% 이상 확인\n3. ruff/black/mypy 검사 통과\n4. GitHub Actions CI 통과\n5. 실제 API 연동 테스트 (RUN_LIVE_TESTS=1)",
+        "priority": "high",
+        "dependencies": [
+          "24"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-11-19T12:44:36.545Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-20T06:57:49.181Z",
-      "taskCount": 11,
-      "completedCount": 10,
+      "lastModified": "2025-11-19T12:44:36.545Z",
+      "taskCount": 14,
+      "completedCount": 14,
       "tags": [
         "master"
       ]

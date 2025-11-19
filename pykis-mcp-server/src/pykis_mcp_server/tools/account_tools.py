@@ -173,3 +173,91 @@ async def inquire_period_rights(start_date: str, end_date: str) -> Dict[str, Any
     agent = get_agent()
     result = agent.inquire_period_rights(start_date, end_date)
     return validate_api_response(result, "기간별 권리 조회")
+
+
+@server.tool()
+async def get_total_asset() -> Dict[str, Any]:
+    """총자산 조회
+
+    Returns:
+        Dict: 총자산 정보
+    """
+    agent = get_agent()
+    result = agent.get_total_asset()
+    return validate_api_response(result, "총자산 조회")
+
+
+@server.tool()
+async def inquire_psbl_order(
+    stock_code: str, order_price: str = "0", order_type: str = "00"
+) -> Dict[str, Any]:
+    """주문가능조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        order_price: 주문가격 (0=시장가)
+        order_type: 주문유형 (00=지정가, 01=시장가)
+
+    Returns:
+        Dict: 주문가능 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_psbl_order(stock_code, order_price, order_type)
+    return validate_api_response(result, "주문가능조회")
+
+
+@server.tool()
+async def inquire_order_psbl(
+    stock_code: str, order_price: int = 0
+) -> Dict[str, Any]:
+    """주문가능조회 (상세)
+
+    Args:
+        stock_code: 종목코드 6자리
+        order_price: 주문가격 (0=시장가)
+
+    Returns:
+        Dict: 주문가능 상세 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_order_psbl(stock_code, order_price)
+    return validate_api_response(result, "주문가능조회 상세")
+
+
+@server.tool()
+async def inquire_credit_order_psbl(
+    stock_code: str, order_price: int = 0
+) -> Dict[str, Any]:
+    """신용주문가능조회
+
+    Args:
+        stock_code: 종목코드 6자리
+        order_price: 주문가격 (0=시장가)
+
+    Returns:
+        Dict: 신용주문가능 정보
+    """
+    if not stock_code or len(stock_code) != 6:
+        raise InvalidParameterError("stock_code", "종목코드는 6자리여야 합니다")
+
+    agent = get_agent()
+    result = agent.inquire_credit_order_psbl(stock_code, order_price)
+    return validate_api_response(result, "신용주문가능조회")
+
+
+@server.tool()
+async def inquire_psbl_rvsecncl() -> Dict[str, Any]:
+    """정정취소가능조회
+
+    Returns:
+        Dict: 정정취소가능 주문 목록
+    """
+    agent = get_agent()
+    result = agent.inquire_psbl_rvsecncl()
+    return validate_api_response(result, "정정취소가능조회")
