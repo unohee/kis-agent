@@ -79,6 +79,7 @@ from .tools import (  # noqa: E402
     investor_tools,
     utility_tools,
     rate_limiter_tools,
+    orchestration_tools,
 )
 
 
