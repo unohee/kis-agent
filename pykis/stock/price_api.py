@@ -57,46 +57,87 @@ class StockPriceAPI(BaseAPI):
             params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
         )
 
-    def get_daily_price(
+    def inquire_daily_price(
         self, code: str, period: str = "D", org_adj_prc: str = "1"
     ) -> Optional[Dict]:
         """
-        일별 시세 조회
+        주식현재가 일자별 조회 (최근 30건)
 
         Args:
             code: 종목코드 (6자리)
-            period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
-            org_adj_prc: 수정주가구분 (0: 수정주가 미사용, 1: 수정주가 사용)
+            period: 기간구분 (D: 일, W: 주, M: 월)
+            org_adj_prc: 수정주가구분 (0: 수정주가 미반영, 1: 수정주가 반영)
 
         Returns:
             DailyPriceResponse 형식의 Dict:
-                - output[]: List[DailyPriceItem] (최대 100개)
+                - output[]: List[DailyPriceItem] (최대 30개)
                     - stck_bsop_date: 주식 영업일자 (YYYYMMDD)
                     - stck_clpr: 주식 종가
                     - stck_oprc: 주식 시가
                     - stck_hgpr: 주식 최고가
                     - stck_lwpr: 주식 최저가
                     - acml_vol: 누적 거래량
-                    - acml_tr_pbmn: 누적 거래대금
-                    - prdy_vrss: 전일 대비
-                    - prdy_vrss_sign: 전일 대비 부호
-                    - prdy_ctrt: 전일 대비율
-                    - hts_frgn_ehrt: HTS 외국인 소진율
-                    - frgn_ntby_qty: 외국인 순매수 수량
 
         Example:
-            >>> daily = agent.stock.get_daily_price("005930", period="D")
+            >>> daily = agent.stock.inquire_daily_price("005930", period="D")
             >>> for day in daily['output']:
             ...     print(day['stck_bsop_date'], day['stck_clpr'])
         """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_PRICE"],
             tr_id="FHKST01010400",
             params={
-                "fid_cond_mrkt_div_code": "J",
-                "fid_input_iscd": code,
-                "fid_period_div_code": period,
-                "fid_org_adj_prc": org_adj_prc,
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_PERIOD_DIV_CODE": period,
+                "FID_ORG_ADJ_PRC": org_adj_prc,
+            },
+        )
+
+    def inquire_daily_itemchartprice(
+        self,
+        code: str,
+        start_date: str = "",
+        end_date: str = "",
+        period: str = "D",
+        org_adj_prc: str = "1",
+    ) -> Optional[Dict]:
+        """
+        국내주식 기간별 시세 조회 (날짜 범위 지정)
+
+        Args:
+            code: 종목코드 (6자리)
+            start_date: 조회 시작일자 (YYYYMMDD, 공백이면 100건 이전부터)
+            end_date: 조회 종료일자 (YYYYMMDD, 공백이면 오늘까지)
+            period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
+            org_adj_prc: 수정주가구분 (0: 수정주가, 1: 원주가)
+
+        Returns:
+            DailyItemChartPriceResponse 형식의 Dict:
+                - output1[]: List[DailyPriceItem] (최대 100개)
+                    - stck_bsop_date: 주식 영업일자 (YYYYMMDD)
+                    - stck_clpr: 주식 종가
+                    - stck_oprc: 주식 시가
+                    - stck_hgpr: 주식 최고가
+                    - stck_lwpr: 주식 최저가
+                    - acml_vol: 누적 거래량
+                - output2: 요약 정보
+
+        Example:
+            >>> data = agent.stock.inquire_daily_itemchartprice("005930", "20240101", "20240131")
+            >>> for day in data['output1']:
+            ...     print(day['stck_bsop_date'], day['stck_clpr'])
+        """
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
+            tr_id="FHKST03010100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date,
+                "FID_PERIOD_DIV_CODE": period,
+                "FID_ORG_ADJ_PRC": org_adj_prc,
             },
         )
 
@@ -249,9 +290,7 @@ class StockPriceAPI(BaseAPI):
             },
         )
 
-    def search_stock_info(
-        self, code: str, product_type: str = "300"
-    ) -> Optional[Dict]:
+    def search_stock_info(self, code: str, product_type: str = "300") -> Optional[Dict]:
         """
         주식 기본정보 조회
 
@@ -544,9 +583,7 @@ class StockPriceAPI(BaseAPI):
             },
         )
 
-    def inquire_index_price(
-        self, index_code: str, market: str = "U"
-    ) -> Optional[Dict]:
+    def inquire_index_price(self, index_code: str, market: str = "U") -> Optional[Dict]:
         """
         국내업종 현재지수 조회
 
@@ -565,12 +602,13 @@ class StockPriceAPI(BaseAPI):
             업종 지수 데이터 (분봉 시세)
         """
         import warnings
+
         warnings.warn(
             "inquire_index_price()는 deprecated되었습니다. "
             "inquire_index_timeprice() 또는 get_index_timeprice() 사용을 권장합니다. "
             "(원본 API 엔드포인트 404 에러)",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         # 404 에러 발생하는 원본 엔드포인트 대신 정상 작동하는 메서드 사용
         return self.inquire_index_timeprice(index_code, market, time_div="0")
@@ -643,9 +681,7 @@ class StockPriceAPI(BaseAPI):
             },
         )
 
-    def inquire_overtime_price(
-        self, code: str, market: str = "J"
-    ) -> Optional[Dict]:
+    def inquire_overtime_price(self, code: str, market: str = "J") -> Optional[Dict]:
         """
         국내주식 시간외현재가 조회
 

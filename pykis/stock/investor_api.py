@@ -62,15 +62,17 @@ class StockInvestorAPI(BaseAPI):
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": ticker,
         }
+        # Note: retries parameter is kept for backwards compatibility but not used
+        # _make_request_dict doesn't accept retries parameter
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_INVESTOR"],
             tr_id="FHKST01010900",
             params=params,
-            retries=retries,
         )
 
     def get_stock_member(self, ticker: str, retries: int = 10) -> Optional[Dict]:
         """거래원별 매매 정보 조회 (rt_cd 메타데이터가 포함된)"""
+        # Note: retries parameter is kept for backwards compatibility but not used
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_MEMBER"],
             tr_id="FHKST01010600",
@@ -144,6 +146,9 @@ class StockInvestorAPI(BaseAPI):
             if not isinstance(output_data, list):
                 output_data = [output_data]
 
+            # 사용 가능한 날짜 범위 미리 추출 (details에서 사용)
+            available_dates = [row.get("stck_bsop_date", "") for row in output_data]
+
             # 해당 날짜 데이터 찾기
             target_row = None
             for row in output_data:
@@ -156,7 +161,6 @@ class StockInvestorAPI(BaseAPI):
                     f"[{code}] {date} 날짜 데이터 없음 (최근 30일 범위 내에서만 조회 가능)"
                 )
                 # 사용 가능한 날짜 범위 표시
-                available_dates = [row.get("stck_bsop_date", "") for row in output_data]
                 if available_dates:
                     logging.info(
                         f"[{code}] 사용 가능한 날짜: {available_dates[0]} ~ {available_dates[-1]}"
@@ -204,36 +208,6 @@ class StockInvestorAPI(BaseAPI):
         self, code: str, date: str = None
     ) -> Optional[tuple]:
         """당일 외국계 증권사 순매수 조회 (거래원 정보 기반)"""
-        # 외국계 증권사 패턴 (실제 거래원명에서 확인된 것들)
-        foreign_patterns = [
-            "JP모간",
-            "모간스탠리",
-            "모건스탠리",
-            "모간증권",
-            "골드만",
-            "골드만삭스",
-            "메릴린치",
-            "메릴",
-            "UBS",
-            "UBS코리아",
-            "CS증권",
-            "크레디트",
-            "BNP",
-            "BNP파리바",
-            "HSBC",
-            "HSBC증권",
-            "도이치",
-            "도이치은행",
-            "노무라",
-            "노무라증권",
-            "다이와",
-            "다이와증권",
-            "씨티그룹",
-            "씨티",
-            "바클레이",
-            "바클레이즈",
-        ]
-
         # 거래원 정보 조회
         member_data = self.get_stock_member(code)
         if not member_data or "output" not in member_data:
@@ -241,36 +215,49 @@ class StockInvestorAPI(BaseAPI):
             return None
 
         try:
-            # 외국계 증권사 매매량 집계
+            output = member_data["output"]
+
+            # API 응답 구조: 딕셔너리 형태로 상위 5개 매도/매수 회원사 정보
+            # seln_mbcr_name1~5: 매도 회원사명
+            # shnu_mbcr_name1~5: 매수 회원사명
+            # total_seln_qty1~5: 매도 수량
+            # total_shnu_qty1~5: 매수 수량
+            # seln_mbcr_glob_yn_1~5: 매도 외국계 여부 ('Y'/'N')
+            # shnu_mbcr_glob_yn_1~5: 매수 외국계 여부 ('Y'/'N')
+
             foreign_brokers = []
             total_buy = 0
             total_sell = 0
 
-            members = member_data["output"]
-            if not isinstance(members, list):
-                members = [members]
+            # 매도 상위 5개 회원사 확인
+            for i in range(1, 6):
+                broker_name = output.get(f"seln_mbcr_name{i}", "")
+                is_foreign = output.get(f"seln_mbcr_glob_yn_{i}", "N") == "Y"
+                sell_qty = int(output.get(f"total_seln_qty{i}", 0) or 0)
 
-            for member in members:
-                broker_name = member.get("hts_brkr_code", "")
-
-                # 외국계 패턴 매칭
-                is_foreign = any(pattern in broker_name for pattern in foreign_patterns)
-
-                if is_foreign:
-                    buy_qty = int(member.get("total_shnu_qty1", 0) or 0)
-                    sell_qty = int(member.get("total_seln_qty1", 0) or 0)
-
-                    total_buy += buy_qty
+                if is_foreign and broker_name and sell_qty > 0:
                     total_sell += sell_qty
+                    foreign_brokers.append({
+                        "name": broker_name,
+                        "type": "sell",
+                        "volume": sell_qty,
+                        "rank": i
+                    })
 
-                    foreign_brokers.append(
-                        {
-                            "name": broker_name,
-                            "buy": buy_qty,
-                            "sell": sell_qty,
-                            "net": buy_qty - sell_qty,
-                        }
-                    )
+            # 매수 상위 5개 회원사 확인
+            for i in range(1, 6):
+                broker_name = output.get(f"shnu_mbcr_name{i}", "")
+                is_foreign = output.get(f"shnu_mbcr_glob_yn_{i}", "N") == "Y"
+                buy_qty = int(output.get(f"total_shnu_qty{i}", 0) or 0)
+
+                if is_foreign and broker_name and buy_qty > 0:
+                    total_buy += buy_qty
+                    foreign_brokers.append({
+                        "name": broker_name,
+                        "type": "buy",
+                        "volume": buy_qty,
+                        "rank": i
+                    })
 
             net_buy = total_buy - total_sell
 

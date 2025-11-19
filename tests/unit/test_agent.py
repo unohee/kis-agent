@@ -34,7 +34,9 @@ class TestAgent(unittest.TestCase):
     @patch("pykis.core.agent.AccountAPI")
     @patch("pykis.core.agent.ProgramTradeAPI")
     @patch("pykis.core.agent.StockMarketAPI")
-    def setUp(self, mock_market_api, mock_program_api, mock_account_api, mock_stock_api):
+    def setUp(
+        self, mock_market_api, mock_program_api, mock_account_api, mock_stock_api
+    ):
         """테스트 설정"""
         # Mock 클라이언트 사용
         self.mock_client = Mock(spec=KISClient)
@@ -119,21 +121,41 @@ class TestAgent(unittest.TestCase):
             self.test_stock_code
         )
 
-    def test_get_daily_price(self):
-        """주식 일별 시세 조회 테스트 - Mock 사용"""
+    def test_inquire_daily_price(self):
+        """주식현재가 일자별 조회 테스트 (최근 30건) - Mock 사용"""
         expected_result = {
             "rt_cd": "0",
             "msg1": "성공",
             "output": [{"stck_bsop_date": "20231215", "stck_clpr": "70000"}],
         }
         self.agent.stock_api = Mock()
-        self.agent.stock_api.get_daily_price.return_value = expected_result
+        self.agent.stock_api.inquire_daily_price.return_value = expected_result
 
-        result = self.agent.get_daily_price(self.test_stock_code)
+        result = self.agent.inquire_daily_price(self.test_stock_code)
 
         self.assertEqual(result, expected_result)
-        self.agent.stock_api.get_daily_price.assert_called_once_with(
+        self.agent.stock_api.inquire_daily_price.assert_called_once_with(
             self.test_stock_code, "D", "1"
+        )
+
+    def test_inquire_daily_itemchartprice(self):
+        """국내주식 기간별 시세 조회 테스트 (날짜 범위 지정) - Mock 사용"""
+        expected_result = {
+            "rt_cd": "0",
+            "msg1": "성공",
+            "output1": [{"stck_bsop_date": "20220101", "stck_clpr": "65000"}],
+            "output2": {},
+        }
+        self.agent.stock_api = Mock()
+        self.agent.stock_api.inquire_daily_itemchartprice.return_value = expected_result
+
+        result = self.agent.inquire_daily_itemchartprice(
+            self.test_stock_code, "20220101", "20220809"
+        )
+
+        self.assertEqual(result, expected_result)
+        self.agent.stock_api.inquire_daily_itemchartprice.assert_called_once_with(
+            self.test_stock_code, "20220101", "20220809", "D", "1"
         )
 
     def test_get_orderbook(self):
@@ -276,7 +298,9 @@ class TestAgent(unittest.TestCase):
         self.assertIsInstance(result, list)
         # "price" 키워드가 포함된 메서드가 있는지 확인
         if len(result) > 0:
-            self.assertTrue(any("price" in method.get("name", "").lower() for method in result))
+            self.assertTrue(
+                any("price" in method.get("name", "").lower() for method in result)
+            )
 
     def test_show_method_usage(self):
         """show_method_usage 메서드 테스트 - Mock 사용"""

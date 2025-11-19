@@ -63,7 +63,7 @@ class TestStockPriceAPI(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_get_daily_price_default_params(self):
+    def test_inquire_daily_price_default_params(self):
         """일별 시세 조회 - 기본 파라미터"""
         expected_response = {
             "rt_cd": "0",
@@ -75,34 +75,34 @@ class TestStockPriceAPI(unittest.TestCase):
         }
         self.mock_client.make_request.return_value = expected_response
 
-        result = self.api.get_daily_price("005930")
+        result = self.api.inquire_daily_price("005930")
 
         self.assertEqual(result, expected_response)
         self.mock_client.make_request.assert_called_once_with(
-            endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_PRICE"],
             tr_id="FHKST01010400",
             params={
-                "fid_cond_mrkt_div_code": "J",
-                "fid_input_iscd": "005930",
-                "fid_period_div_code": "D",
-                "fid_org_adj_prc": "1",
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": "005930",
+                "FID_PERIOD_DIV_CODE": "D",
+                "FID_ORG_ADJ_PRC": "1",
             },
         )
 
-    def test_get_daily_price_custom_params(self):
+    def test_inquire_daily_price_custom_params(self):
         """일별 시세 조회 - 커스텀 파라미터"""
         expected_response = {"rt_cd": "0", "msg1": "성공", "output": []}
         self.mock_client.make_request.return_value = expected_response
 
-        result = self.api.get_daily_price("005930", period="W", org_adj_prc="0")
+        result = self.api.inquire_daily_price("005930", period="W", org_adj_prc="0")
 
         self.assertEqual(result, expected_response)
 
         # 파라미터가 올바르게 설정되었는지 확인
         call_args = self.mock_client.make_request.call_args
         params = call_args[1]["params"]
-        self.assertEqual(params["fid_period_div_code"], "W")
-        self.assertEqual(params["fid_org_adj_prc"], "0")
+        self.assertEqual(params["FID_PERIOD_DIV_CODE"], "W")
+        self.assertEqual(params["FID_ORG_ADJ_PRC"], "0")
 
     def test_get_orderbook_success(self):
         """호가 정보 조회 성공"""
@@ -256,7 +256,7 @@ class TestStockPriceAPI(unittest.TestCase):
 
         # 연속 호출
         result1 = self.api.get_stock_price("005930")
-        result2 = self.api.get_daily_price("005930")
+        result2 = self.api.inquire_daily_price("005930")
         result3 = self.api.get_orderbook("005930")
 
         # 결과 검증

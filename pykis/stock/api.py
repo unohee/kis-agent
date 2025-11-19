@@ -150,6 +150,7 @@ class StockAPI(BaseAPI):
     def __getattr__(self, name: str):
         """[DEPRECATION] 레거시 메서드 접근 시 Facade로 포워딩하며 경고 표시"""
         import warnings
+
         try:
             from .api_facade import StockAPI as FacadeStockAPI
         except Exception:
@@ -203,29 +204,33 @@ class StockAPI(BaseAPI):
             params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code},
         )
 
-    def get_daily_price(
-        self, code: str, period: str = "D", org_adj_prc: str = "1"
+    def inquire_daily_price(
+        self,
+        code: str,
+        period: str = "D",
+        org_adj_prc: str = "1",
     ) -> Optional[Dict[str, Any]]:
-        """일별/주별/월별 시세 조회 (Get daily/weekly/monthly price data)
+        """주식현재가 일자별 조회 (Get recent daily/weekly/monthly price data)
 
-        기간별 OHLCV 데이터를 조회합니다. Agent.get_daily_price()의 구현 메서드입니다.
-        Retrieves OHLCV data by period. Implementation method for Agent.get_daily_price().
+        최근 30거래일/주/월 데이터를 조회합니다. 날짜 범위 지정 없이 최근 데이터를 빠르게 조회할 때 사용합니다.
+        Retrieves recent 30 days/weeks/months of price data without date range specification.
 
         Args:
             code: 종목코드 6자리 (Stock code, 6 digits)
+                  예: "005930" (삼성전자)
             period: 기간구분 (Period type)
-                    - "D": 일봉 (Daily)
-                    - "W": 주봉 (Weekly)
-                    - "M": 월봉 (Monthly)
-                    - "Y": 연봉 (Yearly)
+                    - "D": 일봉 - 최근 30거래일 (Daily - recent 30 trading days)
+                    - "W": 주봉 - 최근 30주 (Weekly - recent 30 weeks)
+                    - "M": 월봉 - 최근 30개월 (Monthly - recent 30 months)
             org_adj_prc: 수정주가 적용 (Adjusted price flag)
-                         - "0": 미사용 (Unadjusted)
-                         - "1": 사용 (Adjusted, 권리락/배당락 반영)
+                         - "0": 수정주가 미반영 (Not adjusted)
+                         - "1": 수정주가 반영 (Adjusted for splits/dividends)
 
         Returns:
-            Optional[Dict[str, Any]]: OHLCV 데이터 (Price data with metadata)
-                - rt_cd: 응답코드 (Response code)
-                - output1: 일봉 데이터 리스트 (Candlestick data list, max 100)
+            Optional[Dict[str, Any]]: 일자별 시세 데이터 (Price data)
+                - rt_cd: 응답코드 (Response code, "0" = success)
+                - msg1: 응답메시지
+                - output: 시세 데이터 리스트 (최대 30건)
                     - stck_bsop_date: 영업일자 (Business date)
                     - stck_oprc: 시가 (Open)
                     - stck_hgpr: 고가 (High)
@@ -235,17 +240,87 @@ class StockAPI(BaseAPI):
 
         Note:
             - Rate Limiting: 18 RPS / 900 RPM
-            - 최대 100건 조회 (Max 100 records per request)
+            - 최대 30건 조회 (Max 30 records)
+            - 날짜 범위 지정이 필요한 경우 inquire_daily_itemchartprice 사용
+            - API 엔드포인트: /uapi/domestic-stock/v1/quotations/inquire-daily-price
+            - TR_ID: FHKST01010400
         """
-        # [변경 이유] API 요청 메서드는 원시 dict를 반환하도록 일관화
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_PRICE"],
             tr_id="FHKST01010400",
             params={
-                "fid_cond_mrkt_div_code": "J",
-                "fid_input_iscd": code,
-                "fid_period_div_code": period,
-                "fid_org_adj_prc": org_adj_prc,
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_PERIOD_DIV_CODE": period,
+                "FID_ORG_ADJ_PRC": org_adj_prc,
+            },
+        )
+
+    def inquire_daily_itemchartprice(
+        self,
+        code: str,
+        start_date: str = "",
+        end_date: str = "",
+        period: str = "D",
+        org_adj_prc: str = "1",
+    ) -> Optional[Dict[str, Any]]:
+        """국내주식 기간별 시세 조회 (Get period-based price data with date range)
+
+        지정한 기간 동안의 OHLCV 데이터를 조회합니다. 날짜 범위를 지정하여 최대 100건까지 조회 가능합니다.
+        Retrieves OHLCV data for specified date range (up to 100 records).
+
+        Args:
+            code: 종목코드 6자리 (Stock code, 6 digits)
+                  예: "005930" (삼성전자)
+            start_date: 조회 시작일자 (Start date, YYYYMMDD format)
+                        예: "20220101"
+                        공백이면 100건 이전부터 (Empty = 100 records back)
+            end_date: 조회 종료일자 (End date, YYYYMMDD format)
+                      예: "20220809"
+                      공백이면 오늘까지 (Empty = until today)
+            period: 기간구분 (Period type)
+                    - "D": 일봉 (Daily candlesticks)
+                    - "W": 주봉 (Weekly candlesticks)
+                    - "M": 월봉 (Monthly candlesticks)
+                    - "Y": 연봉 (Yearly candlesticks)
+            org_adj_prc: 수정주가 적용 (Adjusted price flag)
+                         - "0": 수정주가 (Adjusted for splits/dividends)
+                         - "1": 원주가 (Original price)
+
+        Returns:
+            Optional[Dict[str, Any]]: OHLCV 데이터 (Price data with metadata)
+                - rt_cd: 응답코드 (Response code, "0" = success)
+                - msg1: 응답메시지
+                - output1: 일봉 데이터 리스트 (Candlestick data list, max 100)
+                    - stck_bsop_date: 영업일자 (Business date)
+                    - stck_oprc: 시가 (Open)
+                    - stck_hgpr: 고가 (High)
+                    - stck_lwpr: 저가 (Low)
+                    - stck_clpr: 종가 (Close)
+                    - acml_vol: 거래량 (Volume)
+                - output2: 추가 정보
+                    - prdy_vrss: 전일대비
+                    - prdy_vrss_sign: 전일대비 부호
+                    - prdy_ctrt: 전일대비율
+
+        Note:
+            - Rate Limiting: 18 RPS / 900 RPM
+            - 최대 100건 조회 (Max 100 records per request)
+            - 과거 데이터 범위: 최대 10년 (Up to 10 years of historical data)
+            - 수정주가 권장: 장기 차트 분석 시 "0" 사용
+            - API 엔드포인트: /uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice
+            - TR_ID: FHKST03010100
+        """
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
+            tr_id="FHKST03010100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_INPUT_ISCD": code,
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date,
+                "FID_PERIOD_DIV_CODE": period,
+                "FID_ORG_ADJ_PRC": org_adj_prc,
             },
         )
 
@@ -2559,9 +2634,7 @@ class StockAPI(BaseAPI):
             },
         )
 
-    def search_stock_info(
-        self, code: str, product_type: str = "300"
-    ) -> Optional[Dict]:
+    def search_stock_info(self, code: str, product_type: str = "300") -> Optional[Dict]:
         """
         주식 기본정보 조회
 
@@ -2854,9 +2927,7 @@ class StockAPI(BaseAPI):
             },
         )
 
-    def inquire_index_price(
-        self, index_code: str, market: str = "U"
-    ) -> Optional[Dict]:
+    def inquire_index_price(self, index_code: str, market: str = "U") -> Optional[Dict]:
         """
         국내업종 현재지수 조회
 
@@ -2943,9 +3014,7 @@ class StockAPI(BaseAPI):
             },
         )
 
-    def inquire_overtime_price(
-        self, code: str, market: str = "J"
-    ) -> Optional[Dict]:
+    def inquire_overtime_price(self, code: str, market: str = "J") -> Optional[Dict]:
         """
         국내주식 시간외현재가 조회
 
