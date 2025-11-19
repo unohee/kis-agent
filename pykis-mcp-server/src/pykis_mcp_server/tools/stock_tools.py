@@ -1,6 +1,5 @@
 """Stock price and market data MCP tools"""
 from typing import Any, Dict
-from mcp.server import Server
 
 from ..server import get_agent, server
 from ..errors import validate_api_response, InvalidParameterError

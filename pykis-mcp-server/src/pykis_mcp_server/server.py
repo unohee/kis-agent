@@ -2,8 +2,7 @@
 import asyncio
 import logging
 from typing import Optional
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
+from fastmcp import FastMCP
 
 from pykis import Agent
 
@@ -23,7 +22,7 @@ logging.getLogger("pykis").setLevel(logging.WARNING)  # Reduce noise from PyKIS 
 logging.getLogger("pykis.core.rate_limiter").setLevel(logging.INFO)  # Important for monitoring
 
 # Global server and agent instances
-server = Server("pykis-mcp-server")
+server = FastMCP("pykis-mcp-server")
 _agent: Optional[Agent] = None
 _config: Optional[MCPServerConfig] = None
 
@@ -83,7 +82,7 @@ from .tools import (  # noqa: E402
 )
 
 
-async def main():
+def main():
     """Main entry point for MCP server"""
     try:
         # Initialize configuration and agent
@@ -96,13 +95,8 @@ async def main():
         # Pre-initialize agent to fail fast if configuration is invalid
         get_agent()
 
-        # Run server
-        async with stdio_server() as (read_stream, write_stream):
-            await server.run(
-                read_stream,
-                write_stream,
-                server.create_initialization_options()
-            )
+        # Run server using FastMCP
+        server.run()
     except ConfigurationError as e:
         logger.error(f"Configuration error: {e}")
         raise
@@ -112,4 +106,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
