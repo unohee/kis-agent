@@ -138,7 +138,28 @@ node_modules/
 # OS specific
 .DS_Store
 
+open-trading-api/
+
 # Task files
 # tasks.json
-# tasks/ 
-open-trading-api/
+# tasks/
+
+# AI Assistant config directories
+.clinerules/
+.cursor/
+.gemini/
+.kilo/
+.kiro/
+.roo/
+.trae/
+.windsurf/
+.zed/
+.rules
+AGENT.md
+GEMINI.md
+.taskmaster/AGENT.md
+opencode.json
+.env_pykis
+
+# GitHub instructions (development only)
+.github/instructions/ 
