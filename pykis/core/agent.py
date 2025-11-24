@@ -3517,15 +3517,16 @@ class Agent(BaseExceptionHandler):
             - 주문 가능 시간: 08:00 ~ 15:30 (정규장) (Regular market hours)
             - 시간외 거래: 08:30 ~ 08:40, 15:40 ~ 16:00 (Extended hours)
         """
-        return self.stock_api.order_cash(
-            ord_dv=ord_dv,
+        # ord_dv를 buy_sell로 변환 ("buy" → "BUY", "sell" → "SELL")
+        buy_sell = "BUY" if ord_dv.lower() == "buy" else "SELL"
+
+        return self.account_api.order_cash(
             pdno=pdno,
-            ord_dvsn=ord_dvsn,
-            ord_qty=ord_qty,
-            ord_unpr=ord_unpr,
-            excg_id_dvsn_cd=excg_id_dvsn_cd,
-            sll_type=sll_type,
-            cndt_pric=cndt_pric,
+            qty=int(ord_qty),
+            price=int(ord_unpr),
+            buy_sell=buy_sell,
+            order_type=ord_dvsn,
+            exchange=excg_id_dvsn_cd,
         )
 
     def order_stock_credit(
@@ -3591,20 +3592,24 @@ class Agent(BaseExceptionHandler):
             ...     ord_dvsn="03", ord_qty="1", ord_unpr="0", loan_dt=today
             ... )
         """
-        return self.stock_api.order_credit(
-            ord_dv=ord_dv,
-            pdno=pdno,
-            crdt_type=crdt_type,
-            loan_dt=loan_dt,
-            ord_dvsn=ord_dvsn,
-            ord_qty=ord_qty,
-            ord_unpr=ord_unpr,
-            excg_id_dvsn_cd=excg_id_dvsn_cd,
-            sll_type=sll_type,
-            rsvn_ord_yn=rsvn_ord_yn,
-            emgc_ord_yn=emgc_ord_yn,
-            cndt_pric=cndt_pric,
-        )
+        # ord_dv에 따라 적절한 신용주문 메서드 호출
+        if ord_dv.lower() == "buy":
+            return self.account_api.order_credit_buy(
+                pdno=pdno,
+                qty=int(ord_qty),
+                price=int(ord_unpr),
+                order_type=ord_dvsn,
+                credit_type=crdt_type,
+                exchange=excg_id_dvsn_cd,
+            )
+        else:
+            return self.account_api.order_credit_sell(
+                pdno=pdno,
+                qty=int(ord_qty),
+                price=int(ord_unpr),
+                order_type=ord_dvsn,
+                credit_type=crdt_type,
+            )
 
     def inquire_order_psbl(
         self,

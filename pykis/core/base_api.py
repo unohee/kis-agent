@@ -268,6 +268,7 @@ class BaseAPI:
         params: Dict,
         use_cache: bool = True,
         cache_ttl: Optional[int] = None,
+        method: str = "GET",
     ) -> Optional[Dict]:
         """
         API 요청 후 rt_cd 메타데이터를 포함한 Dict 반환
@@ -278,6 +279,7 @@ class BaseAPI:
             params: 요청 파라미터
             use_cache: 캐시 사용 여부 (기본: True)
             cache_ttl: 캐시 TTL (초), None인 경우 엔드포인트별 기본값 사용
+            method: HTTP 메서드 (기본: GET, 주문 API는 POST 사용)
 
         Returns:
             rt_cd 메타데이터가 포함된 Dict 응답
@@ -298,7 +300,7 @@ class BaseAPI:
 
         try:
             response = self.client.make_request(
-                endpoint=endpoint, tr_id=tr_id, params=params
+                endpoint=endpoint, tr_id=tr_id, params=params, method=method
             )
 
             if not response:

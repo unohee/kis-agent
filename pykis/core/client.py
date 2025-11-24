@@ -220,6 +220,11 @@ class KISClient:
         # 초기 토큰 발급 또는 기존 토큰 재사용
         self._initialize_token()
 
+        # is_real 속성 설정 (실전투자 여부 판단)
+        # 실전투자: https://openapi.koreainvestment.com:9443
+        # 모의투자: https://openapivts.koreainvestment.com:29443
+        self.is_real = "openapivts" not in getattr(self, "base_url", "")
+
     def _initialize_token(self) -> None:
         """초기 토큰 발급 또는 기존 토큰 재사용 (Thread-Safe)"""
         with self.token_refresh_lock:
@@ -356,6 +361,7 @@ class KISClient:
         headers["appkey"] = env.my_app
         headers["appsecret"] = env.my_sec
         headers["tr_id"] = tr_id
+        headers["custtype"] = "P"  # 개인 고객 (필수: 주문 API에서 요구됨)
 
         if self.verbose:
             logger.debug(f"요청 URL: {url}")

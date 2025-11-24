@@ -304,6 +304,7 @@ class AccountAPI(BaseAPI):
                     "ORD_QTY": str(qty),
                     "ORD_UNPR": str(price),
                 },
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"신용 주문 실패: {e}")
@@ -344,6 +345,7 @@ class AccountAPI(BaseAPI):
                     "ORD_UNPR": str(price),
                     "QTY_ALL_ORD_YN": "Y",
                 },
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"정정/취소 주문 ��패: {e}")
@@ -423,6 +425,7 @@ class AccountAPI(BaseAPI):
                     "ORD_DVSN_CD": order_type,
                     "ORD_OBJT_CBLC_DVSN_CD": "10",
                 },
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"예약 주문 실패: {e}")
@@ -468,6 +471,7 @@ class AccountAPI(BaseAPI):
                     "ORD_OBJT_CBLC_DVSN_CD": "10",
                     "RSVN_ORD_SEQ": str(seq),
                 },
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"예약 주문 정정/취소 실패: {e}")
@@ -1346,11 +1350,11 @@ class AccountAPI(BaseAPI):
             >>> result = api.order_cash("005930", 10, 0, "BUY", "03", "SOR")
         """
         try:
-            # TR_ID 결정
+            # TR_ID 결정 (실거래용)
             if buy_sell.upper() == "SELL":
-                tr_id = "TTTC0011U"  # 매도
+                tr_id = "TTTC0801U"  # 실거래 매도
             else:
-                tr_id = "TTTC0012U"  # 매수
+                tr_id = "TTTC0802U"  # 실거래 매수
 
             # 파라미터 구성
             params = {
@@ -1370,6 +1374,7 @@ class AccountAPI(BaseAPI):
                 endpoint="/uapi/domestic-stock/v1/trading/order-cash",
                 tr_id=tr_id,
                 params=params,
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"현금 주문 실패: {e}")
@@ -1532,6 +1537,7 @@ class AccountAPI(BaseAPI):
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
                 tr_id="TTTC0052U",  # 신용매수
                 params=params,
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"신용매수 주문 실패: {e}")
@@ -1589,6 +1595,7 @@ class AccountAPI(BaseAPI):
                     "CRDT_TYPE": credit_type,
                     "LOAN_DT": "",
                 },
+                method="POST",  # 주문 API는 POST 메서드 사용
             )
         except Exception as e:
             logging.error(f"신용매도 주문 실패: {e}")
