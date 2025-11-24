@@ -611,7 +611,7 @@ class StockPriceAPI(BaseAPI):
             stacklevel=2,
         )
         # 404 에러 발생하는 원본 엔드포인트 대신 정상 작동하는 메서드 사용
-        return self.inquire_index_timeprice(index_code, market, time_div="0")
+        return self.inquire_index_timeprice(index_code, market, time_div="600")
 
     def inquire_index_tickprice(
         self, index_code: str, market: str = "U"
@@ -636,26 +636,33 @@ class StockPriceAPI(BaseAPI):
         )
 
     def inquire_index_timeprice(
-        self, index_code: str, market: str = "U", time_div: str = "0"
+        self, index_code: str, market: str = "U", time_div: str = "600"
     ) -> Optional[Dict]:
         """
-        국내업종 지수 분/일봉 시세 조회
+        국내업종 지수 시간별 시세 조회
 
         Args:
             index_code: 업종코드 (0001:코스피, 1001:코스닥, 2001:코스피200)
             market: 시장구분 (U:업종)
-            time_div: 시간구분 (0:분봉, 1:일봉)
+            time_div: 시간간격(초) - 기본값 600 (10분봉)
+                - "60": 1분봉
+                - "120": 2분봉
+                - "300": 5분봉
+                - "600": 10분봉
+                - "900": 15분봉
+                - "1800": 30분봉
+                - "3600": 60분봉
 
         Returns:
-            지수 분/일봉 시세 데이터
+            지수 시간별 시세 데이터
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_INDEX_TIMEPRICE"],
-            tr_id="FHKUP03500200",
+            tr_id="FHPUP02110200",
             params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": index_code,
-                "FID_INPUT_DATE_1": time_div,
+                "fid_cond_mrkt_div_code": market,
+                "fid_input_iscd": index_code,
+                "fid_input_hour_1": time_div,
             },
         )
 
