@@ -2,6 +2,87 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [Unreleased] - 2025-12-04
+
+### 🔐 인증 시스템 개선 - 토큰 발급 루프 방지
+
+#### 🎯 주요 개선사항
+
+**1. 명시적 인증 메서드 추가**
+- `Agent.authenticate(force_refresh=False)` 메서드 신규 추가
+  - 토큰 발급을 명시적으로 제어 가능
+  - `force_refresh=True`로 강제 갱신 지원
+  - 기존 토큰 재사용으로 Rate Limit 회피
+
+**2. 자동 인증 선택적 제어**
+- `Agent(..., auto_auth=False)` 매개변수 추가
+  - 인스턴스 생성 시 자동 토큰 발급 비활성화
+  - 여러 Agent 인스턴스 생성 시 Rate Limit 방지
+- `KISClient(..., auto_auth=False)` 매개변수 추가
+  - 클라이언트 레벨에서도 자동 인증 제어 가능
+- 하위 호환성 유지 (기본값 `auto_auth=True`)
+
+**3. 토큰 경로 일관성 및 디버깅 강화**
+- `save_token()`, `read_token()`에 디버그 로깅 추가
+  - APP_KEY별 토큰 파일 경로 명시적 로깅
+  - 토큰 저장/조회 시 동일한 경로 사용 확인
+  - APP_KEY 불일치 감지 및 경고
+- `auth()` 함수 로깅 개선
+  - APP_KEY 앞 8자리 로깅 (보안상 전체는 제외)
+  - 토큰 재사용/신규발급 명확히 구분
+
+**4. 전역 Traceback 로깅**
+- 모든 예외 핸들러에 `traceback.format_exc()` 추가
+  - `auth.py`: `auth()`, `save_token()`, `read_token()`
+  - `client.py`: `_initialize_token()`, `_check_and_refresh_token()`, `refresh_token()`
+  - `agent.py`: `_ensure_valid_token()`, `authenticate()`
+- 디버깅 효율성 대폭 향상
+
+#### 📝 사용 예시
+
+```python
+# 기존 방식 (자동 인증, 하위 호환성 유지)
+agent = Agent(
+    app_key="YOUR_KEY",
+    app_secret="YOUR_SECRET",
+    account_no="12345678",
+    account_code="01"
+)
+
+# 신규 방식 (명시적 인증, Rate Limit 방지)
+agent = Agent(
+    app_key="YOUR_KEY",
+    app_secret="YOUR_SECRET",
+    account_no="12345678",
+    account_code="01",
+    auto_auth=False  # 자동 발급 비활성화
+)
+agent.authenticate()  # 명시적으로 토큰 발급
+agent.authenticate(force_refresh=True)  # 강제 갱신
+
+# 여러 Agent 인스턴스 생성 시
+agent1 = Agent(..., auto_auth=True)  # 첫 번째만 자동 발급
+agent2 = Agent(..., auto_auth=False)  # 저장된 토큰 재사용
+agent2.authenticate()
+```
+
+#### 🐛 버그 수정
+- 토큰 발급 후 경로 불일치로 인한 재발급 루프 해결
+- Agent 인스턴스 생성 시마다 자동 토큰 발급으로 인한 Rate Limit 문제 해결
+- 토큰 저장 경로와 조회 경로 불일치 문제 해결
+
+#### 📁 수정된 파일 (5개, +254줄, -121줄)
+- `pykis/core/agent.py` - `authenticate()` 메서드 추가, `auto_auth` 매개변수 지원
+- `pykis/core/auth.py` - 로깅 강화, traceback 추가
+- `pykis/core/client.py` - `auto_auth` 매개변수 지원, traceback 추가
+- `pykis/account/api.py` - 미세 조정
+- `pykis-mcp-server/src/pykis_mcp_server/tools/order_tools.py` - 미세 조정
+
+#### ✅ 검증 완료
+- ✅ 기존 테스트 통과 (하위 호환성 유지)
+- ✅ 토큰 경로 일관성 확인
+- ✅ 명시적 인증 API 동작 확인
+
 ## [1.3.1] - 2025-10-30
 
 ### 📚 API 응답 타입 완전 문서화

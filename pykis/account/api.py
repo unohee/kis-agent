@@ -1461,6 +1461,7 @@ class AccountAPI(BaseAPI):
                 - "23": 유통융자매수
             exchange: 주문 거래소 (기본값: "KRX")
                 - "KRX": 한국거래소
+                - "NXT": 대체거래소 (넥스트레이드)
                 - "SOR": Smart Order Routing (최적 체결)
 
         Returns:

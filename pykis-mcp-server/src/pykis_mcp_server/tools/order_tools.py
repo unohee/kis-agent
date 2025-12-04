@@ -132,7 +132,9 @@ async def order_cash(code: str, qty: str, price: str, order_type: str) -> Dict[s
 
 @server.tool()
 async def order_cash_sor(code: str, qty: str) -> Dict[str, Any]:
-    """시장가 매수
+    """SOR 최유리지정가 주문 (Smart Order Routing)
+
+    KRX와 NXT 거래소 간 최적 체결을 위한 자동 주문 라우팅
 
     Args:
         code: 종목코드 6자리

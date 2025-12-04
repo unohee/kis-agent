@@ -123,21 +123,30 @@ def save_token(
         path: 기본 저장 경로
         app_key: APP_KEY (제공시 별도 파일로 저장)
     """
-    # APP_KEY가 제공되면 해당 키 전용 파일에 저장
-    if app_key:
-        path = _get_token_path_for_app_key(app_key, path)
+    import traceback
 
-    valid_date = datetime.strptime(my_expired, "%Y-%m-%d %H:%M:%S")
-    token_data = {
-        "token": my_token,
-        # valid-date를 ISO 형식 문자열로 저장 (JSON 호환)
-        "valid-date": valid_date.isoformat(),
-        # APP_KEY의 앞 8자리를 저장하여 토큰 매칭 검증에 사용
-        "app_key_prefix": app_key[:8] if app_key and len(app_key) >= 8 else "",
-    }
-    # print('Save token date: ', valid_date)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(token_data, f, ensure_ascii=False, indent=4)
+    try:
+        # APP_KEY가 제공되면 해당 키 전용 파일에 저장
+        if app_key:
+            path = _get_token_path_for_app_key(app_key, path)
+            _logger.debug(f"토큰 저장 경로: {path}")
+
+        valid_date = datetime.strptime(my_expired, "%Y-%m-%d %H:%M:%S")
+        token_data = {
+            "token": my_token,
+            # valid-date를 ISO 형식 문자열로 저장 (JSON 호환)
+            "valid-date": valid_date.isoformat(),
+            # APP_KEY의 앞 8자리를 저장하여 토큰 매칭 검증에 사용
+            "app_key_prefix": app_key[:8] if app_key and len(app_key) >= 8 else "",
+        }
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(token_data, f, ensure_ascii=False, indent=4)
+
+        _logger.info(f"토큰 저장 완료: {path} (만료: {my_expired})")
+    except Exception as e:
+        _logger.error(f"토큰 저장 실패: {e}\n{traceback.format_exc()}")
+        raise
 
 
 # 토큰 확인 (토큰값, 토큰 유효시간_1일, 6시간 이내 발급신청시는 기존 토큰값과 동일, 발급시 알림톡 발송)
@@ -151,20 +160,26 @@ def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str,
     Returns:
         Optional[Dict[str, Any]]: 유효한 토큰 정보 또는 None
     """
+    import traceback
+
     try:
         # APP_KEY가 제공되면 해당 키 전용 파일에서 읽기
         if app_key:
             path = _get_token_path_for_app_key(app_key, path)
+            _logger.debug(f"토큰 읽기 경로: {path}")
 
         if not os.path.exists(path):
+            _logger.debug(f"토큰 파일이 존재하지 않음: {path}")
             return None
         with open(path, encoding="utf-8") as f:
             tkg_tmp = json.load(f)
 
         # 테스트 호환을 위해 두 가지 포맷을 모두 처리합니다.
         if "access_token" in tkg_tmp:
+            _logger.debug(f"기존 포맷 토큰 발견: {path}")
             return tkg_tmp
         if not tkg_tmp or "valid-date" not in tkg_tmp or "token" not in tkg_tmp:
+            _logger.warning(f"토큰 파일 형식이 올바르지 않음: {path}")
             return None
 
         # APP_KEY 일치 여부 검증 (app_key_prefix가 저장되어 있는 경우)
@@ -172,6 +187,9 @@ def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str,
             key_prefix = app_key[:8] if len(app_key) >= 8 else app_key
             if tkg_tmp["app_key_prefix"] != key_prefix:
                 # APP_KEY가 일치하지 않으면 None 반환 (새 토큰 발급 필요)
+                _logger.warning(
+                    f"APP_KEY 불일치: 저장된={tkg_tmp['app_key_prefix']}, 요청={key_prefix}"
+                )
                 return None
 
         # 토큰 만료 일,시간 (ISO 형식 문자열에서 datetime 객체로 파싱)
@@ -182,19 +200,19 @@ def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str,
         # 현재일자,시간
         now_dt = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
 
-        # print('expire dt: ', exp_dt, ' vs now dt:', now_dt)
         # 저장된 토큰 만료일자 체크 (만료일시 > 현재일시 인경우 보관 토큰 리턴)
         if exp_dt > now_dt:
+            _logger.debug(f"유효한 토큰 발견: 만료={exp_dt}")
             # 딕셔너리 형태로 반환하여 테스트에서 활용
             return {
                 "access_token": tkg_tmp["token"],
                 "access_token_token_expired": exp_dt,
             }
         else:
-            # print('Need new token: ', tkg_tmp['valid-date'])
+            _logger.info(f"토큰 만료됨: {exp_dt}")
             return None
-    except Exception:
-        # print('read token error: ', e)
+    except Exception as e:
+        _logger.error(f"토큰 읽기 실패: {e}\n{traceback.format_exc()}")
         return None
 
 
@@ -307,93 +325,105 @@ def auth(
     Returns:
         Any: 인증 토큰 정보를 포함한 응답 객체
     """
+    import traceback
+
     # [변경 이유] flake8 F824 (unused global) 경고 제거: 실제 재할당하는 전역 변수만 선언
     global _cfg
 
-    if config is not None:
-        _cfg = {
-            "my_app": config.APP_KEY,
-            "my_sec": config.APP_SECRET,
-            "my_acct_stock": config.ACCOUNT_NO,
-            "my_prod": config.ACCOUNT_CODE,
-            "prod": config.BASE_URL,
-        }
+    try:
+        if config is not None:
+            _cfg = {
+                "my_app": config.APP_KEY,
+                "my_sec": config.APP_SECRET,
+                "my_acct_stock": config.ACCOUNT_NO,
+                "my_prod": config.ACCOUNT_CODE,
+                "prod": config.BASE_URL,
+            }
+            if product is None:
+                product = config.ACCOUNT_CODE
         if product is None:
-            product = config.ACCOUNT_CODE
-    if product is None:
-        product = _cfg.get("my_prod", "")
-    # API 키는 config 매개변수로 전달되어야 합니다.
-    if svr == "prod":  # 실전투자
-        ak1 = "my_app"  # 앱키 (실전투자용)
-        ak2 = "my_sec"  # 앱시크리트 (실전투자용)
-    elif svr == "vps":  # 모의투자
-        ak1 = "paper_app"  # 앱키 (모의투자용)
-        ak2 = "paper_sec"  # 앱시크리트 (모의투자용)
+            product = _cfg.get("my_prod", "")
+        # API 키는 config 매개변수로 전달되어야 합니다.
+        if svr == "prod":  # 실전투자
+            ak1 = "my_app"  # 앱키 (실전투자용)
+            ak2 = "my_sec"  # 앱시크리트 (실전투자용)
+        elif svr == "vps":  # 모의투자
+            ak1 = "paper_app"  # 앱키 (모의투자용)
+            ak2 = "paper_sec"  # 앱시크리트 (모의투자용)
 
-    # 앱키, 앱시크리트 가져오기
-    p = {
-        "grant_type": "client_credentials",
-        "appkey": _cfg.get(ak1, ""),
-        "appsecret": _cfg.get(ak2, ""),
-    }
+        # 앱키, 앱시크리트 가져오기
+        p = {
+            "grant_type": "client_credentials",
+            "appkey": _cfg.get(ak1, ""),
+            "appsecret": _cfg.get(ak2, ""),
+        }
 
-    # 현재 APP_KEY 가져오기 (토큰 파일 분리를 위해)
-    current_app_key = _cfg.get(ak1, "")
-
-    # 기존 발급된 토큰이 있는지 확인 (APP_KEY별로 조회)
-    saved_token = read_token(app_key=current_app_key)
-
-    if saved_token is None:  # 기존 발급 토큰 확인이 안되면 발급처리
-        # config.BASE_URL이 비어 있으면 환경 변수에서 직접 가져옴 (이중 안전장치)
-        base_url = (
-            config.BASE_URL
-            if config and config.BASE_URL
-            else os.getenv("KIS_BASE_URL", "")
+        # 현재 APP_KEY 가져오기 (토큰 파일 분리를 위해)
+        current_app_key = _cfg.get(ak1, "")
+        _logger.debug(
+            f"인증 시도 - APP_KEY 앞 8자리: {current_app_key[:8] if current_app_key else 'None'}"
         )
-        _logger.debug(f"인증 URL: {base_url}")  # 디버그 레벨로 변경 (기본 출력 안됨)
-        url = f"{base_url}/oauth2/tokenP"
-        res = requests.post(
-            url, data=json.dumps(p), headers=_getBaseHeader()
-        )  # 토큰 발급
-        rescode = res.status_code
-        if rescode == 200:  # 토큰 정상 발급
-            my_token = _getResultObject(res.json()).access_token  # 토큰값 가져오기
-            my_expired = _getResultObject(
-                res.json()
-            ).access_token_token_expired  # 토큰값 만료일시 가져오기
-            save_token(
-                my_token, my_expired, app_key=current_app_key
-            )  # APP_KEY별로 저장
-            _logger.info("토큰 발급 완료")
+
+        # 기존 발급된 토큰이 있는지 확인 (APP_KEY별로 조회)
+        saved_token = read_token(app_key=current_app_key)
+
+        if saved_token is None:  # 기존 발급 토큰 확인이 안되면 발급처리
+            # config.BASE_URL이 비어 있으면 환경 변수에서 직접 가져옴 (이중 안전장치)
+            base_url = (
+                config.BASE_URL
+                if config and config.BASE_URL
+                else os.getenv("KIS_BASE_URL", "")
+            )
+            _logger.info(f"새 토큰 발급 시도: {base_url}/oauth2/tokenP")
+            url = f"{base_url}/oauth2/tokenP"
+            res = requests.post(
+                url, data=json.dumps(p), headers=_getBaseHeader()
+            )  # 토큰 발급
+            rescode = res.status_code
+            if rescode == 200:  # 토큰 정상 발급
+                my_token = _getResultObject(res.json()).access_token  # 토큰값 가져오기
+                my_expired = _getResultObject(
+                    res.json()
+                ).access_token_token_expired  # 토큰값 만료일시 가져오기
+                save_token(
+                    my_token, my_expired, app_key=current_app_key
+                )  # APP_KEY별로 저장
+                _logger.info("토큰 발급 완료")
+            else:
+                _logger.error(
+                    f"토큰 발급 실패 - 응답코드: {rescode}, 응답내용: {res.text}\n{traceback.format_exc()}"
+                )
+                # 토큰 발급 실패 시 예외 발생(이후 코드 실행 방지)
+                raise RuntimeError(f"KIS API 토큰 발급 실패 (HTTP {rescode})")
         else:
-            _logger.error(f"토큰 발급 실패 - 응답코드: {rescode}, 응답내용: {res.text}")
-            # 토큰 발급 실패 시 예외 발생(이후 코드 실행 방지)
-            raise RuntimeError(f"KIS API 토큰 발급 실패 (HTTP {rescode})")
-    else:
-        # 저장된 포맷이 딕셔너리일 경우 access_token 필드 사용
-        my_token = (
-            saved_token["access_token"]
-            if isinstance(saved_token, dict) and "access_token" in saved_token
-            else saved_token
-        )
-        # 저장된 토큰 사용 시 만료일이 필요 없으므로 임시 값 사용
-        my_expired = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            _logger.debug("기존 토큰 재사용")
+            # 저장된 포맷이 딕셔너리일 경우 access_token 필드 사용
+            my_token = (
+                saved_token["access_token"]
+                if isinstance(saved_token, dict) and "access_token" in saved_token
+                else saved_token
+            )
+            # 저장된 토큰 사용 시 만료일이 필요 없으므로 임시 값 사용
+            my_expired = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # 발급토큰 정보 포함해서 헤더값 저장 관리, API 호출시 필요
-    changeTREnv(f"Bearer {my_token}", svr, product, config)
+        # 발급토큰 정보 포함해서 헤더값 저장 관리, API 호출시 필요
+        changeTREnv(f"Bearer {my_token}", svr, product, config)
 
-    _base_headers["authorization"] = _TRENV.my_token
-    _base_headers["appkey"] = _TRENV.my_app
-    _base_headers["appsecret"] = _TRENV.my_sec
+        _base_headers["authorization"] = _TRENV.my_token
+        _base_headers["appkey"] = _TRENV.my_app
+        _base_headers["appsecret"] = _TRENV.my_sec
 
-    global _last_auth_time
-    _last_auth_time = datetime.now()
+        global _last_auth_time
+        _last_auth_time = datetime.now()
 
-    if _DEBUG:
-        print(f"[{_last_auth_time}] => get AUTH Key completed!")
+        if _DEBUG:
+            print(f"[{_last_auth_time}] => get AUTH Key completed!")
 
-    # 토큰 정보를 반환해 테스트에서 활용할 수 있도록 합니다.
-    return {"access_token": my_token, "access_token_token_expired": my_expired}
+        # 토큰 정보를 반환해 테스트에서 활용할 수 있도록 합니다.
+        return {"access_token": my_token, "access_token_token_expired": my_expired}
+    except Exception as e:
+        _logger.error(f"인증 실패: {e}\n{traceback.format_exc()}")
+        raise
 
 
 # end of initialize, 토큰 재발급, 토큰 발급시 유효시간 1일

@@ -8,7 +8,9 @@ import pandas as pd
 
 from ..account.api import AccountAPI
 from ..program.trade import ProgramTradeAPI
-from ..stock import StockAPI  # [변경 이유] 레거시가 아닌 패키지 파사드 StockAPI 사용으로 중복/충돌 제거
+from ..stock import (
+    StockAPI,
+)  # [변경 이유] 레거시가 아닌 패키지 파사드 StockAPI 사용으로 중복/충돌 제거
 from ..stock import StockMarketAPI
 from ..stock.interest import InterestStockAPI
 from ..stock.investor_api import StockInvestorAPI
@@ -85,6 +87,7 @@ class Agent(BaseExceptionHandler):
         enable_rate_limiter: bool = True,
         rate_limiter: Optional[RateLimiter] = None,
         rate_limiter_config: Optional[Dict[str, Any]] = None,
+        auto_auth: bool = True,
     ):
         """
         Agent를 초기화합니다.
@@ -107,19 +110,32 @@ class Agent(BaseExceptionHandler):
                 - min_interval_ms: 최소 간격(밀리초) (기본값: 50ms, 권장값)
                 - burst_size: 버스트 크기 (기본값: 10, 안정성 우선)
                 - enable_adaptive: 적응형 백오프 활성화 (기본값: True)
+            auto_auth (bool): 자동 인증 여부 (기본값: True)
+                - True: Agent 생성 시 자동으로 토큰 발급/재사용
+                - False: 사용자가 명시적으로 authenticate() 호출 필요
 
         Raises:
             ValueError: 필수 매개변수가 누락되었을 때
-            RuntimeError: 토큰 발급이 실패했을 때
+            RuntimeError: auto_auth=True이고 토큰 발급이 실패했을 때
 
         Example:
-            >>> # 실전투자 Agent 생성
+            >>> # 실전투자 Agent 생성 (자동 인증)
             >>> agent = Agent(
             ...     app_key="YOUR_APP_KEY",
             ...     app_secret="YOUR_APP_SECRET",
             ...     account_no="12345678",
             ...     account_code="01"
             ... )
+            >>>
+            >>> # 명시적 인증 (토큰 발급 루프 방지)
+            >>> agent = Agent(
+            ...     app_key="YOUR_APP_KEY",
+            ...     app_secret="YOUR_APP_SECRET",
+            ...     account_no="12345678",
+            ...     account_code="01",
+            ...     auto_auth=False
+            ... )
+            >>> agent.authenticate()  # 명시적으로 토큰 발급
             >>>
             >>> # 모의투자 Agent 생성
             >>> agent = Agent(
@@ -142,6 +158,9 @@ class Agent(BaseExceptionHandler):
         Note:
             API 키와 계좌 정보는 보안상 중요하므로 코드에 직접 하드코딩하지 마세요.
             환경변수나 별도의 설정 파일에서 로드하는 것을 권장합니다.
+
+            auto_auth=False로 설정하면 토큰 발급 루프를 방지할 수 있습니다.
+            이 경우 authenticate() 메서드를 명시적으로 호출하여 토큰을 발급받아야 합니다.
         """
         # BaseExceptionHandler 초기화
         super().__init__("Agent")
@@ -190,8 +209,8 @@ class Agent(BaseExceptionHandler):
         else:
             self.rate_limiter = None
 
-        # 설정 객체 생성
-        config = (
+        # 설정 객체 생성 및 저장
+        self.config = (
             KISConfig(
                 app_key=app_key,
                 app_secret=app_secret,
@@ -203,15 +222,17 @@ class Agent(BaseExceptionHandler):
             else None
         )
 
-        # 클라이언트 초기화
+        # 클라이언트 초기화 (auto_auth=False로 자동 토큰 발급 방지)
         self.client = client or KISClient(
-            config=config,
+            config=self.config,
             enable_rate_limiter=enable_rate_limiter,
             rate_limiter=self.rate_limiter,
+            auto_auth=False,  # KISClient에서도 자동 발급 방지
         )
 
-        # 토큰 자동 검증 및 재발급
-        self._ensure_valid_token(config)
+        # 토큰 자동 검증 및 재발급 (선택적)
+        if auto_auth:
+            self._ensure_valid_token(self.config)
 
         # 계좌 정보 설정
         if account_info is None:
@@ -234,6 +255,8 @@ class Agent(BaseExceptionHandler):
         APP_KEY별로 토큰 파일을 분리 저장하여, 동일 APP_KEY로 Agent 재생성 시
         기존 토큰을 재사용합니다. 이를 통해 불필요한 토큰 발급을 방지합니다.
         """
+        import traceback
+
         try:
             # APP_KEY를 전달하여 해당 키 전용 토큰 파일에서 조회
             app_key = config.APP_KEY if config else None
@@ -251,15 +274,84 @@ class Agent(BaseExceptionHandler):
                 self.logger.debug("유효한 토큰이 확인되었습니다.")
 
         except Exception as e:
-            self.logger.error(f"토큰 검증/발급 중 오류 발생: {e}")
+            self.logger.error(
+                f"토큰 검증/발급 중 오류 발생: {e}\n{traceback.format_exc()}"
+            )
             # 토큰 발급 실패는 중요한 문제이므로 예외 재발생
             raise RuntimeError(f"토큰 자동 발급 실패: {e}")
 
+    def authenticate(self, force_refresh: bool = False) -> Dict[str, Any]:
+        """명시적으로 토큰을 발급하거나 재사용합니다.
+
+        이 메서드를 사용하면 토큰 발급을 명시적으로 제어할 수 있어,
+        Agent 인스턴스 생성 시 자동 발급으로 인한 Rate Limit 문제를 방지할 수 있습니다.
+
+        Args:
+            force_refresh (bool): 강제로 새 토큰을 발급받을지 여부 (기본값: False)
+                - True: 기존 토큰이 유효해도 무조건 새로 발급
+                - False: 유효한 토큰이 있으면 재사용, 없으면 발급
+
+        Returns:
+            Dict[str, Any]: 토큰 정보
+                - access_token: 액세스 토큰 문자열
+                - access_token_token_expired: 토큰 만료 시간
+
+        Raises:
+            RuntimeError: 토큰 발급 실패 시
+
+        Example:
+            >>> # 자동 인증 비활성화하고 Agent 생성
+            >>> agent = Agent(
+            ...     app_key="YOUR_APP_KEY",
+            ...     app_secret="YOUR_APP_SECRET",
+            ...     account_no="12345678",
+            ...     account_code="01",
+            ...     auto_auth=False
+            ... )
+            >>>
+            >>> # 명시적으로 토큰 발급
+            >>> token_info = agent.authenticate()
+            >>> print(f"토큰 만료 시간: {token_info['access_token_token_expired']}")
+            >>>
+            >>> # 강제로 새 토큰 발급
+            >>> token_info = agent.authenticate(force_refresh=True)
+        """
+        import traceback
+
+        try:
+            if force_refresh:
+                # 강제 갱신 모드: 무조건 새로 발급
+                self.logger.info("강제 토큰 갱신을 시작합니다...")
+                token_data = auth(config=self.config)
+                self.logger.info("토큰 강제 갱신 완료")
+                return token_data
+            else:
+                # 일반 모드: 기존 토큰 재사용 또는 발급
+                app_key = self.config.APP_KEY if self.config else None
+                saved_token = read_token(app_key=app_key)
+
+                if saved_token is None:
+                    # 토큰이 없거나 만료된 경우 새로 발급
+                    self.logger.info(
+                        "토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다."
+                    )
+                    token_data = auth(config=self.config)
+                    self.logger.info("토큰 발급 완료")
+                    return token_data
+                else:
+                    # 유효한 토큰이 있는 경우 재사용
+                    self.logger.info(
+                        "유효한 토큰이 확인되었습니다. 기존 토큰을 재사용합니다."
+                    )
+                    return saved_token
+
+        except Exception as e:
+            self.logger.error(f"토큰 발급 실패: {e}\n{traceback.format_exc()}")
+            raise RuntimeError(f"토큰 발급 실패: {e}")
+
     def _init_apis(self) -> None:
         """API 모듈들을 초기화합니다."""
-        self.account_api = AccountAPI(
-            self.client, self.account_info, _from_agent=True
-        )
+        self.account_api = AccountAPI(self.client, self.account_info, _from_agent=True)
         self.stock_api = StockAPI(self.client, self.account_info, _from_agent=True)
         self.investor_api = StockInvestorAPI(
             self.client, self.account_info, _from_agent=True
@@ -3190,6 +3282,10 @@ class Agent(BaseExceptionHandler):
             price: 주문단가 (시장가는 0)
             buy_sell: 매수매도구분 ("BUY" 또는 "SELL")
             order_type: 주문구분. 기본값: "00"(지정가)
+            exchange: 주문 거래소 (기본값: "KRX")
+                - "KRX": 한국거래소
+                - "NXT": 대체거래소 (넥스트레이드)
+                - "SOR": Smart Order Routing (최적 체결)
 
         Returns:
             Optional[Dict[str, Any]]: 주문 응답
@@ -3494,8 +3590,10 @@ class Agent(BaseExceptionHandler):
                      문자열 형식, 예: "1", "10"
             ord_unpr: 주문단가 (Order price)
                       시장가 주문 시 "0" (Use "0" for market orders)
-            excg_id_dvsn_cd: 거래소ID구분코드 (Exchange ID)
-                             기본값: "KRX" (한국거래소)
+            excg_id_dvsn_cd: 거래소ID구분코드 (Exchange ID, 기본값: "KRX")
+                             - "KRX": 한국거래소
+                             - "NXT": 대체거래소 (넥스트레이드)
+                             - "SOR": Smart Order Routing (최적 체결)
             sll_type: 매도유형 (Sell type, optional)
                       - "01": 일반매도 (Normal sell)
                       - "02": 임의매매 (Discretionary)
@@ -3585,7 +3683,10 @@ class Agent(BaseExceptionHandler):
                 - 신용매수: 오늘날짜 권장
                 - 신용매도: 매도할 종목의 대출일자
                 - 빈 문자열 허용 (AccountAPI 호환성)
-            excg_id_dvsn_cd (str): 거래소ID구분코드 (KRX:한국거래소)
+            excg_id_dvsn_cd (str): 거래소ID구분코드 (기본값: "KRX")
+                - "KRX": 한국거래소
+                - "NXT": 대체거래소 (넥스트레이드)
+                - "SOR": Smart Order Routing (최적 체결)
             sll_type (str): 매도유형
             rsvn_ord_yn (str): 예약주문여부 (Y:예약주문, N:신용주문)
             emgc_ord_yn (str): 비상주문여부

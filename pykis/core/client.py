@@ -177,6 +177,7 @@ class KISClient:
         verbose: bool = False,
         enable_rate_limiter: bool = True,
         rate_limiter: Optional[RateLimiter] = None,
+        auto_auth: bool = True,
     ):
         """
         KISClient를 초기화합니다.
@@ -187,9 +188,12 @@ class KISClient:
             verbose (bool): 상세 로깅 여부
             enable_rate_limiter (bool): Rate Limiter 사용 여부
             rate_limiter (RateLimiter, optional): 커스텀 Rate Limiter 인스턴스
+            auto_auth (bool): 자동 인증 여부 (기본값: True)
+                - True: 초기화 시 자동으로 토큰 발급/재사용
+                - False: 명시적으로 authenticate() 호출 필요
 
         Raises:
-            Exception: 인증 실패 시 발생
+            Exception: auto_auth=True이고 인증 실패 시 발생
         """
         if isinstance(svr, KISConfig):
             self.config = svr
@@ -223,8 +227,9 @@ class KISClient:
         else:
             self.rate_limiter = None
 
-        # 초기 토큰 발급 또는 기존 토큰 재사용
-        self._initialize_token()
+        # 초기 토큰 발급 또는 기존 토큰 재사용 (선택적)
+        if auto_auth:
+            self._initialize_token()
 
         # is_real 속성 설정 (실전투자 여부 판단)
         # 실전투자: https://openapi.koreainvestment.com:9443
@@ -233,6 +238,8 @@ class KISClient:
 
     def _initialize_token(self) -> None:
         """초기 토큰 발급 또는 기존 토큰 재사용 (Thread-Safe)"""
+        import traceback
+
         with self.token_refresh_lock:
             try:
                 # 토큰이 이미 유효한 경우 재발급하지 않음 (중복 방지)
@@ -249,7 +256,9 @@ class KISClient:
                             logger.debug("토큰이 아직 유효합니다. 재발급하지 않습니다.")
                             return
                     except Exception as e:
-                        logger.warning(f"토큰 만료 시간 파싱 실패, 재발급 진행: {e}")
+                        logger.warning(
+                            f"토큰 만료 시간 파싱 실패, 재발급 진행: {e}\n{traceback.format_exc()}"
+                        )
 
                 logger.info("토큰 발급을 시작합니다...")
                 if self.config is None:
@@ -275,11 +284,13 @@ class KISClient:
                         logger.info(f"토큰 발급 완료 (만료: {self.token_expired})")
                     self.base_url = self.config.BASE_URL
             except Exception as e:
-                logger.error(f"인증 실패: {e}", exc_info=True)
+                logger.error(f"인증 실패: {e}\n{traceback.format_exc()}")
                 raise
 
     def _check_and_refresh_token(self) -> None:
         """토큰 만료 체크 및 자동 갱신"""
+        import traceback
+
         if self.token_expired:
             try:
                 # 토큰 만료 시간 파싱
@@ -297,7 +308,9 @@ class KISClient:
                     # logger.info("토큰이 만료되었거나 곧 만료됩니다. 자동 갱신을 시작합니다.")
                     self._initialize_token()
             except Exception as e:
-                logger.warning(f"토큰 만료 체크 중 오류 발생, 토큰 재발급 시도: {e}")
+                logger.warning(
+                    f"토큰 만료 체크 중 오류 발생, 토큰 재발급 시도: {e}\n{traceback.format_exc()}"
+                )
                 self._initialize_token()
 
     def _enforce_rate_limit(self, priority: int = 0) -> None:
@@ -578,6 +591,8 @@ class KISClient:
         Raises:
             Exception: 토큰 갱신 실패 시 발생
         """
+        import traceback
+
         with self.token_refresh_lock:
             try:
                 logger.info("토큰 갱신을 시작합니다...")
@@ -603,7 +618,7 @@ class KISClient:
                 else:
                     raise Exception(f"토큰 갱신 실패: HTTP {response.status_code}")
             except Exception as e:
-                logger.error(f"토큰 갱신 실패: {e}")
+                logger.error(f"토큰 갱신 실패: {e}\n{traceback.format_exc()}")
                 raise
 
     def get_kospi200_index(
