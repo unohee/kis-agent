@@ -2,6 +2,77 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [1.3.2] - 2025-12-08
+
+### 🔧 WebSocket 안정성 대폭 개선
+
+#### 🐛 Critical Bug Fix: 구독 교착 상태 해결
+
+**문제 상황**
+- 대량 종목(40개+) 구독 시 구독 응답 타임아웃 발생
+- 첫 구독 요청 후 10초 내에 연결 종료
+- 재연결 시도해도 동일 패턴 반복
+
+**원인 분석**
+- `connect()` 메서드의 **교착 상태(deadlock)** 아키텍처 결함:
+  1. 웹소켓 연결 후 `_subscribe_all()` 호출 (블로킹)
+  2. `_subscribe_all()` 내에서 `asyncio.Event().wait()`으로 응답 대기
+  3. 응답은 메시지 수신 루프에서 처리되어야 함
+  4. 수신 루프는 `_subscribe_all()` 완료 후에야 시작 → **영원히 타임아웃**
+
+**해결 방법**
+- 메시지 수신 루프를 별도 `asyncio.Task`로 **먼저 시작**
+- 구독 요청과 메시지 수신이 **병렬로 실행**되도록 아키텍처 개선
+- 새로운 `_receive_loop()` 메서드 추가
+
+```python
+# 수정 전 (교착 상태)
+await self._subscribe_all()  # 블로킹
+while True:  # 수신 루프 (도달 불가)
+    data = await websocket.recv()
+
+# 수정 후 (병렬 실행)
+receive_task = asyncio.create_task(self._receive_loop(websocket))
+await asyncio.sleep(0.1)
+await self._subscribe_all()  # 응답 수신 가능
+await receive_task
+```
+
+#### ✅ 테스트 결과
+- **40개 종목 구독**: 성공 40개, 실패 0개
+- **총 구독 시간**: ~12초 (안정적)
+- **단위 테스트**: 65 passed, 6 skipped, 0 failed
+
+#### 📁 수정된 파일
+- `pykis/websocket/ws_agent.py` (라인 642-767)
+  - `_receive_loop()` 메서드 추가
+  - `connect()` 메서드 병렬 실행 구조로 리팩토링
+
+---
+
+### 🔒 인증 시스템 개선
+
+#### 토큰 격리 버그 수정
+- SHA256 해싱을 사용한 토큰 격리 버그 해결
+- 다중 계정 사용 시 토큰 충돌 문제 해결
+
+#### 23시간 메모리 캐시 추가
+- 인증 토큰에 23시간 메모리 캐시 적용
+- API 호출 횟수 대폭 감소
+
+---
+
+### 🆕 신규 기능
+
+#### 신용 주문 자동 대출일자 설정
+- 자기융자(credit_type=22) 주문 시 `loan_dt`를 오늘 날짜로 자동 설정
+- 수동 입력 오류 방지
+
+#### DirectAPIUsageWarning 제거
+- `_from_agent` 플래그 전달로 불필요한 경고 메시지 제거
+
+---
+
 ## [1.3.1] - 2025-10-30
 
 ### 📚 API 응답 타입 완전 문서화

@@ -105,6 +105,11 @@ class KisWebSocket:
         # Heartbeat: track last websocket receive time
         self.last_ws_recv_time = datetime.now()
 
+        # ping/pong 설정 (대량 연결 시 지연 허용)
+        self.ping_interval = 30  # ping 전송 간격 (초)
+        self.ping_timeout = 30  # ping 응답 대기 시간 (초)
+        self.max_ping_retries = 3  # ping/pong 최대 재시도 횟수
+
         # 마지막 고 조회 시간 추가
         self.last_balance_check = datetime.now()
 
@@ -909,7 +914,7 @@ class KisWebSocket:
         # fetch_ohlcv_dataframe을 이용하여 과거 데이터를 불러옵니다.
         for code in self.stock_codes:
             try:
-                df = self.stock_api.get_daily_price(code)
+                df = self.stock_api.inquire_daily_price(code)
                 if isinstance(df, pd.DataFrame) and not df.empty:
                     # 'stck_cntg_hour' 컬럼을 datetime으로 변환하여 'time'으로 사용
                     df["time"] = pd.to_datetime(
@@ -1080,7 +1085,7 @@ class KisWebSocket:
 
     def load_historical_data_for_stock(self, ticker):
         try:
-            df = self.stock_api.get_daily_price(ticker)
+            df = self.stock_api.inquire_daily_price(ticker)
             if df is not None and not df.empty:
                 df["time"] = pd.to_datetime(
                     df["stck_bsop_date"].astype(str) + df["stck_cntg_hour"].astype(str),
@@ -1344,7 +1349,9 @@ class KisWebSocket:
         while True:  # 자동 재연결을 위한 외부 루프
             try:
                 async with websockets.connect(
-                    self.url, ping_interval=30, ping_timeout=30
+                    self.url,
+                    ping_interval=self.ping_interval,
+                    ping_timeout=self.ping_timeout,
                 ) as websocket:
                     self.ws = websocket
                     logging.info("\n" + "-" * 50)
@@ -1483,6 +1490,7 @@ class KisWebSocket:
                     logging.info("-" * 50 + "\n")
                     sys.stdout.flush()
 
+                    ping_retry_count = 0  # ping/pong 재시도 카운터 초기화
                     while True:
                         # 장 종료 후(15:30)에는 데이터 수신을 일시 중단하고, 다음 거래일 9:00까지 대기
                         now = datetime.now()
@@ -1497,8 +1505,12 @@ class KisWebSocket:
                                     break
                             continue
                         try:
-                            data = await asyncio.wait_for(websocket.recv(), timeout=30)
+                            recv_timeout = max(60, self.ping_interval * 2)
+                            data = await asyncio.wait_for(
+                                websocket.recv(), timeout=recv_timeout
+                            )
                             self.last_ws_recv_time = datetime.now()
+                            ping_retry_count = 0  # 메시지 수신 성공 시 리셋
 
                             # PINGPONG 메시지는 처리하지 않음
                             if "PINGPONG" in data:
@@ -1512,14 +1524,43 @@ class KisWebSocket:
                             self.handle_message(data)
 
                         except asyncio.TimeoutError:
+                            # ping/pong으로 연결 확인 (설정된 타임아웃 사용, 재시도 지원)
                             try:
                                 pong_waiter = await websocket.ping()
-                                await asyncio.wait_for(pong_waiter, timeout=10)
+                                await asyncio.wait_for(
+                                    pong_waiter, timeout=self.ping_timeout
+                                )
+                                ping_retry_count = 0  # ping 성공 시 리셋
+                                logging.debug("ping/pong 성공, 연결 유지")
+                                continue
+                            except asyncio.TimeoutError:
+                                ping_retry_count += 1
+                                if ping_retry_count >= self.max_ping_retries:
+                                    logging.error(
+                                        f"ping/pong 타임아웃 {self.max_ping_retries}회 연속 실패, 재연결 필요"
+                                    )
+                                    sys.stdout.flush()
+                                    raise
+                                logging.warning(
+                                    f"ping/pong 타임아웃 ({ping_retry_count}/{self.max_ping_retries}), 재시도..."
+                                )
+                                sys.stdout.flush()
+                                await asyncio.sleep(1)
                                 continue
                             except Exception as e:
-                                logging.warning(f"ping/pong 오류: {e}")
+                                ping_retry_count += 1
+                                if ping_retry_count >= self.max_ping_retries:
+                                    logging.error(
+                                        f"ping/pong 오류 {self.max_ping_retries}회 연속: {e}"
+                                    )
+                                    sys.stdout.flush()
+                                    raise
+                                logging.warning(
+                                    f"ping/pong 오류 ({ping_retry_count}/{self.max_ping_retries}): {e}"
+                                )
                                 sys.stdout.flush()
-                                raise e
+                                await asyncio.sleep(1)
+                                continue
 
             except Exception as e:
                 logging.warning(f"웹소켓 연결 문제 발생: {e}. 자동 재연결 시도 중...")

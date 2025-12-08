@@ -309,7 +309,7 @@ class WSAgent:
         self,
         subscription: Subscription,
         max_retries: int = 3,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
     ) -> bool:
         """
         구독 요청 전송 및 응답 대기
@@ -438,7 +438,7 @@ class WSAgent:
             else:
                 results["failed"].append(sub_id)
 
-            await asyncio.sleep(0.1)  # 요청 간 딜레이
+            await asyncio.sleep(0.3)  # 요청 간 딜레이 (0.1→0.3 타임아웃 방지)
 
         # 결과 로깅
         if results["failed"]:
@@ -639,6 +639,71 @@ class WSAgent:
         else:
             handler(data, metadata)
 
+    async def _receive_loop(self, websocket):
+        """
+        메시지 수신 루프 (별도 Task로 실행)
+
+        구독 응답을 처리하기 위해 connect() 초기에 백그라운드 Task로 시작됩니다.
+        이렇게 하면 구독 요청을 보내고 응답을 기다리는 동안에도
+        메시지 수신이 계속 되어 교착 상태를 방지합니다.
+
+        Args:
+            websocket: 웹소켓 연결 객체
+        """
+        ping_retry_count = 0
+        max_ping_retries = 3  # ping/pong 최대 재시도 횟수
+        recv_timeout = max(60, self.ping_interval * 2)  # recv 타임아웃
+
+        while self.connected:
+            try:
+                data = await asyncio.wait_for(
+                    websocket.recv(), timeout=recv_timeout
+                )
+                await self._handle_message(data)
+                ping_retry_count = 0  # 메시지 수신 성공 시 재시도 카운트 리셋
+
+            except asyncio.TimeoutError:
+                # ping/pong으로 연결 확인 (설정된 타임아웃 사용)
+                try:
+                    pong_waiter = await websocket.ping()
+                    await asyncio.wait_for(
+                        pong_waiter, timeout=self.ping_timeout
+                    )
+                    ping_retry_count = 0  # ping 성공 시 리셋
+                    logger.debug("ping/pong 성공, 연결 유지")
+                except asyncio.TimeoutError:
+                    ping_retry_count += 1
+                    if ping_retry_count >= max_ping_retries:
+                        logger.error(
+                            f"ping/pong 타임아웃 {max_ping_retries}회 연속 실패, 재연결 필요"
+                        )
+                        break
+                    logger.warning(
+                        f"ping/pong 타임아웃 ({ping_retry_count}/{max_ping_retries}), 재시도..."
+                    )
+                    await asyncio.sleep(1)  # 재시도 전 짧은 대기
+                except Exception as e:
+                    ping_retry_count += 1
+                    if ping_retry_count >= max_ping_retries:
+                        logger.error(
+                            f"ping/pong 실패 {max_ping_retries}회 연속: {e}"
+                        )
+                        break
+                    logger.warning(
+                        f"ping/pong 오류 ({ping_retry_count}/{max_ping_retries}): {e}"
+                    )
+                    await asyncio.sleep(1)
+
+            except websockets.exceptions.ConnectionClosed:
+                logger.warning("웹소켓 연결 종료 (수신 루프)")
+                break
+            except asyncio.CancelledError:
+                logger.debug("수신 루프 취소됨")
+                break
+            except Exception as e:
+                logger.error(f"수신 루프 오류: {e}")
+                break
+
     async def connect(self):
         """
         웹소켓 서버에 연결하고 메시지 수신 루프를 시작합니다.
@@ -647,12 +712,13 @@ class WSAgent:
         연결이 끊어질 때마다 자동으로 재연결을 시도합니다.
 
         연결되면 기존에 등록된 모든 구독에 대해 자동으로 구독 요청을 전송합니다.
+        메시지 수신 루프는 별도 Task로 시작되어 구독 응답을 처리합니다.
 
         Raises:
             Exception: 연결 실패 또는 메시지 처리 오류
         """
-        """웹소켓 연결 및 메시지 수신 루프"""
         while self.auto_reconnect:
+            receive_task = None
             try:
                 logger.info(f"웹소켓 연결 시도: {self.url}")
 
@@ -665,32 +731,18 @@ class WSAgent:
                     self.connected = True
                     logger.info("웹소켓 연결 성공")
 
-                    # 모든 구독 요청 전송
+                    # 메시지 수신 Task 먼저 시작 (백그라운드)
+                    # 이렇게 해야 구독 응답을 받을 수 있음
+                    receive_task = asyncio.create_task(self._receive_loop(websocket))
+
+                    # 수신 루프가 시작될 때까지 잠시 대기
+                    await asyncio.sleep(0.1)
+
+                    # 모든 구독 요청 전송 (수신 루프와 병렬로 실행)
                     await self._subscribe_all()
 
-                    # 메시지 수신 루프
-                    while True:
-                        try:
-                            data = await asyncio.wait_for(websocket.recv(), timeout=60)
-                            await self._handle_message(data)
-
-                        except asyncio.TimeoutError:
-                            # ping/pong으로 연결 확인
-                            try:
-                                pong_waiter = await websocket.ping()
-                                await asyncio.wait_for(pong_waiter, timeout=10)
-                            except asyncio.TimeoutError:
-                                logger.error(
-                                    "ping/pong 타임아웃, 재연결 필요", exc_info=True
-                                )
-                                break
-                            except Exception as e:
-                                logger.error(f"ping/pong 실패: {e}", exc_info=True)
-                                break
-
-                        except websockets.exceptions.ConnectionClosed:
-                            logger.warning("웹소켓 연결 종료")
-                            break
+                    # 수신 루프 완료 대기 (연결이 끊어질 때까지)
+                    await receive_task
 
             except Exception as e:
                 logger.error(f"웹소켓 오류: {e}")
@@ -699,6 +751,13 @@ class WSAgent:
                 self.connected = False
                 self.ws = None
                 self.active_subscriptions.clear()
+                # 수신 Task 정리
+                if receive_task and not receive_task.done():
+                    receive_task.cancel()
+                    try:
+                        await receive_task
+                    except asyncio.CancelledError:
+                        pass
 
             if self.auto_reconnect:
                 self.stats["reconnects"] += 1
