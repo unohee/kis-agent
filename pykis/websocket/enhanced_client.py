@@ -1,6 +1,36 @@
+"""
+향상된 WebSocket 클라이언트 (레거시)
+
+.. deprecated:: 1.3.0
+    이 모듈은 더 이상 유지보수되지 않습니다.
+    대신 :class:`WSAgentWithStore`를 사용하세요.
+
+마이그레이션 예시::
+
+    # 기존 코드 (deprecated)
+    from pykis.websocket import EnhancedWebSocketClient
+    client = EnhancedWebSocketClient(
+        client=kis_client,
+        account_info=account_info,
+        stock_codes=["005930"],
+        enable_index=True
+    )
+    client.register_callback('on_trade', my_handler)
+    await client.start()
+
+    # 새로운 코드 (권장)
+    from pykis.websocket import WSAgentWithStore, SubscriptionType
+    approval_key = kis_client.get_ws_approval_key()
+    ws = WSAgentWithStore(approval_key, keep_history=True)
+    ws.subscribe_stocks(["005930"])
+    ws.subscribe_index("0001")  # KOSPI
+    ws.add_handler(SubscriptionType.STOCK_TRADE, my_handler)
+    await ws.connect()
+"""
 import json
 import logging
 import os
+import warnings
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
@@ -19,6 +49,10 @@ class EnhancedWebSocketClient(BaseExceptionHandler):
     """
     WSAgent를 활용한 향상된 웹소켓 클라이언트
 
+    .. deprecated:: 1.3.0
+        이 클래스는 더 이상 유지보수되지 않습니다.
+        대신 :class:`WSAgentWithStore`를 사용하세요.
+
     이 클래스는 WSAgent를 기반으로 고수준 웹소켓 인터페이스를 제공합니다.
     비즈니스 로직에 집중할 수 있도록 복잡한 웹소켓 관리를 추상화합니다.
 
@@ -28,6 +62,9 @@ class EnhancedWebSocketClient(BaseExceptionHandler):
     - 실시간 시장 데이터 자동 관리
     - 종목 동적 추가/제거 지원
     - 자동 데이터 로깅 및 보관
+
+    See Also:
+        :class:`WSAgentWithStore`: 권장되는 대체 클래스
 
     Example:
         >>> client = EnhancedWebSocketClient(
@@ -75,6 +112,13 @@ class EnhancedWebSocketClient(BaseExceptionHandler):
             enable_futures: 선물 구독 여부
             enable_options: 옵션 구독 여부
         """
+        warnings.warn(
+            "EnhancedWebSocketClient는 deprecated되었습니다. "
+            "WSAgentWithStore를 사용하세요. "
+            "마이그레이션 가이드: from pykis.websocket import WSAgentWithStore",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # BaseExceptionHandler 초기화
         super().__init__("EnhancedWebSocketClient")
 

@@ -1,11 +1,35 @@
 """
-리팩토링된 WebSocket 클라이언트
+리팩토링된 WebSocket 클라이언트 (레거시)
+
+.. deprecated:: 1.3.0
+    이 모듈은 더 이상 유지보수되지 않습니다.
+    대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 사용하세요.
+
+마이그레이션 예시::
+
+    # 기존 코드 (deprecated)
+    from pykis.websocket import RefactoredWebSocketClient
+    client = RefactoredWebSocketClient(
+        approval_key=key,
+        connection_manager=conn,
+        data_processor=proc,
+        event_manager=events,
+        handler_registry=registry
+    )
+    await client.connect()
+
+    # 새로운 코드 (권장)
+    from pykis.websocket import WSAgent
+    ws = WSAgent(approval_key=key)
+    ws.subscribe_stock("005930")
+    await ws.connect()
 
 책임이 분리되고 디자인 패턴이 적용된 깔끔한 WebSocket 클라이언트입니다.
 """
 
 import json
 import logging
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
@@ -22,8 +46,16 @@ class RefactoredWebSocketClient:
     """
     리팩토링된 WebSocket 클라이언트
 
+    .. deprecated:: 1.3.0
+        이 클래스는 더 이상 유지보수되지 않습니다.
+        대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 사용하세요.
+
     Single Responsibility Principle에 따라 책임이 분리되고,
     디자인 패턴이 적용된 깔끔한 구조를 가진 WebSocket 클라이언트입니다.
+
+    See Also:
+        :class:`WSAgent`: 권장되는 대체 클래스
+        :class:`WSAgentWithStore`: 데이터 저장소가 포함된 에이전트
 
     Attributes:
         approval_key: WebSocket 승인키
@@ -57,6 +89,13 @@ class RefactoredWebSocketClient:
             enable_metrics: 메트릭 수집 활성화 여부
             data_recording: 데이터 기록 활성화 여부
         """
+        warnings.warn(
+            "RefactoredWebSocketClient는 deprecated되었습니다. "
+            "WSAgent 또는 WSAgentWithStore를 사용하세요. "
+            "마이그레이션 가이드: from pykis.websocket import WSAgent",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.approval_key = approval_key
         self.connection_manager = connection_manager
         self.data_processor = data_processor

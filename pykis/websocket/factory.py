@@ -1,18 +1,43 @@
 """
 WebSocket 클라이언트 팩토리 모듈 (Factory Pattern)
 
+.. deprecated:: 1.3.0
+    이 모듈의 Factory와 Builder 패턴은 deprecated되었습니다.
+    대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 직접 사용하세요.
+
+마이그레이션 예시::
+
+    # 기존 코드 (deprecated)
+    from pykis.websocket import WebSocketClientFactory, ClientType
+    client = WebSocketClientFactory.create_client(
+        ClientType.REALTIME, approval_key, stock_codes=["005930"]
+    )
+
+    # 새로운 코드 (권장)
+    from pykis.websocket import WSAgentWithStore
+    ws = WSAgentWithStore(approval_key, keep_history=True)
+    ws.subscribe_stocks(["005930"])
+
+    # Builder 대신
+    from pykis.websocket import WSAgent
+    ws = WSAgent(approval_key, auto_reconnect=True, ping_interval=30)
+    ws.subscribe_stock("005930")
+    ws.subscribe_index("0001")
+
 다양한 설정의 WebSocket 클라이언트를 생성합니다.
 """
 
 import logging
+import warnings
 from enum import Enum
-from typing import List
+from typing import List, Union
 
 from .connection import ConnectionManager
 from .data_processor import DataProcessor
 from .event_manager import EventManager
 from .message_handlers import MessageHandlerRegistry
 from .refactored_client import RefactoredWebSocketClient
+from .ws_agent import WSAgent, WSAgentWithStore
 
 logger = logging.getLogger(__name__)
 
@@ -30,15 +55,27 @@ class WebSocketClientFactory:
     """
     WebSocket 클라이언트 팩토리
 
+    .. deprecated:: 1.3.0
+        이 클래스는 deprecated되었습니다.
+        대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 직접 사용하세요.
+
     다양한 설정과 타입의 WebSocket 클라이언트를 생성합니다.
+
+    See Also:
+        :class:`WSAgent`: 권장되는 대체 클래스
+        :class:`WSAgentWithStore`: 데이터 저장소가 포함된 에이전트
     """
 
     @staticmethod
     def create_client(
         client_type: ClientType, approval_key: str, **kwargs
-    ) -> RefactoredWebSocketClient:
+    ) -> Union[RefactoredWebSocketClient, WSAgentWithStore]:
         """
         클라이언트 생성
+
+        .. deprecated:: 1.3.0
+            이 메서드는 deprecated되었습니다.
+            대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 직접 사용하세요.
 
         Args:
             client_type: 클라이언트 타입
@@ -48,6 +85,13 @@ class WebSocketClientFactory:
         Returns:
             RefactoredWebSocketClient: 생성된 클라이언트
         """
+        warnings.warn(
+            "WebSocketClientFactory.create_client()은 deprecated되었습니다. "
+            "WSAgent 또는 WSAgentWithStore를 직접 사용하세요. "
+            "예시: ws = WSAgentWithStore(approval_key)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if client_type == ClientType.BASIC:
             return WebSocketClientFactory._create_basic_client(approval_key, **kwargs)
         elif client_type == ClientType.REALTIME:
@@ -104,7 +148,7 @@ class WebSocketClientFactory:
             url=kwargs.get("url", "ws://ops.koreainvestment.com:21000"),
             auto_reconnect=True,
             ping_interval=20,
-            ping_timeout=10,
+            ping_timeout=30,
         )
 
         processor = DataProcessor()
@@ -209,7 +253,28 @@ class WebSocketClientBuilder:
     """
     WebSocket 클라이언트 빌더
 
+    .. deprecated:: 1.3.0
+        이 클래스는 deprecated되었습니다.
+        대신 :class:`WSAgent`를 직접 사용하세요.
+
+    마이그레이션 예시::
+
+        # 기존 코드 (deprecated)
+        client = WebSocketClientBuilder(approval_key)
+            .add_stock("005930")
+            .with_orderbook_subscription()
+            .build()
+
+        # 새로운 코드 (권장)
+        from pykis.websocket import WSAgent
+        ws = WSAgent(approval_key, auto_reconnect=True)
+        ws.subscribe_stock("005930")
+        ws.subscribe_orderbook("005930")
+
     Fluent Interface 패턴을 사용하여 클라이언트를 구성합니다.
+
+    See Also:
+        :class:`WSAgent`: 권장되는 대체 클래스
     """
 
     def __init__(self, approval_key: str):
@@ -219,6 +284,13 @@ class WebSocketClientBuilder:
         Args:
             approval_key: WebSocket 승인키
         """
+        warnings.warn(
+            "WebSocketClientBuilder는 deprecated되었습니다. "
+            "WSAgent를 직접 사용하세요. "
+            "마이그레이션 가이드: from pykis.websocket import WSAgent",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.approval_key = approval_key
         self.url = "ws://ops.koreainvestment.com:21000"
         self.auto_reconnect = True

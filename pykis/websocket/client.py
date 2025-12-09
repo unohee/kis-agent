@@ -1,9 +1,34 @@
+"""
+한국투자증권 실시간 웹소켓 클라이언트 (레거시)
+
+.. deprecated:: 1.3.0
+    이 모듈은 더 이상 유지보수되지 않습니다.
+    대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 사용하세요.
+
+마이그레이션 예시::
+
+    # 기존 코드 (deprecated)
+    from pykis.websocket import KisWebSocket
+    ws = KisWebSocket(client, account_info, stock_codes=["005930"])
+    await ws.connect()
+
+    # 새로운 코드 (권장)
+    from pykis.websocket import WSAgentWithStore
+    approval_key = client.get_ws_approval_key()
+    ws = WSAgentWithStore(approval_key)
+    ws.subscribe_stocks(["005930"])
+    await ws.connect()
+
+    # 최신 데이터 조회
+    trade = ws.store.get_trade("005930")
+"""
 import asyncio
 import json
 import logging
 import os
 import select
 import sys
+import warnings
 from base64 import b64decode
 from collections import defaultdict
 from datetime import date, datetime
@@ -23,6 +48,20 @@ logging.basicConfig(level=logging.INFO)
 class KisWebSocket:
     """
     한국투자증권 실시간 웹소켓 클라이언트
+
+    .. deprecated:: 1.3.0
+        이 클래스는 더 이상 유지보수되지 않습니다.
+        대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 사용하세요.
+
+    WSAgent로 마이그레이션하면 다음과 같은 이점이 있습니다:
+        - 더 간단한 API
+        - 자동 재연결 및 에러 처리
+        - 내장 데이터 파싱 및 저장소
+        - 더 나은 구독 관리
+
+    See Also:
+        :class:`WSAgent`: 기본 WebSocket 에이전트
+        :class:`WSAgentWithStore`: 데이터 저장소가 포함된 에이전트
     """
 
     def __init__(
@@ -47,6 +86,13 @@ class KisWebSocket:
             enable_program_trading (bool): 프로그램매매 실시간 데이터 구독 여부. Defaults to True.
             enable_ask_bid (bool): 호가 실시간 데이터 구독 여부. Defaults to False.
         """
+        warnings.warn(
+            "KisWebSocket은 deprecated되었습니다. "
+            "WSAgent 또는 WSAgentWithStore를 사용하세요. "
+            "마이그레이션 가이드: from pykis.websocket import WSAgentWithStore",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.client = client
         self.account_info = account_info
         self.stock_api = StockAPI(client=client, account_info=account_info)
