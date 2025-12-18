@@ -171,18 +171,6 @@ async def inquire_vi_status(stock_code: str = "") -> Dict[str, Any]:
 
 
 @server.tool()
-async def get_rate_limiter_status() -> Dict[str, Any]:
-    """Rate Limiter 상태 조회
-
-    Returns:
-        Dict: Rate Limiter 현재 상태 정보
-    """
-    agent = get_agent()
-    result = agent.get_rate_limiter_status()
-    return {"success": True, "data": result}
-
-
-@server.tool()
 async def get_condition_stocks(
     user_id: str, seq: int, div_code: str = "N"
 ) -> Dict[str, Any]:

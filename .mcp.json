@@ -1,5 +1,11 @@
 {
 	"mcpServers": {
+		"pykis-local": {
+			"type": "stdio",
+			"command": "/home/unohee/RTX_ENV/bin/python",
+			"args": ["-m", "pykis_mcp_server"],
+			"cwd": "/home/unohee/dev/tools/pykis"
+		},
 		"task-master-ai": {
 			"type": "stdio",
 			"command": "npx",

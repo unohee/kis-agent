@@ -69,47 +69,6 @@ async def order_stock_credit(
 
 
 @server.tool()
-async def inquire_order_psbl(pdno: str, ord_unpr: str) -> Dict[str, Any]:
-    """현금 주문 가능 조회
-
-    Args:
-        pdno: 종목코드 6자리
-        ord_unpr: 주문 단가
-
-    Returns:
-        Dict: 주문 가능 수량 정보
-    """
-    if not pdno or len(pdno) != 6:
-        raise InvalidParameterError("pdno", "종목코드는 6자리여야 합니다")
-
-    agent = get_agent()
-    result = agent.inquire_order_psbl(pdno, ord_unpr)
-    return validate_api_response(result, "현금 주문 가능 조회")
-
-
-@server.tool()
-async def inquire_credit_order_psbl(
-    pdno: str, ord_unpr: str, crdt_type: str = "21"
-) -> Dict[str, Any]:
-    """신용 주문 가능 조회
-
-    Args:
-        pdno: 종목코드 6자리
-        ord_unpr: 주문 단가
-        crdt_type: 신용 유형 ("21":자기융자, "22":유통융자)
-
-    Returns:
-        Dict: 신용 주문 가능 수량 정보
-    """
-    if not pdno or len(pdno) != 6:
-        raise InvalidParameterError("pdno", "종목코드는 6자리여야 합니다")
-
-    agent = get_agent()
-    result = agent.inquire_credit_order_psbl(pdno, ord_unpr, crdt_type)
-    return validate_api_response(result, "신용 주문 가능 조회")
-
-
-@server.tool()
 async def order_cash(code: str, qty: str, price: str, order_type: str) -> Dict[str, Any]:
     """현금 매수
 
@@ -271,15 +230,3 @@ async def order_resv_ccnl() -> Dict[str, Any]:
     agent = get_agent()
     result = agent.order_resv_ccnl()
     return validate_api_response(result, "예약 주문 전체 취소")
-
-
-@server.tool()
-async def inquire_psbl_rvsecncl() -> Dict[str, Any]:
-    """정정/취소 가능 주문 조회
-
-    Returns:
-        Dict: 정정/취소 가능한 주문 리스트
-    """
-    agent = get_agent()
-    result = agent.inquire_psbl_rvsecncl()
-    return validate_api_response(result, "정정/취소 가능 주문 조회")
