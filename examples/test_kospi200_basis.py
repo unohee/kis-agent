@@ -5,6 +5,8 @@
 베이시스 = 선물가격 - 현물가격
 - 양수: 콘탱고 (정상적인 시장 상태)
 - 음수: 백워데이션 (비정상적인 시장 상태)
+
+Note: 이 예제는 레거시 StockAPI를 사용합니다. 새 코드에서는 Agent 사용을 권장합니다.
 """
 
 import os
@@ -15,8 +17,9 @@ from typing import Dict, Optional
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import KISClient, StockAPI
-from pykis.stock.api import get_kospi200_futures_code
+from pykis.core.client import KISClient
+from pykis.stock import LegacyStockAPI as StockAPI
+from pykis.stock import get_kospi200_futures_code
 
 
 class KospiBasisTester:

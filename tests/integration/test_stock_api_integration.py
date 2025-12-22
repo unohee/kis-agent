@@ -24,7 +24,7 @@ import pandas as pd
 import pytest
 
 from pykis.core.client import KISClient
-from pykis.stock.api import StockAPI
+from pykis.stock import StockAPI
 
 
 @pytest.mark.requires_credentials

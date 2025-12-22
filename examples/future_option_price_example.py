@@ -3,6 +3,8 @@
 선물옵션 시세 조회 예제
 
 이 예제는 Pykis를 사용하여 선물옵션 시세를 조회하는 방법을 보여줍니다.
+
+Note: 이 예제는 레거시 StockAPI를 사용합니다. 새 코드에서는 Agent 사용을 권장합니다.
 """
 
 import os
@@ -11,7 +13,8 @@ import sys
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import KISClient, StockAPI
+from pykis.core.client import KISClient
+from pykis.stock import LegacyStockAPI as StockAPI
 
 
 def main():
@@ -104,7 +107,7 @@ def main():
     print("--------------------------------------------------")
 
 
-    from pykis.stock.api import get_kospi200_futures_code
+    from pykis.stock import get_kospi200_futures_code
 
     # 현재 날짜 기준으로 가장 가까운 선물코드 생성 (두 번째 주 목요일 만기 규칙 적용)
     current_futures_code = get_kospi200_futures_code()

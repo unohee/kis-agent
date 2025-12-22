@@ -7,6 +7,8 @@ API: /uapi/domestic-stock/v1/quotations/inquire-index-tickprice
 TR: FHPUP02110100
 
 생성일: 2025-10-20
+
+Note: 이 예제는 레거시 StockAPI를 사용합니다. 새 코드에서는 Agent 사용을 권장합니다.
 """
 
 import os
@@ -16,7 +18,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pykis.core.client import KISClient
-from pykis.stock.api import StockAPI
+from pykis.stock import LegacyStockAPI as StockAPI
 
 
 def main():
@@ -54,7 +56,7 @@ def main():
 
     # 2. KOSDAQ 시간별지수 조회
     print("\n2. KOSDAQ 시간별지수 조회")
-    result = agent.inquire_index_tickprice(
+    result = stock_api.inquire_index_tickprice(
         index_code="1001",  # 1001: 코스닥
         market="U"
     )
@@ -75,7 +77,7 @@ def main():
 
     # 3. KOSPI 200 시간별지수 조회
     print("\n3. KOSPI 200 시간별지수 조회")
-    result = agent.inquire_index_tickprice(
+    result = stock_api.inquire_index_tickprice(
         index_code="2001",  # 2001: 코스피200
         market="U"
     )
@@ -96,7 +98,7 @@ def main():
 
     # 4. KSQ150 시간별지수 조회
     print("\n4. KSQ150 시간별지수 조회")
-    result = agent.inquire_index_tickprice(
+    result = stock_api.inquire_index_tickprice(
         index_code="3003",  # 3003: KSQ150
         market="U"
     )

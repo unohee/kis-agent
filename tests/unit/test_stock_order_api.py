@@ -1,5 +1,8 @@
 """
-새로 추가된 StockAPI 주문 관련 메서드들에 대한 단위 테스트
+레거시 StockAPI 주문 관련 메서드들에 대한 단위 테스트
+
+Note: 이 테스트는 레거시 StockAPI (pykis.stock.api)의 주문 메서드를 테스트합니다.
+새 코드에서는 AccountAPI 또는 Agent를 통한 주문을 권장합니다.
 """
 
 from unittest.mock import Mock, patch
@@ -7,7 +10,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from pykis.core.client import KISClient
-from pykis.stock.api import StockAPI
+from pykis.stock import LegacyStockAPI as StockAPI
 
 
 class TestStockOrderAPI:

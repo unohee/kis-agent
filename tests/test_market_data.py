@@ -1,9 +1,15 @@
+"""
+레거시 StockAPI의 선물/지수 관련 메서드 테스트
+
+Note: 이 테스트는 레거시 StockAPI (pykis.stock.api)의 get_kospi200_index,
+get_futures_price 메서드를 테스트합니다. 새 코드에서는 Facade API 사용을 권장합니다.
+"""
 import os
 
 import pytest
 
 from pykis.core.client import KISClient
-from pykis.stock.api import StockAPI
+from pykis.stock import LegacyStockAPI as StockAPI
 
 
 @pytest.fixture

@@ -24,8 +24,10 @@ from .price_api import StockPriceAPI
 # 기존 import (필요시 접근)
 try:
     from .api import StockAPI as LegacyStockAPI
+    from .api import get_kospi200_futures_code  # 유틸리티 함수
 except ImportError:
     LegacyStockAPI = None  # 레거시 클래스가 없을 경우
+    get_kospi200_futures_code = None
 
 # 하위 호환성을 위한 별칭
 MarketAPI = StockAPI  # 기존 별칭 유지
@@ -39,6 +41,7 @@ __all__ = [
     "InterestStockAPI",  # 관심종목 (BaseAPI 상속)
     "MarketAPI",  # 기존 별칭 (하위 호환성)
     "InvestorPositionAnalyzer",  # 기존 유틸리티
+    "get_kospi200_futures_code",  # 유틸리티 함수
 ]
 
 # 레거시 지원

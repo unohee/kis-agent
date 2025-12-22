@@ -1,7 +1,12 @@
+"""
+KOSPI 200 선물 베이시스 계산 예제
+
+Note: 이 예제는 레거시 StockAPI를 사용합니다. 새 코드에서는 Agent 사용을 권장합니다.
+"""
 import os
 
 from pykis.core.client import KISClient
-from pykis.stock.api import StockAPI
+from pykis.stock import LegacyStockAPI as StockAPI
 
 # Set up the KISClient and StockAPI
 client = KISClient()
