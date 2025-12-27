@@ -194,15 +194,28 @@ class StockPriceAPI(BaseAPI):
     def get_daily_minute_price(
         self, code: str, date: str, hour: str = "153000"
     ) -> Optional[Dict]:
-        """특정일 분봉 시세 조회 (rt_cd 메타데이터가 포함된)"""
+        """
+        일별분봉시세조회 - 과거일자 분봉 데이터 조회 (rt_cd 메타데이터 포함)
+
+        Args:
+            code: 종목코드 (6자리)
+            date: 조회일자 (YYYYMMDD)
+            hour: 조회 시간 (HHMMSS, 기본값: 153000)
+
+        Returns:
+            분봉 시세 데이터 (output1: 종목정보, output2: 분봉 리스트)
+        """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_TIME_ITEMCHARTPRICE"],
-            tr_id="FHKST01010300",
+            endpoint=API_ENDPOINTS["INQUIRE_TIME_DAILYCHARTPRICE"],
+            tr_id="FHKST03010230",
             params={
+                "FID_ETC_CLS_CODE": "",
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code,
-                "FID_INPUT_DATE_1": date,
                 "FID_INPUT_HOUR_1": hour,
+                "FID_PW_DATA_INCU_YN": "Y",
+                "FID_INPUT_DATE_1": date,
+                "FID_FAKE_TICK_INCU_YN": "",
             },
         )
 
