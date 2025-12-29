@@ -354,3 +354,37 @@ class InquirePeriodTradeProfitResponse(BaseResponse):
 
     output1: List[InquirePeriodTradeProfitOutput1Item]
     output2: InquirePeriodTradeProfitOutput2
+
+
+# ============================================================
+# inquire_period_profit() - 기간별손익일별합산조회 (TTTC8708R)
+# ============================================================
+
+
+class InquirePeriodProfitOutput1Item(TypedDict, total=False):
+    """기간별손익일별합산 개별 항목 (일별 손익)"""
+
+    trad_dt: str  # 거래일자 (Trade Date, YYYYMMDD)
+    sll_amt: str  # 매도금액 (Sell Amount)
+    buy_amt: str  # 매수금액 (Buy Amount)
+    rlzt_pfls: str  # 실현손익 (Realized Profit/Loss)
+    fee_smtl: str  # 수수료합계 (Fee Sum Total)
+    tltx_smtl: str  # 제세금합계 (Tax/Levy Sum Total)
+    tot_rlzt_pfls: str  # 총실현손익 (Total Realized Profit/Loss)
+
+
+class InquirePeriodProfitOutput2(TypedDict, total=False):
+    """기간별손익일별합산 요약 정보"""
+
+    tot_sll_amt: str  # 총매도금액 (Total Sell Amount)
+    tot_buy_amt: str  # 총매수금액 (Total Buy Amount)
+    tot_rlzt_pfls: str  # 총실현손익 (Total Realized Profit/Loss)
+    tot_fee: str  # 총수수료 (Total Fee)
+    tot_tltx: str  # 총제세금 (Total Tax/Levy)
+
+
+class InquirePeriodProfitResponse(BaseResponse):
+    """기간별손익일별합산조회 응답"""
+
+    output1: List[InquirePeriodProfitOutput1Item]
+    output2: InquirePeriodProfitOutput2

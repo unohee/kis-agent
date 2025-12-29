@@ -3124,7 +3124,13 @@ class Agent(BaseExceptionHandler):
         )
 
     def inquire_period_trade_profit(
-        self, start_date: str, end_date: str
+        self,
+        start_date: str,
+        end_date: str,
+        pdno: str = "",
+        sort_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+        as_dict: bool = False,
     ) -> Optional[pd.DataFrame]:
         """기간별매매손익현황조회
 
@@ -3133,16 +3139,111 @@ class Agent(BaseExceptionHandler):
         Args:
             start_date: 조회시작일자 (YYYYMMDD 형식)
             end_date: 조회종료일자 (YYYYMMDD 형식)
+            pdno: 종목코드 (6자리). 빈 문자열이면 전체 종목 조회
+            sort_dvsn: 정렬구분 ("00": 역순, "01": 정순)
+            cblc_dvsn: 잔고구분 ("00": 전체, "01": 현금, "02": 신용)
+            as_dict: True이면 Dict 반환, False이면 DataFrame 반환
 
         Returns:
-            Optional[pd.DataFrame]: 기간별 매매손익 DataFrame
+            Optional[pd.DataFrame] 또는 Optional[Dict]: 기간별 매매손익 정보
 
         See Also:
             AccountAPI.inquire_period_trade_profit: 상세 구현
         """
-        return self.account_api.inquire_period_trade_profit(start_date, end_date)
+        return self.account_api.inquire_period_trade_profit(
+            start_date, end_date, pdno, sort_dvsn, cblc_dvsn, as_dict
+        )
 
-    def inquire_balance_rlz_pl(self) -> Optional[pd.DataFrame]:
+    def get_period_trade_profit(
+        self,
+        start_date: str,
+        end_date: str,
+        pdno: str = "",
+        sort_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+    ) -> Optional[Dict[str, Any]]:
+        """기간별매매손익합산조회 (Dict 반환)
+
+        지정한 기간 동안의 실현 매매손익을 Dict로 조회합니다.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식)
+            end_date: 조회종료일자 (YYYYMMDD 형식)
+            pdno: 종목코드 (6자리). 빈 문자열이면 전체 종목 조회
+            sort_dvsn: 정렬구분 ("00": 역순, "01": 정순)
+            cblc_dvsn: 잔고구분 ("00": 전체, "01": 현금, "02": 신용)
+
+        Returns:
+            Optional[Dict]: 기간별 매매손익 정보 (output1, output2 포함)
+
+        See Also:
+            AccountAPI.get_period_trade_profit: 상세 구현
+        """
+        return self.account_api.get_period_trade_profit(
+            start_date, end_date, pdno, sort_dvsn, cblc_dvsn
+        )
+
+    def inquire_period_profit(
+        self,
+        start_date: str,
+        end_date: str,
+        sort_dvsn: str = "00",
+        inqr_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+        as_dict: bool = False,
+    ) -> Optional[pd.DataFrame]:
+        """기간별손익일별합산조회
+
+        지정한 기간 동안의 일별 손익을 합산하여 조회합니다.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식)
+            end_date: 조회종료일자 (YYYYMMDD 형식)
+            sort_dvsn: 정렬구분 ("00": 역순, "01": 정순)
+            inqr_dvsn: 조회구분 ("00": 전체, "01": 입금, "02": 출금)
+            cblc_dvsn: 잔고구분 ("00": 전체, "01": 현금, "02": 융자, "03": 대주, "04": 신용)
+            as_dict: True이면 Dict 반환, False이면 DataFrame 반환
+
+        Returns:
+            Optional[pd.DataFrame] 또는 Optional[Dict]: 일별 손익 합산 정보
+
+        See Also:
+            AccountAPI.inquire_period_profit: 상세 구현
+        """
+        return self.account_api.inquire_period_profit(
+            start_date, end_date, sort_dvsn, inqr_dvsn, cblc_dvsn, as_dict
+        )
+
+    def get_period_profit(
+        self,
+        start_date: str,
+        end_date: str,
+        sort_dvsn: str = "00",
+        inqr_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+    ) -> Optional[Dict[str, Any]]:
+        """기간별손익일별합산조회 (Dict 반환)
+
+        지정한 기간 동안의 일별 손익을 Dict로 조회합니다.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식)
+            end_date: 조회종료일자 (YYYYMMDD 형식)
+            sort_dvsn: 정렬구분 ("00": 역순, "01": 정순)
+            inqr_dvsn: 조회구분 ("00": 전체, "01": 입금, "02": 출금)
+            cblc_dvsn: 잔고구분 ("00": 전체, "01": 현금, "02": 융자, "03": 대주, "04": 신용)
+
+        Returns:
+            Optional[Dict]: 일별 손익 합산 정보 (output1, output2 포함)
+
+        See Also:
+            AccountAPI.get_period_profit: 상세 구현
+        """
+        return self.account_api.get_period_profit(
+            start_date, end_date, sort_dvsn, inqr_dvsn, cblc_dvsn
+        )
+
+    def inquire_balance_rlz_pl(self) -> Optional[Dict[str, Any]]:
         """주식잔고조회_실현손익
 
         보유 종목의 평가손익과 실현손익 정보를 포함한 잔고를 조회합니다.

@@ -299,5 +299,245 @@ class TestAccountAPI(unittest.TestCase):
         self.assertEqual(different_api.account["ACNT_PRDT_CD"], "02")
 
 
+class TestAccountAPIPeriodProfit(unittest.TestCase):
+    """기간별 손익 조회 메서드들 테스트"""
+
+    def setUp(self):
+        """각 테스트마다 새로운 인스턴스 생성"""
+        self.client = MagicMock(spec=KISClient)
+        self.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
+        self.api = AccountAPI(self.client, self.account_info, enable_cache=False)
+
+    def test_inquire_period_trade_profit_success(self):
+        """기간별매매손익현황조회 성공 테스트"""
+        self.client.make_request.return_value = {
+            "rt_cd": "0",
+            "msg1": "정상 처리되었습니다.",
+            "output1": [
+                {
+                    "trad_dt": "20250101",
+                    "pdno": "005930",
+                    "prdt_name": "삼성전자",
+                    "trad_dvsn_name": "매도",
+                    "sll_qty": "10",
+                    "sll_amt": "650000",
+                    "rlzt_pfls": "50000",
+                    "pfls_rt": "8.33",
+                },
+            ],
+            "output2": {
+                "sll_qty_smtl": "10",
+                "sll_tr_amt_smtl": "650000",
+                "tot_rlzt_pfls": "50000",
+            },
+        }
+
+        result = self.api.inquire_period_trade_profit(
+            start_date="20250101",
+            end_date="20250131",
+        )
+
+        self.assertIsNotNone(result)
+        # DataFrame 반환 확인 (as_dict=False 기본값)
+        import pandas as pd
+
+        self.assertIsInstance(result, pd.DataFrame)
+
+        # API 호출 파라미터 확인
+        self.client.make_request.assert_called_once()
+        args, kwargs = self.client.make_request.call_args
+        params = kwargs["params"]
+        self.assertEqual(params["CANO"], "12345678")
+        self.assertEqual(params["ACNT_PRDT_CD"], "01")
+        self.assertEqual(params["INQR_STRT_DT"], "20250101")
+        self.assertEqual(params["INQR_END_DT"], "20250131")
+
+    def test_inquire_period_trade_profit_with_optional_params(self):
+        """기간별매매손익현황조회 선택 파라미터 테스트"""
+        self.client.make_request.return_value = {
+            "rt_cd": "0",
+            "output1": [{"trad_dt": "20250101", "pdno": "005930"}],
+            "output2": {"tot_rlzt_pfls": "50000"},
+        }
+
+        result = self.api.inquire_period_trade_profit(
+            start_date="20250101",
+            end_date="20250131",
+            pdno="005930",
+            sort_dvsn="01",
+            cblc_dvsn="01",
+        )
+
+        # API 호출 파라미터 확인
+        args, kwargs = self.client.make_request.call_args
+        params = kwargs["params"]
+        self.assertEqual(params["PDNO"], "005930")
+        self.assertEqual(params["SORT_DVSN"], "01")
+        self.assertEqual(params["CBLC_DVSN"], "01")
+
+    def test_inquire_period_trade_profit_as_dict(self):
+        """기간별매매손익현황조회 Dict 반환 테스트"""
+        expected_response = {
+            "rt_cd": "0",
+            "output1": [{"trad_dt": "20250101"}],
+            "output2": {"tot_rlzt_pfls": "50000"},
+        }
+        self.client.make_request.return_value = expected_response
+
+        result = self.api.inquire_period_trade_profit(
+            start_date="20250101",
+            end_date="20250131",
+            as_dict=True,
+        )
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["rt_cd"], "0")
+        self.assertIn("output1", result)
+        self.assertIn("output2", result)
+
+    def test_get_period_trade_profit_success(self):
+        """get_period_trade_profit 헬퍼 메서드 테스트"""
+        expected_response = {
+            "rt_cd": "0",
+            "output1": [{"trad_dt": "20250101", "rlzt_pfls": "50000"}],
+            "output2": {"tot_rlzt_pfls": "50000"},
+        }
+        self.client.make_request.return_value = expected_response
+
+        result = self.api.get_period_trade_profit(
+            start_date="20250101",
+            end_date="20250131",
+        )
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["rt_cd"], "0")
+
+    def test_inquire_period_profit_success(self):
+        """기간별손익일별합산조회 성공 테스트"""
+        self.client.make_request.return_value = {
+            "rt_cd": "0",
+            "msg1": "정상 처리되었습니다.",
+            "output1": [
+                {
+                    "trad_dt": "20250101",
+                    "sll_amt": "650000",
+                    "buy_amt": "600000",
+                    "rlzt_pfls": "50000",
+                    "fee_smtl": "1000",
+                    "tltx_smtl": "500",
+                    "tot_rlzt_pfls": "48500",
+                },
+                {
+                    "trad_dt": "20250102",
+                    "sll_amt": "700000",
+                    "buy_amt": "680000",
+                    "rlzt_pfls": "20000",
+                    "fee_smtl": "800",
+                    "tltx_smtl": "400",
+                    "tot_rlzt_pfls": "18800",
+                },
+            ],
+            "output2": {
+                "tot_sll_amt": "1350000",
+                "tot_buy_amt": "1280000",
+                "tot_rlzt_pfls": "67300",
+            },
+        }
+
+        result = self.api.inquire_period_profit(
+            start_date="20250101",
+            end_date="20250131",
+        )
+
+        self.assertIsNotNone(result)
+        # DataFrame 반환 확인
+        import pandas as pd
+
+        self.assertIsInstance(result, pd.DataFrame)
+
+        # API 호출 파라미터 확인
+        self.client.make_request.assert_called_once()
+        args, kwargs = self.client.make_request.call_args
+        params = kwargs["params"]
+        self.assertEqual(params["CANO"], "12345678")
+        self.assertEqual(params["ACNT_PRDT_CD"], "01")
+        self.assertEqual(params["INQR_STRT_DT"], "20250101")
+        self.assertEqual(params["INQR_END_DT"], "20250131")
+        self.assertEqual(params.get("CTX_AREA_FK200"), "")
+        self.assertEqual(params.get("CTX_AREA_NK200"), "")
+
+    def test_inquire_period_profit_as_dict(self):
+        """기간별손익일별합산조회 Dict 반환 테스트"""
+        expected_response = {
+            "rt_cd": "0",
+            "output1": [{"trad_dt": "20250101", "rlzt_pfls": "50000"}],
+            "output2": {"tot_rlzt_pfls": "50000"},
+        }
+        self.client.make_request.return_value = expected_response
+
+        result = self.api.inquire_period_profit(
+            start_date="20250101",
+            end_date="20250131",
+            as_dict=True,
+        )
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["rt_cd"], "0")
+        self.assertIn("output1", result)
+        self.assertIn("output2", result)
+
+    def test_get_period_profit_success(self):
+        """get_period_profit 헬퍼 메서드 테스트"""
+        expected_response = {
+            "rt_cd": "0",
+            "output1": [{"trad_dt": "20250101", "rlzt_pfls": "50000"}],
+            "output2": {"tot_rlzt_pfls": "50000"},
+        }
+        self.client.make_request.return_value = expected_response
+
+        result = self.api.get_period_profit(
+            start_date="20250101",
+            end_date="20250131",
+        )
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["rt_cd"], "0")
+
+    def test_inquire_period_trade_profit_api_error(self):
+        """기간별매매손익현황조회 API 오류 테스트"""
+        self.client.make_request.return_value = {
+            "rt_cd": "1",
+            "msg1": "조회 결과가 없습니다.",
+        }
+
+        result = self.api.inquire_period_trade_profit(
+            start_date="20250101",
+            end_date="20250131",
+            as_dict=True,
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["rt_cd"], "1")
+
+    def test_inquire_period_profit_no_data(self):
+        """기간별손익일별합산조회 데이터 없음 테스트"""
+        self.client.make_request.return_value = {
+            "rt_cd": "0",
+            "output1": [],
+            "output2": {"tot_rlzt_pfls": "0"},
+        }
+
+        result = self.api.inquire_period_profit(
+            start_date="20250101",
+            end_date="20250131",
+        )
+
+        # 빈 output1이면 DataFrame이 비어있음
+        import pandas as pd
+
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertEqual(len(result), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

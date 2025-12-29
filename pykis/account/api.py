@@ -1138,7 +1138,13 @@ class AccountAPI(BaseAPI):
             return None
 
     def inquire_period_trade_profit(
-        self, start_date: str, end_date: str
+        self,
+        start_date: str,
+        end_date: str,
+        pdno: str = "",
+        sort_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+        as_dict: bool = False,
     ) -> Optional[pd.DataFrame]:
         """기간별매매손익현황조회 - 특정 기간의 실현 매매손익을 조회합니다.
 
@@ -1148,25 +1154,57 @@ class AccountAPI(BaseAPI):
         Args:
             start_date: 조회시작일자 (YYYYMMDD 형식, 필수)
             end_date: 조회종료일자 (YYYYMMDD 형식, 필수)
+            pdno: 상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목 조회
+            sort_dvsn: 정렬구분 (기본값: "00")
+                - "00": 역순 (최신 데이터부터)
+                - "01": 정순 (과거 데이터부터)
+            cblc_dvsn: 잔고구분 (기본값: "00")
+                - "00": 전체
+                - "01": 현금
+                - "02": 신용
+            as_dict: True이면 Dict 반환, False이면 DataFrame 반환 (기본값: False)
 
         Returns:
-            Optional[pd.DataFrame]: 기간별 매매손익 정보가 담긴 DataFrame
+            Optional[pd.DataFrame] 또는 Optional[Dict]: 기간별 매매손익 정보
+                DataFrame 필드 (as_dict=False):
+                - trad_dt: 매매일자
                 - pdno: 상품번호
                 - prdt_name: 상품명
-                - buy_amt: 매수금액
-                - sell_amt: 매도금액
-                - sell_pnl_smtl: 매도손익합계
-                - pnl_rate: 손익률(%)
-                - sell_qty: 매도수량
+                - trad_dvsn_name: 매매구분명
                 - buy_qty: 매수수량
+                - buy_amt: 매수금액
+                - sll_qty: 매도수량
+                - sll_amt: 매도금액
+                - rlzt_pfls: 실현손익
+                - pfls_rt: 손익률(%)
+                - fee: 수수료
+                - tl_tax: 제세금
+
+                Dict 구조 (as_dict=True):
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg1: 응답메시지
+                - output1: 매매손익 리스트
+                - output2: 요약 정보
+                    - sll_qty_smtl: 매도수량합계
+                    - sll_tr_amt_smtl: 매도거래금액합계
+                    - tot_rlzt_pfls: 총실현손익
+                    - tot_pftrt: 총수익률
+
                 실패 시 None 반환
 
         Example:
-            >>> # 2025년 1월 매매손익 조회
+            >>> # 2025년 1월 전체 매매손익 조회 (DataFrame)
             >>> df = api.inquire_period_trade_profit("20250101", "20250131")
             >>> if df is not None:
-            ...     total_profit = df['sell_pnl_smtl'].astype(float).sum()
+            ...     total_profit = df['rlzt_pfls'].astype(float).sum()
             ...     print(f"총 실현손익: {total_profit:,.0f}원")
+
+            >>> # 특정 종목의 매매손익 조회 (Dict)
+            >>> result = api.inquire_period_trade_profit(
+            ...     "20250101", "20250131", pdno="005930", as_dict=True
+            ... )
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"총손익: {result['output2']['tot_rlzt_pfls']}")
         """
         try:
             res = self.client.make_request(
@@ -1175,12 +1213,21 @@ class AccountAPI(BaseAPI):
                 params={
                     "CANO": self.account["CANO"],
                     "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
+                    "PDNO": pdno,
                     "INQR_STRT_DT": start_date,
                     "INQR_END_DT": end_date,
+                    "SORT_DVSN": sort_dvsn,
+                    "CBLC_DVSN": cblc_dvsn,
                     "CTX_AREA_FK100": "",
                     "CTX_AREA_NK100": "",
                 },
             )
+
+            if as_dict:
+                # Dict 형태로 반환
+                return res
+
+            # DataFrame 형태로 반환 (기존 동작)
             if res and "output1" in res:
                 df = pd.DataFrame(res["output1"])
                 # rt_cd 컬럼 추가 (API 응답 성공/실패 추적용)
@@ -1192,6 +1239,228 @@ class AccountAPI(BaseAPI):
         except Exception as e:
             logging.error(f"기간별매매손익 조회 실패: {e}")
             return None
+
+    def get_period_trade_profit(
+        self,
+        start_date: str,
+        end_date: str,
+        pdno: str = "",
+        sort_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+    ) -> Optional[Dict]:
+        """기간별매매손익합산조회 - 특정 기간의 실현 매매손익을 Dict로 조회합니다.
+
+        inquire_period_trade_profit의 Dict 반환 버전입니다.
+        Agent facade에서 직접 호출할 수 있으며, 다른 계좌 API들과 일관된 Dict 형태로 반환합니다.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식, 필수)
+            end_date: 조회종료일자 (YYYYMMDD 형식, 필수)
+            pdno: 상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목 조회
+            sort_dvsn: 정렬구분 (기본값: "00")
+                - "00": 역순 (최신 데이터부터)
+                - "01": 정순 (과거 데이터부터)
+            cblc_dvsn: 잔고구분 (기본값: "00")
+                - "00": 전체
+                - "01": 현금
+                - "02": 신용
+
+        Returns:
+            Optional[Dict]: 기간별 매매손익 정보
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg_cd: 메시지코드
+                - msg1: 응답메시지
+                - output1: 매매손익 리스트 (각 항목은 딕셔너리)
+                    - trad_dt: 매매일자
+                    - pdno: 상품번호
+                    - prdt_name: 상품명
+                    - trad_dvsn_name: 매매구분명
+                    - loan_dt: 대출일자
+                    - hldg_qty: 보유수량
+                    - pchs_unpr: 매입단가
+                    - buy_qty: 매수수량
+                    - buy_amt: 매수금액
+                    - sll_pric: 매도가격
+                    - sll_qty: 매도수량
+                    - sll_amt: 매도금액
+                    - rlzt_pfls: 실현손익
+                    - pfls_rt: 손익률(%)
+                    - fee: 수수료
+                    - tl_tax: 제세금
+                    - loan_int: 대출이자
+                - output2: 요약 정보
+                    - sll_qty_smtl: 매도수량합계
+                    - sll_tr_amt_smtl: 매도거래금액합계
+                    - sll_fee_smtl: 매도수수료합계
+                    - sll_tltx_smtl: 매도제세금합계
+                    - sll_excc_amt_smtl: 매도정산금액합계
+                    - buyqty_smtl: 매수수량합계
+                    - buy_tr_amt_smtl: 매수거래금액합계
+                    - buy_fee_smtl: 매수수수료합계
+                    - buy_tax_smtl: 매수제세금합계
+                    - buy_excc_amt_smtl: 매수정산금액합계
+                    - tot_qty: 총수량
+                    - tot_tr_amt: 총거래금액
+                    - tot_fee: 총수수료
+                    - tot_tltx: 총제세금
+                    - tot_excc_amt: 총정산금액
+                    - tot_rlzt_pfls: 총실현손익
+                    - tot_pftrt: 총수익률
+                실패 시 None 반환
+
+        Example:
+            >>> # 2025년 1월 전체 매매손익 조회
+            >>> result = api.get_period_trade_profit("20250101", "20250131")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     total_profit = result['output2']['tot_rlzt_pfls']
+            ...     print(f"총 실현손익: {float(total_profit):,.0f}원")
+
+            >>> # 특정 종목 매매손익 조회
+            >>> result = api.get_period_trade_profit(
+            ...     "20250101", "20250131", pdno="005930"
+            ... )
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for item in result['output1']:
+            ...         print(f"{item['trad_dt']}: {item['rlzt_pfls']}원")
+        """
+        return self.inquire_period_trade_profit(
+            start_date=start_date,
+            end_date=end_date,
+            pdno=pdno,
+            sort_dvsn=sort_dvsn,
+            cblc_dvsn=cblc_dvsn,
+            as_dict=True,
+        )
+
+    def inquire_period_profit(
+        self,
+        start_date: str,
+        end_date: str,
+        sort_dvsn: str = "00",
+        inqr_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+        as_dict: bool = False,
+    ) -> Optional[pd.DataFrame]:
+        """기간별손익일별합산조회 - 특정 기간의 일별 손익을 합산하여 조회합니다.
+
+        지정한 기간 동안의 일별 손익을 합산하여 제공합니다.
+        inquire_period_trade_profit과 달리 일별 합산 기준으로 집계됩니다.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식, 필수)
+            end_date: 조회종료일자 (YYYYMMDD 형식, 필수)
+            sort_dvsn: 정렬구분 (기본값: "00")
+                - "00": 역순 (최신 데이터부터)
+                - "01": 정순 (과거 데이터부터)
+            inqr_dvsn: 조회구분 (기본값: "00")
+                - "00": 전체
+                - "01": 입금
+                - "02": 출금
+            cblc_dvsn: 잔고구분 (기본값: "00")
+                - "00": 전체
+                - "01": 현금
+                - "02": 융자
+                - "03": 대주
+                - "04": 신용
+            as_dict: True이면 Dict 반환, False이면 DataFrame 반환 (기본값: False)
+
+        Returns:
+            Optional[pd.DataFrame] 또는 Optional[Dict]: 기간별 일별 손익 합산 정보
+                DataFrame 필드 (as_dict=False):
+                - trad_dt: 거래일자
+                - sll_amt: 매도금액
+                - buy_amt: 매수금액
+                - rlzt_pfls: 실현손익
+                - fee_smtl: 수수료합계
+                - tltx_smtl: 제세금합계
+                - tot_rlzt_pfls: 총실현손익
+
+                Dict 구조 (as_dict=True):
+                - rt_cd: 응답코드 ("0": 성공)
+                - msg1: 응답메시지
+                - output1: 일별 손익 리스트
+                - output2: 요약 정보
+
+                실패 시 None 반환
+
+        Example:
+            >>> # 2025년 1월 일별 손익 조회 (DataFrame)
+            >>> df = api.inquire_period_profit("20250101", "20250131")
+            >>> if df is not None:
+            ...     total = df['rlzt_pfls'].astype(float).sum()
+            ...     print(f"총 실현손익: {total:,.0f}원")
+
+            >>> # Dict 형태로 조회
+            >>> result = api.inquire_period_profit("20250101", "20250131", as_dict=True)
+            >>> if result and result.get('rt_cd') == '0':
+            ...     for day in result['output1']:
+            ...         print(f"{day['trad_dt']}: {day['rlzt_pfls']}원")
+        """
+        try:
+            res = self.client.make_request(
+                endpoint="/uapi/domestic-stock/v1/trading/inquire-period-profit",
+                tr_id="TTTC8708R",
+                params={
+                    "CANO": self.account["CANO"],
+                    "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
+                    "PDNO": "",  # 종목코드 (빈값=전체)
+                    "INQR_STRT_DT": start_date,
+                    "INQR_END_DT": end_date,
+                    "SORT_DVSN": sort_dvsn,
+                    "INQR_DVSN": inqr_dvsn,
+                    "CBLC_DVSN": cblc_dvsn,
+                    "CTX_AREA_FK100": "",
+                    "CTX_AREA_NK100": "",
+                },
+            )
+
+            if as_dict:
+                return res
+
+            if res and "output1" in res:
+                df = pd.DataFrame(res["output1"])
+                df["rt_cd"] = res.get("rt_cd", "")
+                df["msg_cd"] = res.get("msg_cd", "")
+                df["msg1"] = res.get("msg1", "")
+                return df
+            return None
+        except Exception as e:
+            logging.error(f"기간별손익일별합산 조회 실패: {e}")
+            return None
+
+    def get_period_profit(
+        self,
+        start_date: str,
+        end_date: str,
+        sort_dvsn: str = "00",
+        inqr_dvsn: str = "00",
+        cblc_dvsn: str = "00",
+    ) -> Optional[Dict]:
+        """기간별손익일별합산조회 (Dict 반환) - 일별 손익 합산을 Dict로 조회합니다.
+
+        inquire_period_profit의 Dict 반환 버전입니다.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD 형식, 필수)
+            end_date: 조회종료일자 (YYYYMMDD 형식, 필수)
+            sort_dvsn: 정렬구분 ("00": 역순, "01": 정순)
+            inqr_dvsn: 조회구분 ("00": 전체, "01": 입금, "02": 출금)
+            cblc_dvsn: 잔고구분 ("00": 전체, "01": 현금, "02": 융자, "03": 대주, "04": 신용)
+
+        Returns:
+            Optional[Dict]: 기간별 일별 손익 합산 정보
+                - rt_cd: 응답코드 ("0": 성공)
+                - output1: 일별 손익 리스트
+                - output2: 요약 정보
+
+        Example:
+            >>> result = api.get_period_profit("20250101", "20250131")
+            >>> if result and result.get('rt_cd') == '0':
+            ...     print(f"총손익: {result['output2'].get('tot_rlzt_pfls', '0')}")
+        """
+        return self.inquire_period_profit(
+            start_date, end_date, sort_dvsn, inqr_dvsn, cblc_dvsn, as_dict=True
+        )
 
     def inquire_balance_rlz_pl(self) -> Optional[Dict]:
         """주식잔고조회_실현손익 - 보유 종목의 실현손익 정보를 포함한 잔고를 조회합니다.
