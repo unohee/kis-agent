@@ -115,9 +115,10 @@ postman_collections/
 # Excel files
 *.xlsx
 
-# Scripts (but keep response_documentation tools)
+# Scripts (but keep response_documentation and CI tools)
 scripts/
 !scripts/response_documentation/
+!scripts/check_loc.py
 
 logs
 npm-debug.log*
