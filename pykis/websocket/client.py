@@ -1,27 +1,5 @@
-"""
-한국투자증권 실시간 웹소켓 클라이언트 (레거시)
+"""한국투자증권 실시간 웹소켓 클라이언트 (레거시). WSAgent/WSAgentWithStore 사용 권장."""
 
-.. deprecated:: 1.3.0
-    이 모듈은 더 이상 유지보수되지 않습니다.
-    대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 사용하세요.
-
-마이그레이션 예시::
-
-    # 기존 코드 (deprecated)
-    from pykis.websocket import KisWebSocket
-    ws = KisWebSocket(client, account_info, stock_codes=["005930"])
-    await ws.connect()
-
-    # 새로운 코드 (권장)
-    from pykis.websocket import WSAgentWithStore
-    approval_key = client.get_ws_approval_key()
-    ws = WSAgentWithStore(approval_key)
-    ws.subscribe_stocks(["005930"])
-    await ws.connect()
-
-    # 최신 데이터 조회
-    trade = ws.store.get_trade("005930")
-"""
 import asyncio
 import json
 import logging
@@ -46,23 +24,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 class KisWebSocket:
-    """
-    한국투자증권 실시간 웹소켓 클라이언트
-
-    .. deprecated:: 1.3.0
-        이 클래스는 더 이상 유지보수되지 않습니다.
-        대신 :class:`WSAgent` 또는 :class:`WSAgentWithStore`를 사용하세요.
-
-    WSAgent로 마이그레이션하면 다음과 같은 이점이 있습니다:
-        - 더 간단한 API
-        - 자동 재연결 및 에러 처리
-        - 내장 데이터 파싱 및 저장소
-        - 더 나은 구독 관리
-
-    See Also:
-        :class:`WSAgent`: 기본 WebSocket 에이전트
-        :class:`WSAgentWithStore`: 데이터 저장소가 포함된 에이전트
-    """
+    """[DEPRECATED] 레거시 웹소켓. WSAgent/WSAgentWithStore 사용 권장."""
 
     def __init__(
         self,
@@ -76,16 +38,7 @@ class KisWebSocket:
         enable_expected_index: bool = False,
         enable_expected_stock: bool = False,
     ):
-        """
-        Args:
-            client (KISClient): API 클라이언트 객체
-            account_info (dict): 계좌 정보 딕셔너리
-            stock_codes (list, optional): 구독할 종목코드 리스트. Defaults to None.
-            purchase_prices (dict, optional): 매수 정보 딕셔너리 {'종목코드': (매입가격, 보유 수량)}. Defaults to None.
-            enable_index (bool): 지수 실시간 데이터 구독 여부. Defaults to True.
-            enable_program_trading (bool): 프로그램매매 실시간 데이터 구독 여부. Defaults to True.
-            enable_ask_bid (bool): 호가 실시간 데이터 구독 여부. Defaults to False.
-        """
+        """레거시 초기화. client, account_info 필수, stock_codes/enable_* 선택."""
         warnings.warn(
             "KisWebSocket은 deprecated되었습니다. "
             "WSAgent 또는 WSAgentWithStore를 사용하세요. "
@@ -198,9 +151,7 @@ class KisWebSocket:
         return self.approval_key
 
     def update_trade_history(self, stock_code, trade_time, price, trade_strength=None):
-        """
-        trade_history에 추가하고 JSONL로 로그 기록
-        """
+        """체결 이력 추가 및 JSONL 로그."""
         # 기존 trade_history 업데이트
         if stock_code not in self.trade_history:
             self.trade_history[stock_code] = []
@@ -221,10 +172,7 @@ class KisWebSocket:
             logging.error(f"Failed to write trade log: {e}")
 
     def compute_RSI(self, stock_code, period=14):
-        """
-        trade_history의 가격정보를 이용하여 RSI를 계산합니다.
-        데이터가 충분하지 않으면 None을 반환합니다.
-        """
+        """RSI 계산 (trade_history 기반)."""
         trades = self.trade_history.get(stock_code, [])
         if len(trades) < period + 1:
             return None
@@ -248,9 +196,7 @@ class KisWebSocket:
         return round(rsi, 2)
 
     def ema(self, prices, span):
-        """
-        단순 EMA 계산 (초기값은 첫 가격 사용)
-        """
+        """EMA 계산."""
         alpha = 2 / (span + 1)
         ema_value = prices[0]
         for price in prices[1:]:
@@ -258,10 +204,7 @@ class KisWebSocket:
         return ema_value
 
     def compute_MACD(self, stock_code, span_short=12, span_long=26):
-        """
-        MACD를 계산합니다.
-        충분한 데이터가 있지 않으면 None 반환.
-        """
+        """MACD 계산. 데이터 부족 시 None."""
         trades = self.trade_history.get(stock_code, [])
         if len(trades) < span_long:
             return None
@@ -273,11 +216,7 @@ class KisWebSocket:
         return round(macd, 2)
 
     def compute_candles(self, stock_code, interval_minutes=1):
-        """
-        trade_history를 그룹화하여 지정한 분(interval_minutes) 기준 캔들(OHLC)을 계산합니다.
-        체결강도는 무시합니다.
-        반환 값은 (시작시간, open, high, low, close) 튜플의 리스트입니다.
-        """
+        """분봉 캔들(OHLC) 계산."""
         trades = self.trade_history.get(stock_code, [])
         if not trades:
             return []
@@ -303,10 +242,7 @@ class KisWebSocket:
         return candle_list
 
     def compute_RSI_candles(self, stock_code, period=14):
-        """
-        1분봉 캔들(완료된 캔들과 진행중인 캔들)의 close 가격을 이용해 RSI를 계산합니다.
-        충분한 캔들이 없으면 None 반환.
-        """
+        """1분봉 close로 RSI 계산."""
         from datetime import datetime
 
         candles = self.compute_candles(stock_code, interval_minutes=1)
@@ -335,10 +271,7 @@ class KisWebSocket:
         return round(rsi, 2)
 
     def compute_MACD_candles(self, stock_code, span_short=12, span_long=26):
-        """
-        1분봉 캔들의 close 가격을 사용하여 MACD를 계산합니다.
-        충분한 캔들이 없으면 None 반환.
-        """
+        """1분봉 close로 MACD 계산."""
         from datetime import datetime
 
         candles = self.compute_candles(stock_code, interval_minutes=1)
@@ -357,14 +290,7 @@ class KisWebSocket:
     def compute_MACD_oscillator_candles(
         self, stock_code, span_short=12, span_long=26, signal_span=9
     ):
-        """
-        1분봉 캔들의 close 가격을 기반으로 MACD Oscillator(= MACD Histogram)를 계산합니다.
-        계산 방식:
-        1. 각 캔들에 대해 MACD = EMA_short - EMA_long
-        2. MACD Signal = EMA(macd_series, signal_span)
-        3. MACD Oscillator = 최신 MACD - 최신 MACD Signal
-        충분한 캔들이 없으면 None 반환.
-        """
+        """MACD Oscillator(히스토그램) 계산."""
         from datetime import datetime
 
         candles = self.compute_candles(stock_code, interval_minutes=1)
@@ -386,10 +312,7 @@ class KisWebSocket:
         return round(oscillator, 2)
 
     def compute_ATR(self, stock_code, period=14, interval_minutes=1):
-        """
-        1분봉 캔들을 기반으로 ATR(Average True Range)를 계산합니다.
-        충분한 데이터가 없으면 None을 반환합니다.
-        """
+        """ATR 계산."""
         candles = self.compute_candles(stock_code, interval_minutes)
         if len(candles) < period + 1:
             return None
@@ -404,10 +327,7 @@ class KisWebSocket:
         return round(atr, 2)
 
     def compute_trade_strength_candle(self, stock_code, interval_minutes=1):
-        """
-        trade_history의 체결강도 데이터를 기반으로 지정한 분(interval_minutes) 기준 평균 체결강도를 계산합니다.
-        반환 값은 (시작시간, 평균 체결강도) 튜플의 리스트입니다.
-        """
+        """분봉 평균 체결강도 계산."""
         trades = self.trade_history.get(stock_code, [])
         if not trades:
             return []
@@ -428,9 +348,7 @@ class KisWebSocket:
         return result
 
     def print_domestic_hoga(self, data):
-        """
-        국내주식 호가 10단계 (상위/하위) 전체를 보기 좋게 출력합니다.
-        """
+        """호가 10단계 출력."""
         recv = data.split("^")
         sell_prices = recv[3:13]
         buy_prices = recv[13:23]
@@ -460,9 +378,7 @@ class KisWebSocket:
         print("=" * 40)
 
     def print_program_trade_summary(self, data_cnt, data):
-        """
-        국내주식 실시간 프로그램매매 요약 정보를 사람이 읽기 쉽게 출력합니다.
-        """
+        """프로그램매매 요약 출력."""
         menulist = "종목코드|체결시간|매도체결량|매도대금|매수체결량|매수대금|순매수체결량|순매수대금|매도호가잔량|매수호가잔량|전체순매수호가잔량"
         labels = menulist.split("|")
         pValue = data.split("^")
@@ -476,9 +392,7 @@ class KisWebSocket:
         print("=========================================")
 
     def get_index_name(self, index_code):
-        """
-        지수 코드를 지수 이름으로 변환합니다.
-        """
+        """지수 코드→이름 변환."""
         index_map = {
             "0001": "KOSPI",
             "1001": "KOSDAQ",
@@ -488,9 +402,7 @@ class KisWebSocket:
         return index_map.get(index_code, f"INDEX_{index_code}")
 
     def display_ask_bid_info(self, stock_code, data):
-        """
-        실시간 호가 정보를 간결하게 표시합니다.
-        """
+        """실시간 호가 표시."""
         try:
             recv = data.split("^")
             if len(recv) >= 50:
@@ -792,15 +704,7 @@ class KisWebSocket:
             await asyncio.sleep(10)
 
     def handle_message(self, data):
-        """
-        수신된 웹소켓 메시지를 처리합니다.
-        - 체결 데이터(H0STCNT0): 현재가와 기술적 지표 업데이트
-        - 호가 데이터(H0STASP0): 실시간 호가창 정보 (선택적)
-        - 지수 데이터(H0IF1000): 실시간 지수 정보 (코스피200 등)
-        - 프로그램매매(H0GSCNT0): 실시간 프로그램매매 추이
-        - 체결통보(H0STCNI0, H0STCNI9): 기존 처리 유지
-        - JSON 메시지: PINGPONG, SUBSCRIBE SUCCESS, AES 키 처리
-        """
+        """웹소켓 메시지 처리: 체결/호가/지수/프로그램매매/체결통보/PING 등."""
         if data[0] in ("0", "1"):
             recv_parts = data.split("|")
             trid = recv_parts[1]
@@ -912,9 +816,7 @@ class KisWebSocket:
                 self.aes_iv = json_obj["body"]["output"].get("iv")
 
     def format_trade_string(self, raw: str) -> str:
-        """
-        체결 데이터 문자열을 사람이 읽기 쉬운 요약 문자열로 변환합니다.
-        """
+        """체결 데이터를 요약 문자열로 변환."""
         values = raw.split("^")
         code = values[0]
         time = values[1]
@@ -941,10 +843,7 @@ class KisWebSocket:
             return f"{label} {hms} 체결 정보 파싱 실패: {e}"
 
     def stocksigningnotice(self, data, key, iv):
-        """
-        체결통보 메시지 처리 (AES256 복호화).
-        필요한 경우 여기에 추가 처리를 할 수 있습니다.
-        """
+        """체결통보 메시지 처리 (AES256 복호화)."""
         self.aes_cbc_base64_dec(key, iv, data)
         # 체결통보 출력 제거 (로그만 유지)
         return None
@@ -982,9 +881,7 @@ class KisWebSocket:
                 logging.error(f"{code} 과거 데이터 로딩 오류: {e}")
 
     def fetch_stock_names(self):
-        """
-        REST API를 호출하여 각 종목의 이름(종목명)을 가져와 stock_names에 저장합니다.
-        """
+        """REST API로 종목명 조회하여 stock_names에 저장."""
         for ticker in self.stock_codes:
             try:
                 # 이미 이름이 있고 값이 비어있지 않은 경우만 조회
@@ -1070,10 +967,7 @@ class KisWebSocket:
                 await asyncio.sleep(0.2)
 
     async def monitor_esc(self):
-        """
-        ESC키 입력 시 웹소켓 종료 및 프로그램 종료
-        (Windows에서 msvcrt 모듈 이용)
-        """
+        """ESC키 입력 시 웹소켓 종료 (Windows msvcrt)."""
         try:
             import msvcrt
         except ImportError:
@@ -1092,10 +986,7 @@ class KisWebSocket:
             await asyncio.sleep(0.1)
 
     async def monitor_exit(self):
-        """
-        ESC 키(Windows: msvcrt, 비 Windows: sys.stdin) 또는 ctrl+d(빈 문자열 입력)를 감지하면
-        웹소켓 연결을 종료하고 프로그램을 종료합니다.
-        """
+        """ESC/ctrl+d 감지 시 웹소켓 종료 (Windows: msvcrt, 비Windows: stdin)."""
         try:
             # Windows용: msvcrt 모듈 사용
             import msvcrt
@@ -1244,17 +1135,13 @@ class KisWebSocket:
             await asyncio.sleep(5)
 
     def is_ws_active(self, timeout_seconds=60):
-        """
-        Returns True if the last WebSocket receive was within timeout_seconds.
-        """
+        """최근 메시지 수신 여부 체크 (timeout 내)."""
         return (
             datetime.now() - self.last_ws_recv_time
         ).total_seconds() < timeout_seconds
 
     def load_initial_balance(self):
-        """
-        초기 잔고 정보를 한 번만 로드
-        """
+        """초기 잔고 정보 로드."""
         from ..account.api import AccountAPI
 
         account_api = AccountAPI(client=self.client, account_info=self.account_info)
@@ -1269,9 +1156,7 @@ class KisWebSocket:
         return False
 
     def update_price_and_indicators(self):
-        """
-        현재가와 기술적 지표만 업데이트하여 표시
-        """
+        """현재가/기술적 지표 업데이트 및 표시."""
         if self.balance_info is None:
             return
 
@@ -1364,18 +1249,14 @@ class KisWebSocket:
         print("=" * 100 + "\n")
 
     def display_balance_info(self):
-        """
-        초기 잔고 정보를 표시하고, 이후에는 update_price_and_indicators를 호출
-        """
+        """잔고 정보 표시 및 지표 업데이트."""
         if self.balance_info is None and not self.load_initial_balance():
             logging.error("잔고 정보를 가져오지 못했습니다.")
             return
         self.update_price_and_indicators()
 
     async def connect(self):
-        """
-        웹소켓 순수 체결정보(H0STCNT0)와 호가창(H0STASP0) 구독만 테스트하는 간소화 버전.
-        """
+        """웹소켓 연결 및 체결/호가 구독."""
         self.get_approval()
         logging.info("\n" + "=" * 50)
         logging.info("[INFO] 실시간 체결 정보 표시 시작")

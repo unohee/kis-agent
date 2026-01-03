@@ -1,3 +1,5 @@
+"""계좌 정보 조회 모듈. 잔고/주문/손익 조회 및 현금/신용 주문 기능."""
+
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
@@ -5,28 +7,6 @@ import pandas as pd
 
 from ..core.base_api import BaseAPI
 from ..core.client import API_ENDPOINTS, KISClient
-
-"""
-account.py - 계좌 정보 조회 전용 모듈
-
-이 모듈은 한국투자증권 OpenAPI를 통해 다음과 같은 기능을 제공합니다:
-- 보유 종목 및 잔고 조회
-- 현금 매수 가능 금액 조회
-- 총 자산 평가 (예수금, 주식, 평가손익 등 포함)
-
- 의존:
-- client.py: 모든 API 요청은 이 객체를 통해 수행됩니다.
-
- 연관 모듈:
-- stock.py: 종목 단위 시세 및 주문 API 담당
-- program.py: 프로그램 매매 추이 및 순매수량 확인
-- (전략 관련 모듈은 deprecated되어 제거됨)
-
- 사용 예시:
-client = KISClient()
-account = AccountAPI(client, {"CANO": "12345678", "ACNT_PRDT_CD": "01"})
-df = account.get_account_balance()
-"""
 
 
 class AccountAPI(BaseAPI):
@@ -38,64 +18,13 @@ class AccountAPI(BaseAPI):
         cache_config=None,
         _from_agent=False,
     ):
-        """Wrapper around KIS account related endpoints.
-
-        Parameters
-        ----------
-        client : :class:`KISClient`
-            Authenticated client instance.
-        account_info : dict
-            Dictionary with ``CANO`` and ``ACNT_PRDT_CD`` keys.
-        enable_cache : bool
-            캐시 사용 여부 (기본: True)
-        cache_config : dict
-            캐시 설정 (default_ttl, max_size)
-        _from_agent : bool
-            Agent를 통해 생성되었는지 여부 (내부 사용)
-
-        Example
-        -------
-        >>> account = load_account_info()
-        >>> api = AccountAPI(KISClient(), account)
-        """
-        super().__init__(client, account_info, enable_cache, cache_config, _from_agent=_from_agent)
+        """KIS 계좌 API 래퍼. account_info에 CANO/ACNT_PRDT_CD 필요."""
+        super().__init__(
+            client, account_info, enable_cache, cache_config, _from_agent=_from_agent
+        )
 
     def get_account_balance(self) -> Optional[Dict]:
-        """
-        계좌 잔고 조회 - 보유 종목 및 손익 정보 반환
-
-        Returns:
-            AccountBalanceResponse 형식의 Dict:
-                output1[]: 보유 종목 리스트
-                    - pdno: 상품번호 (종목코드)
-                    - prdt_name: 상품명
-                    - hldg_qty: 보유수량
-                    - ord_psbl_qty: 주문가능수량
-                    - pchs_avg_pric: 매입평균가격
-                    - pchs_amt: 매입금액
-                    - prpr: 현재가
-                    - evlu_amt: 평가금액
-                    - evlu_pfls_amt: 평가손익금액
-                    - evlu_pfls_rt: 평가손익률 (%)
-                    - loan_dt: 대출일자
-                    - loan_amt: 대출금액
-                output2: 계좌 요약 정보
-                    - dnca_tot_amt: 예수금총액
-                    - tot_evlu_amt: 총평가금액
-                    - nass_amt: 순자산금액
-                    - pchs_amt_smtl_amt: 매입금액합계
-                    - evlu_amt_smtl_amt: 평가금액합계
-                    - evlu_pfls_smtl_amt: 평가손익합계
-                    - asst_icdc_amt: 자산증감액
-                    - asst_icdc_erng_rt: 자산증감수익률
-
-        Example:
-            >>> result = api.get_account_balance()
-            >>> if result:
-            ...     for stock in result['output1']:
-            ...         print(f"{stock['prdt_name']}: {stock['evlu_pfls_rt']}%")
-            ...     print(f"총평가: {result['output2']['tot_evlu_amt']}")
-        """
+        """계좌 잔고 조회. output1=보유종목, output2=요약(예수금/총평가/순자산)."""
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",
             tr_id="TTTC8434R",
@@ -117,26 +46,7 @@ class AccountAPI(BaseAPI):
     def get_cash_available(
         self, stock_code: str = "005930"
     ) -> Optional[Dict[str, Any]]:
-        """Query available cash for purchasing specific stock.
-
-        Args
-        ----
-        stock_code : str, default "005930"
-            Stock code to check purchase availability (default: Samsung Electronics)
-
-        Returns
-        -------
-        Optional[dict]
-            Response JSON with purchase availability information (rt_cd 메타데이터가 포함된).
-            - ord_psbl_cash: Available cash for purchase
-            - ord_psbl_sbst: Available substitution amount
-            - max_buy_qty: Maximum purchasable quantity
-
-        Example
-        -------
-        >>> api.get_cash_available("005930")  # Samsung Electronics
-        >>> api.get_cash_available("000660")  # SK Hynix
-        """
+        """종목별 매수가능금액 조회. ord_psbl_cash/max_buy_qty 반환."""
         res = self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
             tr_id="TTTC8908R",
@@ -159,19 +69,7 @@ class AccountAPI(BaseAPI):
         return res
 
     def get_total_asset(self) -> Optional[Dict[str, Any]]:
-        """Query total asset evaluation including cash and stocks.
-
-        Returns
-        -------
-        Optional[dict]
-            JSON structure describing investment account balance (rt_cd 메타데이터가 포함된).
-            - output1: Account summary information
-            - output2: Detailed balance information
-
-        Example
-        -------
-        >>> api.get_total_asset()
-        """
+        """계좌 총자산 조회. 예수금+주식 포함 전체 자산 평가."""
         res = self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/inquire-account-balance",
             tr_id="CTRP6548R",
@@ -191,25 +89,7 @@ class AccountAPI(BaseAPI):
         return res
 
     def get_account_order_quantity(self, code: str) -> Optional[Dict]:
-        """
-        계좌별 주문 수량 조회
-
-        특정 종목에 대한 계좌별 주문 가능 수량과 관련 정보를 조회합니다.
-
-        Args:
-            code (str): 종목코드 (6자리, 예: "005930")
-
-        Returns:
-            Optional[Dict]: 계좌별 주문 수량 정보
-                - 성공 시: rt_cd와 함께 주문 수량 정보 딕셔너리
-                - 실패 시: None
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.get_account_order_quantity("005930")
-            >>> if result and result.get('rt_cd') == '0':
-            ...     print(f"주문 가능 수량: {result['output']['ord_psbl_qty']}")
-        """
+        """종목별 주문가능수량 조회. output.ord_psbl_qty 반환."""
         try:
             return self._make_request_dict(
                 endpoint=(
@@ -230,23 +110,7 @@ class AccountAPI(BaseAPI):
             return None
 
     def get_possible_order_amount(self) -> Optional[Dict]:
-        """
-        주문 가능 금액 조회
-
-        현재 계좌의 주문 가능한 금액과 관련 정보를 조회합니다.
-
-        Returns:
-            Optional[Dict]: 주문 가능 금액 정보
-                - 성공 시: rt_cd와 함께 주문 가능 금액 정보 딕셔너리
-                - 실패 시: None
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.get_possible_order_amount()
-            >>> if result and result.get('rt_cd') == '0':
-            ...     available_amount = result['output']['ord_psbl_amt']
-            ...     print(f"주문 가능 금액: {available_amount:,}원")
-        """
+        """주문가능금액 조회. output.ord_psbl_amt 반환."""
         try:
             return self._make_request_dict(
                 endpoint=API_ENDPOINTS["INQUIRE_PSBL_ORDER"],
@@ -268,31 +132,7 @@ class AccountAPI(BaseAPI):
     def order_credit(
         self, code: str, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """
-        주식 신용주문
-
-        신용거래로 주식을 주문합니다. 실제 주문이 실행되므로 주의하세요.
-
-        Args:
-            code (str): 종목코드 (6자리, 예: "005930")
-            qty (int): 주문 수량
-            price (int): 주문 단가 (시장가는 0)
-            order_type (str): 주문 구분 ("00": 지정가, "01": 시장가)
-
-        Returns:
-            Optional[Dict]: 신용주문 응답
-                - 성공 시: rt_cd와 함께 주문 결과 정보 딕셔너리
-                - 실패 시: None
-
-        Warning:
-            실제 신용주문이 실행되므로 테스트 시 소액으로 진행하세요.
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.order_credit("005930", 10, 70000, "00")
-            >>> if result and result.get('rt_cd') == '0':
-            ...     print(f"주문번호: {result['output']['odno']}")
-        """
+        """신용주문 실행. output.odno 반환. 실제 주문 실행됨."""
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-credit",
@@ -316,23 +156,7 @@ class AccountAPI(BaseAPI):
     def order_rvsecncl(
         self, org_order_no: str, qty: int, price: int, order_type: str, cncl_type: str
     ) -> Optional[Dict]:
-        """
-        주식주문 정정/취소
-
-        기존 주문을 정정하거나 취소합니다.
-
-        Args:
-            org_order_no (str): 원주문번호
-            qty (int): 정정 수량 (취소시 0)
-            price (int): 정정 단가 (취소시 0)
-            order_type (str): 주문 구분
-            cncl_type (str): 정정취소 구분 ("정정" 또는 "취소")
-
-        Returns:
-            Optional[Dict]: 정정/취소 응답
-                - 성공 시: rt_cd와 함께 정정/취소 결과 정보
-                - 실패 시: None
-        """
+        """주문 정정/취소. cncl_type='정정' 또는 '취소'."""
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-rvsecncl",
@@ -355,23 +179,7 @@ class AccountAPI(BaseAPI):
             return None
 
     def inquire_psbl_rvsecncl(self) -> Optional[Dict]:
-        """
-        정정/취소 가능 주문 조회
-
-        현재 정정하거나 취소할 수 있는 미체결 주문을 조회합니다.
-
-        Returns:
-            Optional[Dict]: 정정/취소 가능 주문 목록
-                - 성공 시: rt_cd와 함께 주문 정보 리스트
-                - 실패 시: None
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.inquire_psbl_rvsecncl()
-            >>> if result and result.get('rt_cd') == '0':
-            ...     for order in result['output']:
-            ...         print(f"주문번호: {order['odno']}")
-        """
+        """정정/취소 가능한 미체결 주문 목록 조회."""
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",
@@ -392,28 +200,7 @@ class AccountAPI(BaseAPI):
     def order_resv(
         self, code: str, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """
-        주식 예약주문
-
-        지정된 시점에 주문이 실행되도록 예약주문을 등록합니다.
-
-        Args:
-            code (str): 종목코드 (6자리)
-            qty (int): 주문 수량
-            price (int): 주문 단가
-            order_type (str): 주문 구분
-
-        Returns:
-            Optional[Dict]: 예약주문 응답
-                - 성공 시: rt_cd와 함께 예약주문 결과
-                - 실패 시: None
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.order_resv("005930", 10, 70000, "00")
-            >>> if result and result.get('rt_cd') == '0':
-            ...     print(f"예약주문 등록: {result['output']['odno']}")
-        """
+        """예약주문 등록. 지정 시점에 주문 실행."""
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv",
@@ -437,28 +224,7 @@ class AccountAPI(BaseAPI):
     def order_resv_rvsecncl(
         self, seq: int, qty: int, price: int, order_type: str
     ) -> Optional[Dict]:
-        """
-        예약주문 정정/취소
-
-        등록된 예약주문을 정정하거나 취소합니다.
-
-        Args:
-            seq (int): 예약주문 일련번호
-            qty (int): 정정 수량
-            price (int): 정정 단가
-            order_type (str): 주문 구분
-
-        Returns:
-            Optional[Dict]: 예약주문 정정/취소 응답
-                - 성공 시: rt_cd와 함께 정정/취소 결과
-                - 실패 시: None
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.order_resv_rvsecncl(123, 5, 75000, "00")
-            >>> if result and result.get('rt_cd') == '0':
-            ...     print("예약주문 정정 완료")
-        """
+        """예약주문 정정/취소. seq=예약주문 일련번호."""
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
@@ -481,23 +247,7 @@ class AccountAPI(BaseAPI):
             return None
 
     def order_resv_ccnl(self) -> Optional[Dict]:
-        """
-        예약주문 조회
-
-        등록된 예약주문 내역을 조회합니다.
-
-        Returns:
-            Optional[Dict]: 예약주문 내역
-                - 성공 시: rt_cd와 함께 예약주문 리스트
-                - 실패 시: None
-
-        Example:
-            >>> account_api = AccountAPI(client, account_info)
-            >>> result = account_api.order_resv_ccnl()
-            >>> if result and result.get('rt_cd') == '0':
-            ...     for order in result['output']:
-            ...         print(f"예약주문: {order['pdno']} {order['ord_qty']}주")
-        """
+        """등록된 예약주문 내역 조회."""
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-ccnl",
@@ -536,210 +286,7 @@ class AccountAPI(BaseAPI):
             Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
         ] = None,
     ) -> Optional[Dict[str, Any]]:
-        """주식일별주문체결조회 - 일자별 주문 및 체결 내역을 조회합니다.
-
-        특정 기간 동안의 주문 및 체결 내역을 조회하여 거래 이력을 확인할 수 있습니다.
-        pagination=True 설정 시 실전계좌 연속조회를 통해 100건 이상의 데이터를 가져올 수 있습니다.
-
-        Parameters
-        ----------
-        start_date : str, optional
-            조회시작일자 (YYYYMMDD 형식). 빈 문자열이면 최근 30일.
-        end_date : str, optional
-            조회종료일자 (YYYYMMDD 형식). 빈 문자열이면 오늘.
-        pdno : str, optional
-            상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목.
-        ord_dvsn_cd : str, optional
-            주문구분코드 (매도매수구분). 기본값: "00".
-            - "00": 전체
-            - "01": 매도
-            - "02": 매수
-        pagination : bool, optional
-            연속조회 사용 여부. 기본값: False.
-            - False: 단일 조회 (최대 100건)
-            - True: 연속조회 (페이지네이션 지원)
-        ccld_dvsn : str, optional
-            체결구분 (pagination=True일 때만 사용). 기본값: "00".
-            - "00": 전체
-            - "01": 체결
-            - "02": 미체결
-        inqr_dvsn : str, optional
-            조회구분/정렬 (pagination=True일 때만 사용). 기본값: "01".
-            - "00": 역순 (최신 데이터부터)
-            - "01": 정순 (과거 데이터부터)
-        inqr_dvsn_3 : str, optional
-            조회구분3 (pagination=True일 때만 사용). 기본값: "00".
-            - "00": 전체 (현금+신용+담보+대출)
-            - "01": 현금
-            - "02": 신용
-            - "03": 담보
-            - "04": 대출
-        max_pages : int, optional
-            최대 조회 페이지 수 (pagination=True일 때). 기본값: 100.
-            페이지당 최대 100건, 100페이지면 최대 10,000건.
-        page_callback : callable, optional
-            각 페이지 조회 후 호출되는 콜백 함수 (pagination=True일 때).
-            함수 시그니처: (page_num: int, page_data: List[Dict], ctx_info: dict) -> None
-            ctx_info 딕셔너리 포함 내용:
-            - "FK100": 연속조회키 FK100 (str)
-            - "NK100": 연속조회키 NK100 (str)
-            - "total_rows": 현재 페이지 행 수 (int)
-
-        Returns
-        -------
-        dict or None
-            주문체결내역이 담긴 딕셔너리. 실패 시 None 반환.
-
-            반환 딕셔너리 구조:
-            - rt_cd (str): 응답코드 ("0": 성공)
-            - msg_cd (str): 메시지 코드
-            - msg1 (str): 응답 메시지
-            - output1 (list): 주문체결내역 리스트 (각 항목은 딕셔너리)
-                각 딕셔너리 항목의 주요 필드:
-                - ord_dt: 주문일자 (YYYYMMDD)
-                - ord_gno_brno: 주문채번지점번호
-                - odno: 주문번호
-                - orgn_odno: 원주문번호
-                - ord_dvsn_name: 주문구분명
-                - sll_buy_dvsn_cd: 매도매수구분코드 (01:매도, 02:매수)
-                - sll_buy_dvsn_cd_name: 매도매수구분코드명
-                - pdno: 상품번호 (종목코드)
-                - prdt_name: 상품명
-                - ord_qty: 주문수량
-                - ord_unpr: 주문단가
-                - ord_tmd: 주문시각 (HHMMSS)
-                - tot_ccld_qty: 총체결수량
-                - avg_prvs: 평균가
-                - tot_ccld_amt: 총체결금액
-                - cncl_yn: 취소여부 (Y/N)
-                - loan_dt: 대출일자
-                - rmn_qty: 잔여수량
-                - rjct_qty: 거부수량
-            - output2 (dict, optional): 요약 정보 (pagination=True일 때)
-                - tot_ord_qty: 총주문수량
-                - tot_ccld_qty: 총체결수량
-                - tot_ccld_amt: 총체결금액
-                - prsm_tlex_smtl: 추정제비용합계 (수수료+세금)
-                - pchs_avg_pric: 매입평균가격
-                - page_count: 조회한 페이지 수
-                - total_count: 전체 조회 건수
-
-        Raises
-        ------
-        Exception
-            API 호출 실패 시 로그 기록 후 None 반환.
-
-        Notes
-        -----
-        **단일 조회 vs 연속조회 (Pagination)**
-
-        - 실전계좌에서는 한 번에 최대 100건까지만 조회 가능합니다.
-        - pagination=False (기본값): 단일 API 호출로 최대 100건 조회
-        - pagination=True: CTX_AREA_FK100, CTX_AREA_NK100 연속조회키를 활용하여
-          여러 페이지를 순차적으로 조회합니다.
-        - 연속조회 시 중복 데이터는 자동으로 제거됩니다 (ord_dt, odno, pdno 기준).
-
-        **TR_ID 자동 선택 로직**
-
-        조회 기간에 따라 자동으로 적절한 TR_ID가 선택됩니다:
-        - start_date가 3개월 이내: TTTC0081R (최근 데이터 조회용)
-        - start_date가 3개월 이전: CTSC9215R (과거 데이터 조회용)
-
-        이 자동 선택은 한국투자증권 API의 제약사항에 따른 것으로,
-        사용자가 별도로 TR_ID를 지정할 필요가 없습니다.
-
-        **Pagination 메커니즘**
-
-        연속조회(pagination=True) 사용 시 다음과 같이 동작합니다:
-        1. 첫 번째 요청: tr_cont 헤더 없이 호출
-        2. 이후 요청: tr_cont="N" 헤더와 함께 이전 응답의 연속조회키 사용
-        3. 종료 조건:
-           - msg1에 "계속"이 포함되지 않음
-           - 연속조회키(CTX_AREA_FK100, CTX_AREA_NK100)가 모두 비어있음
-           - 조회된 데이터가 100건 미만
-           - max_pages에 도달
-
-        **수수료 정보 (prsm_tlex_smtl) 정확도**
-
-        - **일별 조회 권장**: start_date와 end_date를 동일하게 설정하여 일별로 조회하면
-          prsm_tlex_smtl (추정제비용합계)이 정확하게 제공됩니다.
-        - **장기간 조회 시**: 여러 날짜를 포함하여 조회하면 prsm_tlex_smtl이 0 또는
-          부정확한 값으로 반환될 수 있습니다.
-        - **권장 방식**: 일별로 조회 후 수수료를 합산하는 방식을 사용하세요.
-
-        예시:
-        >>> # ✅ 권장: 일별 조회 (수수료 정확)
-        >>> result = api.inquire_daily_ccld("20251002", "20251002", pagination=True)
-        >>> fee = result['output2']['prsm_tlex_smtl']  # 정확한 수수료
-        >>>
-        >>> # ⚠️  비권장: 장기간 조회 (수수료 부정확)
-        >>> result = api.inquire_daily_ccld("20250901", "20251002", pagination=True)
-        >>> fee = result['output2']['prsm_tlex_smtl']  # 0 또는 부정확
-
-        **Edge Cases**
-
-        - 빈 start_date/end_date: API가 기본값(최근 30일)으로 처리
-        - 조회 결과 없음: rt_cd="0"이지만 output1=[] 빈 리스트 반환
-        - API 오류: rt_cd != "0"이며 msg1에 오류 메시지 포함
-        - 연속조회 중 오류: 현재까지 수집된 데이터 반환 (첫 페이지 오류 시 None)
-
-        Examples
-        --------
-        단일 조회 (최대 100건):
-
-        >>> result = api.inquire_daily_ccld("20250501", "20250901")
-        >>> if result and result['rt_cd'] == '0':
-        ...     print(f"조회 건수: {len(result['output1'])}")
-        ...     # DataFrame으로 변환하려면:
-        ...     df = pd.DataFrame(result['output1'])
-
-        연속조회로 전체 데이터 가져오기:
-
-        >>> result = api.inquire_daily_ccld(
-        ...     start_date="20250501",
-        ...     end_date="20250901",
-        ...     pagination=True,
-        ...     ccld_dvsn="01"  # 체결된 거래만
-        ... )
-        >>> if result and result['rt_cd'] == '0':
-        ...     print(f"총 {len(result['output1'])}건 조회 완료")
-        ...     print(f"총 {result['output2']['page_count']}페이지 조회")
-
-        콜백과 함께 연속조회:
-
-        >>> def on_page(page_num: int, page_data: List[Dict], ctx_info: dict) -> None:
-        ...     print(f"페이지 {page_num}: {len(page_data)}건 조회")
-        ...     print(f"연속키 FK100: {ctx_info['FK100'][:20]}...")
-        ...
-        >>> result = api.inquire_daily_ccld(
-        ...     start_date="20250501",
-        ...     end_date="20250901",
-        ...     pagination=True,
-        ...     page_callback=on_page,
-        ...     max_pages=10  # 최대 1,000건
-        ... )
-
-        매수 거래만 조회:
-
-        >>> result = api.inquire_daily_ccld(
-        ...     start_date="20250501",
-        ...     end_date="20250901",
-        ...     ord_dvsn_cd="02",  # 매수만
-        ...     pagination=True,
-        ...     ccld_dvsn="01"  # 체결된 것만
-        ... )
-        >>> # DataFrame으로 변환하려면:
-        >>> if result and result['rt_cd'] == '0':
-        ...     df = pd.DataFrame(result['output1'])
-
-        3개월 이전 데이터 조회 (자동으로 CTSC9215R 사용):
-
-        >>> result = api.inquire_daily_ccld(
-        ...     start_date="20241001",  # 3개월 이전
-        ...     end_date="20241031",
-        ...     pagination=True
-        ... )
-        """
+        """일별주문체결조회. pagination=True로 연속조회(100건+). output1=체결내역, output2=요약."""
         # 연속조회 사용
         if pagination:
             return self._inquire_daily_ccld_pagination(
@@ -809,136 +356,7 @@ class AccountAPI(BaseAPI):
             Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
         ] = None,
     ) -> Optional[Dict[str, Any]]:
-        """내부 헬퍼 메서드: 연속조회를 통한 일별주문체결 조회.
-
-        CTX_AREA_FK100과 CTX_AREA_NK100 연속조회키를 활용하여 페이지네이션을 구현합니다.
-        실전계좌에서 호출당 최대 100건의 데이터를 가져오며,
-        tr_cont 헤더와 연속조회키를 통해 다음 페이지를 순차적으로 요청합니다.
-
-        Parameters
-        ----------
-        start_date : str
-            조회시작일자 (YYYYMMDD 형식)
-        end_date : str
-            조회종료일자 (YYYYMMDD 형식)
-        sll_buy_dvsn_cd : str, optional
-            매도매수구분코드 (기본값: "00")
-            - "00": 전체
-            - "01": 매도
-            - "02": 매수
-        inqr_dvsn : str, optional
-            조회구분/정렬 (기본값: "01")
-            - "00": 역순 (최신 데이터부터)
-            - "01": 정순 (과거 데이터부터)
-        pdno : str, optional
-            상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목.
-        ccld_dvsn : str, optional
-            체결구분 (기본값: "01")
-            - "00": 전체
-            - "01": 체결
-            - "02": 미체결
-        inqr_dvsn_3 : str, optional
-            조회구분3 (기본값: "00")
-            - "00": 전체 (현금+신용+담보+대출)
-            - "01": 현금
-            - "02": 신용
-            - "03": 담보
-            - "04": 대출
-        max_pages : int, optional
-            최대 조회 페이지 수 (기본값: 100)
-        page_callback : callable, optional
-            각 페이지 조회 후 호출되는 콜백 함수.
-            함수 시그니처: (page_num: int, page_data: List[Dict], ctx_info: dict) -> None
-
-        Returns
-        -------
-        dict or None
-            전체 주문체결내역이 담긴 딕셔너리 또는 실패 시 None.
-
-            반환 딕셔너리 구조:
-            - rt_cd (str): "0" (성공)
-            - msg_cd (str): "SUCCESSFUL" 또는 "NO_DATA"
-            - msg1 (str): 상태 메시지
-            - output1 (list): 전체 주문체결내역 리스트 (중복 제거됨)
-            - output2 (dict): 요약 정보
-                - tot_ord_qty (str): 총주문수량
-                - tot_ccld_qty (str): 총체결수량
-                - tot_ccld_amt (str): 총체결금액
-                - prsm_tlex_smtl (str, optional): 추정제비용합계
-                - pchs_avg_pric (str, optional): 매입평균가격
-                - page_count (int): 조회한 페이지 수
-                - total_count (int): 전체 조회 건수
-
-        Notes
-        -----
-        **TR_ID 자동 선택**
-
-        조회 기간에 따라 자동으로 적절한 TR_ID가 선택됩니다:
-        - start_date가 3개월 이내: TTTC0081R
-        - start_date가 3개월 이전: CTSC9215R
-
-        **tr_cont 헤더 메커니즘**
-
-        한국투자증권 API의 연속조회는 tr_cont 헤더를 통해 제어됩니다:
-        - 첫 번째 페이지: tr_cont 헤더 미포함 (또는 빈 문자열)
-        - 두 번째 페이지 이후: tr_cont="N" 헤더 포함
-
-        이 헤더를 통해 API는 연속조회 모드를 인식하고 적절한 데이터를 반환합니다.
-
-        **연속조회키 (Continuation Keys) 동작 방식**
-
-        CTX_AREA_FK100과 CTX_AREA_NK100은 다음 페이지를 가리키는 커서 역할을 합니다:
-        - 첫 요청: 빈 문자열로 전송
-        - 응답: API가 다음 페이지를 위한 연속조회키 반환 (ctx_area_fk100, ctx_area_nk100)
-        - 다음 요청: 이전 응답의 연속조회키를 파라미터로 전송
-        - 마지막 페이지: 연속조회키가 빈 문자열로 반환됨
-
-        **페이지네이션 종료 조건**
-
-        다음 조건 중 하나라도 만족하면 연속조회가 종료됩니다:
-        1. msg1에 "계속" 또는 "조회가 계속됩니다"가 포함되지 않음
-        2. ctx_area_fk100과 ctx_area_nk100이 모두 빈 문자열
-        3. 조회된 데이터가 100건 미만 (더 이상 데이터 없음)
-        4. max_pages에 도달
-        5. API 오류 발생 (첫 페이지 오류 시 None 반환, 이후 오류 시 현재까지 데이터 반환)
-
-        **중복 제거 로직**
-
-        여러 페이지에서 동일한 데이터가 반환될 수 있으므로 다음 기준으로 중복을 제거합니다:
-        - 키: (ord_dt, odno, pdno) 튜플
-        - 방법: 첫 번째 출현만 유지 (set 기반 중복 제거)
-
-        **정렬 처리**
-
-        중복 제거 후 다음과 같이 정렬됩니다:
-        - inqr_dvsn="01" (정순): ord_dt, ord_tmd 오름차순
-        - inqr_dvsn="00" (역순): ord_dt, ord_tmd 내림차순
-
-        **수수료 필드 처리**
-
-        연속조회 시 prsm_tlex_smtl과 pchs_avg_pric는 마지막 API 응답의 output2에서
-        추출됩니다. 장기간 조회 시 이 값들이 부정확할 수 있으므로 주의가 필요합니다.
-
-        **오류 처리**
-
-        - 첫 페이지 오류: None 반환 및 에러 로그 기록
-        - 중간 페이지 오류: 경고 로그 기록 후 현재까지 수집된 데이터 반환
-        - 조회 결과 없음: rt_cd="0", output1=[], output2에 0값들로 구성된 딕셔너리 반환
-
-        Examples
-        --------
-        이 메서드는 내부 헬퍼이므로 직접 호출하지 말고 inquire_daily_ccld(pagination=True)를 사용하세요.
-
-        >>> # 올바른 사용법
-        >>> result = api.inquire_daily_ccld(
-        ...     start_date="20250501",
-        ...     end_date="20250901",
-        ...     pagination=True
-        ... )
-
-        >>> # 잘못된 사용법 (내부 메서드 직접 호출)
-        >>> result = api._inquire_daily_ccld_pagination(...)  # 권장하지 않음
-        """
+        """내부 헬퍼: 연속조회키(CTX_AREA_FK/NK100)로 페이지네이션. inquire_daily_ccld(pagination=True) 사용."""
         all_data = []
         ctx_area_fk100 = ""
         ctx_area_nk100 = ""
@@ -1146,66 +564,7 @@ class AccountAPI(BaseAPI):
         cblc_dvsn: str = "00",
         as_dict: bool = False,
     ) -> Optional[pd.DataFrame]:
-        """기간별매매손익현황조회 - 특정 기간의 실현 매매손익을 조회합니다.
-
-        지정한 기간 동안 매도하여 실현된 손익을 종목별로 집계하여 제공합니다.
-        투자 성과 분석 및 세금 계산에 활용할 수 있습니다.
-
-        Args:
-            start_date: 조회시작일자 (YYYYMMDD 형식, 필수)
-            end_date: 조회종료일자 (YYYYMMDD 형식, 필수)
-            pdno: 상품번호 (종목코드, 6자리). 빈 문자열이면 전체 종목 조회
-            sort_dvsn: 정렬구분 (기본값: "00")
-                - "00": 역순 (최신 데이터부터)
-                - "01": 정순 (과거 데이터부터)
-            cblc_dvsn: 잔고구분 (기본값: "00")
-                - "00": 전체
-                - "01": 현금
-                - "02": 신용
-            as_dict: True이면 Dict 반환, False이면 DataFrame 반환 (기본값: False)
-
-        Returns:
-            Optional[pd.DataFrame] 또는 Optional[Dict]: 기간별 매매손익 정보
-                DataFrame 필드 (as_dict=False):
-                - trad_dt: 매매일자
-                - pdno: 상품번호
-                - prdt_name: 상품명
-                - trad_dvsn_name: 매매구분명
-                - buy_qty: 매수수량
-                - buy_amt: 매수금액
-                - sll_qty: 매도수량
-                - sll_amt: 매도금액
-                - rlzt_pfls: 실현손익
-                - pfls_rt: 손익률(%)
-                - fee: 수수료
-                - tl_tax: 제세금
-
-                Dict 구조 (as_dict=True):
-                - rt_cd: 응답코드 ("0": 성공)
-                - msg1: 응답메시지
-                - output1: 매매손익 리스트
-                - output2: 요약 정보
-                    - sll_qty_smtl: 매도수량합계
-                    - sll_tr_amt_smtl: 매도거래금액합계
-                    - tot_rlzt_pfls: 총실현손익
-                    - tot_pftrt: 총수익률
-
-                실패 시 None 반환
-
-        Example:
-            >>> # 2025년 1월 전체 매매손익 조회 (DataFrame)
-            >>> df = api.inquire_period_trade_profit("20250101", "20250131")
-            >>> if df is not None:
-            ...     total_profit = df['rlzt_pfls'].astype(float).sum()
-            ...     print(f"총 실현손익: {total_profit:,.0f}원")
-
-            >>> # 특정 종목의 매매손익 조회 (Dict)
-            >>> result = api.inquire_period_trade_profit(
-            ...     "20250101", "20250131", pdno="005930", as_dict=True
-            ... )
-            >>> if result and result.get('rt_cd') == '0':
-            ...     print(f"총손익: {result['output2']['tot_rlzt_pfls']}")
-        """
+        """기간별 실현손익 조회. as_dict=True면 Dict, False면 DataFrame 반환."""
         try:
             res = self.client.make_request(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-period-trade-profit",
@@ -1797,6 +1156,7 @@ class AccountAPI(BaseAPI):
         try:
             # 자기융자(credit_type="22")인 경우 loan_dt를 당일 날짜로 자동 설정
             from datetime import datetime
+
             if credit_type == "22" and not loan_dt:
                 loan_dt = datetime.now().strftime("%Y%m%d")
 
@@ -1978,7 +1338,9 @@ class AccountAPI(BaseAPI):
             logging.error(f"기간별권리현황 조회 실패: {e}")
             return None
 
-    def inquire_psbl_order(self, price: int, pdno: str = "", ord_dvsn: str = "01") -> Optional[Dict]:
+    def inquire_psbl_order(
+        self, price: int, pdno: str = "", ord_dvsn: str = "01"
+    ) -> Optional[Dict]:
         """
         매수가능 조회
 

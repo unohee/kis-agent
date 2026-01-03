@@ -11,9 +11,11 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 import pytz
 import websockets
-from websockets.exceptions import ConnectionClosed, ConnectionClosedError, ConnectionClosedOK
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from websockets.exceptions import ConnectionClosed
+
+from .ws_helpers import RealtimeDataParser, RealtimeDataStore, WSAgentWithStore
 
 logger = logging.getLogger(__name__)
 
@@ -44,41 +46,7 @@ def _is_after_market_close() -> bool:
 
 
 class SubscriptionType(Enum):
-    """구독 타입 정의
-
-    국내주식 실시간 데이터 (KRX):
-        - STOCK_TRADE: 국내주식 실시간 체결가 (KRX)
-        - STOCK_ASK_BID: 국내주식 실시간 호가 (KRX)
-        - STOCK_EXPECTED: 국내주식 실시간 예상체결 (통합)
-        - STOCK_NOTICE: 국내주식 체결통보 (내 주문 체결 알림)
-        - STOCK_NOTICE_AH: 국내주식 시간외 체결통보
-
-    국내주식 실시간 데이터 (NXT):
-        - STOCK_TRADE_NXT: 국내주식 실시간 체결가 (NXT)
-        - STOCK_ASK_BID_NXT: 국내주식 실시간 호가 (NXT)
-        - STOCK_EXPECTED_NXT: 국내주식 실시간 예상체결 (NXT)
-        - PROGRAM_TRADE_NXT: 국내주식 실시간 프로그램매매 (NXT)
-        - MARKET_OPERATION_NXT: 국내주식 장운영정보 (NXT)
-        - MEMBER_TRADE_NXT: 국내주식 실시간 회원사 (NXT)
-
-    지수 실시간 데이터:
-        - INDEX: 지수 실시간
-        - INDEX_EXPECTED: 지수 실시간 예상체결
-
-    프로그램매매/회원사 (KRX):
-        - PROGRAM_TRADE: 프로그램매매 실시간 (KRX)
-        - MEMBER_TRADE: 회원사 실시간 (증권사별 매매동향)
-
-    선물/옵션:
-        - FUTURES_TRADE: 선물 체결
-        - FUTURES_ASK_BID: 선물 호가
-        - OPTION_TRADE: 옵션 체결
-        - OPTION_ASK_BID: 옵션 호가
-
-    해외:
-        - OVERSEAS_STOCK: 해외주식 체결
-        - OVERSEAS_FUTURES: 해외선물 체결
-    """
+    """실시간 구독 타입: KRX(STOCK_*), NXT(*_NXT), 지수(INDEX*), 선물옵션, 해외"""
 
     # 국내주식 실시간 (KRX)
     STOCK_TRADE = "H0STCNT0"  # 국내주식 실시간 체결가 (KRX)
@@ -125,24 +93,7 @@ class Subscription:
 
 
 class WSAgent:
-    """
-    다중 구독 가능한 웹소켓 에이전트
-
-    이 클래스는 한국투자증권 OpenAPI의 실시간 데이터를 수신하기 위한
-    웹소켓 연결을 관리하고, 다양한 타입의 데이터를 동시에 구독할 수 있게 합니다.
-
-    주요 기능:
-    - 여러 종목/지수/선물 등을 동시에 구독
-    - 구독 타입별 핸들러 등록 및 관리
-    - 자동 재연결 및 오류 복구
-    - AES256 암호화 메시지 자동 처리
-    - 실시간 통계 및 모니터링
-
-    Example:
-        >>> agent = WSAgent(approval_key="your_key")
-        >>> agent.subscribe(SubscriptionType.STOCK_TRADE, "005930")
-        >>> await agent.connect()
-    """
+    """다중 구독 웹소켓 에이전트. 종목/지수/선물 동시 구독, 자동 재연결, AES256 처리."""
 
     def __init__(
         self,
@@ -552,7 +503,9 @@ class WSAgent:
 
             # 연결 상태 확인
             if not self.ws or self.ws.closed:
-                logger.error(f"구독 중단 - 연결 끊김 (성공: {len(results['success'])}, 남은: {total - idx})")
+                logger.error(
+                    f"구독 중단 - 연결 끊김 (성공: {len(results['success'])}, 남은: {total - idx})"
+                )
                 # 남은 구독들을 실패로 처리
                 remaining_subs = list(self.subscriptions.values())[idx:]
                 for remaining in remaining_subs:
@@ -569,7 +522,9 @@ class WSAgent:
 
                 # 진행 상황 로깅 (10개마다)
                 if (idx + 1) % 10 == 0:
-                    logger.info(f"구독 진행: {idx + 1}/{total} (성공: {len(results['success'])})")
+                    logger.info(
+                        f"구독 진행: {idx + 1}/{total} (성공: {len(results['success'])})"
+                    )
 
                 # 구독 사이 딜레이 (0.1초) - 서버 부하 방지
                 if idx < total - 1:
@@ -581,9 +536,7 @@ class WSAgent:
 
         # 결과 로깅
         if results["failed"]:
-            logger.warning(
-                f"일부 구독 실패: {len(results['failed'])}개"
-            )
+            logger.warning(f"일부 구독 실패: {len(results['failed'])}개")
         logger.info(
             f"구독 완료: 성공 {len(results['success'])}개, 실패 {len(results['failed'])}개"
         )
@@ -1484,13 +1437,15 @@ class WSAgent:
 
         # NXT 시장 타입 추가
         if include_nxt:
-            stock_types.extend([
-                SubscriptionType.STOCK_TRADE_NXT,
-                SubscriptionType.STOCK_ASK_BID_NXT,
-                SubscriptionType.STOCK_EXPECTED_NXT,
-                SubscriptionType.PROGRAM_TRADE_NXT,
-                SubscriptionType.MEMBER_TRADE_NXT,
-            ])
+            stock_types.extend(
+                [
+                    SubscriptionType.STOCK_TRADE_NXT,
+                    SubscriptionType.STOCK_ASK_BID_NXT,
+                    SubscriptionType.STOCK_EXPECTED_NXT,
+                    SubscriptionType.PROGRAM_TRADE_NXT,
+                    SubscriptionType.MEMBER_TRADE_NXT,
+                ]
+            )
 
         for sub_type in stock_types:
             sub_id = f"{sub_type.value}_{code}"
@@ -1525,614 +1480,14 @@ class WSAgent:
 
 
 # ============================================================================
-# 데이터 파싱 헬퍼 (Data Parsing Helpers)
+# 헬퍼 클래스: ws_helpers.py에서 re-export (하위 호환성)
 # ============================================================================
 
-
-class RealtimeDataParser:
-    """
-    실시간 데이터 파싱 헬퍼
-
-    웹소켓으로 수신된 실시간 데이터를 구조화된 딕셔너리로 변환합니다.
-    """
-
-    # 국내주식 체결 데이터 필드 (H0STCNT0)
-    STOCK_TRADE_FIELDS = [
-        "mksc_shrn_iscd",  # 유가증권 단축 종목코드
-        "stck_cntg_hour",  # 주식 체결 시간
-        "stck_prpr",  # 주식 현재가
-        "prdy_vrss_sign",  # 전일 대비 부호
-        "prdy_vrss",  # 전일 대비
-        "prdy_ctrt",  # 전일 대비율
-        "wghn_avrg_stck_prc",  # 가중 평균 주식 가격
-        "stck_oprc",  # 주식 시가
-        "stck_hgpr",  # 주식 최고가
-        "stck_lwpr",  # 주식 최저가
-        "askp1",  # 매도호가1
-        "bidp1",  # 매수호가1
-        "cntg_vol",  # 체결 거래량
-        "acml_vol",  # 누적 거래량
-        "acml_tr_pbmn",  # 누적 거래 대금
-        "seln_cntg_csnu",  # 매도 체결 건수
-        "shnu_cntg_csnu",  # 매수 체결 건수
-        "ntby_cntg_csnu",  # 순매수 체결 건수
-        "cttr",  # 체결강도
-        "seln_cntg_smtn",  # 총 매도 수량
-        "shnu_cntg_smtn",  # 총 매수 수량
-        "ccld_dvsn",  # 체결구분 (1:매수, 3:장전, 5:매도)
-        "shnu_rate",  # 매수비율
-        "prdy_vol_vrss_acml_vol_rate",  # 전일 거래량 대비 등락율
-        "oprc_hour",  # 시가 시간
-        "oprc_vrss_prpr_sign",  # 시가대비구분
-        "oprc_vrss_prpr",  # 시가대비
-        "hgpr_hour",  # 최고가 시간
-        "hgpr_vrss_prpr_sign",  # 고가대비구분
-        "hgpr_vrss_prpr",  # 고가대비
-        "lwpr_hour",  # 최저가 시간
-        "lwpr_vrss_prpr_sign",  # 저가대비구분
-        "lwpr_vrss_prpr",  # 저가대비
-        "bsop_date",  # 영업 일자
-        "new_mkop_cls_code",  # 신 장운영 구분 코드
-        "trht_yn",  # 거래정지 여부
-        "askp_rsqn1",  # 매도호가 잔량1
-        "bidp_rsqn1",  # 매수호가 잔량1
-        "total_askp_rsqn",  # 총 매도호가 잔량
-        "total_bidp_rsqn",  # 총 매수호가 잔량
-        "vol_tnrt",  # 거래량 회전율
-        "prdy_smns_hour_acml_vol",  # 전일 동시간 누적 거래량
-        "prdy_smns_hour_acml_vol_rate",  # 전일 동시간 누적 거래량 비율
-        "hour_cls_code",  # 시간 구분 코드
-        "mrkt_trtm_cls_code",  # 임의종료구분코드
-        "vi_stnd_prc",  # VI 기준가
-    ]
-
-    # 국내주식 호가 데이터 필드 (H0STASP0)
-    STOCK_ORDERBOOK_FIELDS = [
-        "mksc_shrn_iscd",  # 유가증권 단축 종목코드
-        "bsop_hour",  # 영업 시간
-        "hour_cls_code",  # 시간 구분 코드
-        # 매도호가 1~10
-        "askp1",
-        "askp2",
-        "askp3",
-        "askp4",
-        "askp5",
-        "askp6",
-        "askp7",
-        "askp8",
-        "askp9",
-        "askp10",
-        # 매수호가 1~10
-        "bidp1",
-        "bidp2",
-        "bidp3",
-        "bidp4",
-        "bidp5",
-        "bidp6",
-        "bidp7",
-        "bidp8",
-        "bidp9",
-        "bidp10",
-        # 매도호가 잔량 1~10
-        "askp_rsqn1",
-        "askp_rsqn2",
-        "askp_rsqn3",
-        "askp_rsqn4",
-        "askp_rsqn5",
-        "askp_rsqn6",
-        "askp_rsqn7",
-        "askp_rsqn8",
-        "askp_rsqn9",
-        "askp_rsqn10",
-        # 매수호가 잔량 1~10
-        "bidp_rsqn1",
-        "bidp_rsqn2",
-        "bidp_rsqn3",
-        "bidp_rsqn4",
-        "bidp_rsqn5",
-        "bidp_rsqn6",
-        "bidp_rsqn7",
-        "bidp_rsqn8",
-        "bidp_rsqn9",
-        "bidp_rsqn10",
-        "total_askp_rsqn",  # 총 매도호가 잔량
-        "total_bidp_rsqn",  # 총 매수호가 잔량
-        "ovtm_total_askp_rsqn",  # 시간외 총 매도호가 잔량
-        "ovtm_total_bidp_rsqn",  # 시간외 총 매수호가 잔량
-        "antc_cnpr",  # 예상 체결가
-        "antc_cnqn",  # 예상 체결량
-        "antc_vol",  # 예상 거래량
-        "antc_cntg_vrss",  # 예상 체결 대비
-        "antc_cntg_vrss_sign",  # 예상 체결 대비 부호
-        "antc_cntg_prdy_ctrt",  # 예상 체결 전일 대비율
-        "acml_vol",  # 누적 거래량
-        "total_askp_rsqn_icdc",  # 총 매도호가 잔량 증감
-        "total_bidp_rsqn_icdc",  # 총 매수호가 잔량 증감
-        "ovtm_total_askp_icdc",  # 시간외 총 매도호가 증감
-        "ovtm_total_bidp_icdc",  # 시간외 총 매수호가 증감
-        "stck_deal_cls_code",  # 주식 매매 구분 코드
-    ]
-
-    # 지수 데이터 필드 (H0IF1000)
-    INDEX_FIELDS = [
-        "bsop_hour",  # 영업 시간
-        "bstp_nmix_prpr",  # 업종 지수 현재가
-        "bstp_nmix_prdy_vrss",  # 업종 지수 전일 대비
-        "prdy_vrss_sign",  # 전일 대비 부호
-        "bstp_nmix_prdy_ctrt",  # 업종 지수 전일 대비율
-        "acml_vol",  # 누적 거래량
-        "acml_tr_pbmn",  # 누적 거래 대금
-        "bstp_nmix_oprc",  # 업종 지수 시가
-        "bstp_nmix_hgpr",  # 업종 지수 최고가
-        "bstp_nmix_lwpr",  # 업종 지수 최저가
-        "ascn_issu_cnt",  # 상승 종목수
-        "uplm_issu_cnt",  # 상한 종목수
-        "stnr_issu_cnt",  # 보합 종목수
-        "down_issu_cnt",  # 하락 종목수
-        "lslm_issu_cnt",  # 하한 종목수
-    ]
-
-    # 프로그램매매 데이터 필드 (H0GSCNT0)
-    PROGRAM_TRADE_FIELDS = [
-        "mksc_shrn_iscd",  # 유가증권 단축 종목코드
-        "bsop_hour",  # 영업 시간
-        "seln_cntg_qty",  # 매도 체결 수량
-        "seln_cntg_amt",  # 매도 체결 금액
-        "shnu_cntg_qty",  # 매수 체결 수량
-        "shnu_cntg_amt",  # 매수 체결 금액
-        "ntby_cntg_qty",  # 순매수 체결 수량
-        "ntby_cntg_amt",  # 순매수 체결 금액
-        "seln_hoka_rsqn",  # 매도 호가 잔량
-        "shnu_hoka_rsqn",  # 매수 호가 잔량
-        "ntby_hoka_rsqn",  # 순매수 호가 잔량
-    ]
-
-    # 회원사별 매매동향 필드 (H0MBCNT0)
-    MEMBER_TRADE_FIELDS = [
-        "mksc_shrn_iscd",  # 유가증권 단축 종목코드
-        "bsop_hour",  # 영업 시간
-        "glob_ntby_qty",  # 글로벌 순매수 수량
-        "glob_ntby_tr_pbmn",  # 글로벌 순매수 거래대금
-        "glob_seln_qty",  # 글로벌 매도 수량
-        "glob_shnu_qty",  # 글로벌 매수 수량
-        "sscr_ntby_qty",  # 투신 순매수 수량
-        "sscr_ntby_tr_pbmn",  # 투신 순매수 거래대금
-        "sscr_seln_qty",  # 투신 매도 수량
-        "sscr_shnu_qty",  # 투신 매수 수량
-        "frgn_ntby_qty",  # 외국인 순매수 수량
-        "frgn_ntby_tr_pbmn",  # 외국인 순매수 거래대금
-        "frgn_seln_qty",  # 외국인 매도 수량
-        "frgn_shnu_qty",  # 외국인 매수 수량
-        "orgn_ntby_qty",  # 기관계 순매수 수량
-        "orgn_ntby_tr_pbmn",  # 기관계 순매수 거래대금
-        "orgn_seln_qty",  # 기관계 매도 수량
-        "orgn_shnu_qty",  # 기관계 매수 수량
-    ]
-
-    # 지수 예상체결 필드 (H0UPANC0)
-    INDEX_EXPECTED_FIELDS = [
-        "bsop_hour",  # 영업 시간
-        "bstp_nmix_sdpr",  # 업종 지수 기준가
-        "bstp_nmix_antc_cnpr",  # 업종 지수 예상 체결가
-        "bstp_nmix_antc_cntg_vrss",  # 업종 지수 예상 체결 대비
-        "antc_cntg_vrss_sign",  # 예상 체결 대비 부호
-        "bstp_nmix_antc_cntg_ctrt",  # 업종 지수 예상 체결 대비율
-        "antc_vol",  # 예상 거래량
-    ]
-
-    # 종목 예상체결 필드 (H0UNANC0)
-    STOCK_EXPECTED_FIELDS = [
-        "mksc_shrn_iscd",  # 유가증권 단축 종목코드
-        "bsop_hour",  # 영업 시간
-        "antc_cnpr",  # 예상 체결가
-        "antc_cntg_vrss",  # 예상 체결 대비
-        "antc_cntg_vrss_sign",  # 예상 체결 대비 부호
-        "antc_cntg_prdy_ctrt",  # 예상 체결 전일 대비율
-        "antc_vol",  # 예상 거래량
-        "stck_sdpr",  # 주식 기준가
-    ]
-
-    # ========================================================================
-    # NXT 시장 전용 필드
-    # ========================================================================
-
-    # NXT 장운영정보 필드 (H0NXMKO0)
-    MARKET_OPERATION_NXT_FIELDS = [
-        "mksc_shrn_iscd",  # 종목코드
-        "trht_yn",  # 거래정지 여부
-        "tr_susp_reas_cntt",  # 거래 정지 사유 내용
-        "mkop_cls_code",  # 장운영 구분 코드
-        "antc_mkop_cls_code",  # 예상 장운영 구분 코드
-        "mrkt_trtm_cls_code",  # 임의연장구분코드
-        "divi_app_cls_code",  # 동시호가배분처리구분코드
-        "iscd_stat_cls_code",  # 종목상태구분코드
-        "vi_cls_code",  # VI적용구분코드
-        "ovtm_vi_cls_code",  # 시간외단일가VI적용구분코드
-        "exch_cls_code",  # 거래소 구분코드
-    ]
-
-    # NXT 프로그램매매 필드 (H0NXPGM0)
-    PROGRAM_TRADE_NXT_FIELDS = [
-        "mksc_shrn_iscd",  # 유가증권 단축 종목코드
-        "stck_cntg_hour",  # 주식 체결 시간
-        "seln_cnqn",  # 매도 체결량
-        "seln_tr_pbmn",  # 매도 거래 대금
-        "shnu_cnqn",  # 매수 체결량
-        "shnu_tr_pbmn",  # 매수 거래 대금
-        "ntby_cnqn",  # 순매수 체결량
-        "ntby_tr_pbmn",  # 순매수 거래 대금
-        "seln_rsqn",  # 매도호가잔량
-        "shnu_rsqn",  # 매수호가잔량
-        "whol_ntby_qty",  # 전체순매수호가잔량
-    ]
-
-    @classmethod
-    def parse(cls, sub_type: SubscriptionType, values: List[str]) -> Dict[str, Any]:
-        """
-        실시간 데이터 파싱
-
-        Args:
-            sub_type: 구독 타입
-            values: 수신된 데이터 값 리스트 (^로 분리된)
-
-        Returns:
-            Dict[str, Any]: 파싱된 데이터 딕셔너리
-        """
-        field_map = {
-            # KRX 시장
-            SubscriptionType.STOCK_TRADE: cls.STOCK_TRADE_FIELDS,
-            SubscriptionType.STOCK_ASK_BID: cls.STOCK_ORDERBOOK_FIELDS,
-            SubscriptionType.STOCK_EXPECTED: cls.STOCK_EXPECTED_FIELDS,
-            SubscriptionType.INDEX: cls.INDEX_FIELDS,
-            SubscriptionType.INDEX_EXPECTED: cls.INDEX_EXPECTED_FIELDS,
-            SubscriptionType.PROGRAM_TRADE: cls.PROGRAM_TRADE_FIELDS,
-            SubscriptionType.MEMBER_TRADE: cls.MEMBER_TRADE_FIELDS,
-            # NXT 시장 (체결가, 호가, 예상체결은 KRX와 동일한 필드 구조)
-            SubscriptionType.STOCK_TRADE_NXT: cls.STOCK_TRADE_FIELDS,
-            SubscriptionType.STOCK_ASK_BID_NXT: cls.STOCK_ORDERBOOK_FIELDS,
-            SubscriptionType.STOCK_EXPECTED_NXT: cls.STOCK_EXPECTED_FIELDS,
-            SubscriptionType.PROGRAM_TRADE_NXT: cls.PROGRAM_TRADE_NXT_FIELDS,
-            SubscriptionType.MARKET_OPERATION_NXT: cls.MARKET_OPERATION_NXT_FIELDS,
-            SubscriptionType.MEMBER_TRADE_NXT: cls.MEMBER_TRADE_FIELDS,  # KRX와 동일
-        }
-
-        fields = field_map.get(sub_type)
-        if not fields:
-            # 알 수 없는 타입은 인덱스로 반환
-            return {f"field_{i}": v for i, v in enumerate(values)}
-
-        result = {}
-        for i, field_name in enumerate(fields):
-            if i < len(values):
-                result[field_name] = cls._convert_value(values[i], field_name)
-        return result
-
-    @classmethod
-    def _convert_value(cls, value: str, field: str) -> Any:
-        """
-        필드 값 타입 변환
-
-        Args:
-            value: 원본 문자열 값
-            field: 필드명
-
-        Returns:
-            변환된 값
-        """
-        if not value:
-            return None
-
-        # 가격/수량 관련 필드는 숫자로 변환
-        numeric_keywords = [
-            "prpr",
-            "pric",
-            "vol",
-            "qty",
-            "amt",
-            "rsqn",
-            "smtn",
-            "csnu",
-            "ctrt",
-            "rate",
-            "pbmn",
-            "cnpr",
-            "cnqn",
-            "hgpr",
-            "lwpr",
-            "oprc",
-            "vrss",
-            "nmix",
-            "icdc",
-        ]
-
-        for keyword in numeric_keywords:
-            if keyword in field:
-                try:
-                    # 소수점 포함 여부에 따라 int/float 변환
-                    if "." in value:
-                        return float(value)
-                    return int(value)
-                except ValueError:
-                    return value
-
-        return value
-
-    @classmethod
-    def parse_stock_trade(cls, values: List[str]) -> Dict[str, Any]:
-        """국내주식 체결 데이터 파싱"""
-        return cls.parse(SubscriptionType.STOCK_TRADE, values)
-
-    @classmethod
-    def parse_stock_orderbook(cls, values: List[str]) -> Dict[str, Any]:
-        """국내주식 호가 데이터 파싱"""
-        return cls.parse(SubscriptionType.STOCK_ASK_BID, values)
-
-    @classmethod
-    def parse_index(cls, values: List[str]) -> Dict[str, Any]:
-        """지수 데이터 파싱"""
-        return cls.parse(SubscriptionType.INDEX, values)
-
-    @classmethod
-    def parse_program_trade(cls, values: List[str]) -> Dict[str, Any]:
-        """프로그램매매 데이터 파싱"""
-        return cls.parse(SubscriptionType.PROGRAM_TRADE, values)
-
-    @classmethod
-    def parse_member_trade(cls, values: List[str]) -> Dict[str, Any]:
-        """회원사 매매동향 데이터 파싱"""
-        return cls.parse(SubscriptionType.MEMBER_TRADE, values)
-
-    @classmethod
-    def parse_stock_expected(cls, values: List[str]) -> Dict[str, Any]:
-        """종목 예상체결 데이터 파싱"""
-        return cls.parse(SubscriptionType.STOCK_EXPECTED, values)
-
-    @classmethod
-    def parse_index_expected(cls, values: List[str]) -> Dict[str, Any]:
-        """지수 예상체결 데이터 파싱"""
-        return cls.parse(SubscriptionType.INDEX_EXPECTED, values)
-
-
-# ============================================================================
-# 최신 데이터 저장소 (Latest Data Store)
-# ============================================================================
-
-
-class RealtimeDataStore:
-    """
-    실시간 데이터 저장소
-
-    웹소켓으로 수신된 최신 데이터를 종목별/타입별로 저장하고
-    조회할 수 있는 인메모리 저장소입니다.
-
-    Example:
-        >>> store = RealtimeDataStore()
-        >>> store.update(SubscriptionType.STOCK_TRADE, "005930", {"stck_prpr": 70000})
-        >>> store.get("005930", SubscriptionType.STOCK_TRADE)
-        {"stck_prpr": 70000, "_updated_at": datetime(...)}
-    """
-
-    def __init__(self, max_history: int = 100):
-        """
-        저장소 초기화
-
-        Args:
-            max_history: 각 종목/타입별 최대 히스토리 보관 수
-        """
-        self.max_history = max_history
-
-        # 최신 데이터 저장 (종목코드 -> 타입 -> 데이터)
-        self._latest: Dict[str, Dict[SubscriptionType, Dict[str, Any]]] = {}
-
-        # 히스토리 저장 (종목코드 -> 타입 -> [데이터 리스트])
-        self._history: Dict[str, Dict[SubscriptionType, List[Dict[str, Any]]]] = {}
-
-        # 통계
-        self._stats = {
-            "total_updates": 0,
-            "codes_tracked": 0,
-            "last_update_time": None,
-        }
-
-    def update(
-        self,
-        sub_type: SubscriptionType,
-        code: str,
-        data: Dict[str, Any],
-        keep_history: bool = False,
-    ) -> None:
-        """
-        데이터 업데이트
-
-        Args:
-            sub_type: 구독 타입
-            code: 종목/지수 코드
-            data: 수신된 데이터
-            keep_history: 히스토리 보관 여부
-        """
-        now = datetime.now()
-
-        # 타임스탬프 추가
-        data_with_timestamp = {**data, "_updated_at": now}
-
-        # 최신 데이터 저장
-        if code not in self._latest:
-            self._latest[code] = {}
-            self._stats["codes_tracked"] += 1
-        self._latest[code][sub_type] = data_with_timestamp
-
-        # 히스토리 저장
-        if keep_history:
-            if code not in self._history:
-                self._history[code] = {}
-            if sub_type not in self._history[code]:
-                self._history[code][sub_type] = []
-
-            self._history[code][sub_type].append(data_with_timestamp)
-
-            # 최대 히스토리 수 유지
-            if len(self._history[code][sub_type]) > self.max_history:
-                self._history[code][sub_type].pop(0)
-
-        # 통계 업데이트
-        self._stats["total_updates"] += 1
-        self._stats["last_update_time"] = now
-
-    def get(
-        self,
-        code: str,
-        sub_type: Optional[SubscriptionType] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """
-        최신 데이터 조회
-
-        Args:
-            code: 종목/지수 코드
-            sub_type: 구독 타입 (None이면 모든 타입 반환)
-
-        Returns:
-            Dict[str, Any]: 최신 데이터
-        """
-        if code not in self._latest:
-            return None
-
-        if sub_type is None:
-            return self._latest[code].copy()
-
-        return self._latest[code].get(sub_type)
-
-    def get_trade(self, code: str) -> Optional[Dict[str, Any]]:
-        """종목 체결 데이터 조회"""
-        return self.get(code, SubscriptionType.STOCK_TRADE)
-
-    def get_orderbook(self, code: str) -> Optional[Dict[str, Any]]:
-        """종목 호가 데이터 조회"""
-        return self.get(code, SubscriptionType.STOCK_ASK_BID)
-
-    def get_expected(self, code: str) -> Optional[Dict[str, Any]]:
-        """종목 예상체결 데이터 조회"""
-        return self.get(code, SubscriptionType.STOCK_EXPECTED)
-
-    def get_index(self, code: str) -> Optional[Dict[str, Any]]:
-        """지수 데이터 조회"""
-        return self.get(code, SubscriptionType.INDEX)
-
-    def get_program_trade(self, code: str) -> Optional[Dict[str, Any]]:
-        """프로그램매매 데이터 조회"""
-        return self.get(code, SubscriptionType.PROGRAM_TRADE)
-
-    def get_member_trade(self, code: str) -> Optional[Dict[str, Any]]:
-        """회원사 매매동향 데이터 조회"""
-        return self.get(code, SubscriptionType.MEMBER_TRADE)
-
-    def get_history(
-        self,
-        code: str,
-        sub_type: SubscriptionType,
-        limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
-        """
-        히스토리 데이터 조회
-
-        Args:
-            code: 종목/지수 코드
-            sub_type: 구독 타입
-            limit: 최근 N개만 반환 (None이면 전체)
-
-        Returns:
-            List[Dict[str, Any]]: 히스토리 데이터 리스트 (최신순)
-        """
-        if code not in self._history:
-            return []
-        if sub_type not in self._history[code]:
-            return []
-
-        history = self._history[code][sub_type]
-        if limit:
-            return list(reversed(history[-limit:]))
-        return list(reversed(history))
-
-    def get_all_codes(self) -> List[str]:
-        """모든 추적 중인 종목코드 반환"""
-        return list(self._latest.keys())
-
-    def get_stats(self) -> Dict[str, Any]:
-        """저장소 통계 반환"""
-        return self._stats.copy()
-
-    def clear(self, code: Optional[str] = None) -> None:
-        """
-        데이터 삭제
-
-        Args:
-            code: 특정 종목코드만 삭제 (None이면 전체 삭제)
-        """
-        if code:
-            self._latest.pop(code, None)
-            self._history.pop(code, None)
-        else:
-            self._latest.clear()
-            self._history.clear()
-            self._stats["codes_tracked"] = 0
-
-
-class WSAgentWithStore(WSAgent):
-    """
-    데이터 저장소가 포함된 WebSocket Agent
-
-    WSAgent의 모든 기능에 더해 수신된 데이터를 자동으로
-    RealtimeDataStore에 저장합니다.
-
-    Example:
-        >>> agent = WSAgentWithStore(approval_key="...")
-        >>> agent.subscribe_stock("005930", with_orderbook=True)
-        >>> await agent.connect()
-        >>> # 데이터 수신 후
-        >>> trade = agent.store.get_trade("005930")
-    """
-
-    def __init__(
-        self,
-        approval_key: str,
-        keep_history: bool = False,
-        max_history: int = 100,
-        **kwargs,
-    ):
-        """
-        WSAgentWithStore 초기화
-
-        Args:
-            approval_key: 웹소켓 승인키
-            keep_history: 히스토리 보관 여부
-            max_history: 최대 히스토리 보관 수
-            **kwargs: WSAgent 추가 인자
-        """
-        super().__init__(approval_key, **kwargs)
-        self.store = RealtimeDataStore(max_history=max_history)
-        self.keep_history = keep_history
-
-        # 자동 저장을 위한 기본 핸들러 등록
-        self._setup_auto_store_handlers()
-
-    def _setup_auto_store_handlers(self) -> None:
-        """자동 저장 핸들러 설정"""
-
-        def create_store_handler(sub_type: SubscriptionType):
-            def handler(data: Any, metadata: Dict):
-                # 리스트 데이터(바이너리 메시지)인 경우 파싱
-                if isinstance(data, list):
-                    code = data[0] if data else metadata.get("tr_key", "")
-                    parsed = RealtimeDataParser.parse(sub_type, data)
-                else:
-                    # JSON 메시지는 그대로 사용
-                    code = metadata.get("tr_key", "")
-                    parsed = data if isinstance(data, dict) else {"raw": data}
-
-                if code:
-                    self.store.update(sub_type, code, parsed, self.keep_history)
-
-            return handler
-
-        # 모든 타입에 대해 핸들러 등록
-        for sub_type in SubscriptionType:
-            self.register_handler(sub_type, create_store_handler(sub_type))
+__all__ = [
+    "WSAgent",
+    "SubscriptionType",
+    "Subscription",
+    "RealtimeDataParser",
+    "RealtimeDataStore",
+    "WSAgentWithStore",
+]
