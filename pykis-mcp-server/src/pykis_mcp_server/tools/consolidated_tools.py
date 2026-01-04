@@ -1100,24 +1100,55 @@ async def rate_limiter(
 
     agent = get_agent()
 
+    # Rate Limiter는 로컬 상태 관리이므로 API 검증 대신 직접 응답 생성
     if action == "status":
-        result = agent.get_rate_limiter_status()
-        return validate_api_response(result, "Rate Limiter 상태 조회")
+        status = agent.get_rate_limiter_status()
+        if status is None:
+            return {
+                "rt_cd": "0",
+                "msg1": "Rate Limiter가 비활성화 상태입니다",
+                "output": {"enabled": False},
+            }
+        return {
+            "rt_cd": "0",
+            "msg1": "Rate Limiter 상태 조회 성공",
+            "output": status,
+        }
     elif action == "reset":
-        result = agent.reset_rate_limiter()
-        return validate_api_response(result, "Rate Limiter 초기화")
+        agent.reset_rate_limiter()
+        return {
+            "rt_cd": "0",
+            "msg1": "Rate Limiter 초기화 완료",
+            "output": {"success": True},
+        }
     elif action == "set_limits":
-        result = agent.set_rate_limits(
+        agent.set_rate_limits(
             requests_per_second=requests_per_second,
             requests_per_minute=requests_per_minute,
             min_interval_ms=min_interval_ms,
         )
-        return validate_api_response(result, "Rate Limiter 제한 설정")
+        return {
+            "rt_cd": "0",
+            "msg1": "Rate Limiter 제한 설정 완료",
+            "output": {
+                "requests_per_second": requests_per_second,
+                "requests_per_minute": requests_per_minute,
+                "min_interval_ms": min_interval_ms,
+            },
+        }
     elif action == "set_adaptive":
         if enable_adaptive is None:
             raise InvalidParameterError("enable_adaptive", "활성화 여부가 필요합니다")
-        result = agent.enable_adaptive_rate_limiting(enable_adaptive)
-        return validate_api_response(result, "적응형 Rate Limiting 설정")
+        # Note: enable_adaptive_rate_limiting 메서드가 없다면 rate_limiter 직접 설정
+        if hasattr(agent, "enable_adaptive_rate_limiting"):
+            agent.enable_adaptive_rate_limiting(enable_adaptive)
+        elif agent.rate_limiter:
+            agent.rate_limiter.enable_adaptive = enable_adaptive
+        return {
+            "rt_cd": "0",
+            "msg1": f"적응형 Rate Limiting {'활성화' if enable_adaptive else '비활성화'} 완료",
+            "output": {"enable_adaptive": enable_adaptive},
+        }
 
 
 # =============================================================================
@@ -1148,16 +1179,38 @@ async def method_discovery(
 
     agent = get_agent()
 
+    # method_discovery는 로컬 메서드이므로 API 검증 대신 직접 응답 생성
     if action == "search":
         if not query:
             raise InvalidParameterError("query", "검색 키워드가 필요합니다")
-        result = agent.search_methods(query)
-        return validate_api_response(result, "메서드 검색")
+        methods = agent.search_methods(query)
+        return {
+            "rt_cd": "0",
+            "msg1": f"'{query}' 검색 결과: {len(methods)}개 메서드",
+            "output": methods,
+        }
     elif action == "list_all":
-        result = agent.get_all_methods()
-        return validate_api_response(result, "전체 메서드 목록 조회")
+        methods = agent.get_all_methods(show_details=True)
+        return {
+            "rt_cd": "0",
+            "msg1": f"전체 메서드: {len(methods)}개",
+            "output": methods,
+        }
     elif action == "usage":
         if not method_name:
             raise InvalidParameterError("method_name", "메서드 이름이 필요합니다")
-        result = agent.show_method_usage(method_name)
-        return validate_api_response(result, "메서드 사용법 조회")
+        # show_method_usage는 print만 하므로, 직접 메서드 정보 조회
+        methods = agent.get_all_methods(show_details=True)
+        method_info = next((m for m in methods if m.get("name") == method_name), None)
+        if method_info:
+            return {
+                "rt_cd": "0",
+                "msg1": f"메서드 '{method_name}' 사용법 조회 성공",
+                "output": method_info,
+            }
+        else:
+            return {
+                "rt_cd": "1",
+                "msg1": f"메서드 '{method_name}'를 찾을 수 없습니다",
+                "output": None,
+            }

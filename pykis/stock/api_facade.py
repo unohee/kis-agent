@@ -53,12 +53,8 @@ class StockAPI(BaseAPI):
         )
 
         # 하위 시스템 초기화 - Agent를 통해 생성된 경우 하위 API도 _from_agent=True로 초기화
-        self.price_api = StockPriceAPI(
-            client, account_info, _from_agent=_from_agent
-        )
-        self.market_api = StockMarketAPI(
-            client, account_info, _from_agent=_from_agent
-        )
+        self.price_api = StockPriceAPI(client, account_info, _from_agent=_from_agent)
+        self.market_api = StockMarketAPI(client, account_info, _from_agent=_from_agent)
         self.investor_api = StockInvestorAPI(
             client, account_info, _from_agent=_from_agent
         )
@@ -710,9 +706,13 @@ class StockAPI(BaseAPI):
 
     # ===== Market API 메서드 위임 =====
 
-    def get_holiday_info(self) -> Optional[Dict]:
-        """휴장일 정보 조회"""
-        return self.market_api.get_holiday_info()
+    def get_holiday_info(self, date: Optional[str] = None) -> Optional[Dict]:
+        """휴장일 정보 조회
+
+        Args:
+            date: 조회 날짜 (YYYYMMDD 형식, None이면 당월)
+        """
+        return self.market_api.get_holiday_info(date)
 
     def is_holiday(self, date: str) -> Optional[bool]:
         """특정일 휴장일 여부 확인"""
