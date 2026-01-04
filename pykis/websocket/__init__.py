@@ -26,21 +26,23 @@ WebSocket 모듈
 # ============================================
 # 권장 API (WSAgent 기반)
 # ============================================
-from .ws_agent import (
-    RealtimeDataParser,
-    RealtimeDataStore,
-    Subscription,
-    SubscriptionType,
-    WSAgent,
-    WSAgentWithStore,
-)
+# ============================================
+# Deprecated API (하위 호환성 유지)
+# ============================================
+from .client import KisWebSocket  # deprecated: use WSAgent
 
 # ============================================
 # 지원 모듈 (WSAgent 내부에서 사용)
 # ============================================
 from .connection import ConnectionManager
 from .data_processor import DataProcessor
+from .enhanced_client import EnhancedWebSocketClient  # deprecated: use WSAgentWithStore
 from .event_manager import Event, EventManager, EventType
+from .factory import (
+    ClientType,
+    WebSocketClientBuilder,
+    WebSocketClientFactory,
+)  # deprecated
 from .message_handlers import (
     IndexHandler,
     MessageHandler,
@@ -49,14 +51,10 @@ from .message_handlers import (
     ProgramTradingHandler,
     TradeHandler,
 )
-
-# ============================================
-# Deprecated API (하위 호환성 유지)
-# ============================================
-from .client import KisWebSocket  # deprecated: use WSAgent
-from .enhanced_client import EnhancedWebSocketClient  # deprecated: use WSAgentWithStore
-from .factory import ClientType, WebSocketClientBuilder, WebSocketClientFactory  # deprecated
 from .refactored_client import RefactoredWebSocketClient  # deprecated: use WSAgent
+from .ws_agent import WSAgent
+from .ws_helpers import RealtimeDataParser, RealtimeDataStore, WSAgentWithStore
+from .ws_types import Subscription, SubscriptionType
 
 __all__ = [
     # ============================================
