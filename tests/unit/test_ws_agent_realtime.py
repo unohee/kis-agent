@@ -4,9 +4,10 @@ WSAgent 실시간 데이터 기능 테스트
 새로 추가된 실시간 데이터 구독 타입, 편의 메서드, 데이터 파싱 및 저장소 테스트
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from pykis.websocket import (
     RealtimeDataParser,
@@ -36,7 +37,7 @@ class TestSubscriptionType:
 
     def test_program_member_subscription_types(self):
         """프로그램매매/회원사 구독 타입 확인"""
-        assert SubscriptionType.PROGRAM_TRADE.value == "H0GSCNT0"
+        assert SubscriptionType.PROGRAM_TRADE.value == "H0STPGM0"  # KRX
         assert SubscriptionType.MEMBER_TRADE.value == "H0MBCNT0"
 
     def test_futures_options_subscription_types(self):
@@ -87,7 +88,7 @@ class TestWSAgentConvenienceMethods:
         assert "H0STCNT0_005930" in sub_ids
         assert "H0STASP0_005930" in sub_ids
         assert "H0UNANC0_005930" in sub_ids
-        assert "H0GSCNT0_005930" in sub_ids
+        assert "H0STPGM0_005930" in sub_ids  # PROGRAM_TRADE (KRX)
         assert "H0MBCNT0_005930" in sub_ids
 
     def test_subscribe_stocks(self):
@@ -131,8 +132,8 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_program_trading(["005930", "000660"])
 
         assert len(sub_ids) == 2
-        assert "H0GSCNT0_005930" in sub_ids
-        assert "H0GSCNT0_000660" in sub_ids
+        assert "H0STPGM0_005930" in sub_ids  # PROGRAM_TRADE (KRX)
+        assert "H0STPGM0_000660" in sub_ids  # PROGRAM_TRADE (KRX)
 
     def test_subscribe_member_trading(self):
         """회원사 매매동향 구독"""

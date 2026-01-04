@@ -11,12 +11,9 @@ Purpose: LOC gate 준수를 위해 ws_agent.py에서 분리
 """
 
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-# Forward import for type hints (actual import in WSAgentWithStore)
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-if TYPE_CHECKING:
-    from .ws_agent import SubscriptionType
+from .ws_types import SubscriptionType
 
 
 class RealtimeDataParser:
@@ -245,9 +242,9 @@ class RealtimeDataParser:
     ]
 
     @classmethod
-    def parse(cls, sub_type: "SubscriptionType", values: List[str]) -> Dict[str, Any]:
+    def parse(cls, sub_type: SubscriptionType, values: List[str]) -> Dict[str, Any]:
         """실시간 데이터 파싱 - sub_type에 맞는 필드 매핑 적용"""
-        from .ws_agent import SubscriptionType as ST
+        ST = SubscriptionType
 
         field_map = {
             ST.STOCK_TRADE: cls.STOCK_TRADE_FIELDS,
@@ -314,49 +311,42 @@ class RealtimeDataParser:
     @classmethod
     def parse_stock_trade(cls, values: List[str]) -> Dict[str, Any]:
         """국내주식 체결 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.STOCK_TRADE, values)
 
     @classmethod
     def parse_stock_orderbook(cls, values: List[str]) -> Dict[str, Any]:
         """국내주식 호가 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.STOCK_ASK_BID, values)
 
     @classmethod
     def parse_index(cls, values: List[str]) -> Dict[str, Any]:
         """지수 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.INDEX, values)
 
     @classmethod
     def parse_program_trade(cls, values: List[str]) -> Dict[str, Any]:
         """프로그램매매 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.PROGRAM_TRADE, values)
 
     @classmethod
     def parse_member_trade(cls, values: List[str]) -> Dict[str, Any]:
         """회원사 매매동향 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.MEMBER_TRADE, values)
 
     @classmethod
     def parse_stock_expected(cls, values: List[str]) -> Dict[str, Any]:
         """종목 예상체결 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.STOCK_EXPECTED, values)
 
     @classmethod
     def parse_index_expected(cls, values: List[str]) -> Dict[str, Any]:
         """지수 예상체결 데이터 파싱"""
-        from .ws_agent import SubscriptionType
 
         return cls.parse(SubscriptionType.INDEX_EXPECTED, values)
 
@@ -405,32 +395,26 @@ class RealtimeDataStore:
         return self._latest[code].get(sub_type)
 
     def get_trade(self, code: str) -> Optional[Dict[str, Any]]:
-        from .ws_agent import SubscriptionType
 
         return self.get(code, SubscriptionType.STOCK_TRADE)
 
     def get_orderbook(self, code: str) -> Optional[Dict[str, Any]]:
-        from .ws_agent import SubscriptionType
 
         return self.get(code, SubscriptionType.STOCK_ASK_BID)
 
     def get_expected(self, code: str) -> Optional[Dict[str, Any]]:
-        from .ws_agent import SubscriptionType
 
         return self.get(code, SubscriptionType.STOCK_EXPECTED)
 
     def get_index(self, code: str) -> Optional[Dict[str, Any]]:
-        from .ws_agent import SubscriptionType
 
         return self.get(code, SubscriptionType.INDEX)
 
     def get_program_trade(self, code: str) -> Optional[Dict[str, Any]]:
-        from .ws_agent import SubscriptionType
 
         return self.get(code, SubscriptionType.PROGRAM_TRADE)
 
     def get_member_trade(self, code: str) -> Optional[Dict[str, Any]]:
-        from .ws_agent import SubscriptionType
 
         return self.get(code, SubscriptionType.MEMBER_TRADE)
 
@@ -470,15 +454,15 @@ class WSAgentWithStore:
         **kwargs,
     ):
         # Lazy import to avoid circular dependency
-        from .ws_agent import SubscriptionType, WSAgent
+        from .ws_agent import WSAgent
 
         # Create base WSAgent as composition instead of inheritance
         self._base_agent = WSAgent(approval_key, **kwargs)
         self.store = RealtimeDataStore(max_history=max_history)
         self.keep_history = keep_history
-        self._setup_auto_store_handlers(SubscriptionType)
+        self._setup_auto_store_handlers()
 
-    def _setup_auto_store_handlers(self, SubscriptionType) -> None:
+    def _setup_auto_store_handlers(self) -> None:
         """자동 저장 핸들러 설정"""
 
         def create_store_handler(sub_type):

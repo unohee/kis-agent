@@ -170,3 +170,4 @@ trash/
 
 # Task Master AI
 .taskmaster/ 
+.claude/

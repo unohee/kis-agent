@@ -1,0 +1,226 @@
+name: Coverage Boost
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "pykis/**/*.py"
+      - "tests/**/*.py"
+  workflow_dispatch:
+    inputs:
+      target_coverage:
+        description: "Target coverage percentage"
+        required: false
+        default: "70"
+
+env:
+  PYTHON_VERSION: "3.12"
+  TARGET_COVERAGE: ${{ github.event.inputs.target_coverage || '70' }}
+
+jobs:
+  coverage-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov coverage
+          pip install -e ".[dev]" || pip install -e .
+
+      - name: Run coverage analysis
+        id: coverage
+        run: |
+          # Run tests with coverage
+          pytest tests/unit/ \
+            --cov=pykis \
+            --cov-report=json:coverage.json \
+            --cov-report=term-missing \
+            -q --tb=no || true
+
+          # Extract overall coverage
+          TOTAL_COV=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])" 2>/dev/null || echo "0")
+          echo "total_coverage=${TOTAL_COV}" >> $GITHUB_OUTPUT
+
+          # Find files below target coverage
+          python << 'EOF' > low_coverage_files.txt
+          import json
+          import sys
+
+          TARGET = int("${{ env.TARGET_COVERAGE }}")
+
+          try:
+              with open('coverage.json') as f:
+                  data = json.load(f)
+
+              low_coverage = []
+              for filepath, info in data.get('files', {}).items():
+                  if filepath.startswith('pykis/'):
+                      pct = info['summary']['percent_covered']
+                      missing = info['missing_lines']
+                      if pct < TARGET and missing:
+                          low_coverage.append({
+                              'file': filepath,
+                              'coverage': round(pct, 1),
+                              'missing_lines': len(missing),
+                              'missing': missing[:20]  # First 20 lines
+                          })
+
+              # Sort by coverage (lowest first)
+              low_coverage.sort(key=lambda x: x['coverage'])
+
+              # Output top 10 files
+              for item in low_coverage[:10]:
+                  print(f"{item['file']}|{item['coverage']}|{item['missing_lines']}|{','.join(map(str, item['missing']))}")
+          except Exception as e:
+              print(f"Error: {e}", file=sys.stderr)
+          EOF
+
+          # Count low coverage files
+          LOW_COUNT=$(wc -l < low_coverage_files.txt | tr -d ' ')
+          echo "low_coverage_count=${LOW_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: Generate coverage report
+        id: report
+        run: |
+          # Create markdown report
+          cat << 'EOF' > coverage_report.md
+          ## 📊 Coverage Analysis Report
+
+          | Metric | Value |
+          |--------|-------|
+          | **Total Coverage** | ${{ steps.coverage.outputs.total_coverage }}% |
+          | **Target Coverage** | ${{ env.TARGET_COVERAGE }}% |
+          | **Files Below Target** | ${{ steps.coverage.outputs.low_coverage_count }} |
+
+          EOF
+
+          if [ -s low_coverage_files.txt ]; then
+            echo "### 🔴 Files Requiring Test Coverage" >> coverage_report.md
+            echo "" >> coverage_report.md
+            echo "| File | Coverage | Missing Lines | Sample Lines |" >> coverage_report.md
+            echo "|------|----------|---------------|--------------|" >> coverage_report.md
+
+            while IFS='|' read -r file cov missing sample; do
+              if [ -n "$file" ]; then
+                echo "| \`$file\` | ${cov}% | $missing | \`$sample\` |" >> coverage_report.md
+              fi
+            done < low_coverage_files.txt
+
+            echo "" >> coverage_report.md
+            echo "---" >> coverage_report.md
+            echo "" >> coverage_report.md
+            echo "💡 **Tip**: Run \`/boost-coverage ${{ env.TARGET_COVERAGE }}\` in Claude Code to auto-generate tests for these files." >> coverage_report.md
+          else
+            echo "✅ All files meet the target coverage of ${{ env.TARGET_COVERAGE }}%!" >> coverage_report.md
+          fi
+
+          cat coverage_report.md
+
+      - name: Post coverage comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('coverage_report.md', 'utf8');
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('📊 Coverage Analysis Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: report
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: report
+              });
+            }
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.json
+            coverage_report.md
+            low_coverage_files.txt
+
+  suggest-tests:
+    needs: coverage-analysis
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+
+      - name: Suggest tests with Claude
+        if: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            CONTEXT: Test Coverage Improvement Suggestions
+            REPO: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+
+            I need you to analyze the coverage report and suggest unit tests for files with low coverage.
+
+            1. Read the file `low_coverage_files.txt` to see which files need tests
+            2. For the top 3 files with lowest coverage:
+               - Read the source file to understand the functions
+               - Generate example unit test code
+               - Focus on the missing lines indicated
+
+            3. Post a helpful comment on the PR with:
+               - Brief analysis of what needs testing
+               - Example test code snippets (use pytest style)
+               - Tips for improving coverage
+
+            Use `gh pr comment ${{ github.event.pull_request.number }}` to post your suggestions.
+
+            Keep suggestions practical and focused. Follow the existing test patterns in `tests/unit/`.
+
+          claude_args: '--allowed-tools "Read,Bash(gh pr comment:*),Bash(cat:*)"'
