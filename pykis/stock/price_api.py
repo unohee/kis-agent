@@ -24,27 +24,8 @@ class StockPriceAPI(BaseAPI):
             code: 종목코드 (6자리, 예: '005930')
 
         Returns:
-            StockPriceResponse 형식의 Dict (82개 필드):
-                - output.stck_prpr: 주식 현재가
-                - output.prdy_vrss: 전일 대비
-                - output.prdy_vrss_sign: 전일 대비 부호 (1:상한, 2:상승, 3:보합, 4:하한, 5:하락)
-                - output.prdy_ctrt: 전일 대비율 (%)
-                - output.acml_vol: 누적 거래량
-                - output.acml_tr_pbmn: 누적 거래대금
-                - output.stck_oprc: 주식 시가
-                - output.stck_hgpr: 주식 최고가
-                - output.stck_lwpr: 주식 최저가
-                - output.stck_mxpr: 주식 상한가
-                - output.stck_llam: 주식 하한가
-                - output.per: PER (Price Earning Ratio)
-                - output.pbr: PBR (Price Book-value Ratio)
-                - output.eps: EPS (Earning Per Share)
-                - output.bps: BPS (Book-value Per Share)
-                - output.hts_frgn_ehrt: HTS 외국인 소진율
-                - output.frgn_ntby_qty: 외국인 순매수 수량
-                - output.w52_hgpr: 52주일 최고가
-                - output.w52_lwpr: 52주일 최저가
-                - 기타 60여개 필드 (상세는 StockPriceOutput TypedDict 참조)
+            StockPriceResponse (82개 필드): stck_prpr(현재가), prdy_vrss(전일대비),
+            per, pbr, acml_vol(거래량) 등. 상세: StockPriceOutput TypedDict 참조
 
         Example:
             >>> price = agent.stock.get_stock_price("005930")
@@ -69,14 +50,7 @@ class StockPriceAPI(BaseAPI):
             org_adj_prc: 수정주가구분 (0: 수정주가 미반영, 1: 수정주가 반영)
 
         Returns:
-            DailyPriceResponse 형식의 Dict:
-                - output[]: List[DailyPriceItem] (최대 30개)
-                    - stck_bsop_date: 주식 영업일자 (YYYYMMDD)
-                    - stck_clpr: 주식 종가
-                    - stck_oprc: 주식 시가
-                    - stck_hgpr: 주식 최고가
-                    - stck_lwpr: 주식 최저가
-                    - acml_vol: 누적 거래량
+            DailyPriceResponse: output[] 리스트 (최대 30개) - 일자별 OHLCV
 
         Example:
             >>> daily = agent.stock.inquire_daily_price("005930", period="D")
@@ -102,32 +76,7 @@ class StockPriceAPI(BaseAPI):
         period: str = "D",
         org_adj_prc: str = "1",
     ) -> Optional[Dict]:
-        """
-        국내주식 기간별 시세 조회 (날짜 범위 지정)
-
-        Args:
-            code: 종목코드 (6자리)
-            start_date: 조회 시작일자 (YYYYMMDD, 공백이면 100건 이전부터)
-            end_date: 조회 종료일자 (YYYYMMDD, 공백이면 오늘까지)
-            period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
-            org_adj_prc: 수정주가구분 (0: 수정주가, 1: 원주가)
-
-        Returns:
-            DailyItemChartPriceResponse 형식의 Dict:
-                - output1[]: List[DailyPriceItem] (최대 100개)
-                    - stck_bsop_date: 주식 영업일자 (YYYYMMDD)
-                    - stck_clpr: 주식 종가
-                    - stck_oprc: 주식 시가
-                    - stck_hgpr: 주식 최고가
-                    - stck_lwpr: 주식 최저가
-                    - acml_vol: 누적 거래량
-                - output2: 요약 정보
-
-        Example:
-            >>> data = agent.stock.inquire_daily_itemchartprice("005930", "20240101", "20240131")
-            >>> for day in data['output1']:
-            ...     print(day['stck_bsop_date'], day['stck_clpr'])
-        """
+        """기간별 시세 조회. output1[]=OHLCV 리스트(최대100건), period=D/W/M/Y."""
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_DAILY_ITEMCHARTPRICE"],
             tr_id="FHKST03010100",
@@ -1144,29 +1093,12 @@ class StockPriceAPI(BaseAPI):
         국내업종 시간별 지수 조회 (기본값: KOSPI200)
 
         Args:
-            fid_input_iscd (str): 종목코드 (기본값 "1029": KOSPI200)
-                - "1001": KOSPI
-                - "2001": KOSDAQ
-                - "1029": KOSPI200
-            fid_input_hour_1 (str): 입력 시간(초) - 조회 시간 범위 (기본값 "600": 10분봉)
-                - "60": 1분봉
-                - "120": 2분봉
-                - "180": 3분봉
-                - "300": 5분봉
-                - "600": 10분봉
-                - "900": 15분봉
-                - "1800": 30분봉
-                - "3600": 60분봉
-            fid_cond_mrkt_div_code (str): 시장 분류 코드 (기본값 "U": 업종)
+            fid_input_iscd: 종목코드 (1001:KOSPI, 2001:KOSDAQ, 1029:KOSPI200)
+            fid_input_hour_1: 시간(초) (60/120/180/300/600/900/1800/3600 = 분봉)
+            fid_cond_mrkt_div_code: 시장분류 (U:업종)
 
         Returns:
-            Dict containing:
-                - output: 시간별 지수 데이터 리스트 (각 시간대별 업종 정보)
-
-        Example:
-            >>> agent.get_index_timeprice()  # KOSPI200 10분봉 데이터
-            >>> agent.get_index_timeprice("1001", "120")  # KOSPI 2분봉 데이터
-            >>> agent.get_index_timeprice("2001", "60")  # KOSDAQ 1분봉 데이터
+            Dict: output에 시간별 지수 데이터 리스트
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_INDEX_TIMEPRICE"],
@@ -1507,14 +1439,18 @@ class StockPriceAPI(BaseAPI):
                     else:
                         return response
                 else:
-                    logging.error(f"주식 회원사 조회 응답 없음 (시도 {attempt+1}/{retries})")
+                    logging.error(
+                        f"주식 회원사 조회 응답 없음 (시도 {attempt+1}/{retries})"
+                    )
                     if attempt < retries - 1:
                         continue
                     else:
                         return None
 
             except Exception as e:
-                logging.error(f"주식 회원사 조회 예외 발생 (시도 {attempt+1}/{retries}): {e}")
+                logging.error(
+                    f"주식 회원사 조회 예외 발생 (시도 {attempt+1}/{retries}): {e}"
+                )
                 if attempt < retries - 1:
                     continue
                 else:

@@ -3,6 +3,7 @@
 110개 개별 도구를 18개 통합 도구로 압축하여 LLM의 도구 선택 효율성을 향상시킵니다.
 각 도구는 query_type 또는 action 파라미터로 세부 기능을 선택합니다.
 """
+
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -40,7 +41,14 @@ async def stock_quote(
     if not code or len(code) != 6:
         raise InvalidParameterError("code", "종목코드는 6자리여야 합니다")
 
-    valid_types = ["price", "detail", "detail2", "orderbook", "execution", "time_execution"]
+    valid_types = [
+        "price",
+        "detail",
+        "detail2",
+        "orderbook",
+        "execution",
+        "time_execution",
+    ]
     if query_type not in valid_types:
         raise InvalidParameterError("query_type", f"유효한 값: {valid_types}")
 
@@ -211,7 +219,14 @@ async def market_ranking(
     Returns:
         Dict: 시장 순위 데이터
     """
-    valid_types = ["volume", "gainers", "losers", "fluctuation", "volume_power", "market_status"]
+    valid_types = [
+        "volume",
+        "gainers",
+        "losers",
+        "fluctuation",
+        "volume_power",
+        "market_status",
+    ]
     if ranking_type not in valid_types:
         raise InvalidParameterError("ranking_type", f"유효한 값: {valid_types}")
 
@@ -220,8 +235,12 @@ async def market_ranking(
 
     # 시장 코드 매핑 (MCP 파라미터 → API 파라미터)
     market_name_map = {
-        "0": "ALL", "1": "KOSPI", "2": "KOSDAQ",
-        "ALL": "ALL", "KOSPI": "KOSPI", "KOSDAQ": "KOSDAQ"
+        "0": "ALL",
+        "1": "KOSPI",
+        "2": "KOSDAQ",
+        "ALL": "ALL",
+        "KOSPI": "KOSPI",
+        "KOSDAQ": "KOSDAQ",
     }
     market_name = market_name_map.get(market, "ALL")
 
@@ -231,23 +250,20 @@ async def market_ranking(
 
     if ranking_type == "volume":
         # 거래량 순위: FHPST01710000
-        params = {
-            "fid_cond_mrkt_div_code": "J",
-            "fid_cond_scr_div_code": "20171",
-            "fid_input_iscd": input_iscd,
-            "fid_div_cls_code": "0",
-            "fid_blng_cls_code": "0",
-            "fid_trgt_cls_code": "111111111",
-            "fid_trgt_exls_cls_code": "0000000000",
-            "fid_input_price_1": "0",
-            "fid_input_price_2": "1000000",
-            "fid_vol_cnt": str(volume),
-            "fid_input_cnt_1": "50",
-        }
-        result = market_api._make_request_dict(
-            endpoint="/uapi/domestic-stock/v1/quotations/volume-rank",
-            tr_id="FHPST01710000",
-            params=params,
+        # price_api.volume_rank() 사용 (UPPERCASE 파라미터 필요)
+        price_api = agent.stock_api.price_api
+        result = price_api.volume_rank(
+            market="J",
+            screen_code="20171",
+            stock_code=input_iscd,
+            div_cls="0",
+            sort_cls="0",  # 평균거래량순
+            target_cls="111111111",
+            exclude_cls="0000000000",
+            price_from="",
+            price_to="",
+            volume=str(volume),
+            date="",
         )
         return validate_api_response(result, "거래량 순위 조회")
 
@@ -282,8 +298,14 @@ async def market_ranking(
             tr_id="FHPST01700000",
             params=params,
         )
-        operation = {"gainers": "상승률 순위 조회", "losers": "하락률 순위 조회", "fluctuation": "등락률 순위 조회"}
-        return validate_api_response(result, operation.get(ranking_type, "등락률 순위 조회"))
+        operation = {
+            "gainers": "상승률 순위 조회",
+            "losers": "하락률 순위 조회",
+            "fluctuation": "등락률 순위 조회",
+        }
+        return validate_api_response(
+            result, operation.get(ranking_type, "등락률 순위 조회")
+        )
 
     elif ranking_type == "volume_power":
         # 체결강도 순위: FHPST01680000
@@ -345,9 +367,15 @@ async def investor_flow(
         Dict: 투자자 매매동향 데이터
     """
     valid_types = [
-        "stock", "market_daily", "market_time", "foreign_trend",
-        "foreign_estimate", "foreign_trading", "stock_daily",
-        "investor_estimate", "program_today"
+        "stock",
+        "market_daily",
+        "market_time",
+        "foreign_trend",
+        "foreign_estimate",
+        "foreign_trading",
+        "stock_daily",
+        "investor_estimate",
+        "program_today",
     ]
     if query_type not in valid_types:
         raise InvalidParameterError("query_type", f"유효한 값: {valid_types}")
@@ -431,7 +459,9 @@ async def broker_trading(
         return validate_api_response(result, "증권사별 매매 조회")
     elif query_type == "period":
         if not start_date or not end_date:
-            raise InvalidParameterError("start_date/end_date", "기간 조회 시 시작/종료일이 필요합니다")
+            raise InvalidParameterError(
+                "start_date/end_date", "기간 조회 시 시작/종료일이 필요합니다"
+            )
         result = agent.get_member_transaction(code, start_date, end_date)
         return validate_api_response(result, "기간별 증권사 거래 조회")
     elif query_type == "info":
@@ -487,7 +517,9 @@ async def program_trading(
         return validate_api_response(result, "프로그램 매매 일별 요약 조회")
     elif query_type == "market":
         if not start_date or not end_date:
-            raise InvalidParameterError("start_date/end_date", "시장 조회 시 기간이 필요합니다")
+            raise InvalidParameterError(
+                "start_date/end_date", "시장 조회 시 기간이 필요합니다"
+            )
         result = agent.get_program_trade_market_daily(start_date, end_date)
         return validate_api_response(result, "시장 프로그램 매매 조회")
     elif query_type == "hourly":
@@ -499,7 +531,9 @@ async def program_trading(
         if not code or len(code) != 6:
             raise InvalidParameterError("code", "종목코드는 6자리여야 합니다")
         if not start_date or not end_date:
-            raise InvalidParameterError("start_date/end_date", "기간 조회 시 시작/종료일이 필요합니다")
+            raise InvalidParameterError(
+                "start_date/end_date", "기간 조회 시 시작/종료일이 필요합니다"
+            )
         result = agent.get_program_trade_period_detail(code, start_date, end_date)
         return validate_api_response(result, "기간별 프로그램 매매 상세 조회")
 
@@ -541,9 +575,17 @@ async def account_query(
         Dict: 계좌 정보
     """
     valid_types = [
-        "balance", "order_ability", "order_quantity", "trades",
-        "profit_loss", "sell_quantity", "period_profit", "margin",
-        "credit", "rights", "total"
+        "balance",
+        "order_ability",
+        "order_quantity",
+        "trades",
+        "profit_loss",
+        "sell_quantity",
+        "period_profit",
+        "margin",
+        "credit",
+        "rights",
+        "total",
     ]
     if query_type not in valid_types:
         raise InvalidParameterError("query_type", f"유효한 값: {valid_types}")
@@ -638,12 +680,18 @@ async def order_execute(
     if credit:
         # 신용 거래
         if action == "buy":
-            result = agent.order_credit_buy(code, credit_type, quantity, price, order_type)
+            result = agent.order_credit_buy(
+                code, credit_type, quantity, price, order_type
+            )
             return validate_api_response(result, "신용 매수 주문")
         else:
             if not loan_date:
-                raise InvalidParameterError("loan_date", "신용 매도 시 대출일자가 필요합니다")
-            result = agent.order_credit_sell(code, loan_date, quantity, price, order_type)
+                raise InvalidParameterError(
+                    "loan_date", "신용 매도 시 대출일자가 필요합니다"
+                )
+            result = agent.order_credit_sell(
+                code, loan_date, quantity, price, order_type
+            )
             return validate_api_response(result, "신용 매도 주문")
     else:
         # 현금 거래
@@ -652,7 +700,9 @@ async def order_execute(
             result = agent.order_cash_sor(code, quantity) if action == "buy" else None
             if result is None:
                 # 시장가 매도는 order_cash 사용
-                result = agent.order_stock_cash(action, code, order_type, quantity, price)
+                result = agent.order_stock_cash(
+                    action, code, order_type, quantity, price
+                )
             return validate_api_response(result, f"시장가 {action} 주문")
         else:
             result = agent.order_stock_cash(action, code, order_type, quantity, price)
@@ -692,7 +742,14 @@ async def order_manage(
     Returns:
         Dict: 주문 관리 결과
     """
-    valid_actions = ["modify", "cancel", "reserve", "reserve_modify", "reserve_cancel_all", "list_pending"]
+    valid_actions = [
+        "modify",
+        "cancel",
+        "reserve",
+        "reserve_modify",
+        "reserve_cancel_all",
+        "list_pending",
+    ]
     if action not in valid_actions:
         raise InvalidParameterError("action", f"유효한 값: {valid_actions}")
 
@@ -749,7 +806,14 @@ async def stock_info(
     Returns:
         Dict: 종목 정보
     """
-    valid_types = ["basic", "detail", "financial", "buy_sell_ratio", "expected_execution", "vi_status"]
+    valid_types = [
+        "basic",
+        "detail",
+        "financial",
+        "buy_sell_ratio",
+        "expected_execution",
+        "vi_status",
+    ]
     if info_type not in valid_types:
         raise InvalidParameterError("info_type", f"유효한 값: {valid_types}")
 
@@ -1036,24 +1100,55 @@ async def rate_limiter(
 
     agent = get_agent()
 
+    # Rate Limiter는 로컬 상태 관리이므로 API 검증 대신 직접 응답 생성
     if action == "status":
-        result = agent.get_rate_limiter_status()
-        return validate_api_response(result, "Rate Limiter 상태 조회")
+        status = agent.get_rate_limiter_status()
+        if status is None:
+            return {
+                "rt_cd": "0",
+                "msg1": "Rate Limiter가 비활성화 상태입니다",
+                "output": {"enabled": False},
+            }
+        return {
+            "rt_cd": "0",
+            "msg1": "Rate Limiter 상태 조회 성공",
+            "output": status,
+        }
     elif action == "reset":
-        result = agent.reset_rate_limiter()
-        return validate_api_response(result, "Rate Limiter 초기화")
+        agent.reset_rate_limiter()
+        return {
+            "rt_cd": "0",
+            "msg1": "Rate Limiter 초기화 완료",
+            "output": {"success": True},
+        }
     elif action == "set_limits":
-        result = agent.set_rate_limits(
+        agent.set_rate_limits(
             requests_per_second=requests_per_second,
             requests_per_minute=requests_per_minute,
             min_interval_ms=min_interval_ms,
         )
-        return validate_api_response(result, "Rate Limiter 제한 설정")
+        return {
+            "rt_cd": "0",
+            "msg1": "Rate Limiter 제한 설정 완료",
+            "output": {
+                "requests_per_second": requests_per_second,
+                "requests_per_minute": requests_per_minute,
+                "min_interval_ms": min_interval_ms,
+            },
+        }
     elif action == "set_adaptive":
         if enable_adaptive is None:
             raise InvalidParameterError("enable_adaptive", "활성화 여부가 필요합니다")
-        result = agent.enable_adaptive_rate_limiting(enable_adaptive)
-        return validate_api_response(result, "적응형 Rate Limiting 설정")
+        # Note: enable_adaptive_rate_limiting 메서드가 없다면 rate_limiter 직접 설정
+        if hasattr(agent, "enable_adaptive_rate_limiting"):
+            agent.enable_adaptive_rate_limiting(enable_adaptive)
+        elif agent.rate_limiter:
+            agent.rate_limiter.enable_adaptive = enable_adaptive
+        return {
+            "rt_cd": "0",
+            "msg1": f"적응형 Rate Limiting {'활성화' if enable_adaptive else '비활성화'} 완료",
+            "output": {"enable_adaptive": enable_adaptive},
+        }
 
 
 # =============================================================================
@@ -1084,16 +1179,38 @@ async def method_discovery(
 
     agent = get_agent()
 
+    # method_discovery는 로컬 메서드이므로 API 검증 대신 직접 응답 생성
     if action == "search":
         if not query:
             raise InvalidParameterError("query", "검색 키워드가 필요합니다")
-        result = agent.search_methods(query)
-        return validate_api_response(result, "메서드 검색")
+        methods = agent.search_methods(query)
+        return {
+            "rt_cd": "0",
+            "msg1": f"'{query}' 검색 결과: {len(methods)}개 메서드",
+            "output": methods,
+        }
     elif action == "list_all":
-        result = agent.get_all_methods()
-        return validate_api_response(result, "전체 메서드 목록 조회")
+        methods = agent.get_all_methods(show_details=True)
+        return {
+            "rt_cd": "0",
+            "msg1": f"전체 메서드: {len(methods)}개",
+            "output": methods,
+        }
     elif action == "usage":
         if not method_name:
             raise InvalidParameterError("method_name", "메서드 이름이 필요합니다")
-        result = agent.show_method_usage(method_name)
-        return validate_api_response(result, "메서드 사용법 조회")
+        # show_method_usage는 print만 하므로, 직접 메서드 정보 조회
+        methods = agent.get_all_methods(show_details=True)
+        method_info = next((m for m in methods if m.get("name") == method_name), None)
+        if method_info:
+            return {
+                "rt_cd": "0",
+                "msg1": f"메서드 '{method_name}' 사용법 조회 성공",
+                "output": method_info,
+            }
+        else:
+            return {
+                "rt_cd": "1",
+                "msg1": f"메서드 '{method_name}'를 찾을 수 없습니다",
+                "output": None,
+            }

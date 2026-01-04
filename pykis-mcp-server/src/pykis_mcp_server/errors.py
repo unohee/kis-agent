@@ -1,13 +1,15 @@
 """Error handling for PyKIS MCP Server"""
+
 import logging
 from enum import IntEnum
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class ErrorCode(IntEnum):
     """Custom error codes for MCP compatibility"""
+
     INTERNAL_ERROR = -32603
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
@@ -31,9 +33,13 @@ class PyKISMCPError(Exception):
         logger.error(
             f"PyKISMCPError: {message}",
             extra={
-                "error_code": error_code.value if hasattr(error_code, 'value') else str(error_code),
-                "details": self.details
-            }
+                "error_code": (
+                    error_code.value
+                    if hasattr(error_code, "value")
+                    else str(error_code)
+                ),
+                "details": self.details,
+            },
         )
 
 
@@ -47,7 +53,9 @@ class ConfigurationError(PyKISMCPError):
 class APIError(PyKISMCPError):
     """PyKIS API call error"""
 
-    def __init__(self, message: str, rt_cd: Optional[str] = None, msg1: Optional[str] = None):
+    def __init__(
+        self, message: str, rt_cd: Optional[str] = None, msg1: Optional[str] = None
+    ):
         details = {}
         if rt_cd:
             details["rt_cd"] = rt_cd
@@ -67,7 +75,9 @@ class InvalidParameterError(PyKISMCPError):
     """Invalid parameter provided"""
 
     def __init__(self, parameter: str, message: str):
-        super().__init__(f"Invalid parameter '{parameter}': {message}", ErrorCode.INVALID_PARAMS)
+        super().__init__(
+            f"Invalid parameter '{parameter}': {message}", ErrorCode.INVALID_PARAMS
+        )
 
 
 # Error code mappings from PyKIS API response codes
@@ -126,7 +136,7 @@ def is_retryable_error(rt_cd: str) -> bool:
 def validate_api_response(
     result: Optional[Dict[str, Any]],
     operation: str,
-    context: Optional[Dict[str, Any]] = None
+    context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Validate PyKIS API response with detailed logging
 
@@ -142,10 +152,15 @@ def validate_api_response(
         APIError: If response is invalid or indicates error
     """
     # Log operation attempt
-    logger.info(f"Validating API response for operation: {operation}", extra={"context": context})
+    logger.info(
+        f"Validating API response for operation: {operation}",
+        extra={"context": context},
+    )
 
     if result is None:
-        logger.error(f"{operation} failed: No response from API", extra={"context": context})
+        logger.error(
+            f"{operation} failed: No response from API", extra={"context": context}
+        )
         raise APIError(f"{operation} failed: No response from API")
 
     rt_cd = result.get("rt_cd", "")
@@ -164,16 +179,17 @@ def validate_api_response(
                 "msg_cd": msg_cd,
                 "msg1": msg1,
                 "retryable": retryable,
-                "context": context
-            }
+                "context": context,
+            },
         )
 
         # Raise appropriate error with retry hint
-        error = APIError(
-            f"{operation} failed: {msg1 or 'Unknown error'}",
-            rt_cd=rt_cd,
-            msg1=msg1
-        )
+        # msg1이 비어있으면 rt_cd/msg_cd 표시
+        if msg1:
+            error_message = msg1
+        else:
+            error_message = f"rt_cd={rt_cd}, msg_cd={msg_cd}"
+        error = APIError(f"{operation} failed: {error_message}", rt_cd=rt_cd, msg1=msg1)
         error.details["retryable"] = retryable
         error.details["msg_cd"] = msg_cd
         raise error
@@ -197,14 +213,18 @@ def format_error_response(error: Exception, operation: str) -> Dict[str, Any]:
         return {
             "success": False,
             "error": str(error),
-            "error_code": error.error_code.value if hasattr(error.error_code, 'value') else str(error.error_code),
+            "error_code": (
+                error.error_code.value
+                if hasattr(error.error_code, "value")
+                else str(error.error_code)
+            ),
             "details": error.details,
-            "operation": operation
+            "operation": operation,
         }
     else:
         return {
             "success": False,
             "error": str(error),
             "error_code": "UNKNOWN_ERROR",
-            "operation": operation
+            "operation": operation,
         }

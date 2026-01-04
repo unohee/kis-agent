@@ -247,12 +247,12 @@ class TestAccountAPI(unittest.TestCase):
     def test_get_account_order_quantity_exception(self):
         """계좌별 주문 수량 조회 예외 테스트
 
-        @api_method(reraise=True) 기본값으로 인해 예외가 APIException으로 래핑되어 발생합니다.
+        메서드 내부에서 try-except로 예외를 처리하고 None을 반환합니다.
         """
         self.client.make_request.side_effect = Exception("API 오류")
 
-        with pytest.raises(APIException):
-            self.api.get_account_order_quantity(self.test_code)
+        result = self.api.get_account_order_quantity(self.test_code)
+        self.assertIsNone(result)
 
     def test_get_possible_order_amount_success(self):
         """주문 가능 금액 조회 성공 테스트"""
@@ -279,12 +279,12 @@ class TestAccountAPI(unittest.TestCase):
     def test_get_possible_order_amount_exception(self):
         """주문 가능 금액 조회 예외 테스트
 
-        @api_method(reraise=True) 기본값으로 인해 예외가 APIException으로 래핑되어 발생합니다.
+        메서드 내부에서 try-except로 예외를 처리하고 None을 반환합니다.
         """
         self.client.make_request.side_effect = Exception("API 오류")
 
-        with pytest.raises(APIException):
-            self.api.get_possible_order_amount()
+        result = self.api.get_possible_order_amount()
+        self.assertIsNone(result)
 
     def test_account_info_validation(self):
         """계좌 정보 유효성 검증 테스트"""
@@ -463,8 +463,8 @@ class TestAccountAPIPeriodProfit(unittest.TestCase):
         self.assertEqual(params["ACNT_PRDT_CD"], "01")
         self.assertEqual(params["INQR_STRT_DT"], "20250101")
         self.assertEqual(params["INQR_END_DT"], "20250131")
-        self.assertEqual(params.get("CTX_AREA_FK200"), "")
-        self.assertEqual(params.get("CTX_AREA_NK200"), "")
+        self.assertEqual(params.get("CTX_AREA_FK100"), "")
+        self.assertEqual(params.get("CTX_AREA_NK100"), "")
 
     def test_inquire_period_profit_as_dict(self):
         """기간별손익일별합산조회 Dict 반환 테스트"""

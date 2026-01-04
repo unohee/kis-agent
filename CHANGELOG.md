@@ -2,6 +2,93 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [1.4.0] - 2026-01-04
+
+### 🚀 주요 변경사항
+
+#### MCP 도구 통합 (110+ → 18개)
+
+MCP 서버의 110개 이상의 개별 도구를 **18개의 통합 도구**로 재구성했습니다. 이를 통해:
+- AI 에이전트의 도구 선택 정확도 향상 (도구 수 86% 감소)
+- 파라미터 기반 유연한 쿼리 지원
+- 일관된 응답 형식 (rt_cd, msg1, output 구조)
+
+**통합된 18개 도구:**
+
+| 도구 | 설명 | 지원 쿼리 |
+|-----|------|----------|
+| `stock_quote` | 주식 시세/호가/체결 조회 | price, detail, orderbook, execution |
+| `stock_chart` | 차트 데이터 조회 | minute, daily, weekly, monthly |
+| `index_data` | 지수 데이터 조회 | current, daily, tick, time, minute |
+| `market_ranking` | 시장 순위 조회 | volume, gainers, losers, fluctuation |
+| `investor_flow` | 투자자 매매동향 | stock, market_daily, foreign_trend |
+| `broker_trading` | 증권사 매매동향 | current, period, info |
+| `program_trading` | 프로그램 매매 | stock, daily_summary, market, hourly |
+| `account_query` | 계좌 정보 조회 | balance, order_ability, trades, profit_loss |
+| `order_execute` | 주문 실행 | buy, sell |
+| `order_manage` | 주문 관리 | modify, cancel, reserve |
+| `stock_info` | 종목 정보 | basic, detail, financial, vi_status |
+| `overtime_trading` | 시간외 거래 | current, daily, orderbook |
+| `derivatives` | 파생상품 조회 | futures_code, futures_price, elw |
+| `interest_stocks` | 관심종목/조건검색 | condition, groups, stocks |
+| `rate_limiter` | Rate Limiter 관리 | status, reset, set_limits |
+| `method_discovery` | 메서드 탐색 | search, list_all, usage |
+| `utility` | 유틸리티 기능 | holiday_info, is_holiday, credit_balance |
+| `data_management` | 데이터 관리 | fetch_minute, support_resistance, init_db |
+
+#### LOC 게이트 준수 (모든 파일 < 1500줄)
+
+CI/CD 파이프라인에 LOC (Lines of Code) 게이트를 추가하여 코드 품질을 보장합니다:
+- 모든 소스 파일 1500줄 미만 유지
+- 대형 파일 자동 분할 권장
+- 커밋 시 자동 검증
+
+**분할된 주요 파일:**
+- `account/api.py` (2,019줄) → `balance_api.py`, `order_api.py`, `profit_api.py`, `credit_api.py`
+- `stock/api_facade.py` (1,600줄) → 위임 패턴으로 최적화
+
+### 🐛 버그 수정
+
+#### MCP 도구 버그 수정 (3건)
+
+1. **rate_limiter 도구**
+   - 문제: Agent 메서드들이 API 응답 형식(rt_cd, msg1)이 아닌 Dict/None 반환
+   - 수정: validate_api_response 대신 직접 응답 형식 생성
+
+2. **method_discovery 도구**
+   - 문제: get_all_methods()는 list, show_method_usage()는 None 반환
+   - 수정: 직접 응답 형식 생성 및 메서드 정보 조회 방식 개선
+
+3. **utility/holiday_info**
+   - 문제: api_facade.get_holiday_info()에 date 파라미터 누락
+   - 수정: market_api.get_holiday_info(date) 시그니처와 일치하도록 수정
+
+4. **market_ranking volume 파라미터**
+   - 문제: volume 필터링 미적용
+   - 수정: 거래량 필터 정상 작동
+
+### 🔧 개선사항
+
+#### 에러 메시지 개선
+- API 응답 에러 시 msg1이 비어있으면 rt_cd/msg_cd 표시
+- 디버깅 용이성 향상
+
+#### CI/CD 개선
+- LOC 게이트 자동 검증 추가
+- Pre-commit hook에 LOC 검사 통합
+- 의존성 분석 도구 추가
+
+### 📊 통계
+- **MCP 도구**: 110+ → 18개 (86% 감소)
+- **테스트**: 232개 통과 (52% 커버리지)
+- **LOC 준수**: 모든 파일 < 1500줄
+
+### ⚠️ 마이그레이션 안내
+
+기존 MCP 도구를 사용하던 경우 `docs/MIGRATION_v1.4.0.md` 참조.
+
+---
+
 ## [1.3.6] - 2025-12-18
 
 ### 🐛 버그 수정
