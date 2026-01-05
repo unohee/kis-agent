@@ -184,6 +184,8 @@ jobs:
       contents: read
       pull-requests: write
       id-token: write
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -197,10 +199,10 @@ jobs:
           name: coverage-report
 
       - name: Suggest tests with Claude
-        if: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN != '' }}
         uses: anthropics/claude-code-action@v1
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_code_oauth_token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             CONTEXT: Test Coverage Improvement Suggestions
             REPO: ${{ github.repository }}
