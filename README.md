@@ -3,26 +3,28 @@
 한국투자증권 OpenAPI Python 래퍼 - Korea Investment & Securities Trading API Client
 
 **🚀 NEW: NXT(넥스트) 시장 완벽 지원!** - KOSPI/KOSDAQ과 함께 모든 국내 주식시장 커버
+**🌏 NEW: 해외주식 거래 지원!** - 미국/일본/중국/홍콩/베트남 9개 거래소 완벽 지원
 
 ## ✨ 주요 특징
 
 - **🏎️ 고성능**: 지능형 캐싱으로 API 호출 80-95% 감소
 - **🛡️ 안정성**: 실측 기반 Rate Limiting (18 RPS / 900 RPM)
 - **📊 실시간**: WebSocket을 통한 실시간 데이터 스트리밍
-- **📈 완전성**: KOSPI, KOSDAQ, NXT 시장 완벽 지원
+- **📈 국내시장**: KOSPI, KOSDAQ, NXT 시장 완벽 지원
+- **🌏 해외시장**: 미국, 일본, 중국, 홍콩, 베트남 9개 거래소 지원
 - **🔧 편의성**: Excel 거래 보고서 자동 생성
 - **🤖 자동화**: CI/CD 파이프라인과 자동 테스트 (232개 테스트)
 - **🎯 타입 안정성**: 57개 TypedDict 응답 모델, 176개 메서드 100% 타입힌팅
 - **📚 명확한 문서**: 한국투자증권 API 공식 문서와 용어 일치 (디버깅 최적화)     
 
-[![CI/CD](https://github.com/unohee/pykis/workflows/PyKIS%20CI/CD%20Pipeline/badge.svg)](https://github.com/unohee/pykis/actions)
-[![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/unohee/pykis)
-[![Coverage](https://img.shields.io/badge/coverage-52%25-orange)](https://github.com/unohee/pykis)
+[![CI/CD](https://github.com/Intrect-io/pykis/workflows/PyKIS%20CI/CD%20Pipeline/badge.svg)](https://github.com/Intrect-io/pykis/actions)
+[![Tests](https://img.shields.io/badge/tests-232%20passed-brightgreen)](https://github.com/Intrect-io/pykis)
+[![Coverage](https://img.shields.io/badge/coverage-52%25-orange)](https://github.com/Intrect-io/pykis)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![NXT](https://img.shields.io/badge/NXT--green)](https://www.nextrade.co.kr/)
-[![Rate Limiting](https://img.shields.io/badge/rate%20limiting-18%20RPS%2F900%20RPM-blue)](https://github.com/unohee/pykis)
+[![Rate Limiting](https://img.shields.io/badge/rate%20limiting-18%20RPS%2F900%20RPM-blue)](https://github.com/Intrect-io/pykis)
 
 ## 📦 설치
 
@@ -151,17 +153,86 @@ holiday_info = agent.get_holiday_info()    #
 #  200   ( )
 futures_price = agent.get_future_option_price()  # 9(101W09)  
 
-#   Excel 
+#   Excel
 from pykis.utils.trading_report import generate_trading_report
 report_path = generate_trading_report(
-    agent.client, 
+    agent.client,
     {'CANO': 'your_account', 'ACNT_PRDT_CD': '01'},
     '20250101', '20250131',
     output_path='trading_history.xlsx'
 )
 ```
 
-##    
+## 🌏 해외주식 거래
+
+```python
+# 해외주식 시세 조회 (미국, 일본, 중국, 홍콩, 베트남)
+apple = agent.overseas.get_price(excd="NAS", symb="AAPL")
+print(f"AAPL 현재가: ${apple['output']['last']}")
+
+# 차트 데이터 조회
+tesla_daily = agent.overseas.get_daily_price(excd="NAS", symb="TSLA", start="20240101")
+tesla_minute = agent.overseas.get_minute_price(excd="NYS", symb="TSLA", interval=5)
+
+# 호가 조회
+orderbook = agent.overseas.get_orderbook(excd="NYS", symb="MSFT")
+
+# 해외주식 잔고 조회
+balance = agent.overseas.get_balance()
+usd_balance = agent.overseas.get_balance(excd="NAS")  # 특정 거래소만
+
+# 매수 주문 (지정가)
+result = agent.overseas.buy_order(
+    excd="NAS",      # 거래소: NASDAQ
+    symb="AAPL",     # 종목: Apple
+    qty="10",        # 수량
+    price="150.00"   # 가격
+)
+
+# 매수 주문 (시장가)
+result = agent.overseas.buy_order(
+    excd="NAS", symb="TSLA",
+    qty="5", price="0",  # 시장가
+    order_type="34"      # 시장가 주문
+)
+
+# 매도 주문
+result = agent.overseas.sell_order(
+    excd="NYS", symb="MSFT",
+    qty="20", price="350.00"
+)
+
+# 주문 정정
+modify_result = agent.overseas.modify_order(
+    excd="NAS",
+    order_no="original_order_number",
+    qty="15",        # 변경 수량
+    price="155.00"   # 변경 가격
+)
+
+# 주문 취소
+cancel_result = agent.overseas.cancel_order(
+    excd="NAS",
+    order_no="order_to_cancel"
+)
+
+# 시장 순위 조회
+volume_ranking = agent.overseas.get_volume_ranking(excd="NAS")  # 거래량 상위
+price_ranking = agent.overseas.get_price_change_ranking(excd="NYS", sort_type="상승")
+
+# 지원 거래소 목록
+exchanges = agent.overseas.get_supported_exchanges()
+# ['NAS', 'NYS', 'AMS', 'HKS', 'TSE', 'SHS', 'SZS', 'HSX', 'HNX']
+```
+
+**지원 거래소:**
+- 🇺🇸 미국: NAS (NASDAQ), NYS (NYSE), AMS (AMEX)
+- 🇯🇵 일본: TSE (도쿄증권거래소)
+- 🇨🇳 중국: SHS (상해), SZS (심천)
+- 🇭🇰 홍콩: HKS (홍콩거래소)
+- 🇻🇳 베트남: HSX (호치민), HNX (하노이)
+
+##
 
 ```python
 #    

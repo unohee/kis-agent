@@ -6,6 +6,83 @@
 
 ### 🚀 주요 변경사항
 
+#### 해외주식 거래 완전 지원 (NEW!)
+
+PyKIS에 **해외주식 거래 기능**이 추가되었습니다. 9개 글로벌 거래소에서 실시간 시세 조회부터 주문 실행까지 완전히 지원합니다.
+
+**지원 거래소 (9개):**
+- 🇺🇸 **미국**: NYSE, NASDAQ, AMEX
+- 🇯🇵 **일본**: TSE (도쿄증권거래소)
+- 🇨🇳 **중국**: SHSE (상해), SZSE (심천)
+- 🇭🇰 **홍콩**: HKEX
+- 🇻🇳 **베트남**: HOSE (호치민), HNX (하노이)
+
+**새로운 API (5개):**
+
+1. **OverseasPriceAPI** - 시세 조회
+   - 실시간 현재가, 상세 시세, 호가, 체결 내역
+   - 차트 데이터 (분봉, 일봉, 주봉, 월봉)
+   - 종목 검색, 뉴스 조회, 휴장일 조회
+
+2. **OverseasAccountAPI** - 계좌 조회
+   - 잔고 조회 (다중 통화 지원)
+   - 주문 가능 금액 조회
+   - 미체결/체결 내역
+   - 실현/평가 손익 계산
+   - 기간별 손익 조회
+
+3. **OverseasOrderAPI** - 주문 실행
+   - 매수/매도 주문 (지정가, 시장가, MOO/MOC)
+   - 주문 정정/취소
+   - 예약 주문 관리
+
+4. **OverseasRankingAPI** - 시장 순위
+   - 거래량/거래대금 상위 종목
+   - 등락률 상위 종목
+   - 시가총액 순위
+
+5. **OverseasStockAPI** (Facade) - 통합 인터페이스
+   - 위 4개 API를 통합한 단일 진입점
+   - `Agent.overseas`로 접근 가능
+
+**사용 예시:**
+```python
+from pykis import Agent
+
+agent = Agent(...)
+
+# 시세 조회
+apple = agent.overseas.get_price(excd="NAS", symb="AAPL")
+print(f"AAPL: ${apple['output']['last']}")
+
+# 일봉 차트
+tesla_daily = agent.overseas.get_daily_price(excd="NAS", symb="TSLA")
+
+# 호가 조회
+msft_orderbook = agent.overseas.get_orderbook(excd="NYS", symb="MSFT")
+
+# 잔고 조회
+balance = agent.overseas.get_balance()
+
+# 매수 주문
+result = agent.overseas.buy_order(
+    excd="NAS", symb="AAPL",
+    qty="10", price="150.00"
+)
+```
+
+**TypedDict 응답 모델 (57개):**
+- `pykis/responses/overseas.py`에 전체 타입 정의
+- IDE 자동완성 및 타입 체크 완벽 지원
+
+**테스트 커버리지:**
+- 118개 단위 테스트 (1.03초 실행)
+- 커버리지: 92-100% (해외주식 모듈)
+
+**관련 커밋:** `84eae12` - feat(overseas): add overseas stock trading API support
+
+---
+
 #### MCP 도구 통합 (110+ → 18개)
 
 MCP 서버의 110개 이상의 개별 도구를 **18개의 통합 도구**로 재구성했습니다. 이를 통해:
