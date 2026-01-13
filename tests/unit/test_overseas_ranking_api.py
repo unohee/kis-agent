@@ -117,6 +117,14 @@ class TestTradeAmountRanking(unittest.TestCase):
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76320010")
 
+    def test_trade_amount_ranking_exception(self):
+        """거래대금순위 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.trade_amount_ranking("NAS")
+
+        self.assertIsNone(result)
+
 
 class TestTradeGrowthRanking(unittest.TestCase):
     """거래증가율순위 테스트"""
@@ -139,6 +147,14 @@ class TestTradeGrowthRanking(unittest.TestCase):
         self.assertEqual(call_args.kwargs["params"]["NDAY"], "5")
         self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76330000")
 
+    def test_trade_growth_ranking_exception(self):
+        """거래증가율순위 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.trade_growth_ranking("HKS")
+
+        self.assertIsNone(result)
+
 
 class TestTradeTurnoverRanking(unittest.TestCase):
     """거래회전율순위 테스트"""
@@ -158,6 +174,14 @@ class TestTradeTurnoverRanking(unittest.TestCase):
         self.assertIsNotNone(result)
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76340000")
+
+    def test_trade_turnover_ranking_exception(self):
+        """거래회전율순위 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.trade_turnover_ranking("SHS")
+
+        self.assertIsNone(result)
 
 
 class TestMarketCapRanking(unittest.TestCase):
@@ -185,6 +209,14 @@ class TestMarketCapRanking(unittest.TestCase):
         self.assertEqual(result["output2"][0]["symb"], "AAPL")
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76350100")
+
+    def test_market_cap_ranking_exception(self):
+        """시가총액순위 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.market_cap_ranking("NAS")
+
+        self.assertIsNone(result)
 
 
 class TestPriceChangeRanking(unittest.TestCase):
@@ -215,6 +247,14 @@ class TestPriceChangeRanking(unittest.TestCase):
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["params"]["GUBN"], "2")
 
+    def test_price_change_ranking_exception(self):
+        """등락률순위 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.price_change_ranking("NAS")
+
+        self.assertIsNone(result)
+
 
 class TestPriceFluctuationRanking(unittest.TestCase):
     """가격급등락 테스트"""
@@ -243,6 +283,14 @@ class TestPriceFluctuationRanking(unittest.TestCase):
 
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["params"]["GUBN"], "1")
+
+    def test_price_fluctuation_ranking_exception(self):
+        """가격급등락 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.price_fluctuation_ranking("NAS")
+
+        self.assertIsNone(result)
 
 
 class TestNewHighLowRanking(unittest.TestCase):
@@ -273,6 +321,14 @@ class TestNewHighLowRanking(unittest.TestCase):
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["params"]["GUBN"], "0")
 
+    def test_new_high_low_ranking_exception(self):
+        """신고/신저가 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.new_high_low_ranking("NAS")
+
+        self.assertIsNone(result)
+
 
 class TestVolumePowerRanking(unittest.TestCase):
     """매수체결강도 테스트"""
@@ -296,6 +352,14 @@ class TestVolumePowerRanking(unittest.TestCase):
         self.assertEqual(result["output2"][0]["vpwr"], "150.5")
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76280000")
+
+    def test_volume_power_ranking_exception(self):
+        """매수체결강도 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.volume_power_ranking("NAS")
+
+        self.assertIsNone(result)
 
 
 class TestVolumeSurgeRanking(unittest.TestCase):
@@ -325,6 +389,14 @@ class TestVolumeSurgeRanking(unittest.TestCase):
 
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["params"]["MIXN"], "3")
+
+    def test_volume_surge_ranking_exception(self):
+        """거래량급증 조회 - 예외 발생 시 None 반환"""
+        self.api._make_request_dict = Mock(side_effect=Exception("API Error"))
+
+        result = self.api.volume_surge_ranking("NAS")
+
+        self.assertIsNone(result)
 
 
 class TestExchangeCodeHandling(unittest.TestCase):

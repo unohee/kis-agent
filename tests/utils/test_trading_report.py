@@ -278,6 +278,22 @@ class TestTradingReportGenerator:
                 if os.path.exists(output_path):
                     os.unlink(output_path)
 
+    def test_export_to_excel_writer_exception(self, generator, sample_trading_data):
+        """Excel 파일 생성 중 예외 발생 테스트"""
+        with patch.object(generator.account_api, "inquire_daily_ccld") as mock_inquire:
+            mock_inquire.return_value = sample_trading_data
+
+        # ExcelWriter 생성 시 오류 발생 시뮬레이션
+        with patch("pandas.ExcelWriter") as mock_writer:
+            mock_writer.side_effect = Exception("파일 쓰기 오류")
+
+            with pytest.raises(Exception) as exc_info:
+                generator.export_to_excel(
+                    "20250101", "20250131", output_path="/invalid/path/test.xlsx"
+                )
+
+            assert "파일 쓰기 오류" in str(exc_info.value)
+
 
 class TestGenerateTradingReport:
     """generate_trading_report 함수 테스트"""

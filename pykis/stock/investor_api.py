@@ -435,3 +435,53 @@ class StockInvestorAPI(BaseAPI):
             tr_id="HHPTJ04160200",
             params=params,
         )
+
+    def get_member_trading_daily(
+        self,
+        code: str,
+        start_date: str,
+        end_date: str,
+        member_code: str = "99999",
+        fid_cond_mrkt_div_code: str = "J",
+        fid_sctn_cls_code: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        주식현재가 회원사 종목매매동향 (일별) 조회
+
+        특정 기간 동안 회원사(증권사)별 종목 매매동향을 조회합니다.
+        회원사코드 99999를 사용하면 전체 회원사의 매매동향을 확인할 수 있습니다.
+
+        Args:
+            code: 종목코드 (6자리, 예: "005930")
+            start_date: 조회 시작일자 (YYYYMMDD, 예: "20250101")
+            end_date: 조회 종료일자 (YYYYMMDD, 예: "20250624")
+            member_code: 회원사코드 (기본값: "99999" - 전체)
+            fid_cond_mrkt_div_code: 조건시장분류코드 (J: KRX, NX: NXT, 기본값: "J")
+            fid_sctn_cls_code: 구간구분코드 (공란 - 기본값: "")
+
+        Returns:
+            Optional[Dict[str, Any]]: 회원사 종목매매동향 데이터
+                - output: dict 형태로 반환 (일별 회원사 매매 데이터)
+
+        Example:
+            >>> # 삼성전자 2025년 1월~6월 전체 회원사 매매동향
+            >>> data = agent.stock.get_member_trading_daily(
+            ...     code="005930",
+            ...     start_date="20250101",
+            ...     end_date="20250624"
+            ... )
+            >>> print(data['output'])
+        """
+        params = {
+            "FID_COND_MRKT_DIV_CODE": fid_cond_mrkt_div_code,
+            "FID_INPUT_ISCD": code,
+            "FID_INPUT_ISCD_2": member_code,
+            "FID_INPUT_DATE_1": start_date,
+            "FID_INPUT_DATE_2": end_date,
+            "FID_SCTN_CLS_CODE": fid_sctn_cls_code,
+        }
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INQUIRE_MEMBER_DAILY"],
+            tr_id="FHPST04540000",
+            params=params,
+        )
