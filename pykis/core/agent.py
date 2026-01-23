@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from ..account.api import AccountAPI
+from ..futures import Futures
 from ..overseas import OverseasStockAPI
 from ..program.trade import ProgramTradeAPI
 from ..stock import (
@@ -276,6 +277,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
         self.overseas_api = OverseasStockAPI(
             self.client, self.account_info, _from_agent=True
         )
+        self.futures_api = Futures(self.client, self.account_info, _from_agent=True)
 
     @property
     def overseas(self) -> OverseasStockAPI:
@@ -306,6 +308,56 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
             >>> orderbook = agent.overseas.get_orderbook(excd="NYS", symb="MSFT")
         """
         return self.overseas_api
+
+    @property
+    def futures(self) -> Futures:
+        """
+        선물옵션 API 파사드
+
+        국내 선물옵션 거래에 필요한 모든 API를 통합된 인터페이스로 제공합니다.
+
+        지원 상품:
+        - KOSPI200 선물/옵션
+        - 기타 파생상품
+
+        Returns:
+            Futures: 선물옵션 API 파사드
+
+        Example:
+            >>> from pykis import Agent
+            >>> agent = Agent(
+            ...     app_key="...",
+            ...     app_secret="...",
+            ...     account_no="12345678",
+            ...     account_code="03"  # 선물옵션 계좌
+            ... )
+            >>>
+            >>> # 시세 조회
+            >>> price = agent.futures.get_price("101S12")  # KOSPI200 선물
+            >>> print(f"현재가: {price['output']['fuop_prpr']}")
+            >>>
+            >>> # 호가 조회
+            >>> orderbook = agent.futures.get_orderbook("101S12")
+            >>> print(f"매도호가1: {orderbook['output1']['askp1']}")
+            >>>
+            >>> # 잔고 조회
+            >>> balance = agent.futures.inquire_balance()
+            >>> for item in balance['output']:
+            ...     print(f"{item['item_name']}: {item['fnoat_plamt']}원")
+            >>>
+            >>> # 주문 가능 수량 조회
+            >>> psbl = agent.futures.order.inquire_psbl_order("101S12")
+            >>> print(f"주문가능: {psbl['output']['ord_psbl_qty']}계약")
+            >>>
+            >>> # 매수 주문 (시장가)
+            >>> result = agent.futures.order.order(
+            ...     code="101S12",
+            ...     order_type="02",  # 매수
+            ...     qty="1",
+            ...     price="0"  # 시장가
+            ... )
+        """
+        return self.futures_api
 
     def websocket(
         self,
