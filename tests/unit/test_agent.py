@@ -49,12 +49,12 @@ class TestAgent(unittest.TestCase):
         )
         self.test_stock_code = "005930"  # 삼성전자
 
-    @patch("pykis.core.agent.auth")
-    @patch("pykis.core.agent.read_token")
+    @patch("pykis.core.auth.read_token")
+    @patch("pykis.core.auth.auth")
     @patch("pykis.core.agent.KISClient")
-    def test_init_without_client(self, mock_client_class, mock_read_token, mock_auth):
-        """클라이언트 없이 초기화 테스트"""
-        # Mock token validation to skip auth
+    def test_init_without_client(self, mock_client_class, mock_auth, mock_read_token):
+        """클라이언트 없이 초기화 테스트 (토큰 관리는 KISClient._initialize_token -> auth()에서 담당)"""
+        # Mock token validation to skip auth (auth() 내부에서 read_token 호출)
         mock_read_token.return_value = {
             "access_token": "test_token",
             "access_token_token_expired": "2099-12-31 23:59:59",

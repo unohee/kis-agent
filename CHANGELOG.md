@@ -2,6 +2,58 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [Unreleased]
+
+### ✨ 기능 추가
+
+#### 일봉 데이터 페이지네이션 지원 (NEW!)
+
+100건 제한을 우회하여 장기간 일봉 데이터를 자동으로 조회하는 기능이 추가되었습니다.
+
+**새로운 메서드:**
+- `StockPriceAPI.get_daily_price_all()` - 페이지네이션 자동 처리
+
+**주요 특징:**
+- ✅ 100건 제한 자동 우회 (날짜 기반 분할 조회)
+- ✅ 중복 제거 및 시간순 정렬
+- ✅ 페이지네이션 정보 제공 (호출 횟수, 실제 날짜 범위)
+- ✅ 일/주/월/년봉 모두 지원
+
+**사용 예시:**
+```python
+from pykis import Agent
+
+agent = Agent(...)
+
+# 2020년 전체 삼성전자 일봉 데이터 조회
+result = agent.get_daily_price_all(
+    code="005930",
+    start_date="20200102",
+    end_date="20201230",
+    period="D",
+    org_adj_prc="1"
+)
+
+print(f"총 {len(result['output2'])}건 수집")  # 248건
+print(f"API 호출: {result['_pagination_info']['total_calls']}회")  # 3회
+
+# 최근 5일 데이터
+for day in result['output2'][:5]:
+    print(f"{day['stck_bsop_date']}: 종가 {day['stck_clpr']}원")
+```
+
+**성능:**
+- 2020년 전체 데이터(248일): 3회 API 호출
+- 최근 3년 데이터(약 750일): 8회 API 호출
+- Rate Limit 준수 (18 RPS / 900 RPM)
+
+**새로운 예제:**
+- `examples/daily_price_pagination_example.py` - 5가지 사용 예시
+
+**테스트:**
+- `testing/test_daily_price_pagination_20260131_v1.py` - 100건 제한 검증
+- `testing/test_daily_price_all_20260131_v1.py` - 페이지네이션 기능 검증
+
 ## [1.5.0] - 2026-01-23
 
 ### 🚀 주요 변경사항

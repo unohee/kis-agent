@@ -1457,3 +1457,169 @@ class StockPriceAPI(BaseAPI):
             get_stock_member: 동일 기능의 메인 메서드
         """
         return self.get_stock_member(ticker, retries)
+
+    def get_daily_price_all(
+        self,
+        code: str,
+        start_date: str,
+        end_date: str,
+        period: str = "D",
+        org_adj_prc: str = "1",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        기간별 시세 전체 조회 (100건 제한 우회, 페이지네이션 자동 처리)
+
+        한국투자증권 API의 100건 제한을 우회하여 지정한 전체 기간의 일봉 데이터를 조회합니다.
+        내부적으로 날짜 범위를 자동 분할하여 여러 번 호출하고 결과를 병합합니다.
+
+        Args:
+            code: 종목코드 (6자리, 예: "005930")
+            start_date: 조회 시작일 (YYYYMMDD 형식, 예: "20200102")
+            end_date: 조회 종료일 (YYYYMMDD 형식, 예: "20201230")
+            period: 기간구분 (D: 일, W: 주, M: 월, Y: 년)
+            org_adj_prc: 수정주가구분 (0: 수정주가 미반영, 1: 수정주가 반영)
+
+        Returns:
+            Optional[Dict[str, Any]]: 전체 시세 데이터
+                - output1: 요약 정보 (첫 번째 조회의 output1)
+                - output2: 일봉 데이터 리스트 (모든 조회 결과 병합, 시간 역순)
+                - rt_cd: 응답 코드
+                - msg1: 응답 메시지
+                - _pagination_info: 페이지네이션 정보 (디버깅용)
+                    - total_calls: 총 API 호출 횟수
+                    - total_records: 총 레코드 수
+                    - date_range: 실제 조회된 날짜 범위
+
+        Example:
+            >>> # 2020년 전체 삼성전자 일봉 데이터 조회
+            >>> result = agent.get_daily_price_all(
+            ...     code="005930",
+            ...     start_date="20200102",
+            ...     end_date="20201230"
+            ... )
+            >>> print(f"총 {len(result['output2'])}건 조회됨")
+            >>> print(f"API 호출 횟수: {result['_pagination_info']['total_calls']}")
+
+        Note:
+            - 기본 API는 최대 100건까지만 반환
+            - 이 메서드는 자동으로 날짜 범위를 분할하여 전체 데이터 수집
+            - 대량 데이터 조회 시 Rate Limit 고려 필요 (18 RPS / 900 RPM)
+            - 마지막 데이터의 날짜를 기준으로 자동 분할
+        """
+        import logging
+        from datetime import datetime, timedelta
+
+        all_data = []
+        output1 = None
+        current_end_date = end_date
+        call_count = 0
+        max_calls = 50  # 안전 장치: 최대 50회 호출 (약 5000일 = 13.7년)
+
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"일봉 전체 조회 시작: {code}, {start_date} ~ {end_date}, period={period}"
+        )
+
+        while call_count < max_calls:
+            call_count += 1
+
+            # API 호출
+            result = self.inquire_daily_itemchartprice(
+                code=code,
+                start_date=start_date,
+                end_date=current_end_date,
+                period=period,
+                org_adj_prc=org_adj_prc,
+            )
+
+            if not result or result.get("rt_cd") != "0":
+                logger.warning(
+                    f"일봉 조회 실패 (호출 {call_count}): {result.get('msg1') if result else 'No response'}"
+                )
+                break
+
+            # 첫 번째 조회에서 output1 저장
+            if output1 is None:
+                output1 = result.get("output1", {})
+
+            # output2 데이터 수집
+            output2 = result.get("output2", [])
+            if not output2:
+                logger.info(f"더 이상 데이터 없음 (호출 {call_count})")
+                break
+
+            # 데이터 추가 (중복 제거는 나중에 처리)
+            all_data.extend(output2)
+            logger.info(
+                f"호출 {call_count}: {len(output2)}건 수집 (누적: {len(all_data)}건)"
+            )
+
+            # 100건 미만이면 마지막 페이지
+            if len(output2) < 100:
+                logger.info(f"마지막 페이지 도달 (호출 {call_count})")
+                break
+
+            # 마지막 데이터의 날짜 확인
+            last_date_str = output2[-1].get("stck_bsop_date", "")
+            if not last_date_str:
+                logger.warning("마지막 데이터에 날짜 정보 없음. 중단.")
+                break
+
+            # 마지막 날짜의 하루 전으로 설정 (중복 방지)
+            try:
+                last_date = datetime.strptime(last_date_str, "%Y%m%d")
+                next_end_date = (last_date - timedelta(days=1)).strftime("%Y%m%d")
+
+                # start_date보다 이전이면 중단
+                if next_end_date < start_date:
+                    logger.info(
+                        f"시작일 이전 도달 ({next_end_date} < {start_date}). 중단."
+                    )
+                    break
+
+                current_end_date = next_end_date
+                logger.debug(f"다음 조회 종료일: {current_end_date}")
+
+            except ValueError as e:
+                logger.error(f"날짜 파싱 오류: {last_date_str} - {e}")
+                break
+
+        # 데이터 정렬 및 중복 제거
+        if all_data:
+            # 날짜 기준 역순 정렬 (최신이 앞)
+            all_data.sort(key=lambda x: x.get("stck_bsop_date", ""), reverse=True)
+
+            # 중복 제거 (날짜 기준)
+            seen_dates = set()
+            unique_data = []
+            for item in all_data:
+                date = item.get("stck_bsop_date", "")
+                if date and date not in seen_dates:
+                    seen_dates.add(date)
+                    unique_data.append(item)
+
+            all_data = unique_data
+            logger.info(f"중복 제거 완료: {len(all_data)}건 (호출: {call_count}회)")
+
+        # 결과 반환
+        return {
+            "output1": output1 or {},
+            "output2": all_data,
+            "rt_cd": "0",
+            "msg_cd": "MCA00000",
+            "msg1": f"정상처리 (페이지네이션: {call_count}회 호출, {len(all_data)}건 수집)",
+            "_pagination_info": {
+                "total_calls": call_count,
+                "total_records": len(all_data),
+                "date_range": {
+                    "requested_start": start_date,
+                    "requested_end": end_date,
+                    "actual_start": (
+                        all_data[-1].get("stck_bsop_date", "") if all_data else ""
+                    ),
+                    "actual_end": (
+                        all_data[0].get("stck_bsop_date", "") if all_data else ""
+                    ),
+                },
+            },
+        }

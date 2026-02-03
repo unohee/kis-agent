@@ -20,7 +20,7 @@ from ..utils.sector_code import (
     get_sector_codes,
 )
 from ..websocket.client import KisWebSocket
-from .auth import auth, read_token
+from .auth import auth
 from .base_exception_handler import BaseExceptionHandler, exception_handler
 from .client import KISClient
 from .config import KISConfig
@@ -207,15 +207,12 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
             else None
         )
 
-        # 클라이언트 초기화
+        # 클라이언트 초기화 (KISClient._initialize_token에서 토큰 자동 관리)
         self.client = client or KISClient(
             config=config,
             enable_rate_limiter=enable_rate_limiter,
             rate_limiter=self.rate_limiter,
         )
-
-        # 토큰 자동 검증 및 재발급
-        self._ensure_valid_token(config)
 
         # 계좌 정보 설정
         if account_info is None:
@@ -231,33 +228,6 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
 
         # API 모듈 초기화
         self._init_apis()
-
-    def _ensure_valid_token(self, config: Optional[KISConfig]) -> None:
-        """토큰 유효성 검증 및 자동 재발급
-
-        APP_KEY별로 토큰 파일을 분리 저장하여, 동일 APP_KEY로 Agent 재생성 시
-        기존 토큰을 재사용합니다. 이를 통해 불필요한 토큰 발급을 방지합니다.
-        """
-        try:
-            # APP_KEY를 전달하여 해당 키 전용 토큰 파일에서 조회
-            app_key = config.APP_KEY if config else None
-            saved_token = read_token(app_key=app_key)
-
-            if saved_token is None:
-                # 토큰이 없거나 만료된 경우 새로 발급
-                self.logger.info(
-                    "토큰이 없거나 만료되었습니다. 새 토큰을 발급받습니다."
-                )
-                auth(config=config)
-                self.logger.info("토큰 발급이 완료되었습니다.")
-            else:
-                # 유효한 토큰이 있는 경우 - 디버그 레벨로 변경 (기본적으로 출력 안됨)
-                self.logger.debug("유효한 토큰이 확인되었습니다.")
-
-        except Exception as e:
-            self.logger.error(f"토큰 검증/발급 중 오류 발생: {e}")
-            # 토큰 발급 실패는 중요한 문제이므로 예외 재발생
-            raise RuntimeError(f"토큰 자동 발급 실패: {e}")
 
     def _init_apis(self) -> None:
         """API 모듈들을 초기화합니다 (Agent를 통한 정상 경로)."""

@@ -466,14 +466,12 @@ def auth(
             # 토큰 발급 실패 시 예외 발생(이후 코드 실행 방지)
             raise RuntimeError(f"KIS API 토큰 발급 실패 (HTTP {rescode})")
     else:
-        # 저장된 포맷이 딕셔너리일 경우 access_token 필드 사용
-        my_token = (
-            saved_token["access_token"]
-            if isinstance(saved_token, dict) and "access_token" in saved_token
-            else saved_token
+        # 저장된 토큰 사용 (read_token()에서 반환한 유효한 토큰)
+        my_token = saved_token.get("access_token", saved_token)
+        # 저장된 토큰의 실제 만료 시간 사용 (중요!)
+        my_expired = saved_token.get(
+            "access_token_token_expired", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
-        # 저장된 토큰 사용 시 만료일이 필요 없으므로 임시 값 사용
-        my_expired = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # 발급토큰 정보 포함해서 헤더값 저장 관리, API 호출시 필요
     changeTREnv(f"Bearer {my_token}", svr, product, config)

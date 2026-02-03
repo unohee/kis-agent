@@ -71,6 +71,8 @@ git diff --cached --name-only
 - 에러 처리 없음
 - 테스트 실패
 - Import 순환 참조
+- 중복 로직 (동일 기능이 여러 곳에 구현)
+- 토큰/리소스 중복 생성 (메모리 누수 가능성)
 
 #### 🟡 Warning (수정 권장)
 - Docstring 누락
@@ -178,6 +180,8 @@ def test_method1(self, api_instance):
 - [ ] 캐싱 적용 가능 여부 확인
 - [ ] Rate limiting 고려
 - [ ] 불필요한 API 호출 제거
+- [ ] 중복 토큰 발급 확인 (auth() 2회 이상 호출)
+- [ ] 리소스 재사용 가능성 (파일 I/O, 네트워크 요청)
 
 ### 해외주식 관련
 - [ ] 거래소 코드 대문자 변환 (NAS, NYS 등)

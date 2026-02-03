@@ -128,11 +128,23 @@ print(f": {credit_inquiry['output']['crdt_psbl_qty']}")
 
 #     (KOSPI/KOSDAQ/NXT  )
 price = agent.get_stock_price("005930")      #   (KOSPI)
-daily = agent.get_daily_price("035720")      #   (KOSDAQ)
-orderbook = agent.get_orderbook("NXT")   # NXT     
+daily = agent.inquire_daily_itemchartprice("035720", start_date="20250101", end_date="20251231")  # 일봉 (최대 100건)
+orderbook = agent.get_orderbook("NXT")   # NXT
 
-#    
-minute_data = agent.get_minute_price("005930", "093000")  #   
+# 📊 장기 일봉 데이터 조회 (100건 제한 자동 우회) - NEW!
+# 페이지네이션 자동 처리로 전체 기간 데이터 수집
+result = agent.get_daily_price_all(
+    code="005930",          # 삼성전자
+    start_date="20200102",  # 2020년 1월 2일
+    end_date="20201230",    # 2020년 12월 30일
+    period="D",             # 일봉 (W:주봉, M:월봉도 가능)
+    org_adj_prc="1"         # 수정주가 사용
+)
+print(f"총 {len(result['output2'])}건 수집")  # 248건 (100건 제한 우회!)
+print(f"API 호출: {result['_pagination_info']['total_calls']}회")  # 3회
+
+#
+minute_data = agent.get_minute_price("005930", "093000")  #
 daily_minute = agent.get_daily_minute_price("005930", "20250715", "153000")  #  
 
 #     (4    )

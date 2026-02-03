@@ -27,12 +27,171 @@ PyKIS uses **project-specific agents** optimized for this codebase. These agents
    - Critical/Warning/Suggestion classification
    - Usage: `pykis-reviewer로 최근 변경사항을 리뷰해줘`
 
+4. **pykis-debugger** - Performance bug detective
+   - Find duplicate logic (token double-issuance, redundant API calls)
+   - Detect memory leaks and resource waste
+   - Profile performance bottlenecks
+   - Usage: `pykis-debugger agent를 사용해서 성능 문제를 찾아줘`
+
 ### Why Project Agents?
 
 - **Context efficiency**: Only load relevant knowledge for PyKIS
 - **Team consistency**: All developers use the same agents
 - **Customizable**: Tailored to PyKIS patterns (Facade, TypedDict, Korean docs)
 - **Version controlled**: Agents evolve with the project
+
+### 🤖 Automatic Agent Usage Policy
+
+**CRITICAL REQUIREMENT**: You MUST proactively use the appropriate agent for each task type WITHOUT waiting for explicit user request. This is NOT optional - it is a core workflow requirement.
+
+**Golden Rule**: If you're doing work that matches an agent's specialty, USE THAT AGENT IMMEDIATELY. Don't ask permission, don't wait, just invoke it.
+
+#### When to Auto-Invoke Agents
+
+**1. After Writing/Modifying Code → pykis-reviewer**
+- Automatically run `pykis-reviewer` agent after completing any code changes
+- Review happens BEFORE responding to user
+- Report Critical/Warning issues immediately
+- Example trigger: File edits in `pykis/*.py`
+
+**2. When Adding API Endpoints → pykis-api-designer**
+- User mentions TR_ID, new endpoint, or API integration
+- Automatically invoke `pykis-api-designer` agent
+- Generate TypedDict, docstrings, and facade methods
+- Example trigger: "TR_ID FHKST03010100 추가해줘"
+
+**3. When Working on Tests → pykis-tester**
+- User mentions coverage, pytest, unit test, or testing
+- Automatically invoke `pykis-tester` agent
+- Focus on 70%+ coverage target
+- Example trigger: "커버리지를 올려줘", "테스트 작성해줘"
+
+**4. When Performance Issues Suspected → pykis-debugger**
+- Detect keywords: "느려", "중복", "반복", "메모리", "성능"
+- Automatically invoke `pykis-debugger` agent
+- Profile and suggest optimizations
+- Example trigger: "왜 토큰이 여러 번 발급돼?"
+
+**5. When Investigating Bugs → pykis-debugger**
+- User reports unexpected behavior, errors, or anomalies
+- Automatically invoke `pykis-debugger` to trace root cause
+- Check for duplicate logic, resource leaks
+- Example trigger: "이상한데", "버그인 것 같아"
+
+#### Agent Invocation Pattern
+
+```markdown
+# DO: Proactive invocation
+User: "stock_price_api.py에 새 메서드 추가했어"
+Claude: [Automatically invokes pykis-reviewer agent]
+        "코드 리뷰 결과..."
+
+# DON'T: Waiting for explicit request
+User: "stock_price_api.py에 새 메서드 추가했어"
+Claude: "확인했습니다. 추가로 필요한 것이 있나요?"
+        [❌ Should have auto-reviewed!]
+```
+
+#### Multi-Agent Workflows
+
+For complex tasks, chain agents sequentially:
+
+1. **API 추가 작업**:
+   - `pykis-api-designer` → Generate code
+   - `pykis-tester` → Write tests
+   - `pykis-reviewer` → Final review
+
+2. **성능 최적화**:
+   - `pykis-debugger` → Find bottlenecks
+   - Fix issues
+   - `pykis-reviewer` → Verify improvements
+
+3. **버그 수정**:
+   - `pykis-debugger` → Root cause analysis
+   - Fix bug
+   - `pykis-tester` → Add regression test
+   - `pykis-reviewer` → Code review
+
+#### Mandatory Rules
+
+**ALWAYS**:
+- ✅ Invoke `pykis-reviewer` after ANY code modification (even 1 line)
+- ✅ Invoke `pykis-tester` when user mentions coverage/testing
+- ✅ Invoke `pykis-api-designer` when adding new API endpoints
+- ✅ Invoke `pykis-debugger` when user reports performance issues
+
+**NEVER**:
+- ❌ Skip agent invocation because "the change is small"
+- ❌ Ask user "should I run the reviewer?" (just do it)
+- ❌ Wait for user to explicitly request agent usage
+- ❌ Assume code is correct without review
+
+**EXCEPTION**: Only skip agent if user explicitly says "skip review" or "no agent"
+
+#### Real-World Examples
+
+**Example 1: Code Change**
+```
+User: "auth.py의 line 476을 수정했어"
+
+❌ WRONG:
+Claude: "수정 완료했습니다."
+
+✅ CORRECT:
+Claude: [Uses Task tool to invoke pykis-reviewer]
+        "수정 완료했습니다. 코드 리뷰 결과:
+         - ✅ 타입 힌트 정상
+         - ✅ 한국어 docstring 유지
+         - 🟢 만료 시간 처리 개선됨"
+```
+
+**Example 2: Performance Issue**
+```
+User: "Agent 생성할 때마다 토큰이 2번 발급되는 것 같아"
+
+❌ WRONG:
+Claude: "auth() 호출 부분을 확인해볼게요."
+
+✅ CORRECT:
+Claude: [Uses Task tool to invoke pykis-debugger]
+        "성능 분석 결과:
+         - 🔴 Critical: auth() 2회 호출 감지
+         - 원인: Agent._ensure_valid_token() 중복
+         - 해결: 해당 메서드 제거 권장"
+```
+
+**Example 3: Test Request**
+```
+User: "stock_price_api.py 테스트 커버리지 올려줘"
+
+❌ WRONG:
+Claude: [Directly writes test code]
+
+✅ CORRECT:
+Claude: [Uses Task tool to invoke pykis-tester]
+        "테스트 커버리지 분석 및 개선:
+         - 현재: 45%
+         - 목표: 70%+
+         - 추가된 테스트: 8개
+         - 새 커버리지: 72%"
+```
+
+**Example 4: API Addition**
+```
+User: "FHKST03010100 TR_ID로 일봉 조회 API 추가해줘"
+
+❌ WRONG:
+Claude: [Manually adds code]
+
+✅ CORRECT:
+Claude: [Uses Task tool to invoke pykis-api-designer]
+        "API 엔드포인트 추가 완료:
+         - TypedDict 응답 모델 생성
+         - 한국어 docstring 추가
+         - Facade 메서드 생성
+         - __init__.py export 추가"
+        [Then auto-invokes pykis-reviewer for final check]
+```
 
 ### Reusable Skill
 
