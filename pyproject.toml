@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pykis"
+name = "kis-agent"
 version = "1.4.0"
 description = "한국투자증권 OpenAPI Python Wrapper - Korea Investment & Securities Trading API Client"
 readme = "README.md"
@@ -12,7 +12,7 @@ license = {text = "MIT"}
 authors = [
     {name = "Heewon Oh", email = "unohee@github.com"},
 ]
-keywords = ["kis", "korean-investment", "stock", "trading", "api", "finance"]
+keywords = ["kis", "korean-investment", "stock", "trading", "api", "finance", "korea", "securities"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -60,11 +60,11 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/unohee/pykis"
-Repository = "https://github.com/unohee/pykis.git"
-Documentation = "https://github.com/unohee/pykis/blob/main/README.md"
-"Bug Tracker" = "https://github.com/unohee/pykis/issues"
-Changelog = "https://github.com/unohee/pykis/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/unohee/kis-agent"
+Repository = "https://github.com/unohee/kis-agent.git"
+Documentation = "https://github.com/unohee/kis-agent/blob/main/README.md"
+"Bug Tracker" = "https://github.com/unohee/kis-agent/issues"
+Changelog = "https://github.com/unohee/kis-agent/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
