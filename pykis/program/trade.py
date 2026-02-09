@@ -176,8 +176,4 @@ class ProgramTradeAPI(BaseAPI):
         )
 
 
-# 주석 처리된 get_program_trade_summary는 삭제 또는 실제 API 명세에 맞게 재구현 필요
-# class ProgramTradeAPI:
-# ... (기존 get_program_trade_detail -> get_program_trade_period_detail 로 변경)
-# ... (get_program_trade_ratio -> get_pgm_trade 로 변경)\n# 기존 호환성을 위해 별칭 제공
 ProgramTrade = ProgramTradeAPI

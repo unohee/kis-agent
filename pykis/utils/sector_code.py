@@ -212,28 +212,3 @@ SECTOR_CODES = {
     "KRX100": "4001",  # KRX100
     "KRX300": "4300",  # KRX300
 }
-
-
-if __name__ == "__main__":
-    # 테스트 실행
-    print("=== 업종코드 마스터 다운로드 테스트 ===\n")
-
-    df = get_sector_codes()
-    print(f"총 {len(df)}개 업종코드 로드됨\n")
-
-    print("=== 코스피 업종 (앞 10개) ===")
-    kospi_df = get_sector_code_by_market("kospi")
-    print(kospi_df.head(10).to_string(index=False))
-
-    print("\n=== 코스닥 업종 (앞 10개) ===")
-    kosdaq_df = get_sector_code_by_market("kosdaq")
-    print(kosdaq_df.head(10).to_string(index=False))
-
-    print("\n=== 기타 지수 (앞 10개) ===")
-    other_df = get_sector_code_by_market("other")
-    print(other_df.head(10).to_string(index=False))
-
-    print("\n=== Dict 형태 조회 ===")
-    codes = get_sector_codes(as_dict=True)
-    for name, code in SECTOR_CODES.items():
-        print(f"  {name} ({code}): {codes.get(code, 'N/A')}")
