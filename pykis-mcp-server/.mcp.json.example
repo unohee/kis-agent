@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "pykis": {
+      "command": "python",
+      "args": ["-m", "pykis_mcp_server"],
+      "env": {
+        "KIS_APP_KEY": "your_app_key_here",
+        "KIS_SECRET": "your_app_secret_here",
+        "KIS_ACCOUNT_NO": "12345678-01",
+        "KIS_ACCOUNT_CODE": "01",
+        "PYKIS_MCP_LOG_LEVEL": "INFO",
+        "PYKIS_MCP_ENABLE_RATE_LIMITER": "true"
+      }
+    }
+  }
+}

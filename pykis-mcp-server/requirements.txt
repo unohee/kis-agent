@@ -1,0 +1,4 @@
+# Core dependencies
+mcp>=0.9.0
+python-dotenv>=1.0.0
+pykis>=0.1.22
