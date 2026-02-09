@@ -1,0 +1,6 @@
+[flake8]
+max-line-length = 200
+extend-ignore = E203, W503
+per-file-ignores =
+    tests/*: F401,F841,E712,E402,E501
+exclude = .git,__pycache__,build,dist,*.egg-info

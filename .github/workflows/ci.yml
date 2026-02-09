@@ -1,0 +1,21 @@
+# PyKIS CI/CD Pipeline
+# Reusable workflow from ci-templates
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: unohee/ci-templates/.github/workflows/python-ci.yml@main
+    with:
+      python-version: '3.12'
+      src-path: 'pykis/'
+      test-path: 'tests/unit/'
+      coverage-threshold: 0
+      max-line-count: 1500
+    secrets: inherit
