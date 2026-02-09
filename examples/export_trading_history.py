@@ -32,7 +32,10 @@ from dotenv import load_dotenv
 # 프로젝트 경로 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pykis.utils.trading_report import TradingReportGenerator, generate_trading_report
+from kis_agent.utils.trading_report import (
+    TradingReportGenerator,
+    generate_trading_report,
+)
 
 # 로깅 설정
 logging.basicConfig(

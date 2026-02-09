@@ -15,17 +15,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # auth 모듈을 명시적으로 import하여 sys.modules에 등록
-import pykis.core.auth  # noqa: F401
+import kis_agent.core.auth  # noqa: F401
 
 
 def get_auth_module():
     """auth 모듈을 sys.modules에서 가져옵니다.
 
     pykis.core.__init__.py에서 `from .auth import auth`로 함수를 export하기 때문에
-    `import pykis.core.auth as auth_module`이 함수가 아닌 모듈을 정확히 가져오는지
+    `import kis_agent.core.auth as auth_module`이 함수가 아닌 모듈을 정확히 가져오는지
     보장하기 위해 sys.modules를 직접 사용합니다.
     """
-    return sys.modules["pykis.core.auth"]
+    return sys.modules["kis_agent.core.auth"]
 
 
 class TestClearConsole:
@@ -33,7 +33,7 @@ class TestClearConsole:
 
     def test_clear_console_unix(self):
         """Unix 시스템에서 clear 명령 실행"""
-        from pykis.core.auth import clearConsole
+        from kis_agent.core.auth import clearConsole
 
         with patch("os.system") as mock_system:
             with patch("os.name", "posix"):
@@ -43,7 +43,7 @@ class TestClearConsole:
 
     def test_clear_console_windows(self):
         """Windows 시스템에서 cls 명령 실행"""
-        from pykis.core.auth import clearConsole
+        from kis_agent.core.auth import clearConsole
 
         with patch("os.system") as mock_system:
             with patch("os.name", "nt"):
@@ -56,7 +56,7 @@ class TestGetTokenPathForAppKey:
 
     def test_no_app_key_returns_base_path(self):
         """app_key가 없으면 기본 경로 반환"""
-        from pykis.core.auth import _get_token_path_for_app_key
+        from kis_agent.core.auth import _get_token_path_for_app_key
 
         base_path = "/path/to/token.json"
         result = _get_token_path_for_app_key("", base_path)
@@ -67,7 +67,7 @@ class TestGetTokenPathForAppKey:
 
     def test_with_app_key_returns_hashed_path(self):
         """app_key가 있으면 해시된 경로 반환"""
-        from pykis.core.auth import _get_token_path_for_app_key
+        from kis_agent.core.auth import _get_token_path_for_app_key
 
         base_path = "/path/to/KIS_Token.json"
         app_key = "PSabcdef12345678"
@@ -86,7 +86,7 @@ class TestSaveToken:
 
     def test_save_token_basic(self):
         """기본 토큰 저장"""
-        from pykis.core.auth import save_token
+        from kis_agent.core.auth import save_token
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
@@ -108,7 +108,7 @@ class TestSaveToken:
 
     def test_save_token_with_app_key(self):
         """APP_KEY와 함께 토큰 저장 (별도 파일 + 캐시)"""
-        from pykis.core.auth import _token_cache, save_token
+        from kis_agent.core.auth import _token_cache, save_token
 
         with tempfile.TemporaryDirectory() as tmpdir:
             base_path = os.path.join(tmpdir, "KIS_Token.json")
@@ -135,7 +135,7 @@ class TestReadToken:
 
     def test_read_token_from_cache(self):
         """메모리 캐시에서 토큰 읽기"""
-        from pykis.core.auth import _token_cache, read_token
+        from kis_agent.core.auth import _token_cache, read_token
 
         app_key = "CACHEKEY12345678"
         import hashlib
@@ -160,7 +160,7 @@ class TestReadToken:
 
     def test_read_token_cache_expired_by_age(self):
         """23시간 초과된 캐시는 무효"""
-        from pykis.core.auth import _token_cache, read_token
+        from kis_agent.core.auth import _token_cache, read_token
 
         app_key = "OLDCACHE12345678"
         import hashlib
@@ -182,7 +182,7 @@ class TestReadToken:
 
     def test_read_token_cache_token_expired(self):
         """토큰 만료일이 지난 캐시는 무효"""
-        from pykis.core.auth import _token_cache, read_token
+        from kis_agent.core.auth import _token_cache, read_token
 
         app_key = "EXPIREDTOKEN1234"
         import hashlib
@@ -202,7 +202,7 @@ class TestReadToken:
 
     def test_read_token_from_file(self):
         """파일에서 토큰 읽기"""
-        from pykis.core.auth import _token_cache, read_token
+        from kis_agent.core.auth import _token_cache, read_token
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             # 유효한 토큰 파일 생성
@@ -227,14 +227,14 @@ class TestReadToken:
 
     def test_read_token_file_not_exists(self):
         """파일이 없으면 None 반환"""
-        from pykis.core.auth import read_token
+        from kis_agent.core.auth import read_token
 
         result = read_token(path="/nonexistent/path/token.json")
         assert result is None
 
     def test_read_token_expired_file(self):
         """만료된 토큰 파일은 None 반환"""
-        from pykis.core.auth import _token_cache, read_token
+        from kis_agent.core.auth import _token_cache, read_token
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             # 만료된 토큰
@@ -257,7 +257,7 @@ class TestReadToken:
         """APP_KEY 불일치 시 None 반환"""
         import hashlib
 
-        from pykis.core.auth import _token_cache, read_token
+        from kis_agent.core.auth import _token_cache, read_token
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             future_date = (datetime.now() + timedelta(days=1)).isoformat()
@@ -282,7 +282,7 @@ class TestReadToken:
 
     def test_read_token_exception_handling(self):
         """예외 발생 시 None 반환"""
-        from pykis.core.auth import read_token
+        from kis_agent.core.auth import read_token
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("invalid json content {{{")
@@ -300,7 +300,7 @@ class TestIsPaperTrading:
 
     def test_is_paper_trading_default(self):
         """기본값은 False (실전투자)"""
-        from pykis.core.auth import isPaperTrading
+        from kis_agent.core.auth import isPaperTrading
 
         # 기본값 확인
         result = isPaperTrading()
@@ -418,7 +418,7 @@ class TestGetResultObject:
 
     def test_get_result_object(self):
         """JSON 데이터를 namedtuple로 변환"""
-        from pykis.core.auth import _getResultObject
+        from kis_agent.core.auth import _getResultObject
 
         data = {"access_token": "my_token", "token_type": "Bearer", "expires_in": 86400}
 
@@ -434,7 +434,7 @@ class TestGetEnvAndGetTREnv:
 
     def test_get_env(self):
         """환경 설정 반환"""
-        from pykis.core.auth import getEnv
+        from kis_agent.core.auth import getEnv
 
         env = getEnv()
         assert isinstance(env, dict)
@@ -443,7 +443,7 @@ class TestGetEnvAndGetTREnv:
 
     def test_get_tr_env(self):
         """거래 환경 정보 반환"""
-        from pykis.core.auth import getTREnv
+        from kis_agent.core.auth import getTREnv
 
         tr_env = getTREnv()
         # 초기에는 빈 튜플일 수 있음
@@ -455,7 +455,7 @@ class TestAPIResp:
 
     def test_api_resp_success(self):
         """성공 응답 처리"""
-        from pykis.core.auth import APIResp
+        from kis_agent.core.auth import APIResp
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -480,7 +480,7 @@ class TestAPIResp:
 
     def test_api_resp_failure(self):
         """실패 응답 처리"""
-        from pykis.core.auth import APIResp
+        from kis_agent.core.auth import APIResp
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -499,7 +499,7 @@ class TestAPIResp:
 
     def test_api_resp_http_error(self):
         """HTTP 오류 응답 처리"""
-        from pykis.core.auth import APIResp
+        from kis_agent.core.auth import APIResp
 
         mock_resp = MagicMock()
         mock_resp.status_code = 401
@@ -513,7 +513,7 @@ class TestAPIResp:
 
     def test_api_resp_is_ok_exception(self):
         """isOK()에서 예외 발생 시 처리"""
-        from pykis.core.auth import APIResp
+        from kis_agent.core.auth import APIResp
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -528,7 +528,7 @@ class TestAPIResp:
 
     def test_api_resp_print_methods(self, capsys):
         """print 메서드들 테스트"""
-        from pykis.core.auth import APIResp
+        from kis_agent.core.auth import APIResp
 
         mock_resp = MagicMock()
         mock_resp.status_code = 400
@@ -544,7 +544,7 @@ class TestAPIResp:
 
     def test_api_resp_print_error(self, capsys):
         """printError 메서드 테스트"""
-        from pykis.core.auth import APIResp
+        from kis_agent.core.auth import APIResp
 
         mock_resp = MagicMock()
         mock_resp.status_code = 500

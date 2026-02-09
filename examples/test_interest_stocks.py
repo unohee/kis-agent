@@ -10,7 +10,7 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 def test_interest_stocks():

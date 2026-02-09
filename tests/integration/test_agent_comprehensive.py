@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import pytest
 
-from pykis import Agent
+from kis_agent import Agent
 
 pytestmark = pytest.mark.requires_credentials
 

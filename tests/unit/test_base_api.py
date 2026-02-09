@@ -16,9 +16,9 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from pykis.core.base_api import BaseAPI
-from pykis.core.client import KISClient
-from pykis.core.exceptions import APIException
+from kis_agent.core.base_api import BaseAPI
+from kis_agent.core.client import KISClient
+from kis_agent.core.exceptions import APIException
 
 
 class TestBaseAPIInit(unittest.TestCase):
@@ -594,7 +594,7 @@ class TestDirectAPIUsageWarning(unittest.TestCase):
         """직접 인스턴스화 시 DirectAPIUsageWarning 발생 확인"""
         import warnings
 
-        from pykis.core.base_api import DirectAPIUsageWarning
+        from kis_agent.core.base_api import DirectAPIUsageWarning
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -617,7 +617,7 @@ class TestDirectAPIUsageWarning(unittest.TestCase):
         """Agent를 통해 생성 시 경고 없음 확인"""
         import warnings
 
-        from pykis.core.base_api import DirectAPIUsageWarning
+        from kis_agent.core.base_api import DirectAPIUsageWarning
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -691,8 +691,8 @@ class TestAPIClassesWithFromAgent(unittest.TestCase):
         """AccountAPI가 _from_agent 파라미터를 올바르게 처리하는지 확인"""
         import warnings
 
-        from pykis.account.api import AccountAPI
-        from pykis.core.base_api import DirectAPIUsageWarning
+        from kis_agent.account.api import AccountAPI
+        from kis_agent.core.base_api import DirectAPIUsageWarning
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -708,8 +708,8 @@ class TestAPIClassesWithFromAgent(unittest.TestCase):
         """StockAPI (Facade)가 _from_agent 파라미터를 올바르게 처리하는지 확인"""
         import warnings
 
-        from pykis.core.base_api import DirectAPIUsageWarning
-        from pykis.stock.api_facade import StockAPI
+        from kis_agent.core.base_api import DirectAPIUsageWarning
+        from kis_agent.stock.api_facade import StockAPI
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -725,8 +725,8 @@ class TestAPIClassesWithFromAgent(unittest.TestCase):
         """ProgramTradeAPI가 _from_agent 파라미터를 올바르게 처리하는지 확인"""
         import warnings
 
-        from pykis.core.base_api import DirectAPIUsageWarning
-        from pykis.program.trade import ProgramTradeAPI
+        from kis_agent.core.base_api import DirectAPIUsageWarning
+        from kis_agent.program.trade import ProgramTradeAPI
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -742,8 +742,8 @@ class TestAPIClassesWithFromAgent(unittest.TestCase):
         """InterestStockAPI가 _from_agent 파라미터를 올바르게 처리하는지 확인"""
         import warnings
 
-        from pykis.core.base_api import DirectAPIUsageWarning
-        from pykis.stock.interest import InterestStockAPI
+        from kis_agent.core.base_api import DirectAPIUsageWarning
+        from kis_agent.stock.interest import InterestStockAPI
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -770,8 +770,8 @@ class TestDirectAPIWarningInSubAPIs(unittest.TestCase):
         """AccountAPI 직접 사용 시 경고 발생 확인"""
         import warnings
 
-        from pykis.account.api import AccountAPI
-        from pykis.core.base_api import DirectAPIUsageWarning
+        from kis_agent.account.api import AccountAPI
+        from kis_agent.core.base_api import DirectAPIUsageWarning
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -787,8 +787,8 @@ class TestDirectAPIWarningInSubAPIs(unittest.TestCase):
         """StockAPI (Facade) 직접 사용 시 경고 발생 확인"""
         import warnings
 
-        from pykis.core.base_api import DirectAPIUsageWarning
-        from pykis.stock.api_facade import StockAPI
+        from kis_agent.core.base_api import DirectAPIUsageWarning
+        from kis_agent.stock.api_facade import StockAPI
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from pykis.account.api import AccountAPI
-from pykis.core.client import KISClient
+from kis_agent.account.api import AccountAPI
+from kis_agent.core.client import KISClient
 
 
 class TestNewAccountAPI(unittest.TestCase):

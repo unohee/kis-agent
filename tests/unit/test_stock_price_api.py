@@ -22,8 +22,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.client import API_ENDPOINTS
-from pykis.stock.price_api import StockPriceAPI
+from kis_agent.core.client import API_ENDPOINTS
+from kis_agent.stock.price_api import StockPriceAPI
 
 
 class TestStockPriceAPI(unittest.TestCase):

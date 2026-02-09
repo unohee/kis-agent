@@ -6,8 +6,8 @@ Note: 이 예제는 레거시 StockAPI를 사용합니다. 새 코드에서는 A
 
 import os
 
-from pykis.core.client import KISClient
-from pykis.stock import LegacyStockAPI as StockAPI
+from kis_agent.core.client import KISClient
+from kis_agent.stock import LegacyStockAPI as StockAPI
 
 # Set up the KISClient and StockAPI
 client = KISClient()

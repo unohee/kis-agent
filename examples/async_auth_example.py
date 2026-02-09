@@ -16,8 +16,8 @@ import os
 
 from dotenv import load_dotenv
 
-from pykis.core.auth import auth_async, reAuth_async
-from pykis.core.config import KISConfig
+from kis_agent.core.auth import auth_async, reAuth_async
+from kis_agent.core.config import KISConfig
 
 
 async def main():

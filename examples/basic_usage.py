@@ -12,7 +12,7 @@ import sys
 #    Python
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 def create_agent_from_env():

@@ -10,7 +10,7 @@ PyKIS 통합 예외 처리 시스템
 4. 유틸리티 함수들
 
 사용 예시:
-    from pykis.core.exceptions import APIException, api_method
+    from kis_agent.core.exceptions import APIException, api_method
 
     class MyAPI(ExceptionHandler):
         @api_method("주식 조회")

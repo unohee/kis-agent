@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from pykis.core.base_exception_handler import (
+from kis_agent.core.base_exception_handler import (
     BaseExceptionHandler,
     SafeDict,
     exception_handler,

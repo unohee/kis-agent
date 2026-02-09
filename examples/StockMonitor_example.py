@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from pykis import Agent
+from kis_agent import Agent
 
 # 로깅 설정
 logging.basicConfig(

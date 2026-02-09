@@ -25,10 +25,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.futures import Futures
-from pykis.futures.account_api import FuturesAccountAPI
-from pykis.futures.order_api import FuturesOrderAPI
-from pykis.futures.price_api import FuturesPriceAPI
+from kis_agent.futures import Futures
+from kis_agent.futures.account_api import FuturesAccountAPI
+from kis_agent.futures.order_api import FuturesOrderAPI
+from kis_agent.futures.price_api import FuturesPriceAPI
 
 
 class TestFuturesFacade(unittest.TestCase):
@@ -296,9 +296,9 @@ def test_futures_facade_in_agent():
     """Agent에서 Futures Facade 통합 확인"""
     import sys
 
-    import pykis.core.agent  # noqa: F401
+    import kis_agent.core.agent  # noqa: F401
 
-    agent_module = sys.modules["pykis.core.agent"]
+    agent_module = sys.modules["kis_agent.core.agent"]
 
     # Mock client 생성
     mock_client = Mock()

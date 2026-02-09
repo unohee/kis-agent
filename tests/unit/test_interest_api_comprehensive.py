@@ -9,7 +9,7 @@ stock/interest.py 모듈 단위 테스트
 import unittest
 from unittest.mock import MagicMock, patch
 
-from pykis.stock.interest import InterestStockAPI
+from kis_agent.stock.interest import InterestStockAPI
 
 
 class TestInterestStockAPI(unittest.TestCase):

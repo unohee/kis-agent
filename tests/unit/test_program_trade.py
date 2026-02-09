@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.program.trade import ProgramTradeAPI
+from kis_agent.core.client import KISClient
+from kis_agent.program.trade import ProgramTradeAPI
 
 
 class TestProgramTradeAPI:

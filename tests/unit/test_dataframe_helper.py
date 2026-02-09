@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import pandas as pd
 import pytest
 
-from pykis.core.dataframe_helper import (
+from kis_agent.core.dataframe_helper import (
     add_api_metadata_to_dataframe,
     create_dataframe_with_metadata,
     extract_output_data,

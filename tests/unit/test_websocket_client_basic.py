@@ -11,8 +11,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.websocket.client import KisWebSocket
+from kis_agent.core.client import KISClient
+from kis_agent.websocket.client import KisWebSocket
 
 
 class TestKisWebSocketBasic:

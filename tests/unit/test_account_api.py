@@ -12,9 +12,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pykis.account.api import AccountAPI
-from pykis.core.client import KISClient
-from pykis.core.exceptions import APIException
+from kis_agent.account.api import AccountAPI
+from kis_agent.core.client import KISClient
+from kis_agent.core.exceptions import APIException
 
 
 class TestAccountAPI(unittest.TestCase):

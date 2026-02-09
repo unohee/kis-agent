@@ -61,12 +61,12 @@ class BaseAPI(ExceptionHandler):
 
         Example:
             올바른 사용법:
-            >>> from pykis import Agent
+            >>> from kis_agent import Agent
             >>> agent = Agent(app_key="...", app_secret="...", ...)
             >>> price = agent.get_stock_price("005930")
 
             잘못된 사용법 (경고 발생):
-            >>> from pykis.stock.price_api import StockPriceAPI
+            >>> from kis_agent.stock.price_api import StockPriceAPI
             >>> api = StockPriceAPI(client)  # DirectAPIUsageWarning 발생
         """
         ExceptionHandler.__init__(self)
@@ -114,7 +114,7 @@ class BaseAPI(ExceptionHandler):
 이 방식은 권장되지 않으며 인증 문제나 설정 충돌이 발생할 수 있습니다.
 
 📌 올바른 사용법:
-    from pykis import Agent
+    from kis_agent import Agent
 
     agent = Agent(
         app_key="YOUR_APP_KEY",
@@ -128,7 +128,7 @@ class BaseAPI(ExceptionHandler):
     balance = agent.get_account_balance()
 
 ❌ 잘못된 사용법 (현재):
-    from pykis.stock.price_api import StockPriceAPI
+    from kis_agent.stock.price_api import StockPriceAPI
     api = StockPriceAPI(client)  # 직접 인스턴스화 - 권장하지 않음
 
 📍 호출 위치:

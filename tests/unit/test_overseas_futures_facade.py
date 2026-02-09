@@ -15,10 +15,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.overseas_futures import OverseasFutures
-from pykis.overseas_futures.account_api import OverseasFuturesAccountAPI
-from pykis.overseas_futures.order_api import OverseasFuturesOrderAPI
-from pykis.overseas_futures.price_api import OverseasFuturesPriceAPI
+from kis_agent.overseas_futures import OverseasFutures
+from kis_agent.overseas_futures.account_api import OverseasFuturesAccountAPI
+from kis_agent.overseas_futures.order_api import OverseasFuturesOrderAPI
+from kis_agent.overseas_futures.price_api import OverseasFuturesPriceAPI
 
 
 class TestOverseasFuturesFacade(unittest.TestCase):
@@ -242,9 +242,9 @@ def test_overseas_futures_facade_in_agent():
     """Agent에서 OverseasFutures Facade 통합 확인"""
     import sys
 
-    import pykis.core.agent  # noqa: F401
+    import kis_agent.core.agent  # noqa: F401
 
-    agent_module = sys.modules["pykis.core.agent"]
+    agent_module = sys.modules["kis_agent.core.agent"]
 
     # Mock client 생성
     mock_client = Mock()

@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pandas as pd
 import pytest
 
-from pykis.core.response_processor import (
+from kis_agent.core.response_processor import (
     APIRequestManager,
     DataFrameResponseProcessor,
     DictResponseProcessor,

@@ -37,7 +37,7 @@ class OverseasFutures(BaseAPI):
         order (OverseasFuturesOrderAPI): 주문 API (2개 메서드 + 편의)
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>>
         >>> agent = Agent(
         ...     app_key="...",

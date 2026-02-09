@@ -13,7 +13,7 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, call, patch
 
-from pykis.account.api import AccountAPI
+from kis_agent.account.api import AccountAPI
 
 
 class TestPagination(unittest.TestCase):

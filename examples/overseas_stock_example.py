@@ -12,7 +12,7 @@ import sys
 # 상위 디렉토리의 Python 모듈 임포트
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 def create_agent():

@@ -20,7 +20,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.overseas_futures.account_api import OverseasFuturesAccountAPI
+from kis_agent.overseas_futures.account_api import OverseasFuturesAccountAPI
 
 
 class TestOverseasFuturesAccountAPI(unittest.TestCase):

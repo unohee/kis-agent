@@ -29,7 +29,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
-from pykis import Agent
+from kis_agent import Agent
 
 # 로깅 설정
 logging.basicConfig(

@@ -24,8 +24,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 import requests
 
-from pykis.core.client import API_ENDPOINTS, KISClient
-from pykis.core.config import KISConfig
+from kis_agent.core.client import API_ENDPOINTS, KISClient
+from kis_agent.core.config import KISConfig
 
 # ============================================================================
 # Mock 기반 유닛 테스트 (실제 API 호출 없음)

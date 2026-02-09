@@ -27,7 +27,7 @@ class OverseasPriceAPI(BaseAPI):
         account (Dict): 계좌 정보
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>> agent = Agent(...)
         >>> price = agent.overseas.get_price(excd="NAS", symb="AAPL")
         >>> print(f"AAPL 현재가: ${price['output']['last']}")

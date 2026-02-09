@@ -21,7 +21,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pykis.core.agent import Agent
+from kis_agent.core.agent import Agent
 
 
 class ProgramTradeAnalyzer:

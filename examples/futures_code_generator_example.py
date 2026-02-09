@@ -7,7 +7,7 @@ Purpose: FuturesCodeGenerator 사용법 시연
 자동 종목코드 생성을 통해 API 호출을 간소화합니다.
 """
 
-from pykis.futures import (
+from kis_agent.futures import (
     FuturesCodeGenerator,
     generate_call_option,
     generate_current_futures,
@@ -129,7 +129,7 @@ def example_5_with_agent():
     print("# 실제 사용 예시 (Agent 초기화 필요):")
     print(
         """
-from pykis import Agent
+from kis_agent import Agent
 
 agent = Agent(
     app_key="...",

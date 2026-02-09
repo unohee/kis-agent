@@ -13,8 +13,8 @@ PyKIS Response Types Package
 - overseas: 해외주식 시세, 호가, 차트 등 Overseas Stock API 응답
 
 사용 예시:
-    from pykis.responses.stock import StockPriceResponse
-    from pykis.responses.overseas import OverseasPriceResponse
+    from kis_agent.responses.stock import StockPriceResponse
+    from kis_agent.responses.overseas import OverseasPriceResponse
 
     def get_stock_price(code: str) -> StockPriceResponse:
         # API 호출 로직

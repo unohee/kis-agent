@@ -9,8 +9,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.overseas.order_api import OverseasOrderAPI
+from kis_agent.core.client import KISClient
+from kis_agent.overseas.order_api import OverseasOrderAPI
 
 
 class TestOverseasOrderAPIInit(unittest.TestCase):

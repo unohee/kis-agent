@@ -29,7 +29,7 @@ TradingReportGenerator(
 **사용 예시:**
 ```python
 from pykis import Agent
-from pykis.utils.trading_report import TradingReportGenerator
+from kis_agent.utils.trading_report import TradingReportGenerator
 
 agent = Agent(env_path=".env")
 generator = TradingReportGenerator(
@@ -152,7 +152,7 @@ generate_trading_report(
 **사용 예시:**
 ```python
 from pykis import Agent
-from pykis.utils.trading_report import generate_trading_report
+from kis_agent.utils.trading_report import generate_trading_report
 
 agent = Agent(env_path=".env")
 

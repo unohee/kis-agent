@@ -39,7 +39,7 @@ def get_global_rate_limiter(
         RateLimiter: 전역 Rate Limiter 인스턴스
 
     Example:
-        >>> from pykis.core.rate_limiter import get_global_rate_limiter
+        >>> from kis_agent.core.rate_limiter import get_global_rate_limiter
         >>> limiter = get_global_rate_limiter()
         >>> wait_time = limiter.acquire()
         >>> # API 호출 수행

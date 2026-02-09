@@ -8,7 +8,7 @@
 마이그레이션 예시::
 
     # 기존 코드 (deprecated)
-    from pykis.websocket import RefactoredWebSocketClient
+    from kis_agent.websocket import RefactoredWebSocketClient
     client = RefactoredWebSocketClient(
         approval_key=key,
         connection_manager=conn,
@@ -19,7 +19,7 @@
     await client.connect()
 
     # 새로운 코드 (권장)
-    from pykis.websocket import WSAgent
+    from kis_agent.websocket import WSAgent
     ws = WSAgent(approval_key=key)
     ws.subscribe_stock("005930")
     await ws.connect()
@@ -92,7 +92,7 @@ class RefactoredWebSocketClient:
         warnings.warn(
             "RefactoredWebSocketClient는 deprecated되었습니다. "
             "WSAgent 또는 WSAgentWithStore를 사용하세요. "
-            "마이그레이션 가이드: from pykis.websocket import WSAgent",
+            "마이그레이션 가이드: from kis_agent.websocket import WSAgent",
             DeprecationWarning,
             stacklevel=2,
         )

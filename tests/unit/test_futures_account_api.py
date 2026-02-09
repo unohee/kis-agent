@@ -26,8 +26,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.client import API_ENDPOINTS
-from pykis.futures.account_api import FuturesAccountAPI
+from kis_agent.core.client import API_ENDPOINTS
+from kis_agent.futures.account_api import FuturesAccountAPI
 
 
 class TestFuturesAccountAPI(unittest.TestCase):

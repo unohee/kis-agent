@@ -8,18 +8,18 @@ WebSocket 클라이언트 팩토리 모듈 (Factory Pattern)
 마이그레이션 예시::
 
     # 기존 코드 (deprecated)
-    from pykis.websocket import WebSocketClientFactory, ClientType
+    from kis_agent.websocket import WebSocketClientFactory, ClientType
     client = WebSocketClientFactory.create_client(
         ClientType.REALTIME, approval_key, stock_codes=["005930"]
     )
 
     # 새로운 코드 (권장)
-    from pykis.websocket import WSAgentWithStore
+    from kis_agent.websocket import WSAgentWithStore
     ws = WSAgentWithStore(approval_key, keep_history=True)
     ws.subscribe_stocks(["005930"])
 
     # Builder 대신
-    from pykis.websocket import WSAgent
+    from kis_agent.websocket import WSAgent
     ws = WSAgent(approval_key, auto_reconnect=True, ping_interval=30)
     ws.subscribe_stock("005930")
     ws.subscribe_index("0001")
@@ -266,7 +266,7 @@ class WebSocketClientBuilder:
             .build()
 
         # 새로운 코드 (권장)
-        from pykis.websocket import WSAgent
+        from kis_agent.websocket import WSAgent
         ws = WSAgent(approval_key, auto_reconnect=True)
         ws.subscribe_stock("005930")
         ws.subscribe_orderbook("005930")
@@ -287,7 +287,7 @@ class WebSocketClientBuilder:
         warnings.warn(
             "WebSocketClientBuilder는 deprecated되었습니다. "
             "WSAgent를 직접 사용하세요. "
-            "마이그레이션 가이드: from pykis.websocket import WSAgent",
+            "마이그레이션 가이드: from kis_agent.websocket import WSAgent",
             DeprecationWarning,
             stacklevel=2,
         )

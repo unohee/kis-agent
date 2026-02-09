@@ -22,8 +22,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from pykis.websocket.enhanced_client import EnhancedWebSocketClient
-from pykis.websocket.ws_agent import SubscriptionType
+from kis_agent.websocket.enhanced_client import EnhancedWebSocketClient
+from kis_agent.websocket.ws_agent import SubscriptionType
 
 
 @pytest.fixture

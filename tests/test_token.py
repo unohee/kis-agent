@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 # pykis 모듈 경로 추가
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pykis.core.auth import read_token, save_token, token_tmp
+from kis_agent.core.auth import read_token, save_token, token_tmp
 
 
 def test_token_functions():

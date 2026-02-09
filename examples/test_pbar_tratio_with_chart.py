@@ -45,7 +45,7 @@ except ImportError:
 # 프로젝트 루트 경로 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 class PbarTratioVisualizer:

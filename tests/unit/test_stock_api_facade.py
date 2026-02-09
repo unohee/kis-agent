@@ -11,8 +11,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.stock.api_facade import StockAPI, StockAPIFacade
+from kis_agent.core.client import KISClient
+from kis_agent.stock.api_facade import StockAPI, StockAPIFacade
 
 
 class TestStockAPIFacade(unittest.TestCase):

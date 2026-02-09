@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.overseas_futures.order_api import OverseasFuturesOrderAPI
+from kis_agent.overseas_futures.order_api import OverseasFuturesOrderAPI
 
 
 class TestOverseasFuturesOrderAPI(unittest.TestCase):

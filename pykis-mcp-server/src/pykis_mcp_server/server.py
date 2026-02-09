@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 from fastmcp import FastMCP
-from pykis import Agent
+from kis_agent import Agent
 
 from .config import MCPServerConfig
 from .errors import ConfigurationError

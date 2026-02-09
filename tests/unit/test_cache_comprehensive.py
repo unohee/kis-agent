@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from pykis.core.cache import APICache, TTLCache
+from kis_agent.core.cache import APICache, TTLCache
 
 
 class TestTTLCacheBasic:

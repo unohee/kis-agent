@@ -43,7 +43,7 @@ ws_client = agent.websocket(
 )
 
 # 직접 생성
-from pykis.websocket.ws_agent import WSAgent
+from kis_agent.websocket.ws_agent import WSAgent
 ws_agent = WSAgent(approval_key="your_approval_key")
 ```
 
@@ -347,8 +347,8 @@ class SubscriptionType(Enum):
 ### 기본 사용법
 ```python
 import asyncio
-from pykis.core.client import KISClient
-from pykis.websocket import WSAgent, SubscriptionType
+from kis_agent.core.client import KISClient
+from kis_agent.websocket import WSAgent, SubscriptionType
 
 async def main():
     # 클라이언트 초기화
@@ -385,7 +385,7 @@ if __name__ == "__main__":
 ### 고급 사용법 (EnhancedWebSocketClient)
 ```python
 import asyncio
-from pykis.websocket import EnhancedWebSocketClient
+from kis_agent.websocket import EnhancedWebSocketClient
 
 async def main():
     # 클라이언트 생성

@@ -30,7 +30,7 @@ class TestAccountBalanceQueryAPI:
     @pytest.fixture
     def balance_api(self, mock_client, account_info):
         """AccountBalanceQueryAPI 인스턴스"""
-        from pykis.account.balance_query_api import AccountBalanceQueryAPI
+        from kis_agent.account.balance_query_api import AccountBalanceQueryAPI
 
         return AccountBalanceQueryAPI(
             client=mock_client,

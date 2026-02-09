@@ -5,9 +5,9 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from unittest.mock import MagicMock, Mock, patch
 
-from pykis.core.agent import Agent
-from pykis.core.client import KISClient
-from pykis.core.rate_limiter import RateLimiter
+from kis_agent.core.agent import Agent
+from kis_agent.core.client import KISClient
+from kis_agent.core.rate_limiter import RateLimiter
 
 
 class TestRateLimiter(unittest.TestCase):

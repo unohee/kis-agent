@@ -9,7 +9,7 @@ import logging
 
 import pytest
 
-from pykis.core.exceptions import (
+from kis_agent.core.exceptions import (
     APIException,
     AuthenticationException,
     ConfigurationException,

@@ -15,8 +15,8 @@ import time
 from typing import Any, Dict, Optional
 
 # 테스트 대상 모듈
-from pykis.websocket import ws_agent as ws_mod
-from pykis.websocket.ws_agent import SubscriptionType, WSAgent
+from kis_agent.websocket import ws_agent as ws_mod
+from kis_agent.websocket.ws_agent import SubscriptionType, WSAgent
 
 
 class FakeWebSocket:
