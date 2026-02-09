@@ -12,8 +12,8 @@ from datetime import datetime
 # 프로젝트 경로 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis.core.client import KISClient
-from pykis.websocket.enhanced_client import EnhancedWebSocketClient
+from kis_agent.core.client import KISClient
+from kis_agent.websocket.enhanced_client import EnhancedWebSocketClient
 
 # 로깅 설정
 logging.basicConfig(

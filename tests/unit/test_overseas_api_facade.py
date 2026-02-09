@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.overseas.api_facade import OverseasStockAPI
+from kis_agent.core.client import KISClient
+from kis_agent.overseas.api_facade import OverseasStockAPI
 
 
 class TestOverseasStockAPIFacade(unittest.TestCase):

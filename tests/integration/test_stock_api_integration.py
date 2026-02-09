@@ -23,8 +23,8 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.stock import StockAPI
+from kis_agent.core.client import KISClient
+from kis_agent.stock import StockAPI
 
 
 @pytest.mark.requires_credentials

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, Mock
 
 import pandas as pd
 
-from pykis.account.balance import AccountAPI, AccountBalance, AccountBalanceAPI
+from kis_agent.account.balance import AccountAPI, AccountBalance, AccountBalanceAPI
 
 
 class TestAccountBalanceAPI(unittest.TestCase):

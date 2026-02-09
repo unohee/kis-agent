@@ -63,7 +63,7 @@ print("Account:", os.getenv('KIS_ACCOUNT_NUMBER'))
 
 ### KISClient 초기화
 ```python
-from pykis.core.client import KISClient
+from kis_agent.core.client import KISClient
 
 # 클라이언트 생성
 client = KISClient(
@@ -81,7 +81,7 @@ print("인증 토큰:", client.get_access_token()[:20] + "...")
 
 ### 주식 정보 조회
 ```python
-from pykis.stock.api import StockAPI
+from kis_agent.stock.api import StockAPI
 
 # 계좌 정보 설정
 account_info = {
@@ -103,7 +103,7 @@ print(f"일일 데이터 건수: {len(daily_data)}개")
 
 ### 계좌 정보 조회
 ```python
-from pykis.account.api import AccountAPI
+from kis_agent.account.api import AccountAPI
 
 # 계좌 API 초기화
 account_api = AccountAPI(client=client, account_info=account_info)
@@ -122,7 +122,7 @@ print(f"주문 가능 수량: {buyable['output']['ord_psbl_qty']}주")
 ### 기본 실시간 데이터 수신
 ```python
 import asyncio
-from pykis.websocket import EnhancedWebSocketClient
+from kis_agent.websocket import EnhancedWebSocketClient
 
 async def websocket_example():
     # 웹소켓 클라이언트 생성
@@ -154,7 +154,7 @@ asyncio.run(websocket_example())
 
 ### 고급 웹소켓 사용 (WSAgent)
 ```python
-from pykis.websocket import WSAgent, SubscriptionType
+from kis_agent.websocket import WSAgent, SubscriptionType
 
 async def advanced_websocket():
     # WSAgent 직접 사용

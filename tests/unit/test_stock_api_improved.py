@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from pykis.core.exceptions import APIException, ValidationException
+from kis_agent.core.exceptions import APIException, ValidationException
 
 
 class TestStockAPIImproved:
@@ -33,13 +33,13 @@ class TestStockAPIImproved:
         """StockAPI 인스턴스 fixture (DeprecationWarning 무시)"""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            from pykis.stock.api_improved import StockAPI
+            from kis_agent.stock.api_improved import StockAPI
 
             return StockAPI(mock_client, valid_account)
 
     def test_init_deprecation_warning(self, mock_client, valid_account):
         """초기화 시 DeprecationWarning 발생"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -51,7 +51,7 @@ class TestStockAPIImproved:
 
     def test_init_with_none_client(self, valid_account):
         """client가 None인 경우 ValidationException"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -60,7 +60,7 @@ class TestStockAPIImproved:
 
     def test_init_with_none_account(self, mock_client):
         """account가 None인 경우 ValidationException"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -69,7 +69,7 @@ class TestStockAPIImproved:
 
     def test_init_with_invalid_account_type(self, mock_client):
         """account가 dict가 아닌 경우 ValidationException"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -78,7 +78,7 @@ class TestStockAPIImproved:
 
     def test_init_with_missing_cano(self, mock_client):
         """account에 CANO가 없는 경우 ValidationException"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -87,7 +87,7 @@ class TestStockAPIImproved:
 
     def test_init_with_missing_acnt_prdt_cd(self, mock_client):
         """account에 ACNT_PRDT_CD가 없는 경우 ValidationException"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -337,13 +337,13 @@ class TestExampleUsage:
 
     def test_example_usage_importable(self):
         """example_usage 함수 import 가능"""
-        from pykis.stock.api_improved import example_usage
+        from kis_agent.stock.api_improved import example_usage
 
         assert callable(example_usage)
 
     def test_module_all_exports(self):
         """__all__ 내보내기 확인"""
-        from pykis.stock import api_improved
+        from kis_agent.stock import api_improved
 
         assert "StockAPI" in api_improved.__all__
         assert "example_usage" in api_improved.__all__

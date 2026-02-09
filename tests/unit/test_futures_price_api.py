@@ -31,8 +31,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from pykis.core.client import API_ENDPOINTS
-from pykis.futures.price_api import FuturesPriceAPI
+from kis_agent.core.client import API_ENDPOINTS
+from kis_agent.futures.price_api import FuturesPriceAPI
 
 
 class TestFuturesPriceAPI(unittest.TestCase):

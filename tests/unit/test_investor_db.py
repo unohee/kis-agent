@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pykis.stock.investor_db import InvestorPositionDB, InvestorPositionRecord
+from kis_agent.stock.investor_db import InvestorPositionDB, InvestorPositionRecord
 
 
 class TestInvestorPositionRecord:

@@ -32,7 +32,7 @@ try:
 except ImportError:
     print("⚠ python-dotenv 패키지가 없습니다. 환경변수를 직접 설정하세요.")
 
-from pykis import Agent
+from kis_agent import Agent
 
 # 로깅 설정
 logging.basicConfig(

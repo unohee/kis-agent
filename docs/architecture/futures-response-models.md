@@ -415,7 +415,7 @@ class FuturesPriceOutput(TypedDict):
 ```python
 # tests/unit/responses/test_futures_response.py
 
-from pykis.responses.futures import FuturesPriceResponse
+from kis_agent.responses.futures import FuturesPriceResponse
 
 def test_futures_price_response_structure():
     """선물옵션 현재가 응답 구조 검증"""

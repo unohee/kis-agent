@@ -17,8 +17,8 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from pykis.account.api import AccountAPI
-from pykis.core.exceptions import APIException
+from kis_agent.account.api import AccountAPI
+from kis_agent.core.exceptions import APIException
 
 # ==================== Fixtures ====================
 

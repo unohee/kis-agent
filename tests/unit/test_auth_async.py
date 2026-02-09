@@ -37,7 +37,7 @@ except ImportError:
 
 # auth_async 함수들이 구현되어 있는지 확인
 try:
-    from pykis.core.auth import (
+    from kis_agent.core.auth import (
         auth_async,
         read_token,
         reAuth_async,
@@ -50,9 +50,9 @@ except ImportError:
     # 테스트 skip을 위해 더미 함수 정의
     auth_async = None
     reAuth_async = None
-    from pykis.core.auth import read_token, save_token
+    from kis_agent.core.auth import read_token, save_token
 
-from pykis.core.config import KISConfig
+from kis_agent.core.config import KISConfig
 
 # auth_async 함수들이 구현되지 않은 경우 모듈 전체 skip
 pytestmark = pytest.mark.skipif(
@@ -352,7 +352,7 @@ class TestKISClientAsync:
         """
         KISClient.create_async 팩토리 메서드 테스트 - config 사용
         """
-        from pykis.core.client import KISClient
+        from kis_agent.core.client import KISClient
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -377,7 +377,7 @@ class TestKISClientAsync:
         """
         KISClient.create_async 팩토리 메서드 테스트 - 옵션 설정
         """
-        from pykis.core.client import KISClient
+        from kis_agent.core.client import KISClient
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -403,7 +403,7 @@ class TestKISClientAsync:
         """
         KISClient.create_async 팩토리 메서드 테스트 - Rate Limiter 활성화
         """
-        from pykis.core.client import KISClient
+        from kis_agent.core.client import KISClient
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -427,7 +427,7 @@ class TestKISClientAsync:
         """
         KISClient.create_async 팩토리 메서드 테스트 - 모의투자 서버
         """
-        from pykis.core.client import KISClient
+        from kis_agent.core.client import KISClient
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -451,7 +451,7 @@ class TestKISClientAsync:
         """
         KISClient.refresh_token_async 메서드 테스트
         """
-        from pykis.core.client import KISClient
+        from kis_agent.core.client import KISClient
 
         # Mock 설정 - 초기 토큰
         mock_auth_async.return_value = {
@@ -496,7 +496,7 @@ class TestKISClientAsync:
         Note: aiohttp.ClientSession의 nested async context manager 패턴은
         mock하기 어려워서 connection error 시나리오로 대체합니다.
         """
-        from pykis.core.client import KISClient
+        from kis_agent.core.client import KISClient
 
         # Mock 설정 - 초기 토큰
         mock_auth_async.return_value = {
@@ -533,7 +533,7 @@ class TestAgentAsync:
         """
         Agent.create_async 팩토리 메서드 기본 테스트
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -564,7 +564,7 @@ class TestAgentAsync:
         """
         Agent.create_async 팩토리 메서드 테스트 - Rate Limiter 활성화
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -591,7 +591,7 @@ class TestAgentAsync:
         """
         Agent.create_async 팩토리 메서드 테스트 - Rate Limiter 비활성화
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -617,7 +617,7 @@ class TestAgentAsync:
         """
         Agent.create_async 팩토리 메서드 테스트 - 모의투자 서버 URL
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -643,7 +643,7 @@ class TestAgentAsync:
         """
         Agent.create_async 필수 매개변수 누락 테스트
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # 필수 매개변수 누락 시 ValueError 발생
         with pytest.raises(ValueError, match="필수 매개변수가 누락되었습니다"):
@@ -668,7 +668,7 @@ class TestAgentAsync:
         """
         Agent.create_async 팩토리 메서드 테스트 - API 모듈 초기화 확인
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # Mock 설정
         mock_auth_async.return_value = {
@@ -698,7 +698,7 @@ class TestAgentAsync:
         """
         Agent.create_async 팩토리 메서드 테스트 - Rate Limiter 커스텀 설정
         """
-        from pykis.core.agent import Agent
+        from kis_agent.core.agent import Agent
 
         # Mock 설정
         mock_auth_async.return_value = {

@@ -5,7 +5,7 @@ WebSocket 모듈
 
 권장 사용법::
 
-    from pykis.websocket import WSAgent, WSAgentWithStore, SubscriptionType
+    from kis_agent.websocket import WSAgent, WSAgentWithStore, SubscriptionType
 
     # 기본 사용
     ws = WSAgent(approval_key)

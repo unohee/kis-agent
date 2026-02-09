@@ -30,7 +30,7 @@ class TestInvestorPositionAnalyzer:
     @pytest.fixture
     def analyzer(self, mock_client, account_info):
         """InvestorPositionAnalyzer 인스턴스"""
-        from pykis.stock.investor import InvestorPositionAnalyzer
+        from kis_agent.stock.investor import InvestorPositionAnalyzer
 
         return InvestorPositionAnalyzer(client=mock_client, account_info=account_info)
 
@@ -38,7 +38,7 @@ class TestInvestorPositionAnalyzer:
 
     def test_investor_position_data_creation(self):
         """InvestorPositionData 데이터 구조 생성 테스트"""
-        from pykis.stock.investor import InvestorPositionData
+        from kis_agent.stock.investor import InvestorPositionData
 
         data = InvestorPositionData(
             stock_code="005930",
@@ -63,7 +63,7 @@ class TestInvestorPositionAnalyzer:
 
     def test_investor_position_data_defaults(self):
         """InvestorPositionData 기본값 테스트"""
-        from pykis.stock.investor import InvestorPositionData
+        from kis_agent.stock.investor import InvestorPositionData
 
         data = InvestorPositionData(stock_code="005930", date="20260104")
 
@@ -76,7 +76,7 @@ class TestInvestorPositionAnalyzer:
 
     def test_position_analysis_result_creation(self):
         """PositionAnalysisResult 데이터 구조 생성 테스트"""
-        from pykis.stock.investor import PositionAnalysisResult
+        from kis_agent.stock.investor import PositionAnalysisResult
 
         result = PositionAnalysisResult(
             stock_code="005930",
@@ -119,7 +119,7 @@ class TestInvestorPositionAnalyzer:
 
     def test_get_stock_investor_data_exception(self, analyzer, mock_client):
         """종목 투자자 데이터 조회 예외 처리"""
-        from pykis.core.exceptions import APIException
+        from kis_agent.core.exceptions import APIException
 
         # Arrange
         mock_client.make_request.side_effect = Exception("API 오류")
@@ -355,7 +355,7 @@ class TestInvestorPositionAnalyzer:
         result = analyzer.analyze_comprehensive_position("005930")
 
         # Assert
-        from pykis.stock.investor import PositionAnalysisResult
+        from kis_agent.stock.investor import PositionAnalysisResult
 
         assert isinstance(result, PositionAnalysisResult)
         assert result.stock_code == "005930"
@@ -461,7 +461,7 @@ class TestInvestorPositionAnalyzer:
 
     def test_analyzer_initialization_without_account(self, mock_client):
         """계좌 정보 없이 초기화"""
-        from pykis.stock.investor import InvestorPositionAnalyzer
+        from kis_agent.stock.investor import InvestorPositionAnalyzer
 
         # Act
         analyzer = InvestorPositionAnalyzer(client=mock_client)
@@ -472,7 +472,7 @@ class TestInvestorPositionAnalyzer:
 
     def test_analyzer_initialization_with_account(self, mock_client, account_info):
         """계좌 정보와 함께 초기화"""
-        from pykis.stock.investor import InvestorPositionAnalyzer
+        from kis_agent.stock.investor import InvestorPositionAnalyzer
 
         # Act
         analyzer = InvestorPositionAnalyzer(

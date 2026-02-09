@@ -35,7 +35,7 @@ class OverseasStockAPI(BaseAPI):
         ranking_api (OverseasRankingAPI): 시장 순위 조회 전담 API
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>> agent = Agent(...)
         >>>
         >>> # 시세 조회

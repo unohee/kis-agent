@@ -18,7 +18,7 @@ from datetime import datetime, timedelta  # [변경 이유] 날짜 계산을 위
 
 import pytest
 
-from pykis import Agent
+from kis_agent import Agent
 
 if not os.getenv("RUN_LIVE_TESTS"):
     pytest.skip("실제 API 테스트 건너뜀", allow_module_level=True)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kis-agent"
-version = "1.4.0"
+version = "1.4.1"
 description = "한국투자증권 OpenAPI Python Wrapper - Korea Investment & Securities Trading API Client"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -68,7 +68,7 @@ Changelog = "https://github.com/unohee/kis-agent/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["pykis*"]
+include = ["kis_agent*"]
 exclude = ["tests*", "examples*", "docs*", "scripts*", ".github*"]
 
 [tool.black]
@@ -98,7 +98,7 @@ markers = [
     "requires_credentials: marks tests that require real API credentials",
 ]
 python_files = ["test_*.py"]
-addopts = "-v --cov=pykis --ignore=tests/unit/test_auth.py --ignore=tests/unit/test_client.py"
+addopts = "-v --cov=kis_agent --ignore=tests/unit/test_auth.py --ignore=tests/unit/test_client.py"
 
 [tool.ruff]
 target-version = "py38"

@@ -9,7 +9,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 def benchmark_sequential(agent: Agent, codes: List[str], iterations: int = 3):

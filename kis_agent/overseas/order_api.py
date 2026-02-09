@@ -46,7 +46,7 @@ class OverseasOrderAPI(BaseAPI):
     - "50": 단주지정가 (Odd Lot Limit Order)
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>> agent = Agent(...)
         >>> # AAPL 10주 매수 (지정가 $185)
         >>> result = agent.overseas.buy_order("NASD", "AAPL", 10, 185.00)

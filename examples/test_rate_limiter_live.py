@@ -3,7 +3,7 @@
 
 import time
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 def test_rate_limiter_live():

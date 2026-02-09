@@ -18,7 +18,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.overseas_futures.price_api import OverseasFuturesPriceAPI
+from kis_agent.overseas_futures.price_api import OverseasFuturesPriceAPI
 
 
 class TestOverseasFuturesPriceAPI(unittest.TestCase):

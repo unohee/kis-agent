@@ -1,4 +1,4 @@
-# PyKIS
+# KIS-Agent
 
 한국투자증권 OpenAPI Python 래퍼 - Korea Investment & Securities Trading API Client
 
@@ -19,13 +19,13 @@
 ## 설치
 
 ```bash
-pip install pykis
+pip install kis-agent
 ```
 
 WebSocket 지원이 필요한 경우:
 
 ```bash
-pip install pykis[websocket]
+pip install kis-agent[websocket]
 ```
 
 ## 사전 준비
@@ -37,7 +37,7 @@ pip install pykis[websocket]
 ## 빠른 시작
 
 ```python
-from pykis import Agent
+from kis_agent import Agent
 import os
 
 # 환경변수에서 API 키 로드
@@ -193,7 +193,7 @@ print(f"API 호출: {result['_pagination_info']['total_calls']}회")
 ## 거래 보고서 생성
 
 ```python
-from pykis.utils.trading_report import generate_trading_report
+from kis_agent.utils.trading_report import generate_trading_report
 
 report_path = generate_trading_report(
     client=agent.client,

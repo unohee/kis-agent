@@ -246,9 +246,9 @@ from .market_api import StockMarketAPI
 # ... imports
 
 class StockAPI(StockPriceAPI, StockMarketAPI, ...):
-    """DEPRECATED: Use 'from pykis.stock import StockAPI'"""
+    """DEPRECATED: Use 'from kis_agent.stock import StockAPI'"""
     def __init__(self, *args, **kwargs):
-        warnings.warn("Use 'from pykis.stock import StockAPI'",
+        warnings.warn("Use 'from kis_agent.stock import StockAPI'",
                       DeprecationWarning, stacklevel=2)
         super().__init__(*args, **kwargs)
 ```

@@ -8,7 +8,7 @@ from datetime import datetime
 
 import pytest
 
-from pykis.account.models import (
+from kis_agent.account.models import (
     OrderExecutionItem,
     OrderExecutionResponse,
     OrderExecutionSummary,

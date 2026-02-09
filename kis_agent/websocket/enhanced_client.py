@@ -8,7 +8,7 @@
 마이그레이션 예시::
 
     # 기존 코드 (deprecated)
-    from pykis.websocket import EnhancedWebSocketClient
+    from kis_agent.websocket import EnhancedWebSocketClient
     client = EnhancedWebSocketClient(
         client=kis_client,
         account_info=account_info,
@@ -19,7 +19,7 @@
     await client.start()
 
     # 새로운 코드 (권장)
-    from pykis.websocket import WSAgentWithStore, SubscriptionType
+    from kis_agent.websocket import WSAgentWithStore, SubscriptionType
     approval_key = kis_client.get_ws_approval_key()
     ws = WSAgentWithStore(approval_key, keep_history=True)
     ws.subscribe_stocks(["005930"])
@@ -116,7 +116,7 @@ class EnhancedWebSocketClient(BaseExceptionHandler):
         warnings.warn(
             "EnhancedWebSocketClient는 deprecated되었습니다. "
             "WSAgentWithStore를 사용하세요. "
-            "마이그레이션 가이드: from pykis.websocket import WSAgentWithStore",
+            "마이그레이션 가이드: from kis_agent.websocket import WSAgentWithStore",
             DeprecationWarning,
             stacklevel=2,
         )

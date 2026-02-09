@@ -17,9 +17,9 @@ from typing import Dict, Optional
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis.core.client import KISClient
-from pykis.stock import LegacyStockAPI as StockAPI
-from pykis.stock import get_kospi200_futures_code
+from kis_agent.core.client import KISClient
+from kis_agent.stock import LegacyStockAPI as StockAPI
+from kis_agent.stock import get_kospi200_futures_code
 
 
 class KospiBasisTester:

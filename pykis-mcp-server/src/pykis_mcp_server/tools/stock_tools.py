@@ -692,7 +692,7 @@ async def get_kospi200_futures_code() -> Dict[str, Any]:
     Returns:
         Dict: 현재 활성 선물 종목코드
     """
-    from pykis.stock import get_kospi200_futures_code
+    from kis_agent.stock import get_kospi200_futures_code
 
     code = get_kospi200_futures_code()
     return {"success": True, "futures_code": code}

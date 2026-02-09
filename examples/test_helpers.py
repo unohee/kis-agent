@@ -311,7 +311,7 @@ def setup_test_environment():
     try:
         # PyKIS Agent 초기화
         sys.path.append(".." if os.path.exists("../pykis") else ".")
-        from pykis import Agent
+        from kis_agent import Agent
 
         agent = Agent()
         TEST_STOCK = "005930"  # 삼성전자

@@ -15,7 +15,7 @@ class TestOverseasRankingAPIInit(unittest.TestCase):
 
     def test_init_with_client(self):
         """클라이언트만으로 초기화"""
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         mock_client = MagicMock()
         api = OverseasRankingAPI(client=mock_client)
@@ -24,7 +24,7 @@ class TestOverseasRankingAPIInit(unittest.TestCase):
 
     def test_init_with_account(self):
         """계좌 정보와 함께 초기화"""
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         mock_client = MagicMock()
         account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
@@ -37,7 +37,7 @@ class TestTradeVolumeRanking(unittest.TestCase):
 
     def setUp(self):
         """테스트 설정"""
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -98,7 +98,7 @@ class TestTradeAmountRanking(unittest.TestCase):
     """거래대금순위 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -130,7 +130,7 @@ class TestTradeGrowthRanking(unittest.TestCase):
     """거래증가율순위 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -160,7 +160,7 @@ class TestTradeTurnoverRanking(unittest.TestCase):
     """거래회전율순위 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -188,7 +188,7 @@ class TestMarketCapRanking(unittest.TestCase):
     """시가총액순위 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -223,7 +223,7 @@ class TestPriceChangeRanking(unittest.TestCase):
     """상승률/하락률 순위 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -260,7 +260,7 @@ class TestPriceFluctuationRanking(unittest.TestCase):
     """가격급등락 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -297,7 +297,7 @@ class TestNewHighLowRanking(unittest.TestCase):
     """신고/신저가 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -334,7 +334,7 @@ class TestVolumePowerRanking(unittest.TestCase):
     """매수체결강도 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -366,7 +366,7 @@ class TestVolumeSurgeRanking(unittest.TestCase):
     """거래량급증 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -403,7 +403,7 @@ class TestExchangeCodeHandling(unittest.TestCase):
     """거래소 코드 처리 테스트"""
 
     def setUp(self):
-        from pykis.overseas.ranking_api import OverseasRankingAPI
+        from kis_agent.overseas.ranking_api import OverseasRankingAPI
 
         self.mock_client = MagicMock()
         self.api = OverseasRankingAPI(client=self.mock_client)
@@ -433,7 +433,7 @@ class TestFacadeIntegration(unittest.TestCase):
 
     def test_facade_has_ranking_api(self):
         """Facade에 ranking_api 속성 존재"""
-        from pykis.overseas.api_facade import OverseasStockAPI
+        from kis_agent.overseas.api_facade import OverseasStockAPI
 
         mock_client = MagicMock()
         facade = OverseasStockAPI(client=mock_client)
@@ -441,7 +441,7 @@ class TestFacadeIntegration(unittest.TestCase):
 
     def test_facade_wrapper_methods(self):
         """Facade 래퍼 메서드 존재"""
-        from pykis.overseas.api_facade import OverseasStockAPI
+        from kis_agent.overseas.api_facade import OverseasStockAPI
 
         mock_client = MagicMock()
         facade = OverseasStockAPI(client=mock_client)
@@ -464,7 +464,7 @@ class TestFacadeIntegration(unittest.TestCase):
 
     def test_facade_delegates_to_ranking_api(self):
         """Facade가 ranking_api로 위임하는지 확인"""
-        from pykis.overseas.api_facade import OverseasStockAPI
+        from kis_agent.overseas.api_facade import OverseasStockAPI
 
         mock_client = MagicMock()
         facade = OverseasStockAPI(client=mock_client)
@@ -480,7 +480,7 @@ class TestResponseTypes(unittest.TestCase):
 
     def test_ranking_types_importable(self):
         """Ranking 응답 타입 import 가능"""
-        from pykis.responses.overseas import (
+        from kis_agent.responses.overseas import (
             OverseasRankingOutput1,
             OverseasRankingOutput2Item,
             OverseasRankingResponse,
@@ -492,7 +492,7 @@ class TestResponseTypes(unittest.TestCase):
 
     def test_ranking_types_in_init(self):
         """Ranking 응답 타입이 __init__에서 export됨"""
-        from pykis.responses import (
+        from kis_agent.responses import (
             OverseasRankingOutput1,
             OverseasRankingOutput2Item,
             OverseasRankingResponse,

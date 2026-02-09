@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 
-from pykis import Agent
+from kis_agent import Agent
 
 # 환경변수 로드
 load_dotenv()

@@ -30,7 +30,7 @@ class TestAccountOrderAPI:
     @pytest.fixture
     def order_api(self, mock_client, account_info):
         """AccountOrderAPI 인스턴스"""
-        from pykis.account.order_api import AccountOrderAPI
+        from kis_agent.account.order_api import AccountOrderAPI
 
         return AccountOrderAPI(
             client=mock_client,

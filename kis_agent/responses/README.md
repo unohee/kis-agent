@@ -54,7 +54,7 @@ pykis/responses/
 
 ```python
 from typing import Optional
-from pykis.responses.stock import StockPriceResponse
+from kis_agent.responses.stock import StockPriceResponse
 
 def get_stock_price(code: str) -> Optional[StockPriceResponse]:
     """주식 현재가 조회 (타입 힌트 포함)"""
@@ -68,7 +68,7 @@ def get_stock_price(code: str) -> Optional[StockPriceResponse]:
 ### 2. 응답 필드 자동완성 활용
 
 ```python
-from pykis.responses.stock import StockPriceResponse
+from kis_agent.responses.stock import StockPriceResponse
 
 def analyze_stock_price(response: StockPriceResponse) -> None:
     """
@@ -89,7 +89,7 @@ def analyze_stock_price(response: StockPriceResponse) -> None:
 ### 3. 계좌 잔고 조회 예시
 
 ```python
-from pykis.responses.account import AccountBalanceResponse
+from kis_agent.responses.account import AccountBalanceResponse
 
 def get_holdings(response: AccountBalanceResponse) -> list:
     """보유 종목 리스트 추출"""
@@ -109,7 +109,7 @@ def get_holdings(response: AccountBalanceResponse) -> list:
 ### 4. 일별 체결내역 조회 예시
 
 ```python
-from pykis.responses.account import InquireDailyCcldResponse
+from kis_agent.responses.account import InquireDailyCcldResponse
 
 def analyze_trades(response: InquireDailyCcldResponse) -> None:
     """일별 체결내역 분석"""
@@ -130,7 +130,7 @@ def analyze_trades(response: InquireDailyCcldResponse) -> None:
 ### 5. 주문 응답 처리 예시
 
 ```python
-from pykis.responses.order import OrderCashResponse
+from kis_agent.responses.order import OrderCashResponse
 
 def process_order_result(response: OrderCashResponse) -> str:
     """주문 결과 처리"""

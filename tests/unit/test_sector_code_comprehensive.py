@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pandas as pd
 
-from pykis.utils.sector_code import (
+from kis_agent.utils.sector_code import (
     SECTOR_CODE_URL,
     SECTOR_CODES,
     download_sector_code_mst,

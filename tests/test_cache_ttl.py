@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from pykis.core.cache import APICache
+from kis_agent.core.cache import APICache
 
 
 def test_cache_ttl_configuration():

@@ -12,8 +12,8 @@ import sys
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import Agent
-from pykis.websocket import (
+from kis_agent import Agent
+from kis_agent.websocket import (
     ClientType,
     EventType,
     WebSocketClientBuilder,

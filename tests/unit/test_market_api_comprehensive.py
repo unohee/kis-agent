@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from pykis.stock.market_api import StockMarketAPI
+from kis_agent.stock.market_api import StockMarketAPI
 
 
 class TestGetFluctuationRank:

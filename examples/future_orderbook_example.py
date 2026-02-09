@@ -12,7 +12,7 @@ import sys
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pykis import Agent
+from kis_agent import Agent
 
 
 def print_orderbook_analysis(orderbook_data, title="호가창 분석"):

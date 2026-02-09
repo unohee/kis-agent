@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pykis.futures.code_generator import (
+from kis_agent.futures.code_generator import (
     FuturesCodeGenerator,
     generate_call_option,
     generate_current_futures,

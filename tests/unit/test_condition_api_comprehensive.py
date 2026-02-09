@@ -10,7 +10,7 @@ import logging
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 
-from pykis.stock.condition import ConditionAPI, get_condition_stocks_dict
+from kis_agent.stock.condition import ConditionAPI, get_condition_stocks_dict
 
 
 class TestConditionAPI(unittest.TestCase):

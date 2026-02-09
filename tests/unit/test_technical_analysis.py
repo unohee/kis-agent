@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pykis.core.technical_analysis import TechnicalAnalysisMixin
+from kis_agent.core.technical_analysis import TechnicalAnalysisMixin
 
 
 class MockAgent(TechnicalAnalysisMixin):

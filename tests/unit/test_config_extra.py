@@ -22,7 +22,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.config import KISConfig
+from kis_agent.core.config import KISConfig
 
 
 class TestKISConfigExtra(unittest.TestCase):

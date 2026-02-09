@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 # 테스트 대상 import
-from pykis.core.exceptions import (
+from kis_agent.core.exceptions import (
     APIException,
     AuthenticationException,
     DataProcessingException,
@@ -228,7 +228,7 @@ class TestIntegrationWithStockAPI:
 
     def test_stock_api_validation(self, mock_client, mock_account):
         """StockAPI 입력 검증 테스트"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         api = StockAPI(mock_client, mock_account)
 
@@ -246,7 +246,7 @@ class TestIntegrationWithStockAPI:
 
     def test_stock_api_network_error(self, mock_client, mock_account, caplog):
         """네트워크 오류 처리 테스트"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         api = StockAPI(mock_client, mock_account)
 
@@ -261,7 +261,7 @@ class TestIntegrationWithStockAPI:
 
     def test_stock_api_response_validation(self, mock_client, mock_account):
         """API 응답 검증 테스트"""
-        from pykis.stock.api_improved import StockAPI
+        from kis_agent.stock.api_improved import StockAPI
 
         api = StockAPI(mock_client, mock_account)
 

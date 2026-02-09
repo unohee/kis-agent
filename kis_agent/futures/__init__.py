@@ -40,7 +40,7 @@ class Futures(BaseAPI):
         code (FuturesCodeGenerator): 종목코드 생성기
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>>
         >>> agent = Agent(
         ...     app_key="...",

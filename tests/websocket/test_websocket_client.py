@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from pykis import Agent
-from pykis.websocket.client import KisWebSocket
+from kis_agent import Agent
+from kis_agent.websocket.client import KisWebSocket
 
 
 @pytest.fixture
@@ -243,7 +243,7 @@ def test_websocket_data_processing_with_new_features(agent):
 if __name__ == "__main__":
 
     async def run_live_test():
-        from pykis import Agent
+        from kis_agent import Agent
 
         try:
             agent = Agent()

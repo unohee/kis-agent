@@ -9,12 +9,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import pykis.core.agent  # noqa: F401
+import kis_agent.core.agent  # noqa: F401
 
 
 def get_agent_module():
     """agent 모듈을 sys.modules에서 가져옵니다."""
-    return sys.modules["pykis.core.agent"]
+    return sys.modules["kis_agent.core.agent"]
 
 
 class MockKISClient:

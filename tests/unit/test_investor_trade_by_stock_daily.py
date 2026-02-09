@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.client import KISClient
-from pykis.stock.investor_api import StockInvestorAPI
+from kis_agent.core.client import KISClient
+from kis_agent.stock.investor_api import StockInvestorAPI
 
 # 실제 API 응답 구조를 반영한 Mock 데이터
 MOCK_RESPONSE_SUCCESS = {
@@ -267,7 +267,7 @@ class TestInvestorTradeByStockDailyFacade(unittest.TestCase):
 
     def setUp(self):
         """테스트 설정"""
-        from pykis.stock.api_facade import StockAPI
+        from kis_agent.stock.api_facade import StockAPI
 
         self.mock_client = Mock(spec=KISClient)
 

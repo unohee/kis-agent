@@ -10,8 +10,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-from pykis.core.agent import Agent
-from pykis.core.config import KISConfig as Config
+from kis_agent.core.agent import Agent
+from kis_agent.core.config import KISConfig as Config
 
 # 로깅 설정
 logging.basicConfig(

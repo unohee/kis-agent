@@ -51,7 +51,7 @@ class OverseasRankingAPI(BaseAPI):
         - "9": 1년
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>> agent = Agent(...)
         >>> # 나스닥 거래량 순위 조회
         >>> result = agent.overseas.trade_volume_ranking("NAS")

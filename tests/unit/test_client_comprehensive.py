@@ -14,12 +14,12 @@ import pytest
 import requests
 
 # client 모듈을 명시적으로 import
-import pykis.core.client  # noqa: F401
+import kis_agent.core.client  # noqa: F401
 
 
 def get_client_module():
     """client 모듈을 sys.modules에서 가져옵니다."""
-    return sys.modules["pykis.core.client"]
+    return sys.modules["kis_agent.core.client"]
 
 
 class TestKISClientInit:
@@ -28,7 +28,7 @@ class TestKISClientInit:
     def test_init_with_config_object_as_svr(self):
         """svr 위치에 KISConfig 객체가 전달될 때 처리 (L194-196)"""
         client_module = get_client_module()
-        from pykis.core.config import KISConfig
+        from kis_agent.core.config import KISConfig
 
         # KISConfig의 서브클래스로 mock을 생성 (isinstance 체크를 통과하기 위해)
         class MockKISConfig(KISConfig):

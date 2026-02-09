@@ -314,7 +314,7 @@ def main():
             print("Please set: KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO")
             sys.exit(1)
 
-        from pykis import Agent
+        from kis_agent import Agent
 
         agent = Agent(
             app_key=app_key,

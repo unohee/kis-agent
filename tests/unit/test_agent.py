@@ -19,8 +19,8 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
-from pykis import Agent
-from pykis.core.client import KISClient
+from kis_agent import Agent
+from kis_agent.core.client import KISClient
 
 
 class TestAgent(unittest.TestCase):

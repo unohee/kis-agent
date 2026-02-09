@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from pykis.websocket.ws_agent import Subscription, SubscriptionType, WSAgent
+from kis_agent.websocket.ws_agent import Subscription, SubscriptionType, WSAgent
 
 
 class TestWSAgent:

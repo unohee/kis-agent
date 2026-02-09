@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pykis import Agent
+from kis_agent import Agent
 
 # src 디렉토리를 파이썬 경로에 추가하여 패키지를 임포트합니다.
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -17,7 +17,7 @@ SRC_DIR = os.path.join(ROOT_DIR, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from pykis.core.config import KISConfig
+from kis_agent.core.config import KISConfig
 
 
 @pytest.fixture

@@ -11,7 +11,7 @@ from datetime import datetime
 
 import pytest
 
-from pykis.stock.api import get_kospi200_futures_code
+from kis_agent.stock.api import get_kospi200_futures_code
 
 
 class TestGetKospi200FuturesCode:

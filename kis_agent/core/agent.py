@@ -51,7 +51,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
     - 멀티스레드 안전성 보장
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>> agent = Agent(
         ...     app_key="YOUR_APP_KEY",
         ...     app_secret="YOUR_APP_SECRET",
@@ -69,7 +69,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
         >>> result = agent.order_stock_cash("buy", "005930", "00", "1", "70000")
         >>>
         >>> # Excel 거래 보고서 생성
-        >>> from pykis.utils.trading_report import generate_trading_report
+        >>> from kis_agent.utils.trading_report import generate_trading_report
         >>> report = generate_trading_report(agent.client, account_info, "20250101", "20250131")
     """
 
@@ -267,7 +267,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
             OverseasStockAPI: 해외주식 API 파사드
 
         Example:
-            >>> from pykis import Agent
+            >>> from kis_agent import Agent
             >>> agent = Agent(...)
             >>>
             >>> # 시세 조회
@@ -297,7 +297,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
             Futures: 선물옵션 API 파사드
 
         Example:
-            >>> from pykis import Agent
+            >>> from kis_agent import Agent
             >>> agent = Agent(
             ...     app_key="...",
             ...     app_secret="...",
@@ -350,7 +350,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
             OverseasFutures: 해외선물옵션 API 파사드
 
         Example:
-            >>> from pykis import Agent
+            >>> from kis_agent import Agent
             >>> agent = Agent(
             ...     app_key="...",
             ...     app_secret="...",

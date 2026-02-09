@@ -3,7 +3,7 @@ agent_stock.py - 종목 단위 시세 조회 및 주문 전용 모듈 (레거시
 
 DEPRECATION NOTICE:
 - 이 파일의 `StockAPI`는 레거시 호환성을 위해 유지됩니다.
-- 신규 코드에서는 `from pykis.stock import StockAPI`를 사용하세요.
+- 신규 코드에서는 `from kis_agent.stock import StockAPI`를 사용하세요.
 - 실제 구현은 api_facade.py와 하위 API 모듈에 있습니다.
 
 Created: 2026-01-03
@@ -34,7 +34,7 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
         str: KOSPI200 선물 종목코드 (6자리, 예: "101W09")
 
     Example:
-        >>> from pykis.stock.api import get_kospi200_futures_code
+        >>> from kis_agent.stock.api import get_kospi200_futures_code
         >>> from datetime import datetime
         >>>
         >>> # 현재 활성 선물 코드
@@ -95,7 +95,7 @@ class StockAPI(BaseAPI):
 
     DEPRECATION NOTICE:
     이 클래스는 더 이상 직접 사용하지 마세요.
-    대신 `from pykis.stock import StockAPI`를 사용하세요.
+    대신 `from kis_agent.stock import StockAPI`를 사용하세요.
 
     이 클래스는 api_facade.StockAPI와 하위 API 모듈들로 위임합니다.
     """
@@ -127,7 +127,7 @@ class StockAPI(BaseAPI):
 
         logger.warning(
             "DEPRECATION: pykis.stock.api.StockAPI는 레거시입니다. "
-            "from pykis.stock import StockAPI를 사용하세요."
+            "from kis_agent.stock import StockAPI를 사용하세요."
         )
 
     def __getattr__(self, name: str) -> Any:
@@ -150,7 +150,7 @@ class StockAPI(BaseAPI):
 
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'. "
-            f"This is a legacy class. Use 'from pykis.stock import StockAPI' instead."
+            f"This is a legacy class. Use 'from kis_agent.stock import StockAPI' instead."
         )
 
     # ===== 주문 관련 메서드 - AccountAPI로 이동됨 =====

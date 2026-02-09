@@ -27,7 +27,7 @@ from unittest.mock import MagicMock, patch
 
 import requests
 
-from pykis.core.auth import (
+from kis_agent.core.auth import (
     APIResp,
     _get_token_path_for_app_key,
     auth,
@@ -41,7 +41,7 @@ from pykis.core.auth import (
     save_token,
     set_order_hash_key,
 )
-from pykis.core.config import KISConfig
+from kis_agent.core.config import KISConfig
 
 
 class TestAuth(unittest.TestCase):

@@ -28,8 +28,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pykis.core.client import API_ENDPOINTS
-from pykis.stock.index_api import StockIndexAPI
+from kis_agent.core.client import API_ENDPOINTS
+from kis_agent.stock.index_api import StockIndexAPI
 
 
 class TestStockIndexAPI(unittest.TestCase):

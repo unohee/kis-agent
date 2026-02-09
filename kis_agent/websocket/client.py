@@ -42,7 +42,7 @@ class KisWebSocket:
         warnings.warn(
             "KisWebSocket은 deprecated되었습니다. "
             "WSAgent 또는 WSAgentWithStore를 사용하세요. "
-            "마이그레이션 가이드: from pykis.websocket import WSAgentWithStore",
+            "마이그레이션 가이드: from kis_agent.websocket import WSAgentWithStore",
             DeprecationWarning,
             stacklevel=2,
         )

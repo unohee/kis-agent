@@ -9,7 +9,7 @@ import os
 
 import pytest
 
-from pykis import Agent
+from kis_agent import Agent
 
 # 로깅 설정
 logging.basicConfig(

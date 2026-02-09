@@ -21,7 +21,7 @@ class OverseasAccountAPI(BaseAPI):
         account (Dict): 계좌 정보 (CANO, ACNT_PRDT_CD)
 
     Example:
-        >>> from pykis import Agent
+        >>> from kis_agent import Agent
         >>> agent = Agent(...)
         >>> balance = agent.overseas.get_balance()
         >>> for item in balance['output1']:

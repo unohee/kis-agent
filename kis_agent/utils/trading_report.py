@@ -383,7 +383,7 @@ def generate_trading_report(
         생성된 Excel 파일 경로
 
     Example:
-        >>> from pykis.utils.trading_report import generate_trading_report
+        >>> from kis_agent.utils.trading_report import generate_trading_report
         >>>
         >>> # 전체 거래내역
         >>> file_path = generate_trading_report(

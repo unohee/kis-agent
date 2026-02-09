@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pykis.stock.investor_api import StockInvestorAPI
+from kis_agent.stock.investor_api import StockInvestorAPI
 
 
 class TestGetStockInvestor:
