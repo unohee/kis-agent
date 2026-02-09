@@ -229,105 +229,19 @@ class TestGetStockMember(TestStockAPIImproved):
 class TestGetForeignNetBuy(TestStockAPIImproved):
     """get_foreign_net_buy 메서드 테스트"""
 
-    @pytest.mark.skip(
-        reason="API_ENDPOINTS에 INQUIRE_DAILY_TRADE 미정의 - deprecated 모듈"
-    )
-    def test_get_foreign_net_buy_success(self, stock_api, mock_client):
-        """정상 외국인 순매수 조회"""
-        mock_client.make_request.return_value = {
-            "rt_cd": "0",
-            "output": [
-                {
-                    "stck_bsop_date": "20231215",
-                    "frgn_ntby_qty": "5000",
-                    "frgn_ntby_tr_pbmn": "350000000",
-                    "frgn_hldn_qty": "1000000",
-                    "frgn_hldn_rate": "12.5",
-                }
-            ],
-        }
-
-        net_buy, details = stock_api.get_foreign_net_buy("005930", "20231215")
-
-        assert net_buy == 5000
-        assert details["frgn_ntby_qty"] == 5000
-        assert details["frgn_hldn_rate"] == 12.5
-
-    @pytest.mark.skip(
-        reason="API_ENDPOINTS에 INQUIRE_DAILY_TRADE 미정의 - deprecated 모듈"
-    )
-    def test_get_foreign_net_buy_no_date(self, stock_api, mock_client):
-        """날짜 미지정시 오늘 날짜 사용"""
-        mock_client.make_request.return_value = {
-            "rt_cd": "0",
-            "output": [{"frgn_ntby_qty": "1000"}],
-        }
-
-        net_buy, details = stock_api.get_foreign_net_buy("005930")
-
-        assert net_buy == 1000
-        # 오늘 날짜로 호출되었는지 확인
-        call_args = mock_client.make_request.call_args
-        params = call_args[1]["params"]
-        today = datetime.now().strftime("%Y%m%d")
-        assert params["fid_input_date_1"] == today
-
     def test_get_foreign_net_buy_invalid_date_format(self, stock_api):
         """잘못된 날짜 형식"""
         with pytest.raises(ValidationException):
-            stock_api.get_foreign_net_buy("005930", "2023-12-15")  # 잘못된 형식
-
-    @pytest.mark.skip(
-        reason="API_ENDPOINTS에 INQUIRE_DAILY_TRADE 미정의 - deprecated 모듈"
-    )
-    def test_get_foreign_net_buy_empty_output(self, stock_api, mock_client):
-        """데이터 없음"""
-        mock_client.make_request.return_value = {
-            "rt_cd": "0",
-            "output": [],
-        }
-
-        net_buy, details = stock_api.get_foreign_net_buy("005930")
-
-        assert net_buy == 0
-        assert details["message"] == "데이터 없음"
+            stock_api.get_foreign_net_buy("005930", "2023-12-15")
 
 
 class TestGetHolidays(TestStockAPIImproved):
     """get_holidays 메서드 테스트"""
 
-    @pytest.mark.skip(reason="API_ENDPOINTS에 INQUIRE_HOLIDAY 미정의 - deprecated 모듈")
-    def test_get_holidays_success(self, stock_api, mock_client):
-        """정상 휴장일 조회"""
-        mock_client.make_request.return_value = {
-            "rt_cd": "0",
-            "output": [
-                {"bass_dt": "20231225", "bzdy_yn": "N", "rmrk": "성탄절"},
-                {"bass_dt": "20240101", "bzdy_yn": "N", "rmrk": "신정"},
-            ],
-        }
-
-        result = stock_api.get_holidays("2023")
-
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 2
-
-    @pytest.mark.skip(reason="API_ENDPOINTS에 INQUIRE_HOLIDAY 미정의 - deprecated 모듈")
-    def test_get_holidays_no_year(self, stock_api, mock_client):
-        """연도 미지정시 현재 연도 사용"""
-        mock_client.make_request.return_value = {
-            "rt_cd": "0",
-            "output": [],
-        }
-
-        result = stock_api.get_holidays()
-
-        assert isinstance(result, pd.DataFrame)
-
     def test_get_holidays_invalid_year(self, stock_api):
         """잘못된 연도 형식"""
         with pytest.raises(ValidationException):
-            stock_api.get_holidays("23")  # 2자리
+            stock_api.get_holidays("23")
 
     def test_get_holidays_non_numeric_year(self, stock_api):
         """숫자가 아닌 연도"""

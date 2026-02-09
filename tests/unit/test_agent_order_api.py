@@ -162,26 +162,6 @@ class TestAgentOrderAPI:
             exchange="KRX",
         )
 
-    @pytest.mark.skip("API 리팩토링으로 stock_api.inquire_psbl_order 없음")
-    def test_inquire_order_psbl_success(self, mock_agent):
-        """Agent를 통한 매수가능조회 성공 테스트"""
-        pass
-
-    @pytest.mark.skip("API 리팩토링으로 stock_api.inquire_psbl_order 없음")
-    def test_inquire_order_psbl_with_options(self, mock_agent):
-        """Agent를 통한 매수가능조회 옵션 파라미터 테스트"""
-        pass
-
-    @pytest.mark.skip("API 리팩토링으로 stock_api.inquire_credit_psamount 없음")
-    def test_inquire_credit_order_psbl_success(self, mock_agent):
-        """Agent를 통한 신용매수가능조회 성공 테스트"""
-        pass
-
-    @pytest.mark.skip("API 리팩토링으로 stock_api.inquire_credit_psamount 없음")
-    def test_inquire_credit_order_psbl_with_options(self, mock_agent):
-        """Agent를 통한 신용매수가능조회 옵션 파라미터 테스트"""
-        pass
-
     def test_stock_api_error_propagation(self, mock_agent):
         """AccountAPI 에러가 Agent로 전파되는지 테스트"""
         # Given
