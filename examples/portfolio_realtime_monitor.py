@@ -401,13 +401,9 @@ class PortfolioRealtimeMonitor:
 
             stock_code = program_data[0]
 
-            # 프로그램매매 비율 계산 (실제 필드명에 따라 조정 필요)
+            # 프로그램매매 데이터는 별도 처리 필요
             if stock_code in self.positions:
-                self.positions[stock_code]
-                # TODO: 실제 프로그램매매 필드에 맞게 조정
-                # position.program_buy_ratio = float(program_data[...])
-                # position.program_sell_ratio = float(program_data[...])
-                # position.program_net_ratio = position.program_buy_ratio - position.program_sell_ratio
+                pass
 
         except Exception as e:
             logging.error(f" 프로그램매매 데이터 처리 실패: {e}")
