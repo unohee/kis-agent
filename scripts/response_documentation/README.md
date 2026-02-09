@@ -76,8 +76,6 @@ PYKIS_TO_EXAMPLES_MAPPING = {
 3. 스크립트 재실행
 4. 생성된 TypedDict를 `pykis/responses/`에 통합
 
-## 📝 작성 정보
+## 📝 버전 정보
 
-- **작성일**: 2025-10-30
-- **작성자**: Claude Code (AI Agent)
 - **버전**: PyKIS v1.3.1

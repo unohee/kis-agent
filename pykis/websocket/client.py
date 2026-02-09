@@ -249,9 +249,6 @@ class KisWebSocket:
         current_minute = datetime.now().replace(second=0, microsecond=0)
         # 완료 캔들뿐만 아니라 현재 진행중인 캔들도 포함
         selected_candles = [candle for candle in candles if candle[0] <= current_minute]
-        # if len(selected_candles) < period + 1:
-        #     print(f"[DEBUG] {stock_code}: 부족한 분봉 데이터, {len(selected_candles)}개 있음, 필요: {period+1}")
-        #     return None
         prices = [candle[4] for candle in selected_candles]  # candle[4]는 close 가격
         gains, losses = [], []
         for i in range(1, len(prices)):

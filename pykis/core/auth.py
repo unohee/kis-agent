@@ -146,7 +146,6 @@ def save_token(
             hashlib.sha256(app_key.encode()).hexdigest()[:16] if app_key else ""
         ),
     }
-    # print('Save token date: ', valid_date)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(token_data, f, ensure_ascii=False, indent=4)
 
@@ -262,7 +261,6 @@ def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str,
         # 현재일자,시간
         now_dt = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
 
-        # print('expire dt: ', exp_dt, ' vs now dt:', now_dt)
         # 저장된 토큰 만료일자 체크 (만료일시 > 현재일시 인경우 보관 토큰 리턴)
         if exp_dt > now_dt:
             _logger.debug(f"파일에서 유효한 토큰 발견: 만료={exp_dt}")
@@ -287,10 +285,8 @@ def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str,
                 "access_token_token_expired": exp_dt,
             }
         else:
-            # print('Need new token: ', tkg_tmp['valid-date'])
             return None
     except Exception:
-        # print('read token error: ', e)
         return None
 
 
@@ -317,7 +313,6 @@ def _setTRENV(cfg):
         ],  # 실전 도메인 (https://openapi.koreainvestment.com:9443)
     }  # 모의 도메인 (https://openapivts.koreainvestment.com:29443)
 
-    # print(cfg['my_app'])
     global _TRENV
     _TRENV = nt1(**d)
 
@@ -535,8 +530,6 @@ def getTREnv() -> Any:
     Returns:
         Any: 거래 환경 설정 정보
     """
-    # 디버깅용: 반환 객체 타입과 내용 출력 - 디버그 메시지 비활성화
-    # print(f"[디버그] getTREnv() 반환 타입: {type(_TRENV)}, 값: {_TRENV}")
     return _TRENV
 
 

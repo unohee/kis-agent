@@ -124,7 +124,7 @@ jobs:
             echo "" >> coverage_report.md
             echo "---" >> coverage_report.md
             echo "" >> coverage_report.md
-            echo "💡 **Tip**: Run \`/boost-coverage ${{ env.TARGET_COVERAGE }}\` in Claude Code to auto-generate tests for these files." >> coverage_report.md
+            echo "💡 **Tip**: Consider adding tests for these files to improve coverage." >> coverage_report.md
           else
             echo "✅ All files meet the target coverage of ${{ env.TARGET_COVERAGE }}%!" >> coverage_report.md
           fi
@@ -176,53 +176,3 @@ jobs:
             coverage_report.md
             low_coverage_files.txt
 
-  suggest-tests:
-    needs: coverage-analysis
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      id-token: write
-    env:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report
-
-      - name: Suggest tests with Claude
-        if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN != '' }}
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            CONTEXT: Test Coverage Improvement Suggestions
-            REPO: ${{ github.repository }}
-            PR: #${{ github.event.pull_request.number }}
-
-            I need you to analyze the coverage report and suggest unit tests for files with low coverage.
-
-            1. Read the file `low_coverage_files.txt` to see which files need tests
-            2. For the top 3 files with lowest coverage:
-               - Read the source file to understand the functions
-               - Generate example unit test code
-               - Focus on the missing lines indicated
-
-            3. Post a helpful comment on the PR with:
-               - Brief analysis of what needs testing
-               - Example test code snippets (use pytest style)
-               - Tips for improving coverage
-
-            Use `gh pr comment ${{ github.event.pull_request.number }}` to post your suggestions.
-
-            Keep suggestions practical and focused. Follow the existing test patterns in `tests/unit/`.
-
-          claude_args: '--allowed-tools "Read,Bash(gh pr comment:*),Bash(cat:*)"'
