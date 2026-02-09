@@ -223,13 +223,6 @@ class TestAdditionalStockInfo:
         if isinstance(result, pd.DataFrame):
             assert len(result) > 0, "주식 기본 정보 DataFrame이 비어있음"
 
-    # API 파라미터 문제로 주석 처리
-    # def test_get_market_rankings(self, agent):
-    #     """거래량 순위 조회 테스트"""
-    #     result = agent.get_market_rankings(5000000)
-    #     is_valid, msg = validate_api_response(result)
-    #     assert is_valid, f"거래량 순위 조회 실패: {msg}"
-
 
 class TestInvestorInfo:
     """투자자별 매매동향 테스트"""

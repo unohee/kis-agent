@@ -169,5 +169,4 @@ def display_ttl_summary():
 if __name__ == "__main__":
     test_cache_ttl_configuration()
     test_cache_expiry_behavior()
-    # test_cache_performance_with_different_ttls()  #
     display_ttl_summary()
