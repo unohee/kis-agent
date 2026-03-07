@@ -89,6 +89,97 @@ class TestOverseasPriceAPIGetPrice(unittest.TestCase):
         self.mock_client.make_request.assert_not_called()
 
 
+class TestOverseasPriceAPIGetPriceInvalidSymbol(unittest.TestCase):
+    """OverseasPriceAPI - 잘못된 종목코드 테스트"""
+
+    def setUp(self):
+        self.mock_client = Mock(spec=KISClient)
+        self.mock_client.make_request = Mock()
+        self.api = OverseasPriceAPI(
+            client=self.mock_client, enable_cache=False, _from_agent=True
+        )
+
+    def test_get_price_invalid_symbol_returns_error(self):
+        """존재하지 않는 종목코드 조회 시 API 에러 응답"""
+        error_response = {
+            "rt_cd": "1",
+            "msg_cd": "MCA00000",
+            "msg1": "종목코드를 확인하세요",
+        }
+        self.mock_client.make_request.return_value = error_response
+
+        result = self.api.get_price("NAS", "INVALIDCODE")
+
+        self.assertEqual(result["rt_cd"], "1")
+        self.mock_client.make_request.assert_called_once()
+
+    def test_get_price_empty_symbol(self):
+        """빈 종목코드 조회"""
+        error_response = {
+            "rt_cd": "1",
+            "msg_cd": "MCA00000",
+            "msg1": "종목코드를 입력하세요",
+        }
+        self.mock_client.make_request.return_value = error_response
+
+        result = self.api.get_price("NAS", "")
+
+        self.assertEqual(result["rt_cd"], "1")
+
+
+class TestOverseasPriceAPIGetDailyPriceDateRange(unittest.TestCase):
+    """OverseasPriceAPI.get_daily_price() 기간 조회 테스트"""
+
+    def setUp(self):
+        self.mock_client = Mock(spec=KISClient)
+        self.mock_client.make_request = Mock()
+        self.api = OverseasPriceAPI(
+            client=self.mock_client, enable_cache=False, _from_agent=True
+        )
+
+    def test_get_daily_price_date_range(self):
+        """기간별 일봉 조회 (bymd 지정)"""
+        expected_response = {
+            "rt_cd": "0",
+            "output1": {"rsym": "DNASAAPL", "zdiv": "2"},
+            "output2": [
+                {"xymd": "20231201", "clos": "190.00", "open": "189.00"},
+                {"xymd": "20231130", "clos": "189.50", "open": "188.00"},
+                {"xymd": "20231129", "clos": "188.00", "open": "187.50"},
+            ],
+        }
+        self.mock_client.make_request.return_value = expected_response
+
+        result = self.api.get_daily_price("NAS", "AAPL", bymd="20231201")
+
+        self.assertEqual(result["rt_cd"], "0")
+        self.assertEqual(len(result["output2"]), 3)
+        call_kwargs = self.mock_client.make_request.call_args[1]
+        self.assertEqual(call_kwargs["params"]["BYMD"], "20231201")
+        self.assertEqual(call_kwargs["params"]["EXCD"], "NAS")
+        self.assertEqual(call_kwargs["params"]["SYMB"], "AAPL")
+
+    def test_get_daily_price_monthly(self):
+        """월봉 조회"""
+        expected_response = {"rt_cd": "0", "output1": {}, "output2": []}
+        self.mock_client.make_request.return_value = expected_response
+
+        result = self.api.get_daily_price("NAS", "AAPL", gubn="2")
+
+        call_kwargs = self.mock_client.make_request.call_args[1]
+        self.assertEqual(call_kwargs["params"]["GUBN"], "2")
+
+    def test_get_daily_price_adjusted(self):
+        """수정주가 반영 조회"""
+        expected_response = {"rt_cd": "0", "output1": {}, "output2": []}
+        self.mock_client.make_request.return_value = expected_response
+
+        result = self.api.get_daily_price("NAS", "AAPL", modp="1")
+
+        call_kwargs = self.mock_client.make_request.call_args[1]
+        self.assertEqual(call_kwargs["params"]["MODP"], "1")
+
+
 class TestOverseasPriceAPIGetPriceDetail(unittest.TestCase):
     """OverseasPriceAPI.get_price_detail() 테스트"""
 
