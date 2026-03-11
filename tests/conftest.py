@@ -41,7 +41,7 @@ def patch_all_apis():
     이 fixture는 test_agent_unit_comprehensive.py에서 추출되어 전역 fixture로 승격되었습니다.
 
     Args:
-        agent_module: pykis.core.agent 모듈
+        agent_module: kis_agent.core.agent 모듈
         mocks: 특정 API에 대한 mock 객체를 지정하는 딕셔너리 (선택사항)
                예: {"StockAPI": mock_stock_api}
 

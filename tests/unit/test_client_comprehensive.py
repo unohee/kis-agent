@@ -552,14 +552,15 @@ class TestMakeRequest:
                         }
                     return mock_response
 
-                with patch("requests.request", side_effect=side_effect):
-                    with patch("time.sleep"):  # 대기 시간 건너뛰기
-                        client = client_module.KISClient(
-                            enable_rate_limiter=False, verbose=False
-                        )
-                        result = client.make_request("/test", "TR", {}, retries=3)
+                with patch("requests.request", side_effect=side_effect), patch(
+                    "time.sleep"
+                ):  # 대기 시간 건너뛰기
+                    client = client_module.KISClient(
+                        enable_rate_limiter=False, verbose=False
+                    )
+                    result = client.make_request("/test", "TR", {}, retries=3)
 
-                        assert result["rt_cd"] == "0"
+                    assert result["rt_cd"] == "0"
 
     def test_make_request_http_error(self):
         """HTTP 오류 응답 (L513-547)"""
@@ -942,22 +943,21 @@ class TestGetWsApprovalKey:
                 with patch.dict(
                     "os.environ",
                     {"KIS_APP_KEY": "ENV_KEY", "KIS_APP_SECRET": "ENV_SECRET"},
-                ):
-                    with patch("requests.post") as mock_post:
-                        mock_response = MagicMock()
-                        mock_response.status_code = 200
-                        mock_response.json.return_value = {"approval_key": "ws_key"}
-                        mock_post.return_value = mock_response
+                ), patch("requests.post") as mock_post:
+                    mock_response = MagicMock()
+                    mock_response.status_code = 200
+                    mock_response.json.return_value = {"approval_key": "ws_key"}
+                    mock_post.return_value = mock_response
 
-                        # config 없이 생성
-                        client = client_module.KISClient(config=None, verbose=False)
-                        result = client.get_ws_approval_key()
+                    # config 없이 생성
+                    client = client_module.KISClient(config=None, verbose=False)
+                    result = client.get_ws_approval_key()
 
-                        # 환경 변수 값 사용 확인
-                        call_kwargs = mock_post.call_args
-                        payload = call_kwargs.kwargs.get("json", {})
-                        assert payload.get("appkey") == "ENV_KEY"
-                        assert payload.get("secretkey") == "ENV_SECRET"
+                    # 환경 변수 값 사용 확인
+                    call_kwargs = mock_post.call_args
+                    payload = call_kwargs.kwargs.get("json", {})
+                    assert payload.get("appkey") == "ENV_KEY"
+                    assert payload.get("secretkey") == "ENV_SECRET"
 
 
 class TestRateLimiterIntegration:

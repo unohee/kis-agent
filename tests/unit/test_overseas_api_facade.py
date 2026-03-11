@@ -20,7 +20,7 @@ class TestOverseasStockAPIFacade(unittest.TestCase):
         self.mock_client = Mock(spec=KISClient)
         self.account_info = {"account_no": "12345", "account_code": "01"}
 
-        with patch("pykis.overseas.api_facade.OverseasPriceAPI"):
+        with patch("kis_agent.overseas.api_facade.OverseasPriceAPI"):
             self.api = OverseasStockAPI(
                 client=self.mock_client,
                 account_info=self.account_info,
@@ -36,7 +36,7 @@ class TestOverseasStockAPIFacade(unittest.TestCase):
 
     def test_init_without_account_info(self):
         """계좌 정보 없이 초기화"""
-        with patch("pykis.overseas.api_facade.OverseasPriceAPI"):
+        with patch("kis_agent.overseas.api_facade.OverseasPriceAPI"):
             api = OverseasStockAPI(client=self.mock_client, _from_agent=True)
             self.assertEqual(api.client, self.mock_client)
             self.assertIsNone(api.account)
@@ -68,7 +68,7 @@ class TestOverseasStockAPIDelegation(unittest.TestCase):
         self.mock_client = Mock(spec=KISClient)
         self.account_info = {"account_no": "12345", "account_code": "01"}
 
-        with patch("pykis.overseas.api_facade.OverseasPriceAPI"):
+        with patch("kis_agent.overseas.api_facade.OverseasPriceAPI"):
             self.api = OverseasStockAPI(
                 client=self.mock_client,
                 account_info=self.account_info,
@@ -192,7 +192,7 @@ class TestOverseasStockAPIUtilities(unittest.TestCase):
     def setUp(self):
         self.mock_client = Mock(spec=KISClient)
 
-        with patch("pykis.overseas.api_facade.OverseasPriceAPI"):
+        with patch("kis_agent.overseas.api_facade.OverseasPriceAPI"):
             self.api = OverseasStockAPI(
                 client=self.mock_client,
                 enable_cache=False,
@@ -252,7 +252,7 @@ class TestOverseasStockAPIDynamicDelegation(unittest.TestCase):
     def setUp(self):
         self.mock_client = Mock(spec=KISClient)
 
-        with patch("pykis.overseas.api_facade.OverseasPriceAPI") as MockPriceAPI:
+        with patch("kis_agent.overseas.api_facade.OverseasPriceAPI") as MockPriceAPI:
             # spec을 설정하여 존재하지 않는 속성 접근 시 AttributeError 발생
             self.mock_price_api = Mock()
             MockPriceAPI.return_value = self.mock_price_api

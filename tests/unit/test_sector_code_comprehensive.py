@@ -97,9 +97,9 @@ class TestParseSectorCodeMst(unittest.TestCase):
 class TestDownloadSectorCodeMst(unittest.TestCase):
     """download_sector_code_mst 함수 테스트"""
 
-    @patch("pykis.utils.sector_code.urllib.request.urlretrieve")
-    @patch("pykis.utils.sector_code.zipfile.ZipFile")
-    @patch("pykis.utils.sector_code.os.remove")
+    @patch("kis_agent.utils.sector_code.urllib.request.urlretrieve")
+    @patch("kis_agent.utils.sector_code.zipfile.ZipFile")
+    @patch("kis_agent.utils.sector_code.os.remove")
     def test_download_sector_code_mst_success(
         self, mock_remove, mock_zipfile, mock_urlretrieve
     ):
@@ -117,9 +117,9 @@ class TestDownloadSectorCodeMst(unittest.TestCase):
         mock_urlretrieve.assert_called_once()
         mock_zip_instance.extractall.assert_called_once_with(download_dir)
 
-    @patch("pykis.utils.sector_code.urllib.request.urlretrieve")
-    @patch("pykis.utils.sector_code.zipfile.ZipFile")
-    @patch("pykis.utils.sector_code.os.remove")
+    @patch("kis_agent.utils.sector_code.urllib.request.urlretrieve")
+    @patch("kis_agent.utils.sector_code.zipfile.ZipFile")
+    @patch("kis_agent.utils.sector_code.os.remove")
     def test_download_sector_code_mst_default_dir(
         self, mock_remove, mock_zipfile, mock_urlretrieve
     ):
@@ -139,9 +139,9 @@ class TestDownloadSectorCodeMst(unittest.TestCase):
 class TestGetSectorCodes(unittest.TestCase):
     """get_sector_codes 함수 테스트"""
 
-    @patch("pykis.utils.sector_code.download_sector_code_mst")
-    @patch("pykis.utils.sector_code.parse_sector_code_mst")
-    @patch("pykis.utils.sector_code.os.remove")
+    @patch("kis_agent.utils.sector_code.download_sector_code_mst")
+    @patch("kis_agent.utils.sector_code.parse_sector_code_mst")
+    @patch("kis_agent.utils.sector_code.os.remove")
     def test_get_sector_codes_as_dataframe(
         self, mock_remove, mock_parse, mock_download
     ):
@@ -165,9 +165,9 @@ class TestGetSectorCodes(unittest.TestCase):
         self.assertIsInstance(result, pd.DataFrame)
         self.assertEqual(len(result), 2)
 
-    @patch("pykis.utils.sector_code.download_sector_code_mst")
-    @patch("pykis.utils.sector_code.parse_sector_code_mst")
-    @patch("pykis.utils.sector_code.os.remove")
+    @patch("kis_agent.utils.sector_code.download_sector_code_mst")
+    @patch("kis_agent.utils.sector_code.parse_sector_code_mst")
+    @patch("kis_agent.utils.sector_code.os.remove")
     def test_get_sector_codes_as_dict(self, mock_remove, mock_parse, mock_download):
         """Dict 형태로 반환 테스트"""
         # Given
@@ -194,7 +194,7 @@ class TestGetSectorCodes(unittest.TestCase):
 class TestGetSectorCodeByMarket(unittest.TestCase):
     """get_sector_code_by_market 함수 테스트"""
 
-    @patch("pykis.utils.sector_code.get_sector_codes")
+    @patch("kis_agent.utils.sector_code.get_sector_codes")
     def test_get_sector_code_by_market_kospi(self, mock_get_codes):
         """코스피 시장 필터링 테스트"""
         # Given
@@ -214,7 +214,7 @@ class TestGetSectorCodeByMarket(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertTrue(all(result["market_div"] == "0"))
 
-    @patch("pykis.utils.sector_code.get_sector_codes")
+    @patch("kis_agent.utils.sector_code.get_sector_codes")
     def test_get_sector_code_by_market_kosdaq(self, mock_get_codes):
         """코스닥 시장 필터링 테스트"""
         # Given
@@ -234,7 +234,7 @@ class TestGetSectorCodeByMarket(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertTrue(all(result["market_div"] == "1"))
 
-    @patch("pykis.utils.sector_code.get_sector_codes")
+    @patch("kis_agent.utils.sector_code.get_sector_codes")
     def test_get_sector_code_by_market_other(self, mock_get_codes):
         """기타 지수 필터링 테스트"""
         # Given
@@ -254,7 +254,7 @@ class TestGetSectorCodeByMarket(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertTrue(all(result["market_div"] == "2"))
 
-    @patch("pykis.utils.sector_code.get_sector_codes")
+    @patch("kis_agent.utils.sector_code.get_sector_codes")
     def test_get_sector_code_by_market_all(self, mock_get_codes):
         """전체 시장 조회 테스트"""
         # Given
@@ -273,7 +273,7 @@ class TestGetSectorCodeByMarket(unittest.TestCase):
         # Then
         self.assertEqual(len(result), 3)
 
-    @patch("pykis.utils.sector_code.get_sector_codes")
+    @patch("kis_agent.utils.sector_code.get_sector_codes")
     def test_get_sector_code_by_market_numeric_code(self, mock_get_codes):
         """숫자 코드로 조회 테스트"""
         # Given
@@ -293,7 +293,7 @@ class TestGetSectorCodeByMarket(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result.iloc[0]["sector_name"], "코스피")
 
-    @patch("pykis.utils.sector_code.get_sector_codes")
+    @patch("kis_agent.utils.sector_code.get_sector_codes")
     def test_get_sector_code_by_market_unknown(self, mock_get_codes):
         """알 수 없는 시장 코드 테스트 (기본값=코스피)"""
         # Given

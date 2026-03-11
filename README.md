@@ -2,6 +2,17 @@
 
 한국투자증권 OpenAPI Python 래퍼 - Korea Investment & Securities Trading API Client
 
+**🎉 PyPI에 공개된 오픈소스 프로젝트입니다!**
+
+```bash
+pip install kis-agent
+```
+
+[![PyPI version](https://badge.fury.io/py/kis-agent.svg)](https://pypi.org/project/kis-agent/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/kis-agent.svg)](https://pypi.org/project/kis-agent/)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## 주요 특징
 
 - **고성능**: 지능형 캐싱으로 API 호출 80-95% 감소
@@ -13,16 +24,15 @@
 - **타입 안정성**: 96개 TypedDict 응답 모델, 100% 타입힌팅
 - **명확한 문서**: 한국투자증권 API 공식 문서와 용어 일치
 
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 ## 설치
+
+[PyPI](https://pypi.org/project/kis-agent/)에서 공개 배포되는 패키지입니다:
 
 ```bash
 pip install kis-agent
 ```
 
-WebSocket 지원이 필요한 경우:
+WebSocket 실시간 데이터 지원이 필요한 경우:
 
 ```bash
 pip install kis-agent[websocket]
@@ -286,5 +296,6 @@ MIT License
 
 ## 링크
 
+- [PyPI Package](https://pypi.org/project/kis-agent/)
 - [한국투자증권 API 포털](https://apiportal.koreainvestment.com)
 - [GitHub Issues](https://github.com/unohee/pykis/issues)

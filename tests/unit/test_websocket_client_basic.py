@@ -171,7 +171,7 @@ class TestKisWebSocketBasic:
         assert ws_client.aes_key is None
         assert ws_client.aes_iv is None
 
-    @patch("pykis.websocket.client.StockAPI")
+    @patch("kis_agent.websocket.client.StockAPI")
     def test_stock_api_initialization(self, mock_stock_api, mock_client, account_info):
         """StockAPI 초기화 테스트"""
         ws_client = KisWebSocket(client=mock_client, account_info=account_info)
