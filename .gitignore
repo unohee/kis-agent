@@ -123,3 +123,6 @@ reports/
 trash/
 *.tmp
 *_bs_detector*.py
+
+# Git worktrees
+worktree/

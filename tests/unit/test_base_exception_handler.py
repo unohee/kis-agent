@@ -34,7 +34,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
         handler = BaseExceptionHandler("CustomLogger")
         self.assertEqual(handler.logger.name, "CustomLogger")
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_log_error_with_exception(self, mock_get_logger):
         """예외와 함께 에러 로깅"""
         mock_logger = Mock()
@@ -49,7 +49,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
             "Test message: Test error", exc_info=True
         )
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_log_error_without_exception(self, mock_get_logger):
         """예외 없이 에러 로깅"""
         mock_logger = Mock()
@@ -61,7 +61,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
 
         mock_logger.error.assert_called_once_with("Test message", exc_info=True)
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_log_error_no_traceback(self, mock_get_logger):
         """traceback 없이 에러 로깅"""
         mock_logger = Mock()
@@ -73,7 +73,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
 
         mock_logger.error.assert_called_once_with("Test message")
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_log_warning_with_exception(self, mock_get_logger):
         """예외와 함께 경고 로깅"""
         mock_logger = Mock()
@@ -86,7 +86,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
 
         mock_logger.warning.assert_called_once_with("Warning message: Test warning")
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_handle_exception_reraise_true(self, mock_get_logger):
         """예외 재발생 처리"""
         mock_logger = Mock()
@@ -100,7 +100,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
 
         mock_logger.error.assert_called_once()
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_handle_exception_reraise_false(self, mock_get_logger):
         """예외 재발생하지 않고 기본값 반환"""
         mock_logger = Mock()
@@ -116,7 +116,7 @@ class TestBaseExceptionHandler(unittest.TestCase):
         self.assertEqual(result, "default")
         mock_logger.error.assert_called_once()
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_handle_exception_different_log_levels(self, mock_get_logger):
         """다양한 로그 레벨 테스트"""
         mock_logger = Mock()
@@ -274,7 +274,7 @@ class TestSafeExecute(unittest.TestCase):
         result = safe_execute(test_func, 1, 2, z=5)
         self.assertEqual(result, 8)
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_safe_execute_exception_reraise(self, mock_get_logger):
         """예외 발생 시 재발생"""
         mock_logger = Mock()
@@ -288,7 +288,7 @@ class TestSafeExecute(unittest.TestCase):
 
         mock_logger.error.assert_called_once()
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_safe_execute_exception_no_reraise(self, mock_get_logger):
         """예외 발생 시 기본값 반환"""
         mock_logger = Mock()
@@ -334,7 +334,7 @@ class TestSafeDict(unittest.TestCase):
         result = self.safe_dict["a"]
         self.assertEqual(result, 1)
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_getitem_missing_key(self, mock_get_logger):
         """존재하지 않는 키 조회"""
         mock_logger = Mock()
@@ -362,7 +362,7 @@ class TestSafeDict(unittest.TestCase):
         result = self.safe_dict.safe_get("missing")
         self.assertIsNone(result)
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_safe_get_no_logging(self, mock_get_logger):
         """safe_get에서 로깅 비활성화"""
         mock_logger = Mock()
@@ -374,7 +374,7 @@ class TestSafeDict(unittest.TestCase):
         self.assertEqual(result, "default")
         mock_logger.debug.assert_not_called()
 
-    @patch("pykis.core.base_exception_handler.logging.getLogger")
+    @patch("kis_agent.core.base_exception_handler.logging.getLogger")
     def test_safe_get_with_logging(self, mock_get_logger):
         """safe_get에서 로깅 활성화"""
         mock_logger = Mock()

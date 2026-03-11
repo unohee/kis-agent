@@ -96,7 +96,9 @@ async def test_websocket_real_connection_with_new_features(agent):
     """
     새로운 기능들을 포함한 실제 웹소켓 연결 테스트 (Mock 사용)
     """
-    with patch("pykis.websocket.client.KisWebSocket.get_approval") as mock_get_approval:
+    with patch(
+        "kis_agent.websocket.client.KisWebSocket.get_approval"
+    ) as mock_get_approval:
         mock_get_approval.return_value = "mock_approval_key_12345"
 
         ws_client = agent.websocket(

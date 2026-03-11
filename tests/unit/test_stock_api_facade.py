@@ -22,9 +22,9 @@ class TestStockAPIFacade(unittest.TestCase):
         self.mock_client = Mock(spec=KISClient)
         self.account_info = {"account_no": "12345", "account_code": "01"}
 
-        with patch("pykis.stock.api_facade.StockPriceAPI"), patch(
-            "pykis.stock.api_facade.StockMarketAPI"
-        ), patch("pykis.stock.api_facade.StockInvestorAPI"):
+        with patch("kis_agent.stock.api_facade.StockPriceAPI"), patch(
+            "kis_agent.stock.api_facade.StockMarketAPI"
+        ), patch("kis_agent.stock.api_facade.StockInvestorAPI"):
             self.api = StockAPI(
                 client=self.mock_client,
                 account_info=self.account_info,
@@ -43,9 +43,9 @@ class TestStockAPIFacade(unittest.TestCase):
 
     def test_init_without_account_info(self):
         """계좌 정보 없이 초기화"""
-        with patch("pykis.stock.api_facade.StockPriceAPI"), patch(
-            "pykis.stock.api_facade.StockMarketAPI"
-        ), patch("pykis.stock.api_facade.StockInvestorAPI"):
+        with patch("kis_agent.stock.api_facade.StockPriceAPI"), patch(
+            "kis_agent.stock.api_facade.StockMarketAPI"
+        ), patch("kis_agent.stock.api_facade.StockInvestorAPI"):
             api = StockAPI(client=self.mock_client)
             self.assertEqual(api.client, self.mock_client)
             self.assertIsNone(api.account)

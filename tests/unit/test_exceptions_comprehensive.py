@@ -250,9 +250,8 @@ class TestApiMethodDecorator:
                 raise ValueError("에러")
 
         obj = PlainClass()
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(APIException):
-                obj.method()
+        with caplog.at_level(logging.ERROR), pytest.raises(APIException):
+            obj.method()
 
         assert "Plain API" in caplog.text
 
@@ -304,9 +303,8 @@ class TestHandleExceptionsDecorator:
         def standalone_function():
             raise ValueError("에러")
 
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(ValueError):
-                standalone_function()
+        with caplog.at_level(logging.ERROR), pytest.raises(ValueError):
+            standalone_function()
 
         assert "함수 테스트" in caplog.text
 
@@ -358,9 +356,8 @@ class TestSafeExecute:
         def failing():
             raise RuntimeError("실행 실패")
 
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(RuntimeError):
-                safe_execute(failing, context="테스트 컨텍스트")
+        with caplog.at_level(logging.ERROR), pytest.raises(RuntimeError):
+            safe_execute(failing, context="테스트 컨텍스트")
 
         assert "테스트 컨텍스트" in caplog.text
         assert "실행 실패" in caplog.text
@@ -371,18 +368,16 @@ class TestSafeExecute:
         def my_failing_func():
             raise ValueError("에러")
 
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(ValueError):
-                safe_execute(my_failing_func)
+        with caplog.at_level(logging.ERROR), pytest.raises(ValueError):
+            safe_execute(my_failing_func)
 
         assert "my_failing_func" in caplog.text
 
     def test_safe_execute_lambda(self, caplog):
         """람다 함수 (이름 없는 함수) 처리"""
 
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(ZeroDivisionError):
-                safe_execute(lambda: 1 / 0)
+        with caplog.at_level(logging.ERROR), pytest.raises(ZeroDivisionError):
+            safe_execute(lambda: 1 / 0)
 
 
 class TestEnsureNotNone:

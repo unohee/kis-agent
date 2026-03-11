@@ -305,7 +305,7 @@ class TestGenerateTradingReport:
         self, mock_client, account_info, sample_trading_data
     ):
         """간편 함수 테스트"""
-        with patch("pykis.utils.trading_report.AccountAPI") as MockAccountAPI:
+        with patch("kis_agent.utils.trading_report.AccountAPI") as MockAccountAPI:
             mock_api = MockAccountAPI.return_value
             mock_api.inquire_daily_ccld.return_value = sample_trading_data
 
@@ -333,7 +333,7 @@ class TestGenerateTradingReport:
         self, mock_client, account_info, sample_trading_data
     ):
         """다양한 옵션으로 간편 함수 테스트"""
-        with patch("pykis.utils.trading_report.AccountAPI") as MockAccountAPI:
+        with patch("kis_agent.utils.trading_report.AccountAPI") as MockAccountAPI:
             mock_api = MockAccountAPI.return_value
             mock_api.inquire_daily_ccld.return_value = sample_trading_data
 

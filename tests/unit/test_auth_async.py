@@ -90,8 +90,8 @@ class TestAuthAsync:
             shutil.rmtree(temp_dir)
 
     @pytest.mark.asyncio
-    @patch("pykis.core.auth.save_token")
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.save_token")
+    @patch("kis_agent.core.auth.read_token")
     async def test_auth_async_with_new_token(
         self, mock_read_token, mock_save_token, config
     ):
@@ -131,7 +131,7 @@ class TestAuthAsync:
             mock_save_token.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.read_token")
     async def test_auth_async_with_saved_token(self, mock_read_token, config):
         """
         auth_async 함수를 테스트합니다 - 저장된 토큰 사용
@@ -148,7 +148,7 @@ class TestAuthAsync:
         assert token["access_token"] == "saved_async_token"
 
     @pytest.mark.asyncio
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.read_token")
     async def test_auth_async_api_error(self, mock_read_token, config):
         """
         auth_async 함수의 에러 처리를 테스트합니다 - API 에러
@@ -176,8 +176,8 @@ class TestAuthAsync:
                 await auth_async(config)
 
     @pytest.mark.asyncio
-    @patch("pykis.core.auth.save_token")
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.save_token")
+    @patch("kis_agent.core.auth.read_token")
     async def test_reauth_async_with_new_token(
         self, mock_read_token, mock_save_token, config
     ):
@@ -215,7 +215,7 @@ class TestAuthAsync:
             mock_save_token.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.read_token")
     async def test_reauth_async_with_saved_token(self, mock_read_token):
         """
         reAuth_async 함수를 테스트합니다 - 저장된 토큰 사용 (24시간 이내)
@@ -319,7 +319,7 @@ class TestAuthAsyncIntegration:
         mock_session.__aexit__ = AsyncMock()
 
         with patch("aiohttp.ClientSession", return_value=mock_session), patch(
-            "pykis.core.auth.token_tmp", temp_token_path
+            "kis_agent.core.auth.token_tmp", temp_token_path
         ):
             token1 = await auth_async(config)
 
@@ -347,7 +347,7 @@ class TestKISClientAsync:
         )
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_with_config(self, mock_auth_async, config):
         """
         KISClient.create_async 팩토리 메서드 테스트 - config 사용
@@ -372,7 +372,7 @@ class TestKISClientAsync:
         mock_auth_async.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_with_options(self, mock_auth_async, config):
         """
         KISClient.create_async 팩토리 메서드 테스트 - 옵션 설정
@@ -398,7 +398,7 @@ class TestKISClientAsync:
         assert client.rate_limiter is None
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_with_rate_limiter(self, mock_auth_async, config):
         """
         KISClient.create_async 팩토리 메서드 테스트 - Rate Limiter 활성화
@@ -422,7 +422,7 @@ class TestKISClientAsync:
         assert client.rate_limiter is not None
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_vps_server(self, mock_auth_async, config):
         """
         KISClient.create_async 팩토리 메서드 테스트 - 모의투자 서버
@@ -446,7 +446,7 @@ class TestKISClientAsync:
         mock_auth_async.assert_called_once_with(config=config, svr="vps")
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_refresh_token_async(self, mock_auth_async, config):
         """
         KISClient.refresh_token_async 메서드 테스트
@@ -488,7 +488,7 @@ class TestKISClientAsync:
         assert client.token_expired == "2099-12-31 23:59:59"
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_refresh_token_async_error(self, mock_auth_async, config):
         """
         KISClient.refresh_token_async 메서드 테스트 - 오류 처리
@@ -516,9 +516,10 @@ class TestKISClientAsync:
 
         # refresh_token_async 내부에서 aiohttp를 직접 import하므로
         # 전역 aiohttp.ClientSession을 mock해야 함
-        with patch("aiohttp.ClientSession", return_value=mock_session):
-            with pytest.raises(Exception):  # ClientError 또는 래핑된 Exception
-                await client.refresh_token_async()
+        with patch("aiohttp.ClientSession", return_value=mock_session), pytest.raises(
+            Exception
+        ):  # ClientError 또는 래핑된 Exception
+            await client.refresh_token_async()
 
 
 @pytest.mark.skipif(not AIOHTTP_AVAILABLE, reason="aiohttp not installed")
@@ -528,7 +529,7 @@ class TestAgentAsync:
     """
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_basic(self, mock_auth_async):
         """
         Agent.create_async 팩토리 메서드 기본 테스트
@@ -559,7 +560,7 @@ class TestAgentAsync:
         mock_auth_async.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_with_rate_limiter(self, mock_auth_async):
         """
         Agent.create_async 팩토리 메서드 테스트 - Rate Limiter 활성화
@@ -586,7 +587,7 @@ class TestAgentAsync:
         assert agent.client.rate_limiter is not None
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_without_rate_limiter(self, mock_auth_async):
         """
         Agent.create_async 팩토리 메서드 테스트 - Rate Limiter 비활성화
@@ -612,7 +613,7 @@ class TestAgentAsync:
         assert agent.rate_limiter is None
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_with_custom_base_url(self, mock_auth_async):
         """
         Agent.create_async 팩토리 메서드 테스트 - 모의투자 서버 URL
@@ -663,7 +664,7 @@ class TestAgentAsync:
             )
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_apis_initialized(self, mock_auth_async):
         """
         Agent.create_async 팩토리 메서드 테스트 - API 모듈 초기화 확인
@@ -693,7 +694,7 @@ class TestAgentAsync:
         assert hasattr(agent, "interest_api")
 
     @pytest.mark.asyncio
-    @patch("pykis.core.client.auth_async")
+    @patch("kis_agent.core.client.auth_async")
     async def test_create_async_with_rate_limiter_config(self, mock_auth_async):
         """
         Agent.create_async 팩토리 메서드 테스트 - Rate Limiter 커스텀 설정
