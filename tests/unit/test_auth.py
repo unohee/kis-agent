@@ -179,19 +179,27 @@ class TestTokenPathForAppKey(unittest.TestCase):
 
     def test_app_key_creates_unique_path(self):
         """app_key가 있으면 고유한 경로 생성"""
+        import hashlib
+
         base_path = "/some/path/token.json"
         app_key = "ABCD1234EFGH5678"
         result = _get_token_path_for_app_key(app_key, base_path)
-        self.assertIn("ABCD1234", result)
+        # app_key의 SHA256 해시값이 포함되어 있는지 확인
+        key_hash = hashlib.sha256(app_key.encode()).hexdigest()[:16]
+        self.assertIn(key_hash, result)
         self.assertIn("token_", result)
         self.assertTrue(result.endswith(".json"))
 
     def test_short_app_key(self):
         """짧은 app_key 처리"""
+        import hashlib
+
         base_path = "/some/path/token.json"
         app_key = "ABC"  # 8자리 미만
         result = _get_token_path_for_app_key(app_key, base_path)
-        self.assertIn("ABC", result)
+        # app_key의 SHA256 해시값이 포함되어 있는지 확인
+        key_hash = hashlib.sha256(app_key.encode()).hexdigest()[:16]
+        self.assertIn(key_hash, result)
 
 
 class TestSaveAndReadToken(unittest.TestCase):
