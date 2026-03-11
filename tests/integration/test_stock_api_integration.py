@@ -9,7 +9,7 @@ stock.api 모듈의 단위 테스트 모듈입니다.
 
 의존성:
 - unittest: 테스트 프레임워크
-- pykis.stock.api: 테스트 대상
+- kis_agent.stock.api: 테스트 대상
 - .env: 실제 인증 정보
 
 사용 예시:

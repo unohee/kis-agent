@@ -66,7 +66,7 @@ class TestProgramTradeAPI:
         assert call_args.kwargs["params"]["FID_INPUT_ISCD"] == "005930"
         assert call_args.kwargs["params"]["FID_COND_MRKT_DIV_CODE"] == "J"
 
-    @patch("pykis.program.trade.datetime")
+    @patch("kis_agent.program.trade.datetime")
     def test_get_program_trade_by_stock_with_default_date(
         self, mock_datetime, program_api, mock_client
     ):

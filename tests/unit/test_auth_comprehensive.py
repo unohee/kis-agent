@@ -21,7 +21,7 @@ import kis_agent.core.auth  # noqa: F401
 def get_auth_module():
     """auth 모듈을 sys.modules에서 가져옵니다.
 
-    pykis.core.__init__.py에서 `from .auth import auth`로 함수를 export하기 때문에
+    kis_agent.core.__init__.py에서 `from .auth import auth`로 함수를 export하기 때문에
     `import kis_agent.core.auth as auth_module`이 함수가 아닌 모듈을 정확히 가져오는지
     보장하기 위해 sys.modules를 직접 사용합니다.
     """
@@ -35,20 +35,18 @@ class TestClearConsole:
         """Unix 시스템에서 clear 명령 실행"""
         from kis_agent.core.auth import clearConsole
 
-        with patch("os.system") as mock_system:
-            with patch("os.name", "posix"):
-                clearConsole()
-                # os.name이 posix면 'clear' 호출
-                mock_system.assert_called()
+        with patch("os.system") as mock_system, patch("os.name", "posix"):
+            clearConsole()
+            # os.name이 posix면 'clear' 호출
+            mock_system.assert_called()
 
     def test_clear_console_windows(self):
         """Windows 시스템에서 cls 명령 실행"""
         from kis_agent.core.auth import clearConsole
 
-        with patch("os.system") as mock_system:
-            with patch("os.name", "nt"):
-                clearConsole()
-                mock_system.assert_called()
+        with patch("os.system") as mock_system, patch("os.name", "nt"):
+            clearConsole()
+            mock_system.assert_called()
 
 
 class TestGetTokenPathForAppKey:
@@ -570,19 +568,20 @@ class TestSetOrderHashKey:
         mock_tr_env = MagicMock()
         mock_tr_env.my_url = "https://test.api.com"
 
-        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env):
-            with patch("requests.post") as mock_post:
-                mock_response = MagicMock()
-                mock_response.status_code = 200
-                mock_response.json.return_value = {"HASH": "abc123hash"}
-                mock_post.return_value = mock_response
+        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env), patch(
+            "requests.post"
+        ) as mock_post:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"HASH": "abc123hash"}
+            mock_post.return_value = mock_response
 
-                headers = {"Content-Type": "application/json"}
-                params = {"order_data": "test"}
+            headers = {"Content-Type": "application/json"}
+            params = {"order_data": "test"}
 
-                auth_module.set_order_hash_key(headers, params)
+            auth_module.set_order_hash_key(headers, params)
 
-                assert headers.get("hashkey") == "abc123hash"
+            assert headers.get("hashkey") == "abc123hash"
 
     def test_set_order_hash_key_failure(self, capsys):
         """해시키 설정 실패"""
@@ -591,19 +590,20 @@ class TestSetOrderHashKey:
         mock_tr_env = MagicMock()
         mock_tr_env.my_url = "https://test.api.com"
 
-        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env):
-            with patch("requests.post") as mock_post:
-                mock_response = MagicMock()
-                mock_response.status_code = 401
-                mock_post.return_value = mock_response
+        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env), patch(
+            "requests.post"
+        ) as mock_post:
+            mock_response = MagicMock()
+            mock_response.status_code = 401
+            mock_post.return_value = mock_response
 
-                headers = {}
-                params = {}
+            headers = {}
+            params = {}
 
-                auth_module.set_order_hash_key(headers, params)
+            auth_module.set_order_hash_key(headers, params)
 
-                captured = capsys.readouterr()
-                assert "Error" in captured.out
+            captured = capsys.readouterr()
+            assert "Error" in captured.out
 
 
 class TestUrlFetch:
@@ -616,28 +616,30 @@ class TestUrlFetch:
         mock_tr_env = MagicMock()
         mock_tr_env.my_url = "https://test.api.com"
 
-        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env):
-            with patch.object(
-                auth_module,
-                "_getBaseHeader",
-                return_value={"Content-Type": "application/json"},
-            ):
-                with patch("requests.get") as mock_get:
-                    mock_response = MagicMock()
-                    mock_response.status_code = 200
-                    mock_response.headers = {"tr_id": "TEST001"}
-                    mock_response.json.return_value = {"rt_cd": "0", "output": {}}
-                    mock_get.return_value = mock_response
+        with patch.object(
+            auth_module, "getTREnv", return_value=mock_tr_env
+        ), patch.object(
+            auth_module,
+            "_getBaseHeader",
+            return_value={"Content-Type": "application/json"},
+        ), patch(
+            "requests.get"
+        ) as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"tr_id": "TEST001"}
+            mock_response.json.return_value = {"rt_cd": "0", "output": {}}
+            mock_get.return_value = mock_response
 
-                    result = auth_module._url_fetch(
-                        "/test/endpoint",
-                        "TEST001",
-                        "N",
-                        {"param": "value"},
-                        postFlag=False,
-                    )
+            result = auth_module._url_fetch(
+                "/test/endpoint",
+                "TEST001",
+                "N",
+                {"param": "value"},
+                postFlag=False,
+            )
 
-                    assert result.getResCode() == 200
+            assert result.getResCode() == 200
 
     def test_url_fetch_post_success(self):
         """POST 요청 성공"""
@@ -646,30 +648,33 @@ class TestUrlFetch:
         mock_tr_env = MagicMock()
         mock_tr_env.my_url = "https://test.api.com"
 
-        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env):
-            with patch.object(
-                auth_module,
-                "_getBaseHeader",
-                return_value={"Content-Type": "application/json"},
-            ):
-                with patch.object(auth_module, "set_order_hash_key"):
-                    with patch("requests.post") as mock_post:
-                        mock_response = MagicMock()
-                        mock_response.status_code = 200
-                        mock_response.headers = {"tr_id": "ORDER001"}
-                        mock_response.json.return_value = {"rt_cd": "0"}
-                        mock_post.return_value = mock_response
+        with patch.object(
+            auth_module, "getTREnv", return_value=mock_tr_env
+        ), patch.object(
+            auth_module,
+            "_getBaseHeader",
+            return_value={"Content-Type": "application/json"},
+        ), patch.object(
+            auth_module, "set_order_hash_key"
+        ), patch(
+            "requests.post"
+        ) as mock_post:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"tr_id": "ORDER001"}
+            mock_response.json.return_value = {"rt_cd": "0"}
+            mock_post.return_value = mock_response
 
-                        result = auth_module._url_fetch(
-                            "/order/endpoint",
-                            "ORDER001",
-                            "",
-                            {"order": "data"},
-                            postFlag=True,
-                            hashFlag=True,
-                        )
+            result = auth_module._url_fetch(
+                "/order/endpoint",
+                "ORDER001",
+                "",
+                {"order": "data"},
+                postFlag=True,
+                hashFlag=True,
+            )
 
-                        assert result.getResCode() == 200
+            assert result.getResCode() == 200
 
     def test_url_fetch_with_append_headers(self):
         """추가 헤더와 함께 요청"""
@@ -678,27 +683,29 @@ class TestUrlFetch:
         mock_tr_env = MagicMock()
         mock_tr_env.my_url = "https://test.api.com"
 
-        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env):
-            with patch.object(auth_module, "_getBaseHeader", return_value={}):
-                with patch("requests.get") as mock_get:
-                    mock_response = MagicMock()
-                    mock_response.status_code = 200
-                    mock_response.headers = {}
-                    mock_response.json.return_value = {"rt_cd": "0"}
-                    mock_get.return_value = mock_response
+        with patch.object(
+            auth_module, "getTREnv", return_value=mock_tr_env
+        ), patch.object(auth_module, "_getBaseHeader", return_value={}), patch(
+            "requests.get"
+        ) as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {}
+            mock_response.json.return_value = {"rt_cd": "0"}
+            mock_get.return_value = mock_response
 
-                    result = auth_module._url_fetch(
-                        "/test",
-                        "TR001",
-                        "N",
-                        {},
-                        appendHeaders={"X-Custom": "value"},
-                        postFlag=False,
-                    )
+            result = auth_module._url_fetch(
+                "/test",
+                "TR001",
+                "N",
+                {},
+                appendHeaders={"X-Custom": "value"},
+                postFlag=False,
+            )
 
-                    # 헤더가 포함되었는지 확인
-                    call_kwargs = mock_get.call_args
-                    assert "X-Custom" in call_kwargs.kwargs["headers"]
+            # 헤더가 포함되었는지 확인
+            call_kwargs = mock_get.call_args
+            assert "X-Custom" in call_kwargs.kwargs["headers"]
 
     def test_url_fetch_error_response(self, capsys):
         """오류 응답 처리"""
@@ -707,20 +714,20 @@ class TestUrlFetch:
         mock_tr_env = MagicMock()
         mock_tr_env.my_url = "https://test.api.com"
 
-        with patch.object(auth_module, "getTREnv", return_value=mock_tr_env):
-            with patch.object(auth_module, "_getBaseHeader", return_value={}):
-                with patch("requests.get") as mock_get:
-                    mock_response = MagicMock()
-                    mock_response.status_code = 500
-                    mock_response.headers = {}
-                    mock_response.json.return_value = None
-                    mock_get.return_value = mock_response
+        with patch.object(
+            auth_module, "getTREnv", return_value=mock_tr_env
+        ), patch.object(auth_module, "_getBaseHeader", return_value={}), patch(
+            "requests.get"
+        ) as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 500
+            mock_response.headers = {}
+            mock_response.json.return_value = None
+            mock_get.return_value = mock_response
 
-                    result = auth_module._url_fetch(
-                        "/test", "TR001", "N", {}, postFlag=False
-                    )
+            result = auth_module._url_fetch("/test", "TR001", "N", {}, postFlag=False)
 
-                    assert result.getResCode() == 500
+            assert result.getResCode() == 500
 
 
 class TestReAuth:

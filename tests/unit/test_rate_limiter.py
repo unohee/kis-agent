@@ -153,9 +153,9 @@ class TestRateLimiter(unittest.TestCase):
 class TestAgentRateLimiterIntegration(unittest.TestCase):
     # Agent와 Rate Limiter 통합 테스트
 
-    @patch('pykis.core.agent.KISConfig')
-    @patch('pykis.core.agent.auth')
-    @patch('pykis.core.agent.read_token')
+    @patch('kis_agent.core.agent.KISConfig')
+    @patch('kis_agent.core.agent.auth')
+    @patch('kis_agent.core.agent.read_token')
     def test_agent_with_rate_limiter(self, mock_read_token, mock_auth, mock_config):
         # Agent의 Rate Limiter 통합 테스트
         # Mock 설정
@@ -168,7 +168,7 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         mock_read_token.return_value = True
 
         # Agent 생성
-        with patch('pykis.core.agent.load_dotenv'):
+        with patch('kis_agent.core.agent.load_dotenv'):
             agent = Agent(
                 env_path='.env',
                 enable_rate_limiter=True,
@@ -182,9 +182,9 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         self.assertIsNotNone(agent.rate_limiter)
         self.assertEqual(agent.rate_limiter.requests_per_second, 10)
 
-    @patch('pykis.core.agent.KISConfig')
-    @patch('pykis.core.agent.auth')
-    @patch('pykis.core.agent.read_token')
+    @patch('kis_agent.core.agent.KISConfig')
+    @patch('kis_agent.core.agent.auth')
+    @patch('kis_agent.core.agent.read_token')
     def test_agent_rate_limiter_methods(self, mock_read_token, mock_auth, mock_config):
         # Agent의 Rate Limiter 관리 메서드 테스트
         # Mock 설정
@@ -197,7 +197,7 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         mock_read_token.return_value = True
 
         # Agent 생성
-        with patch('pykis.core.agent.load_dotenv'):
+        with patch('kis_agent.core.agent.load_dotenv'):
             agent = Agent(env_path='.env', enable_rate_limiter=True)
 
         # 상태 조회
@@ -219,9 +219,9 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         agent.enable_adaptive_rate_limiting(False)
         self.assertFalse(agent.rate_limiter.enable_adaptive)
 
-    @patch('pykis.core.agent.KISConfig')
-    @patch('pykis.core.agent.auth')
-    @patch('pykis.core.agent.read_token')
+    @patch('kis_agent.core.agent.KISConfig')
+    @patch('kis_agent.core.agent.auth')
+    @patch('kis_agent.core.agent.read_token')
     def test_agent_without_rate_limiter(self, mock_read_token, mock_auth, mock_config):
         # Rate Limiter 비활성화된 Agent 테스트
         # Mock 설정
@@ -234,7 +234,7 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
         mock_read_token.return_value = True
 
         # Agent 생성 (Rate Limiter 비활성화)
-        with patch('pykis.core.agent.load_dotenv'):
+        with patch('kis_agent.core.agent.load_dotenv'):
             agent = Agent(env_path='.env', enable_rate_limiter=False)
 
         # Rate Limiter가 없음
@@ -250,7 +250,7 @@ class TestAgentRateLimiterIntegration(unittest.TestCase):
 class TestKISClientRateLimiter(unittest.TestCase):
     # KISClient의 Rate Limiter 통합 테스트
 
-    @patch('pykis.core.client.auth')
+    @patch('kis_agent.core.client.auth')
     def test_client_with_rate_limiter(self, mock_auth):
         # KISClient의 Rate Limiter 사용 테스트
         mock_auth.return_value = {'access_token': 'test_token'}
@@ -262,7 +262,7 @@ class TestKISClientRateLimiter(unittest.TestCase):
         self.assertIsNotNone(client.rate_limiter)
         self.assertTrue(client.enable_rate_limiter)
 
-    @patch('pykis.core.client.auth')
+    @patch('kis_agent.core.client.auth')
     def test_client_enforce_rate_limit(self, mock_auth):
         # KISClient의 rate limit 적용 테스트
         mock_auth.return_value = {'access_token': 'test_token'}
@@ -279,8 +279,8 @@ class TestKISClientRateLimiter(unittest.TestCase):
         # 최소 간격 적용 확인
         self.assertGreaterEqual(elapsed, 0.07)  # 70ms
 
-    @patch('pykis.core.client.requests.request')
-    @patch('pykis.core.client.auth')
+    @patch('kis_agent.core.client.requests.request')
+    @patch('kis_agent.core.client.auth')
     def test_client_api_call_with_rate_limiter(self, mock_auth, mock_request):
         # API 호출 시 Rate Limiter 적용 테스트
         mock_auth.return_value = {'access_token': 'test_token'}

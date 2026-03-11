@@ -9,7 +9,7 @@ KISClient 클래스의 테스트 모듈입니다.
 
 의존성:
 - unittest: 테스트 프레임워크
-- pykis.core.client: 테스트 대상
+- kis_agent.core.client: 테스트 대상
 
 사용 예시:
     >>> python -m unittest tests/unit/test_client.py
@@ -45,8 +45,8 @@ class TestKISClientUnit(unittest.TestCase):
             account_code="01",
         )
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     def test_init_with_config(self, mock_get_tr_env, mock_auth):
         """config로 클라이언트 초기화"""
         mock_auth.return_value = {
@@ -66,8 +66,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(client.base_url, "https://test.api.com")
         self.assertFalse(client.enable_rate_limiter)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     def test_init_with_kisconfig_as_svr(self, mock_get_tr_env, mock_auth):
         """KISConfig를 svr 매개변수로 전달 (하위 호환성)"""
         mock_auth.return_value = {
@@ -86,8 +86,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(client.config, config)
         self.assertEqual(client.svr, "prod")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     def test_init_without_config(self, mock_get_tr_env, mock_auth):
         """config 없이 환경변수로 초기화"""
         mock_auth.return_value = {
@@ -108,8 +108,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(client.token, "env_token")
         self.assertEqual(client.base_url, "https://env.api.com")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     def test_enforce_rate_limit_disabled(self, mock_get_tr_env, mock_auth):
         """Rate Limiter 비활성화 테스트"""
         mock_auth.return_value = {
@@ -133,8 +133,8 @@ class TestKISClientUnit(unittest.TestCase):
         # 첫 호출이므로 대기 없음
         self.assertLess(elapsed, 0.1)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     def test_check_and_refresh_token_expired(self, mock_get_tr_env, mock_auth):
         """만료된 토큰 자동 갱신"""
         mock_auth.return_value = {
@@ -158,8 +158,8 @@ class TestKISClientUnit(unittest.TestCase):
         # auth가 재호출되었는지 확인 (초기화 1회 + 갱신 1회)
         self.assertEqual(mock_auth.call_count, 2)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     def test_check_and_refresh_token_invalid_format(self, mock_get_tr_env, mock_auth):
         """잘못된 형식의 토큰 만료 시간 처리"""
         mock_auth.return_value = {
@@ -181,8 +181,8 @@ class TestKISClientUnit(unittest.TestCase):
         # auth가 재호출되었는지 확인
         self.assertEqual(mock_auth.call_count, 2)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.request")
     def test_make_request_success(self, mock_request, mock_get_tr_env, mock_auth):
         """API 요청 성공"""
@@ -219,8 +219,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(result["rt_cd"], "0")
         self.assertEqual(result["output"]["data"], "test")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.request")
     def test_make_request_json_decode_error(
         self, mock_request, mock_get_tr_env, mock_auth
@@ -257,8 +257,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(result["rt_cd"], "JSON_DECODE_ERROR")
         self.assertEqual(result["error_type"], "JSONDecodeError")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.request")
     def test_make_request_no_rt_cd(self, mock_request, mock_get_tr_env, mock_auth):
         """rt_cd 없는 응답 처리"""
@@ -287,8 +287,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(result["rt_cd"], "NO_RT_CD")
         self.assertEqual(result["error_type"], "NoRtCd")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.request")
     def test_make_request_api_error(self, mock_request, mock_get_tr_env, mock_auth):
         """API 오류 응답 처리"""
@@ -321,8 +321,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(result["rt_cd"], "1")
         self.assertEqual(result["error_type"], "ApiError")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.request")
     def test_make_request_http_error_with_retry(
         self, mock_request, mock_get_tr_env, mock_auth
@@ -361,8 +361,8 @@ class TestKISClientUnit(unittest.TestCase):
         self.assertEqual(result["rt_cd"], "0")
         self.assertEqual(mock_request.call_count, 2)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.request")
     def test_make_request_exception_handling(
         self, mock_request, mock_get_tr_env, mock_auth
@@ -392,8 +392,8 @@ class TestKISClientUnit(unittest.TestCase):
                 retries=2,
             )
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_refresh_token_success(self, mock_post, mock_get_tr_env, mock_auth):
         """토큰 갱신 성공"""
@@ -419,8 +419,8 @@ class TestKISClientUnit(unittest.TestCase):
 
         self.assertEqual(client.token, "refreshed_token")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_refresh_token_failure(self, mock_post, mock_get_tr_env, mock_auth):
         """토큰 갱신 실패"""
@@ -444,8 +444,8 @@ class TestKISClientUnit(unittest.TestCase):
 
         self.assertIn("토큰 갱신 실패", str(exc_info.value))
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_refresh_token_no_access_token(self, mock_post, mock_get_tr_env, mock_auth):
         """토큰 갱신 응답에 access_token 없음"""
@@ -469,8 +469,8 @@ class TestKISClientUnit(unittest.TestCase):
 
         self.assertIn("access_token이 없습니다", str(exc_info.value))
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_get_ws_approval_key_success(self, mock_post, mock_get_tr_env, mock_auth):
         """웹소켓 승인키 발급 성공"""
@@ -493,8 +493,8 @@ class TestKISClientUnit(unittest.TestCase):
 
         self.assertEqual(result, "ws_approval_key_12345")
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_get_ws_approval_key_failure(self, mock_post, mock_get_tr_env, mock_auth):
         """웹소켓 승인키 발급 실패"""
@@ -517,8 +517,8 @@ class TestKISClientUnit(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_get_ws_approval_key_no_key_in_response(
         self, mock_post, mock_get_tr_env, mock_auth
@@ -543,8 +543,8 @@ class TestKISClientUnit(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch("pykis.core.client.auth")
-    @patch("pykis.core.client.getTREnv")
+    @patch("kis_agent.core.client.auth")
+    @patch("kis_agent.core.client.getTREnv")
     @patch("requests.post")
     def test_get_ws_approval_key_exception(self, mock_post, mock_get_tr_env, mock_auth):
         """웹소켓 승인키 요청 중 예외"""
