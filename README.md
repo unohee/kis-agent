@@ -216,6 +216,61 @@ report_path = generate_trading_report(
 )
 ```
 
+## CLI (LLM Agent Tool)
+
+LLM 에이전트가 한투 API를 도구로 사용할 수 있는 CLI입니다. `pip install kis-agent`만으로 설치됩니다.
+
+```bash
+pip install kis-agent
+kis --help
+```
+
+### 사용법
+
+```bash
+# 주식 현재가 조회
+kis price 005930
+kis price 005930 --daily --days 5
+
+# 해외 주식 조회
+kis overseas NAS AAPL
+kis overseas NAS AAPL --detail
+
+# 계좌 잔고
+kis balance --holdings
+
+# 호가 조회
+kis orderbook 005930
+
+# 선물옵션
+kis futures 101S03
+
+# API 직접 호출
+kis query stock get_stock_price code=005930
+
+# Schema 탐색 (LLM introspection)
+kis schema              # 전체 스키마
+kis schema Stock        # 특정 타입
+kis schema --json       # JSON 형식
+```
+
+### 환경 설정
+
+`.env` 파일에 다음 항목이 필요합니다:
+
+```bash
+KIS_APP_KEY=...
+KIS_SECRET=...        # 또는 KIS_APP_SECRET
+KIS_ACCOUNT_NO=...
+KIS_ACCOUNT_CODE=01
+```
+
+### 출력 형식
+
+- 기본: JSON (LLM 파싱 최적화)
+- `--pretty`: 사람 읽기용 들여쓰기
+- 한투 API 필드명을 LLM-friendly 이름으로 자동 변환 (`stck_prpr` → `currentPrice`)
+
 ## 성능 최적화
 
 - **캐시 적중률**: 80-95% (API 호출 대폭 감소)
@@ -285,6 +340,15 @@ pytest tests/ -v --cov=pykis
 - `get_price()`: 선물 시세
 - `get_balance()`: 선물 계좌 잔고
 - `buy_order()` / `sell_order()`: 선물 주문
+
+### CLI 명령 (kis)
+- `kis query '<graphql>'`: GraphQL 쿼리 직접 실행
+- `kis price <code>`: 국내 주식 현재가
+- `kis balance [--holdings]`: 계좌 잔고
+- `kis orderbook <code>`: 호가 조회
+- `kis overseas <excd> <symb>`: 해외 주식 시세
+- `kis futures <code>`: 선물옵션 시세
+- `kis schema [type] [--json]`: 스키마 탐색
 
 ## 라이센스
 

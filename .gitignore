@@ -98,6 +98,7 @@ open-trading-api/
 
 # AI Assistant directories (all)
 .claude/
+.openswarm/
 .clinerules/
 .cursor/
 .gemini/
