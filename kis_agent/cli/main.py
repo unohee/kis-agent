@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime, timedelta
 
 from kis_agent.cli.field_map import (
     ACCOUNT_BALANCE,
@@ -61,8 +62,37 @@ def _create_agent():
     )
 
 
+def _last_business_day():
+    """가장 최근 영업일 반환. 주말이면 직전 금요일로 폴백."""
+    today = datetime.now()
+    wd = today.weekday()  # 0=월 ... 6=일
+    if wd == 5:  # 토요일
+        return today - timedelta(days=1)
+    elif wd == 6:  # 일요일
+        return today - timedelta(days=2)
+    return today
+
+
+def _market_notice():
+    """주말/장외 시간이면 안내 메시지 반환."""
+    today = datetime.now()
+    wd = today.weekday()
+    if wd >= 5:
+        bday = _last_business_day()
+        return f"주말 — 데이터는 직전 영업일({bday.strftime('%Y-%m-%d %a')}) 기준"
+    hour = today.hour
+    if hour < 9:
+        return "장 시작 전 — 데이터는 전일 종가 기준"
+    if hour >= 16:
+        return "장 마감 후 — 데이터는 금일 종가 기준"
+    return None
+
+
 def _out(data, pretty=False):
-    """JSON 출력."""
+    """JSON 출력. 주말/장외 시간이면 notice 필드 추가."""
+    notice = _market_notice()
+    if notice and isinstance(data, dict) and "data" in data:
+        data["_notice"] = notice
     indent = 2 if pretty else None
     print(json.dumps(data, ensure_ascii=False, indent=indent, default=str))
 
