@@ -2,8 +2,6 @@
 
 한국투자증권 OpenAPI Python 래퍼 - Korea Investment & Securities Trading API Client
 
-**🎉 PyPI에 공개된 오픈소스 프로젝트입니다!**
-
 ```bash
 pip install kis-agent
 ```
@@ -15,24 +13,23 @@ pip install kis-agent
 
 ## 주요 특징
 
+- **CLI 도구**: `kis price 005930` — 설치 즉시 터미널에서 시세 조회
+- **LLM Agent 연동**: JSON 출력 + 스키마 탐색으로 AI 에이전트 도구로 활용
 - **고성능**: 지능형 캐싱으로 API 호출 80-95% 감소
 - **안정성**: 실측 기반 Rate Limiting (18 RPS / 900 RPM)
 - **실시간**: WebSocket을 통한 실시간 데이터 스트리밍
-- **국내시장**: KOSPI, KOSDAQ, NXT(넥스트) 시장 완벽 지원
+- **국내시장**: KOSPI, KOSDAQ, NXT(넥스트) 시장 지원
 - **해외시장**: 미국, 일본, 중국, 홍콩, 베트남 9개 거래소 지원
 - **선물옵션**: 국내/해외 선물옵션 거래 지원
 - **타입 안정성**: 96개 TypedDict 응답 모델, 100% 타입힌팅
-- **명확한 문서**: 한국투자증권 API 공식 문서와 용어 일치
 
 ## 설치
-
-[PyPI](https://pypi.org/project/kis-agent/)에서 공개 배포되는 패키지입니다:
 
 ```bash
 pip install kis-agent
 ```
 
-WebSocket 실시간 데이터 지원이 필요한 경우:
+WebSocket 실시간 데이터가 필요한 경우:
 
 ```bash
 pip install kis-agent[websocket]
@@ -43,18 +40,63 @@ pip install kis-agent[websocket]
 1. [한국투자증권 API 포털](https://apiportal.koreainvestment.com)에서 API 신청
 2. APP_KEY와 APP_SECRET 발급
 3. 계좌번호(CANO)와 계좌상품코드(ACNT_PRDT_CD) 확인
+4. `.env` 파일 설정:
 
-## 빠른 시작
+```bash
+KIS_APP_KEY=발급받은_앱키
+KIS_SECRET=발급받은_시크릿      # 또는 KIS_APP_SECRET
+KIS_ACCOUNT_NO=계좌번호
+KIS_ACCOUNT_CODE=01
+```
+
+## CLI (LLM Agent Tool)
+
+`pip install kis-agent`만으로 `kis` 명령이 설치됩니다.
+
+```bash
+# 주식 현재가
+kis price 005930
+kis price 005930 --daily --days 5
+
+# 해외 주식
+kis overseas NAS AAPL
+kis overseas NAS AAPL --detail    # PER/PBR/시총 포함
+
+# 계좌 잔고
+kis balance --holdings
+
+# 호가 조회
+kis orderbook 005930
+
+# 선물옵션
+kis futures 101S03
+
+# API 직접 호출
+kis query stock get_stock_price code=005930
+
+# 스키마 탐색 (LLM introspection)
+kis schema              # 전체 스키마
+kis schema Stock        # 특정 타입
+kis schema --json       # JSON 형식
+```
+
+**출력 형식:**
+- 기본: JSON (LLM 파싱 최적화)
+- `--pretty`: 사람 읽기용 들여쓰기
+- 한투 API 필드명을 LLM-friendly 이름으로 자동 변환 (`stck_prpr` → `currentPrice`)
+
+## Python API
+
+### 빠른 시작
 
 ```python
 from kis_agent import Agent
 import os
 
-# 환경변수에서 API 키 로드
 agent = Agent(
-    app_key=os.environ.get('KIS_APP_KEY'),
-    app_secret=os.environ.get('KIS_APP_SECRET'),
-    account_no=os.environ.get('KIS_ACCOUNT_NO'),
+    app_key=os.environ['KIS_APP_KEY'],
+    app_secret=os.environ['KIS_APP_SECRET'],
+    account_no=os.environ['KIS_ACCOUNT_NO'],
     account_code=os.environ.get('KIS_ACCOUNT_CODE', '01'),
 )
 
@@ -73,7 +115,7 @@ daily = agent.inquire_daily_itemchartprice(
 )
 ```
 
-## 국내 주식 거래
+### 국내 주식 거래
 
 ```python
 # 현금 매수 (지정가)
@@ -81,11 +123,6 @@ result = agent.order_stock_cash("buy", "005930", "00", "1", "70000")
 
 # 현금 매수 (시장가)
 result = agent.order_stock_cash("buy", "005930", "03", "1", "0")
-
-# 신용 매수
-from datetime import datetime
-today = datetime.now().strftime("%Y%m%d")
-result = agent.order_stock_credit("buy", "009470", "21", "00", "1", "12000", loan_dt=today)
 
 # 주문 가능 수량 조회
 inquiry = agent.inquire_order_psbl("005930", "70000")
@@ -95,96 +132,66 @@ print(f"주문가능수량: {inquiry['output']['max_buy_qty']}")
 result = agent.order_rvsecncl(org_order_no, qty, price, order_type, cncl_type)
 ```
 
-## 해외 주식 거래
+### 해외 주식 거래
 
 ```python
-# 해외주식 시세 조회
+# 시세 조회
 apple = agent.overseas.get_price(excd="NAS", symb="AAPL")
 print(f"AAPL 현재가: ${apple['output']['last']}")
 
-# 차트 데이터 조회
-tesla_daily = agent.overseas.get_daily_price(excd="NAS", symb="TSLA", start="20240101")
+# 일봉/분봉
+tesla_daily = agent.overseas.get_daily_price(excd="NAS", symb="TSLA")
 tesla_minute = agent.overseas.get_minute_price(excd="NYS", symb="TSLA", interval=5)
 
-# 해외주식 잔고 조회
-balance = agent.overseas.get_balance()
-
-# 매수 주문
-result = agent.overseas.buy_order(
-    excd="NAS",      # 거래소: NASDAQ
-    symb="AAPL",     # 종목: Apple
-    qty="10",        # 수량
-    price="150.00"   # 가격
-)
-
-# 매도 주문
+# 매수/매도 주문
+result = agent.overseas.buy_order(excd="NAS", symb="AAPL", qty="10", price="150.00")
 result = agent.overseas.sell_order(excd="NYS", symb="MSFT", qty="20", price="350.00")
 
-# 주문 정정/취소
-modify_result = agent.overseas.modify_order(excd="NAS", order_no="...", qty="15", price="155.00")
-cancel_result = agent.overseas.cancel_order(excd="NAS", order_no="...")
+# 정정/취소
+agent.overseas.modify_order(excd="NAS", order_no="...", qty="15", price="155.00")
+agent.overseas.cancel_order(excd="NAS", order_no="...")
 ```
 
-**지원 거래소:**
-- 미국: NAS (NASDAQ), NYS (NYSE), AMS (AMEX)
-- 일본: TSE (도쿄증권거래소)
-- 중국: SHS (상해), SZS (심천)
-- 홍콩: HKS (홍콩거래소)
-- 베트남: HSX (호치민), HNX (하노이)
+**지원 거래소:** NAS (NASDAQ), NYS (NYSE), AMS (AMEX), TSE (도쿄), SHS (상해), SZS (심천), HKS (홍콩), HSX (호치민), HNX (하노이)
 
-## 선물/옵션 거래
+### 선물/옵션 거래
 
 ```python
-# 국내 선물 시세 조회
-futures_price = agent.futures.get_price("101S03")  # KOSPI200 선물
-
-# 국내 선물 주문
+# 국내 선물
+futures_price = agent.futures.get_price("101S03")
 result = agent.futures.buy_order(code="101S03", qty=1, price=350.00)
-result = agent.futures.sell_order(code="101S03", qty=1, price=351.00)
 
-# 해외 선물 시세 조회
+# 해외 선물
 overseas_futures = agent.overseas_futures.get_price(excd="CME", symb="ESH5")
 
-# 선물 계좌 잔고
+# 잔고
 futures_balance = agent.futures.get_balance()
 ```
 
-## 실시간 데이터 (WebSocket)
+### 실시간 데이터 (WebSocket)
 
 ```python
-# WebSocket 클라이언트 생성
 ws_client = agent.websocket(
-    stock_codes=["005930", "035420"],  # 삼성전자, NAVER
-    enable_index=True,                 # 지수 구독
-    enable_program_trading=True,       # 프로그램 매매
-    enable_ask_bid=True                # 호가 구독
+    stock_codes=["005930", "035420"],
+    enable_index=True,
+    enable_program_trading=True,
+    enable_ask_bid=True
 )
 
-# 실행
 import asyncio
 asyncio.run(ws_client.start())
 ```
 
-## 분석 기능
+### 분석 기능
 
 ```python
-# 투자자별 매매동향
-investor_trend = agent.get_stock_investor("005930")
-
-# 프로그램 매매 동향
-program_trade = agent.get_program_trade_by_stock("005930", "20250101")
-
-# 증권사별 매매동향
-member_trade = agent.get_stock_member("005930")
-
-# 지지/저항선 분석
-support_resistance = agent.calculate_support_resistance("005930")
-
-# 휴장일 확인
-is_holiday = agent.is_holiday("20250101")
+investor_trend = agent.get_stock_investor("005930")     # 투자자별 매매동향
+program_trade = agent.get_program_trade_by_stock("005930", "20250101")  # 프로그램 매매
+member_trade = agent.get_stock_member("005930")          # 증권사별 매매동향
+support_resistance = agent.calculate_support_resistance("005930")       # 지지/저항선
 ```
 
-## 장기 데이터 조회
+### 장기 데이터 조회
 
 API의 100건 제한을 자동으로 우회하여 전체 기간 데이터 수집:
 
@@ -200,155 +207,49 @@ print(f"총 {len(result['output2'])}건 수집")  # 248건 (100건 제한 우회
 print(f"API 호출: {result['_pagination_info']['total_calls']}회")
 ```
 
-## 거래 보고서 생성
-
-```python
-from kis_agent.utils.trading_report import generate_trading_report
-
-report_path = generate_trading_report(
-    client=agent.client,
-    account_info={'CANO': 'your_account', 'ACNT_PRDT_CD': '01'},
-    start_date='20250101',
-    end_date='20250131',
-    output_path='trading_history.xlsx',
-    tickers=['005930', '035420'],
-    only_executed=True
-)
-```
-
-## CLI (LLM Agent Tool)
-
-LLM 에이전트가 한투 API를 도구로 사용할 수 있는 CLI입니다. `pip install kis-agent`만으로 설치됩니다.
-
-```bash
-pip install kis-agent
-kis --help
-```
-
-### 사용법
-
-```bash
-# 주식 현재가 조회
-kis price 005930
-kis price 005930 --daily --days 5
-
-# 해외 주식 조회
-kis overseas NAS AAPL
-kis overseas NAS AAPL --detail
-
-# 계좌 잔고
-kis balance --holdings
-
-# 호가 조회
-kis orderbook 005930
-
-# 선물옵션
-kis futures 101S03
-
-# API 직접 호출
-kis query stock get_stock_price code=005930
-
-# Schema 탐색 (LLM introspection)
-kis schema              # 전체 스키마
-kis schema Stock        # 특정 타입
-kis schema --json       # JSON 형식
-```
-
-### 환경 설정
-
-`.env` 파일에 다음 항목이 필요합니다:
-
-```bash
-KIS_APP_KEY=...
-KIS_SECRET=...        # 또는 KIS_APP_SECRET
-KIS_ACCOUNT_NO=...
-KIS_ACCOUNT_CODE=01
-```
-
-### 출력 형식
-
-- 기본: JSON (LLM 파싱 최적화)
-- `--pretty`: 사람 읽기용 들여쓰기
-- 한투 API 필드명을 LLM-friendly 이름으로 자동 변환 (`stck_prpr` → `currentPrice`)
-
-## 성능 최적화
+## 성능
 
 - **캐시 적중률**: 80-95% (API 호출 대폭 감소)
 - **Rate Limiting**: 18 RPS / 900 RPM (실측 안정 기준)
 - **응답 시간**: 평균 50ms 이하 (캐시 적중 시)
 - **동시 연결**: 멀티스레드 안전성 보장
 
-## 한국어 Docstring
-
-PyKIS는 의도적으로 한국어 docstring을 사용합니다:
-
-1. **API 공식 문서와 용어 일치**: 필드명 `stck_prpr`(주식현재가)를 한국어 그대로 사용
-2. **디버깅 효율성**: API 에러 메시지가 한글이므로 즉시 매칭 가능
-3. **주 사용자층 최적화**: 한국투자증권 API는 국내 전용
-
-## 개발 환경 설정
+## 개발
 
 ```bash
 # 개발 의존성 설치
 pip install -e ".[dev]"
 
-# 코드 린팅 및 포맷팅
-ruff check pykis tests
-ruff format pykis tests
+# 린팅
+ruff check kis_agent tests
+ruff format kis_agent tests
 
-# 타입 체크
-mypy pykis
-
-# 테스트 실행
-pytest tests/ -v --cov=pykis
+# 테스트
+pytest tests/ -v --cov=kis_agent
 ```
 
-## API 메서드 목록
+## API 레퍼런스
 
 ### 계좌
-- `get_account_balance()`: 계좌 잔고 조회
-- `inquire_order_psbl()`: 주문 가능 수량 조회
-- `inquire_credit_order_psbl()`: 신용 주문 가능 수량 조회
+- `get_account_balance()` / `inquire_order_psbl()` / `inquire_credit_order_psbl()`
 
 ### 주문
-- `order_stock_cash()`: 현금 주문 (매수/매도)
-- `order_stock_credit()`: 신용 주문
-- `order_rvsecncl()`: 주문 정정/취소
-- `inquire_psbl_rvsecncl()`: 정정/취소 가능 조회
+- `order_stock_cash()` / `order_stock_credit()` / `order_rvsecncl()` / `inquire_psbl_rvsecncl()`
 
 ### 시세
-- `get_stock_price()`: 주식 현재가
-- `get_daily_price()`: 일봉 데이터
-- `get_minute_price()`: 분봉 데이터
-- `get_orderbook()`: 호가 조회
-- `fetch_minute_data()`: 전체 분봉 데이터 (4시간)
+- `get_stock_price()` / `get_daily_price()` / `get_minute_price()` / `get_orderbook()`
 
 ### 분석
-- `get_stock_investor()`: 투자자별 매매동향
-- `get_stock_member()`: 증권사별 매매동향
-- `get_program_trade_by_stock()`: 프로그램 매매
-- `calculate_support_resistance()`: 지지/저항선
+- `get_stock_investor()` / `get_stock_member()` / `get_program_trade_by_stock()` / `calculate_support_resistance()`
 
-### 해외주식 (agent.overseas.*)
-- `get_price()`: 해외주식 현재가
-- `get_daily_price()`: 해외주식 일봉
-- `get_balance()`: 해외주식 잔고
-- `buy_order()` / `sell_order()`: 매수/매도 주문
-- `modify_order()` / `cancel_order()`: 주문 정정/취소
+### 해외주식 (`agent.overseas.*`)
+- `get_price()` / `get_daily_price()` / `get_balance()` / `buy_order()` / `sell_order()`
 
-### 선물옵션 (agent.futures.*)
-- `get_price()`: 선물 시세
-- `get_balance()`: 선물 계좌 잔고
-- `buy_order()` / `sell_order()`: 선물 주문
+### 선물옵션 (`agent.futures.*`)
+- `get_price()` / `get_balance()` / `buy_order()` / `sell_order()`
 
-### CLI 명령 (kis)
-- `kis query '<graphql>'`: GraphQL 쿼리 직접 실행
-- `kis price <code>`: 국내 주식 현재가
-- `kis balance [--holdings]`: 계좌 잔고
-- `kis orderbook <code>`: 호가 조회
-- `kis overseas <excd> <symb>`: 해외 주식 시세
-- `kis futures <code>`: 선물옵션 시세
-- `kis schema [type] [--json]`: 스키마 탐색
+### CLI (`kis`)
+- `kis price <code>` / `kis balance` / `kis orderbook <code>` / `kis overseas <excd> <symb>` / `kis futures <code>` / `kis query <domain> <method>` / `kis schema [type]`
 
 ## 라이센스
 
@@ -362,4 +263,4 @@ MIT License
 
 - [PyPI Package](https://pypi.org/project/kis-agent/)
 - [한국투자증권 API 포털](https://apiportal.koreainvestment.com)
-- [GitHub Issues](https://github.com/unohee/pykis/issues)
+- [GitHub Issues](https://github.com/Intrect-io/kis-agent/issues)
