@@ -26,6 +26,8 @@ from kis_agent.cli.field_map import (
     HOLDING,
     ORDERBOOK_FIELDS,
     OVERSEAS_DAILY,
+    OVERSEAS_FUTURES_PRICE,
+    OVERSEAS_OPTION_PRICE,
     OVERSEAS_PRICE,
     OVERSEAS_PRICE_DETAIL,
     STOCK_PRICE,
@@ -263,19 +265,50 @@ def cmd_overseas(args):
 
 
 def cmd_futures(args):
-    """국내 선물옵션 시세 조회."""
+    """선물옵션 시세 조회. --overseas로 해외선물, --option으로 해외옵션."""
     agent = _create_agent()
     code = args.code
 
-    result = {"futures": {"code": code}}
+    if args.overseas or args.option:
+        # 해외선물/옵션
+        result = {"overseasFutures": {"code": code}}
+        if args.option:
+            data = agent.overseas_futures_api.get_option_price(srs_cd=code)
+            field_map = OVERSEAS_OPTION_PRICE
+        else:
+            data = agent.overseas_futures_api.get_price(srs_cd=code)
+            field_map = OVERSEAS_FUTURES_PRICE
 
-    data = agent.futures_api.get_price(code=code)
-    if data and data.get("output"):
-        mapped = remap(data["output"], FUTURES_PRICE)
-        name = mapped.pop("name", None)
-        if name:
-            result["futures"]["name"] = name
-        result["futures"]["price"] = mapped
+        if data and data.get("rt_cd") == "1":
+            result["overseasFutures"]["error"] = data.get("msg1", "API error")
+        elif data and data.get("output"):
+            result["overseasFutures"]["price"] = remap(data["output"], field_map)
+
+        if args.orderbook and not args.option:
+            ob = agent.overseas_futures_api.get_futures_orderbook(srs_cd=code)
+            if ob and ob.get("output1") and ob.get("output2"):
+                o1, o2 = ob["output1"], ob["output2"]
+                asks = [
+                    {"price": o1.get(f"askp{i}"), "volume": o1.get(f"askp_rsqn{i}")}
+                    for i in range(1, 6)
+                    if o1.get(f"askp{i}")
+                ]
+                bids = [
+                    {"price": o2.get(f"bidp{i}"), "volume": o2.get(f"bidp_rsqn{i}")}
+                    for i in range(1, 6)
+                    if o2.get(f"bidp{i}")
+                ]
+                result["overseasFutures"]["orderbook"] = {"asks": asks, "bids": bids}
+    else:
+        # 국내선물
+        result = {"futures": {"code": code}}
+        data = agent.futures_api.get_price(code=code)
+        if data and data.get("output"):
+            mapped = remap(data["output"], FUTURES_PRICE)
+            name = mapped.pop("name", None)
+            if name:
+                result["futures"]["name"] = name
+            result["futures"]["price"] = mapped
 
     _out({"data": result}, args.pretty)
 
@@ -299,6 +332,7 @@ def cmd_query(args):
         "account": agent.account_api,
         "overseas": agent.overseas_api,
         "futures": agent.futures_api,
+        "overseas_futures": agent.overseas_futures_api,
         "agent": agent,
     }
     target = targets.get(domain)
@@ -383,8 +417,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # futures
-    p = sub.add_parser("futures", help="선물옵션 시세 조회")
-    p.add_argument("code", help="선물옵션 종목코드")
+    p = sub.add_parser("futures", help="선물옵션 시세 조회 (국내/해외)")
+    p.add_argument("code", help="종목코드 (국내: 101S03, 해외: CLM26, ESM26)")
+    p.add_argument(
+        "--overseas", action="store_true", help="해외선물 (CME, NYMEX, EUREX 등)"
+    )
+    p.add_argument("--option", action="store_true", help="해외옵션 (그릭스 포함)")
+    p.add_argument("--orderbook", action="store_true", help="호가 포함 (해외선물)")
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # query (API 직접 호출)
