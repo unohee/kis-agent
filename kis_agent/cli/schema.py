@@ -239,6 +239,60 @@ type FuturesPrice {
   """베가"""
   vega: String
 }
+
+# === 해외선물 ===
+# kis futures CLM26 --overseas     WTI 원유선물
+# kis futures ESM26 --overseas     E-mini S&P500
+# kis futures NQM26 --overseas     E-mini NASDAQ
+# kis futures GCM26 --overseas     금 선물 (COMEX)
+# kis futures SIM26 --overseas     은 선물 (COMEX)
+
+type OverseasFutures {
+  """종목코드 (예: CLM26, ESM26)"""
+  code: String!
+  """현재가"""
+  price: OverseasFuturesPrice
+  """호가 (매수/매도 5단계)"""
+  orderbook: OverseasFuturesOrderbook
+}
+
+type OverseasFuturesPrice {
+  """현재가"""
+  currentPrice: String
+  """전일종가"""
+  prevClose: String
+  """전일대비"""
+  change: String
+  """등락률"""
+  changeRate: String
+  """시가"""
+  open: String
+  """고가"""
+  high: String
+  """저가"""
+  low: String
+  """거래량"""
+  volume: String
+  """미결제약정"""
+  openInterest: String
+  """거래소"""
+  exchange: String
+  """통화"""
+  currency: String
+  """매수호가"""
+  bidPrice: String
+  """매도호가"""
+  askPrice: String
+}
+
+# 거래소별 종목코드 예시:
+# CME: ESM26(S&P500), NQM26(NASDAQ), 6EM26(유로FX)
+# NYMEX: CLM26(WTI원유), NGM26(천연가스)
+# COMEX: GCM26(금), SIM26(은), HGM26(구리)
+# EUREX: FGBLM26(독일국채)
+# ICE: DXM26(달러인덱스)
+# 월물코드: F(1월) G(2월) H(3월) J(4월) K(5월) M(6월)
+#           N(7월) Q(8월) U(9월) V(10월) X(11월) Z(12월)
 '''
 
 

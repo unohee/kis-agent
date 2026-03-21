@@ -141,6 +141,50 @@ FUTURES_PRICE = {
     "hts_kor_isnm": "name",
 }
 
+# 해외선물 현재가
+OVERSEAS_FUTURES_PRICE = {
+    "last": "currentPrice",
+    "base": "prevClose",
+    "sign": "sign",
+    "diff": "change",
+    "rate": "changeRate",
+    "open": "open",
+    "high": "high",
+    "low": "low",
+    "tvol": "volume",
+    "tamt": "tradingValue",
+    "oi": "openInterest",
+    "rsym": "symbol",
+    "exch_cd": "exchange",
+    "srs_cd": "seriesCode",
+    "curr": "currency",
+    "zdiv": "decimalPlaces",
+    "bprc": "bidPrice",
+    "aprc": "askPrice",
+    "bqty": "bidQty",
+    "aqty": "askQty",
+}
+
+# 해외옵션 현재가 (그릭스 포함)
+OVERSEAS_OPTION_PRICE = {
+    "last": "currentPrice",
+    "base": "prevClose",
+    "sign": "sign",
+    "diff": "change",
+    "rate": "changeRate",
+    "open": "open",
+    "high": "high",
+    "low": "low",
+    "tvol": "volume",
+    "tamt": "tradingValue",
+    "theo_pric": "theoreticalPrice",
+    "iv": "impliedVolatility",
+    "delta": "delta",
+    "gamma": "gamma",
+    "theta": "theta",
+    "vega": "vega",
+}
+
 # 종목정보
 STOCK_INFO = {
     "prdt_abrv_name": "name",
