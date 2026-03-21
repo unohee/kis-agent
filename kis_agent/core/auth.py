@@ -286,7 +286,14 @@ def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str,
             }
         else:
             return None
-    except Exception:
+    except FileNotFoundError as e:
+        _logger.warning(f"토큰 파일을 찾을 수 없음: {path} - {str(e)}")
+        return None
+    except json.JSONDecodeError as e:
+        _logger.error(f"토큰 파일 JSON 파싱 실패: {path} - {str(e)}")
+        return None
+    except Exception as e:
+        _logger.error(f"토큰 읽기 중 예상치 못한 오류: {str(e)}", exc_info=True)
         return None
 
 

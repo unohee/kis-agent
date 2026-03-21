@@ -517,7 +517,7 @@ class TestSaveToDb(TestTechnicalAnalysisMixin):
 
         # db_path를 temp_db로 변경하기 위해 patch
         with patch(
-            "pykis.core.technical_analysis.TechnicalAnalysisMixin._save_to_db"
+            "kis_agent.core.technical_analysis.TechnicalAnalysisMixin._save_to_db"
         ) as mock_save:
             mock_save.return_value = None
             agent._save_to_db(sample_minute_data, "005930", "20231215")

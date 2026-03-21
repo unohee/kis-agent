@@ -6,6 +6,28 @@
 
 ### ✨ 기능 추가
 
+#### CLI (LLM Agent Tool) — `kis` 명령 (NEW!)
+
+`pip install kis-agent`만으로 `kis` CLI가 설치됩니다. Node.js 불필요.
+
+**새로운 모듈:**
+- `kis_agent/cli/main.py` — CLI 진입점 (argparse)
+- `kis_agent/cli/field_map.py` — 한투 필드명 → LLM-friendly 이름 매핑
+- `kis_agent/cli/schema.py` — SDL 스키마 (LLM introspection용)
+
+**CLI 명령:**
+- `kis price <code>` — 국내 주식 현재가
+- `kis balance [--holdings]` — 계좌 잔고
+- `kis orderbook <code>` — 호가 조회
+- `kis overseas <excd> <symb>` — 해외 주식 시세
+- `kis futures <code>` — 선물옵션 시세
+- `kis query <domain> <method> [args]` — API 직접 호출
+- `kis schema [type] [--json]` — 스키마 탐색
+
+**필드명 변환:**
+- 한투 API의 축약 필드명(`stck_prpr`, `prdy_ctrt`)을 LLM이 이해할 수 있는 이름(`currentPrice`, `changeRate`)으로 자동 변환
+- JSON 출력으로 LLM 파싱 최적화
+
 #### 일봉 데이터 페이지네이션 지원 (NEW!)
 
 100건 제한을 우회하여 장기간 일봉 데이터를 자동으로 조회하는 기능이 추가되었습니다.

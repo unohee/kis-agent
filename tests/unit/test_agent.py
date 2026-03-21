@@ -30,10 +30,10 @@ class TestAgent(unittest.TestCase):
     이 클래스는 Agent의 각 메서드를 모킹하여 테스트합니다.
     """
 
-    @patch("pykis.core.agent.StockAPI")
-    @patch("pykis.core.agent.AccountAPI")
-    @patch("pykis.core.agent.ProgramTradeAPI")
-    @patch("pykis.core.agent.StockMarketAPI")
+    @patch("kis_agent.core.agent.StockAPI")
+    @patch("kis_agent.core.agent.AccountAPI")
+    @patch("kis_agent.core.agent.ProgramTradeAPI")
+    @patch("kis_agent.core.agent.StockMarketAPI")
     def setUp(
         self, mock_market_api, mock_program_api, mock_account_api, mock_stock_api
     ):
@@ -49,9 +49,9 @@ class TestAgent(unittest.TestCase):
         )
         self.test_stock_code = "005930"  # 삼성전자
 
-    @patch("pykis.core.auth.read_token")
-    @patch("pykis.core.auth.auth")
-    @patch("pykis.core.agent.KISClient")
+    @patch("kis_agent.core.auth.read_token")
+    @patch("kis_agent.core.auth.auth")
+    @patch("kis_agent.core.agent.KISClient")
     def test_init_without_client(self, mock_client_class, mock_auth, mock_read_token):
         """클라이언트 없이 초기화 테스트 (토큰 관리는 KISClient._initialize_token -> auth()에서 담당)"""
         # Mock token validation to skip auth (auth() 내부에서 read_token 호출)

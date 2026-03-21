@@ -45,35 +45,35 @@ class TestFuturesCodeGenerator(unittest.TestCase):
         self.assertEqual(FuturesCodeGenerator.KOSPI200_CALL, "201")
         self.assertEqual(FuturesCodeGenerator.KOSPI200_PUT, "301")
 
-    @patch("pykis.futures.code_generator.datetime")
+    @patch("kis_agent.futures.code_generator.datetime")
     def test_get_current_series_january(self, mock_datetime):
         """현재 시리즈 반환 - 1월"""
         mock_datetime.now.return_value = datetime(2026, 1, 20)
         series = FuturesCodeGenerator.get_current_series()
         self.assertEqual(series, "S")  # 3월물
 
-    @patch("pykis.futures.code_generator.datetime")
+    @patch("kis_agent.futures.code_generator.datetime")
     def test_get_current_series_march(self, mock_datetime):
         """현재 시리즈 반환 - 3월"""
         mock_datetime.now.return_value = datetime(2026, 3, 10)
         series = FuturesCodeGenerator.get_current_series()
         self.assertEqual(series, "S")  # 3월물
 
-    @patch("pykis.futures.code_generator.datetime")
+    @patch("kis_agent.futures.code_generator.datetime")
     def test_get_current_series_april(self, mock_datetime):
         """현재 시리즈 반환 - 4월 (다음은 6월물)"""
         mock_datetime.now.return_value = datetime(2026, 4, 1)
         series = FuturesCodeGenerator.get_current_series()
         self.assertEqual(series, "M")  # 6월물
 
-    @patch("pykis.futures.code_generator.datetime")
+    @patch("kis_agent.futures.code_generator.datetime")
     def test_get_current_series_december(self, mock_datetime):
         """현재 시리즈 반환 - 12월"""
         mock_datetime.now.return_value = datetime(2026, 12, 15)
         series = FuturesCodeGenerator.get_current_series()
         self.assertEqual(series, "Z")  # 12월물
 
-    @patch("pykis.futures.code_generator.datetime")
+    @patch("kis_agent.futures.code_generator.datetime")
     def test_get_current_expiry_month_january(self, mock_datetime):
         """현재 만기월 반환 - 1월"""
         mock_datetime.now.return_value = datetime(2026, 1, 20)
@@ -214,7 +214,9 @@ class TestFuturesCodeGenerator(unittest.TestCase):
 class TestConvenienceFunctions(unittest.TestCase):
     """편의 함수 테스트"""
 
-    @patch("pykis.futures.code_generator.FuturesCodeGenerator.generate_futures_code")
+    @patch(
+        "kis_agent.futures.code_generator.FuturesCodeGenerator.generate_futures_code"
+    )
     def test_generate_current_futures(self, mock_generate):
         """현재 월물 생성 (편의 함수)"""
         mock_generate.return_value = "101S03"
@@ -223,8 +225,12 @@ class TestConvenienceFunctions(unittest.TestCase):
         self.assertEqual(result, "101S03")
         mock_generate.assert_called_once()
 
-    @patch("pykis.futures.code_generator.FuturesCodeGenerator.get_current_expiry_month")
-    @patch("pykis.futures.code_generator.FuturesCodeGenerator.generate_futures_code")
+    @patch(
+        "kis_agent.futures.code_generator.FuturesCodeGenerator.get_current_expiry_month"
+    )
+    @patch(
+        "kis_agent.futures.code_generator.FuturesCodeGenerator.generate_futures_code"
+    )
     def test_generate_next_futures(self, mock_generate, mock_get_month):
         """차근월물 생성 (편의 함수)"""
         mock_get_month.return_value = 3  # 현재 3월물
@@ -235,7 +241,7 @@ class TestConvenienceFunctions(unittest.TestCase):
         self.assertEqual(result, "101M06")
         mock_generate.assert_called_once_with(expiry_month=6)
 
-    @patch("pykis.futures.code_generator.FuturesCodeGenerator.generate_option_code")
+    @patch("kis_agent.futures.code_generator.FuturesCodeGenerator.generate_option_code")
     def test_generate_call_option(self, mock_generate):
         """콜옵션 생성 (편의 함수)"""
         mock_generate.return_value = "201SC340"
@@ -244,7 +250,7 @@ class TestConvenienceFunctions(unittest.TestCase):
         self.assertEqual(result, "201SC340")
         mock_generate.assert_called_once_with("CALL", 340.0, expiry_month=None)
 
-    @patch("pykis.futures.code_generator.FuturesCodeGenerator.generate_option_code")
+    @patch("kis_agent.futures.code_generator.FuturesCodeGenerator.generate_option_code")
     def test_generate_put_option(self, mock_generate):
         """풋옵션 생성 (편의 함수)"""
         mock_generate.return_value = "301SP340"

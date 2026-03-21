@@ -755,7 +755,7 @@ class TestStockPriceAPIAdditionalMethods(unittest.TestCase):
         self.assertEqual(params["fid_input_iscd"], "1001")
         self.assertEqual(params["fid_input_hour_1"], "120")
 
-    @patch("pykis.stock.api.get_kospi200_futures_code")
+    @patch("kis_agent.stock.api.get_kospi200_futures_code")
     def test_get_future_option_price_default(self, mock_futures_code):
         """선물옵션 시세 조회 - 기본값"""
         mock_futures_code.return_value = "101T12"

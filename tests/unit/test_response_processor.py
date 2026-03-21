@@ -153,7 +153,7 @@ class TestDataFrameResponseProcessor(unittest.TestCase):
         result = self.processor._convert_to_dataframe(output_data)
         self.assertIsNone(result)
 
-    @patch("pykis.core.response_processor.logging.error")
+    @patch("kis_agent.core.response_processor.logging.error")
     def test_convert_to_dataframe_exception(self, mock_log):
         """DataFrame 변환 중 예외 발생"""
         with patch("pandas.DataFrame", side_effect=Exception("Test error")):
@@ -218,7 +218,9 @@ class TestAPIRequestManager(unittest.TestCase):
         self.assertEqual(self.manager.metadata_adder, self.mock_metadata_adder)
         self.assertEqual(self.manager.field_converter, self.mock_field_converter)
 
-    @patch("pykis.core.response_processor.ResponseProcessorFactory.create_processor")
+    @patch(
+        "kis_agent.core.response_processor.ResponseProcessorFactory.create_processor"
+    )
     def test_make_request_with_processing_dataframe(self, mock_factory):
         """DataFrame 반환 요청 처리"""
         # Mock 설정
@@ -253,7 +255,9 @@ class TestAPIRequestManager(unittest.TestCase):
         mock_processor.process.assert_called_once_with(mock_response, "stock_price")
         pd.testing.assert_frame_equal(result, expected_df)
 
-    @patch("pykis.core.response_processor.ResponseProcessorFactory.create_processor")
+    @patch(
+        "kis_agent.core.response_processor.ResponseProcessorFactory.create_processor"
+    )
     def test_make_request_with_processing_dict(self, mock_factory):
         """Dict 반환 요청 처리"""
         # Mock 설정
@@ -281,7 +285,7 @@ class TestAPIRequestManager(unittest.TestCase):
 
         self.assertEqual(result, mock_response)
 
-    @patch("pykis.core.response_processor.logging.error")
+    @patch("kis_agent.core.response_processor.logging.error")
     def test_make_request_with_processing_exception(self, mock_log):
         """API 요청 중 예외 발생"""
         # Mock 설정

@@ -136,7 +136,7 @@ class TestCacheIntegration:
         assert result3 == "result_other"
         assert call_count == 2
 
-    @patch("pykis.core.base_api.APIRequestManager")
+    @patch("kis_agent.core.base_api.APIRequestManager")
     def test_base_api_cache_integration(self, mock_request_manager):
         """BaseAPI의 캐시 통합 테스트"""
         # Mock 클라이언트 설정
