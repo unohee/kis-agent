@@ -194,7 +194,7 @@ class TestGetForeignBrokerNetBuy:
         assert details["buy_total"] == 15000
         assert details["sell_total"] == 10000
 
-    @patch("pykis.stock.investor_api.datetime")
+    @patch("kis_agent.stock.investor_api.datetime")
     def test_get_foreign_broker_historical(self, mock_datetime):
         """외국계 순매수 - 과거 날짜"""
         mock_datetime.now.return_value.strftime.return_value = "20260104"

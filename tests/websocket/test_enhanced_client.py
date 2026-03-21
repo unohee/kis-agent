@@ -4,7 +4,7 @@ Enhanced WebSocket Client 테스트
 
 생성일: 2024-08-22
 목적: EnhancedWebSocketClient 클래스의 기능 검증
-의존성: pytest, pytest-asyncio, pykis.websocket
+의존성: pytest, pytest-asyncio, kis_agent.websocket
 테스트 상태: 완료
 
 주요 테스트 영역:
@@ -99,7 +99,9 @@ class TestStockManagement:
     @pytest.fixture
     def client(self, mock_kis_client, account_info, stock_api):
         """테스트용 클라이언트"""
-        with patch("pykis.websocket.enhanced_client.StockAPI", return_value=stock_api):
+        with patch(
+            "kis_agent.websocket.enhanced_client.StockAPI", return_value=stock_api
+        ):
             client = EnhancedWebSocketClient(
                 client=mock_kis_client,
                 account_info=account_info,
@@ -453,8 +455,10 @@ class TestIntegration:
     @pytest.fixture
     def client_with_mocks(self, mock_kis_client, account_info):
         """완전히 모킹된 클라이언트"""
-        with patch("pykis.websocket.enhanced_client.StockAPI") as mock_stock_api, patch(
-            "pykis.websocket.enhanced_client.WSAgent"
+        with patch(
+            "kis_agent.websocket.enhanced_client.StockAPI"
+        ) as mock_stock_api, patch(
+            "kis_agent.websocket.enhanced_client.WSAgent"
         ) as mock_ws_agent:
             # StockAPI 모킹
             stock_api_instance = mock_stock_api.return_value

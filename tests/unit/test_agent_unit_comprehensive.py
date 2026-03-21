@@ -38,7 +38,7 @@ def patch_all_apis(agent_module, mocks=None):
     """Agent 생성에 필요한 모든 API를 패치하는 컨텍스트 매니저 스택을 반환합니다.
 
     Args:
-        agent_module: pykis.core.agent 모듈
+        agent_module: kis_agent.core.agent 모듈
         mocks: 특정 API에 대한 mock 객체를 지정하는 딕셔너리 (선택사항)
                예: {"StockAPI": mock_stock_api}
 
@@ -102,22 +102,23 @@ class TestAgentInit:
         """모든 필수 매개변수 제공 시 정상 초기화 (L147-231)"""
         agent_module = get_agent_module()
 
-        with patch.object(agent_module, "KISConfig"):
-            with patch.object(agent_module, "KISClient") as mock_client_class:
-                mock_client = MockKISClient()
-                mock_client_class.return_value = mock_client
+        with patch.object(agent_module, "KISConfig"), patch.object(
+            agent_module, "KISClient"
+        ) as mock_client_class:
+            mock_client = MockKISClient()
+            mock_client_class.return_value = mock_client
 
-                with patch_all_apis(agent_module):
-                    agent = agent_module.Agent(
-                        app_key="TEST_KEY",
-                        app_secret="TEST_SECRET",
-                        account_no="12345678",
-                        account_code="01",
-                    )
+            with patch_all_apis(agent_module):
+                agent = agent_module.Agent(
+                    app_key="TEST_KEY",
+                    app_secret="TEST_SECRET",
+                    account_no="12345678",
+                    account_code="01",
+                )
 
-                    assert agent.account_info["CANO"] == "12345678"
-                    assert agent.account_info["ACNT_PRDT_CD"] == "01"
-                    assert agent.my_acct == agent.account_info
+                assert agent.account_info["CANO"] == "12345678"
+                assert agent.account_info["ACNT_PRDT_CD"] == "01"
+                assert agent.my_acct == agent.account_info
 
     def test_init_with_custom_client(self):
         """커스텀 client 전달 시 사용"""
@@ -267,7 +268,7 @@ class TestGetConditionStocks:
             )
 
             # ConditionAPI를 모의
-            with patch("pykis.stock.condition.ConditionAPI") as mock_condition:
+            with patch("kis_agent.stock.condition.ConditionAPI") as mock_condition:
                 mock_condition_instance = MagicMock()
                 mock_condition_instance.get_condition_stocks.return_value = mock_result
                 mock_condition.return_value = mock_condition_instance
@@ -290,7 +291,7 @@ class TestGetConditionStocks:
             )
 
             # ConditionAPI에서 예외 발생
-            with patch("pykis.stock.condition.ConditionAPI") as mock_condition:
+            with patch("kis_agent.stock.condition.ConditionAPI") as mock_condition:
                 mock_condition.side_effect = Exception("API 오류")
 
                 with caplog.at_level(logging.ERROR):

@@ -271,9 +271,9 @@ class TestInvestorTradeByStockDailyFacade(unittest.TestCase):
 
         self.mock_client = Mock(spec=KISClient)
 
-        with patch("pykis.stock.api_facade.StockPriceAPI"), patch(
-            "pykis.stock.api_facade.StockMarketAPI"
-        ), patch("pykis.stock.api_facade.StockInvestorAPI"):
+        with patch("kis_agent.stock.api_facade.StockPriceAPI"), patch(
+            "kis_agent.stock.api_facade.StockMarketAPI"
+        ), patch("kis_agent.stock.api_facade.StockInvestorAPI"):
             self.api = StockAPI(
                 client=self.mock_client,
                 account_info={"account_no": "12345", "account_code": "01"},

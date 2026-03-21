@@ -216,7 +216,7 @@ class TestStockIndexAPI(unittest.TestCase):
             method="GET",
         )
 
-    @patch("pykis.stock.api.get_kospi200_futures_code")
+    @patch("kis_agent.stock.api.get_kospi200_futures_code")
     def test_get_future_option_price_auto_code(self, mock_get_code):
         """선물옵션 시세 조회 - 자동 종목코드 생성"""
         mock_get_code.return_value = "101S03"

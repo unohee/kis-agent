@@ -19,6 +19,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.whl
+MANIFEST.in
 
 # Virtual Environment
 venv/
@@ -31,35 +33,33 @@ env/
 *.swp
 *.swo
 
-# Testing
+# Testing & Coverage
 .coverage
 htmlcov/
 .pytest_cache/
+.ruff_cache/
 testing/
 examples_llm/
+coverage.xml
+coverage.json
+*.cover
+test_results.log
 
-# Credentials
+# Credentials & Secrets
 credit/
 tokens/
 *.yaml
 .env
 .env.*
 !.env.example
+src/kis/core/credit/KIS_Token.json
 
 # Logs
 *.log
 logs/
 
-# Coverage
-coverage.xml
-coverage.json
-*.cover
-
 # Cache
 cache/
-
-# Token files
-src/kis/core/credit/KIS_Token.json
 
 # Development config
 kis_devlp.yaml
@@ -67,10 +67,11 @@ stonks_candles.db
 test_api_call.py
 test_token.py
 
-# Audit reports
+# Audit reports (generated artifacts)
 audit_report.json
 audit_report_*.md
 audit_report_*.py
+EXCEPTION_SWALLOWING_AUDIT.md
 
 # Postman collections
 postman_collections/
@@ -89,15 +90,18 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 dev-debug.log
+package-lock.json
 
 # OS specific
 .DS_Store
+Thumbs.db
 
 # External projects
 open-trading-api/
 
-# AI Assistant directories (all)
+# AI Assistant directories
 .claude/
+.openswarm/
 .clinerules/
 .cursor/
 .gemini/
@@ -123,3 +127,10 @@ reports/
 trash/
 *.tmp
 *_bs_detector*.py
+
+# Git worktrees
+worktree/
+
+# Database files
+*.db
+*.sqlite3

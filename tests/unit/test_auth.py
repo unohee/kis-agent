@@ -69,8 +69,8 @@ class TestAuth(unittest.TestCase):
             "expires_at": 1234567890,
         }
 
-    @patch("pykis.core.auth.save_token")
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.save_token")
+    @patch("kis_agent.core.auth.read_token")
     @patch("requests.post")
     def test_auth(self, mock_post, mock_read_token, mock_save_token):
         """
@@ -97,8 +97,8 @@ class TestAuth(unittest.TestCase):
         )
         mock_save_token.assert_called_once()
 
-    @patch("pykis.core.auth.save_token")
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.save_token")
+    @patch("kis_agent.core.auth.read_token")
     @patch("requests.post")
     def test_reAuth(self, mock_post, mock_read_token, mock_save_token):
         """
@@ -143,8 +143,8 @@ class TestAuth(unittest.TestCase):
             if os.path.exists(token_path):
                 os.remove(token_path)
 
-    @patch("pykis.core.auth.save_token")
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.save_token")
+    @patch("kis_agent.core.auth.read_token")
     @patch("requests.post")
     def test_auth_error(self, mock_post, mock_read_token, mock_save_token):
         """
@@ -179,19 +179,27 @@ class TestTokenPathForAppKey(unittest.TestCase):
 
     def test_app_key_creates_unique_path(self):
         """app_key가 있으면 고유한 경로 생성"""
+        import hashlib
+
         base_path = "/some/path/token.json"
         app_key = "ABCD1234EFGH5678"
         result = _get_token_path_for_app_key(app_key, base_path)
-        self.assertIn("ABCD1234", result)
+        # app_key의 SHA256 해시값이 포함되어 있는지 확인
+        key_hash = hashlib.sha256(app_key.encode()).hexdigest()[:16]
+        self.assertIn(key_hash, result)
         self.assertIn("token_", result)
         self.assertTrue(result.endswith(".json"))
 
     def test_short_app_key(self):
         """짧은 app_key 처리"""
+        import hashlib
+
         base_path = "/some/path/token.json"
         app_key = "ABC"  # 8자리 미만
         result = _get_token_path_for_app_key(app_key, base_path)
-        self.assertIn("ABC", result)
+        # app_key의 SHA256 해시값이 포함되어 있는지 확인
+        key_hash = hashlib.sha256(app_key.encode()).hexdigest()[:16]
+        self.assertIn(key_hash, result)
 
 
 class TestSaveAndReadToken(unittest.TestCase):
@@ -425,7 +433,7 @@ class TestChangeTREnv(unittest.TestCase):
 class TestSetOrderHashKey(unittest.TestCase):
     """set_order_hash_key 함수 테스트"""
 
-    @patch("pykis.core.auth.getTREnv")
+    @patch("kis_agent.core.auth.getTREnv")
     @patch("requests.post")
     def test_set_order_hash_key_success(self, mock_post, mock_get_tr_env):
         """hashkey 설정 성공"""
@@ -444,7 +452,7 @@ class TestSetOrderHashKey(unittest.TestCase):
 
         self.assertEqual(headers.get("hashkey"), "test_hash_value")
 
-    @patch("pykis.core.auth.getTREnv")
+    @patch("kis_agent.core.auth.getTREnv")
     @patch("requests.post")
     @patch("builtins.print")
     def test_set_order_hash_key_error(self, mock_print, mock_post, mock_get_tr_env):
@@ -478,7 +486,7 @@ class TestAuthTokenReuse(unittest.TestCase):
             account_code="01",
         )
 
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.read_token")
     def test_auth_uses_saved_token(self, mock_read_token):
         """저장된 유효 토큰이 있으면 재사용"""
         mock_read_token.return_value = {
@@ -494,7 +502,7 @@ class TestAuthTokenReuse(unittest.TestCase):
 class TestReAuthWithoutConfig(unittest.TestCase):
     """config 없이 reAuth 테스트"""
 
-    @patch("pykis.core.auth.read_token")
+    @patch("kis_agent.core.auth.read_token")
     def test_reauth_returns_saved_token_within_24h(self, mock_read_token):
         """24시간 이내에는 저장된 토큰 반환"""
         mock_read_token.return_value = {
