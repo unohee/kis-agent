@@ -11,9 +11,32 @@ pip install kis-agent
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## CLI
+
+`pip install kis-agent` 하면 `kis` 명령이 바로 설치됩니다.
+
+```bash
+kis price 005930                    # 삼성전자 현재가
+kis price 005930 --daily --days 5   # 일별 시세 5일
+
+kis overseas NAS AAPL               # AAPL 시세
+kis overseas NAS AAPL --detail      # PER/PBR/시총 포함
+
+kis balance --holdings              # 계좌 잔고 + 보유종목
+kis orderbook 005930                # 호가 10호가
+kis futures 101S03                  # 선물 시세
+
+kis query stock get_stock_price code=005930  # API 직접 호출
+kis schema Stock                    # 타입 스키마 (LLM introspection)
+```
+
+- JSON 출력 (LLM 파싱 최적화), `--pretty`로 사람 읽기용
+- 한투 필드명 자동 변환: `stck_prpr` → `currentPrice`, `prdy_ctrt` → `changeRate`
+- 휴장일/장외 시간 자동 감지 — 직전 영업일 기준 데이터 안내
+
 ## 주요 특징
 
-- **CLI 도구**: `kis price 005930` — 설치 즉시 터미널에서 시세 조회
+- **CLI 도구**: 설치 즉시 터미널에서 시세 조회
 - **LLM Agent 연동**: JSON 출력 + 스키마 탐색으로 AI 에이전트 도구로 활용
 - **고성능**: 지능형 캐싱으로 API 호출 80-95% 감소
 - **안정성**: 실측 기반 Rate Limiting (18 RPS / 900 RPM)
@@ -48,42 +71,6 @@ KIS_SECRET=발급받은_시크릿      # 또는 KIS_APP_SECRET
 KIS_ACCOUNT_NO=계좌번호
 KIS_ACCOUNT_CODE=01
 ```
-
-## CLI (LLM Agent Tool)
-
-`pip install kis-agent`만으로 `kis` 명령이 설치됩니다.
-
-```bash
-# 주식 현재가
-kis price 005930
-kis price 005930 --daily --days 5
-
-# 해외 주식
-kis overseas NAS AAPL
-kis overseas NAS AAPL --detail    # PER/PBR/시총 포함
-
-# 계좌 잔고
-kis balance --holdings
-
-# 호가 조회
-kis orderbook 005930
-
-# 선물옵션
-kis futures 101S03
-
-# API 직접 호출
-kis query stock get_stock_price code=005930
-
-# 스키마 탐색 (LLM introspection)
-kis schema              # 전체 스키마
-kis schema Stock        # 특정 타입
-kis schema --json       # JSON 형식
-```
-
-**출력 형식:**
-- 기본: JSON (LLM 파싱 최적화)
-- `--pretty`: 사람 읽기용 들여쓰기
-- 한투 API 필드명을 LLM-friendly 이름으로 자동 변환 (`stck_prpr` → `currentPrice`)
 
 ## Python API
 
