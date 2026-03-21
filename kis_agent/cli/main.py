@@ -35,7 +35,7 @@ from kis_agent.cli.schema import get_schema
 
 
 def _create_agent():
-    """환경변수에서 인증 정보를 로드하여 Agent 생성."""
+    """환경변수에서 인증 정보를 로드하여 Agent 생성 + 영업일 확인."""
     from dotenv import load_dotenv
 
     # .env 파일 탐색
@@ -51,7 +51,7 @@ def _create_agent():
 
     from kis_agent import Agent
 
-    return Agent(
+    agent = Agent(
         app_key=os.environ["KIS_APP_KEY"],
         app_secret=os.environ.get("KIS_APP_SECRET", os.environ.get("KIS_SECRET", "")),
         account_no=os.environ["KIS_ACCOUNT_NO"],
@@ -61,36 +61,74 @@ def _create_agent():
         ),
     )
 
+    # Agent 생성 시 한 번만 영업일 확인 (공휴일 포함)
+    _check_market_status(agent)
 
-def _last_business_day():
-    """가장 최근 영업일 반환. 주말이면 직전 금요일로 폴백."""
+    return agent
+
+
+# 영업일 캐시 — Agent 생성 시 한 번 조회 후 세션 내 재사용
+_market_status = {
+    "checked": False,
+    "is_holiday": None,  # True/False/None
+    "last_business_day": None,  # YYYYMMDD
+    "notice": None,  # 안내 메시지
+}
+
+
+def _check_market_status(agent):
+    """한투 API로 오늘이 영업일인지 확인하고 캐싱. Agent 생성 직후 1회 호출."""
+    if _market_status["checked"]:
+        return
+
     today = datetime.now()
-    wd = today.weekday()  # 0=월 ... 6=일
-    if wd == 5:  # 토요일
-        return today - timedelta(days=1)
-    elif wd == 6:  # 일요일
-        return today - timedelta(days=2)
-    return today
+    today_str = today.strftime("%Y%m%d")
 
+    # 한투 API is_holiday 호출 (주말 + 공휴일 모두 확인)
+    try:
+        holiday = agent.stock_api.is_holiday(today_str)
+    except Exception:
+        # API 실패 시 주말만 체크
+        holiday = today.weekday() >= 5
 
-def _market_notice():
-    """주말/장외 시간이면 안내 메시지 반환."""
-    today = datetime.now()
-    wd = today.weekday()
-    if wd >= 5:
-        bday = _last_business_day()
-        return f"주말 — 데이터는 직전 영업일({bday.strftime('%Y-%m-%d %a')}) 기준"
-    hour = today.hour
-    if hour < 9:
-        return "장 시작 전 — 데이터는 전일 종가 기준"
-    if hour >= 16:
-        return "장 마감 후 — 데이터는 금일 종가 기준"
-    return None
+    _market_status["is_holiday"] = holiday
+    _market_status["checked"] = True
+
+    if holiday:
+        # 직전 영업일 탐색 (최대 10일)
+        for i in range(1, 11):
+            prev = today - timedelta(days=i)
+            prev_str = prev.strftime("%Y%m%d")
+            try:
+                prev_holiday = agent.stock_api.is_holiday(prev_str)
+                if prev_holiday is False:
+                    _market_status["last_business_day"] = prev_str
+                    bday = prev.strftime("%Y-%m-%d %a")
+                    _market_status["notice"] = (
+                        f"휴장일 — 데이터는 직전 영업일({bday}) 기준"
+                    )
+                    break
+            except Exception:
+                # API 실패 시 주말만 건너뛰기
+                if prev.weekday() < 5:
+                    _market_status["last_business_day"] = prev_str
+                    bday = prev.strftime("%Y-%m-%d %a")
+                    _market_status["notice"] = (
+                        f"휴장일 — 데이터는 직전 영업일({bday}) 기준 (공휴일 미확인)"
+                    )
+                    break
+    else:
+        _market_status["last_business_day"] = today_str
+        hour = today.hour
+        if hour < 9:
+            _market_status["notice"] = "장 시작 전 — 데이터는 전일 종가 기준"
+        elif hour >= 16:
+            _market_status["notice"] = "장 마감 후 — 데이터는 금일 종가 기준"
 
 
 def _out(data, pretty=False):
-    """JSON 출력. 주말/장외 시간이면 notice 필드 추가."""
-    notice = _market_notice()
+    """JSON 출력. 휴장일/장외 시간이면 notice 필드 추가."""
+    notice = _market_status.get("notice")
     if notice and isinstance(data, dict) and "data" in data:
         data["_notice"] = notice
     indent = 2 if pretty else None
