@@ -168,6 +168,9 @@ class APICache(TTLCache):
         "inquire-daily-indexchartprice": 1800,  # 지수 일봉 - 30분
         "inquire-balance": 600,  # 잔고 - 10분 (주문 시에만 변동, 빈번한 조회 불필요)
         "inquire-profit": 600,  # 수익률 - 10분
+        "inquire-daily-ccld": 300,  # 일별주문체결 - 5분 (체결 확정 데이터, 빈번한 변동 없음)
+        "inquire-period-trade-profit": 600,  # 기간별매매손익 - 10분
+        "inquire-period-profit": 600,  # 기간별손익일별합산 - 10분
         # === P3: 드물게 조회하는 데이터 (30분-1시간) - 참고용 ===
         "inquire-account": 1800,  # 계좌정보 - 30분 (거의 불변)
         "inquire-condition": 1800,  # 조건검색 - 30분 (조건식 결과 캐시)
