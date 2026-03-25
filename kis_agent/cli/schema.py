@@ -16,6 +16,9 @@ SCHEMA_SDL = '''\
 # kis overseas <excd> <symb>          해외주식 시세
 # kis overseas <excd> <symb> --detail PER/PBR/시총 등 상세
 # kis futures <code>                  선물옵션 시세
+# kis trades                          당일 체결내역
+# kis trades --from -7d               최근 7일 체결
+# kis trades --from -30d --profit     기간별 실현손익
 # kis query <domain> <method> [args]  API 직접 호출
 # kis schema [type]                   스키마 출력
 
@@ -283,6 +286,93 @@ type OverseasFuturesPrice {
   bidPrice: String
   """매도호가"""
   askPrice: String
+}
+
+# === 거래내역 ===
+# kis trades                          당일 체결내역
+# kis trades --from -7d               최근 7일
+# kis trades --from -30d --sell       최근 30일 매도만
+# kis trades --from 2026-01-01 --profit   실현손익
+# kis trades --from -30d --profit --daily-profit  일별 손익
+
+type TradeExecution {
+  """주문일자 (YYYY-MM-DD)"""
+  date: String!
+  """주문시각 (HH:MM:SS)"""
+  time: String
+  """종목코드"""
+  code: String!
+  """종목명"""
+  name: String
+  """매수/매도"""
+  side: String
+  """주문유형 (지정가, 시장가 등)"""
+  orderType: String
+  """주문수량"""
+  orderQty: String
+  """주문가격"""
+  orderPrice: String
+  """체결수량"""
+  filledQty: String
+  """체결평균가"""
+  avgPrice: String
+  """체결금액"""
+  filledAmount: String
+  """잔여수량"""
+  remainQty: String
+  """취소여부"""
+  cancelled: String
+  """주문번호"""
+  orderNo: String
+}
+
+type TradeSummary {
+  """총주문수량"""
+  totalOrderQty: String
+  """총체결수량"""
+  totalFilledQty: String
+  """총체결금액"""
+  totalFilledAmount: String
+  """총제비용"""
+  totalFees: String
+}
+
+type PeriodProfit {
+  """종목코드"""
+  code: String!
+  """종목명"""
+  name: String
+  """매매구분"""
+  side: String
+  """매수수량"""
+  buyQty: String
+  """매수금액"""
+  buyAmount: String
+  """매도수량"""
+  sellQty: String
+  """매도금액"""
+  sellAmount: String
+  """실현손익"""
+  realizedPL: String
+  """실현수익률 (%)"""
+  realizedPLRate: String
+  """제비용"""
+  totalFees: String
+}
+
+type DailyProfit {
+  """영업일 (YYYY-MM-DD)"""
+  date: String!
+  """실현손익"""
+  realizedPL: String
+  """실현수익률 (%)"""
+  realizedPLRate: String
+  """매도금액"""
+  sellAmount: String
+  """매수금액"""
+  buyAmount: String
+  """제비용"""
+  totalFees: String
 }
 
 # 거래소별 종목코드 예시:

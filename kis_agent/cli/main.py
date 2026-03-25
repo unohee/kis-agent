@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from kis_agent.cli.field_map import (
     ACCOUNT_BALANCE,
     DAILY_PRICE,
+    DAILY_PROFIT,
     FUTURES_PRICE,
     HOLDING,
     ORDERBOOK_FIELDS,
@@ -30,7 +31,10 @@ from kis_agent.cli.field_map import (
     OVERSEAS_OPTION_PRICE,
     OVERSEAS_PRICE,
     OVERSEAS_PRICE_DETAIL,
+    PERIOD_PROFIT,
     STOCK_PRICE,
+    TRADE_EXECUTION,
+    TRADE_SUMMARY,
     remap,
 )
 from kis_agent.cli.schema import get_schema
@@ -38,7 +42,13 @@ from kis_agent.cli.schema import get_schema
 
 def _create_agent():
     """환경변수에서 인증 정보를 로드하여 Agent 생성 + 영업일 확인."""
+    import logging
+
     from dotenv import load_dotenv
+
+    # CLI에서는 WARNING 이상만 stderr로 출력 (토큰/Rate Limiter 로그 숨김)
+    logging.basicConfig(level=logging.WARNING, format="%(message)s", stream=sys.stderr)
+    logging.getLogger("kis_agent").setLevel(logging.WARNING)
 
     # .env 파일 탐색
     for p in [
@@ -313,6 +323,241 @@ def cmd_futures(args):
     _out({"data": result}, args.pretty)
 
 
+def _parse_date(s: str) -> str:
+    """날짜 문자열을 YYYYMMDD로 변환.
+
+    지원 형식:
+        today          → 오늘
+        7d, 30d, 3m, 1y → N일/월/년 전 (과거 상대날짜)
+        2026-03-01     → 절대날짜
+        20260301       → 절대날짜
+    """
+    if not s:
+        return datetime.now().strftime("%Y%m%d")
+    s = s.strip().lower()
+    if s == "today":
+        return datetime.now().strftime("%Y%m%d")
+    # 상대 날짜: 7d, 30d, 3m, 1y (과거 기준)
+    if len(s) >= 2 and s[-1] in ("d", "m", "y"):
+        digits = s[:-1].lstrip("-")  # -7d도 7d도 동일 처리
+        unit = s[-1]
+        try:
+            n = int(digits)
+        except ValueError:
+            pass
+        else:
+            today = datetime.now()
+            if unit == "d":
+                return (today - timedelta(days=n)).strftime("%Y%m%d")
+            elif unit == "m":
+                return (today - timedelta(days=n * 30)).strftime("%Y%m%d")
+            elif unit == "y":
+                return (today - timedelta(days=n * 365)).strftime("%Y%m%d")
+    # YYYY-MM-DD 또는 YYYYMMDD
+    cleaned = s.replace("-", "").replace("/", "").replace(".", "")
+    if len(cleaned) == 8 and cleaned.isdigit():
+        return cleaned
+    return s
+
+
+def _fmt_date(yyyymmdd: str) -> str:
+    """YYYYMMDD → YYYY-MM-DD"""
+    if len(yyyymmdd) == 8:
+        return f"{yyyymmdd[:4]}-{yyyymmdd[4:6]}-{yyyymmdd[6:]}"
+    return yyyymmdd
+
+
+def _fmt_time(hhmmss: str) -> str:
+    """HHMMSS → HH:MM:SS"""
+    if len(hhmmss) == 6:
+        return f"{hhmmss[:2]}:{hhmmss[2:4]}:{hhmmss[4:]}"
+    return hhmmss
+
+
+def _fmt_number(s: str) -> str:
+    """숫자에 천단위 콤마. 소수점이 있으면 보존."""
+    if not s:
+        return "0"
+    try:
+        if "." in s:
+            f = float(s)
+            if f == int(f):
+                return f"{int(f):,}"
+            return f"{f:,.2f}"
+        return f"{int(s):,}"
+    except (ValueError, TypeError):
+        return s
+
+
+def cmd_trades(args):
+    """거래내역 조회 — 체결내역, 기간별 손익."""
+    agent = _create_agent()
+
+    start = _parse_date(args.start)
+    end = _parse_date(args.end) if args.end else datetime.now().strftime("%Y%m%d")
+
+    # 매수/매도 필터
+    sll_buy = "00"  # 전체
+    if args.buy:
+        sll_buy = "02"
+    elif args.sell:
+        sll_buy = "01"
+
+    stock_filter = args.stock or ""
+
+    # 기간별 손익 모드
+    if args.profit:
+        return _cmd_trades_profit(agent, args, start, end, stock_filter)
+
+    # 체결내역 조회 (pagination으로 전체 조회)
+    data = agent.account_api.inquire_daily_ccld(
+        start_date=start,
+        end_date=end,
+        pdno=stock_filter,
+        ord_dvsn_cd=sll_buy,
+        pagination=True,
+        ccld_dvsn="01" if args.filled else "00",
+    )
+
+    if not data or data.get("rt_cd") != "0":
+        _out({"error": "거래내역 조회 실패", "detail": data.get("msg1") if data else None})
+        return
+
+    items = data.get("output1", [])
+    summary = data.get("output2", {})
+
+    if not items:
+        _out({"data": {
+            "trades": {"period": f"{_fmt_date(start)} ~ {_fmt_date(end)}", "count": 0, "items": []},
+        }}, args.pretty)
+        return
+
+    # 필드 매핑 + 포맷팅
+    mapped = []
+    for item in items:
+        m = remap(item, TRADE_EXECUTION)
+        m["date"] = _fmt_date(m.get("date", ""))
+        m["time"] = _fmt_time(m.get("time", ""))
+        m["orderQty"] = _fmt_number(m.get("orderQty", ""))
+        m["orderPrice"] = _fmt_number(m.get("orderPrice", ""))
+        m["filledQty"] = _fmt_number(m.get("filledQty", ""))
+        m["avgPrice"] = _fmt_number(m.get("avgPrice", ""))
+        m["filledAmount"] = _fmt_number(m.get("filledAmount", ""))
+        if m.get("remainQty"):
+            m["remainQty"] = _fmt_number(m["remainQty"])
+        # 체결건만 필터 (--filled 아닐 때도 체결수량 0인 건 정리)
+        if args.filled and m.get("filledQty") == "0":
+            continue
+        mapped.append(m)
+
+    # 요약 매핑
+    mapped_summary = remap(summary, TRADE_SUMMARY)
+    for k in ["totalOrderQty", "totalFilledQty", "totalFilledAmount", "totalFees"]:
+        if k in mapped_summary:
+            mapped_summary[k] = _fmt_number(mapped_summary[k])
+
+    if "page_count" in summary:
+        mapped_summary["pages"] = summary["page_count"]
+    if "total_count" in summary:
+        mapped_summary["totalCount"] = summary["total_count"]
+
+    result = {
+        "trades": {
+            "period": f"{_fmt_date(start)} ~ {_fmt_date(end)}",
+            "count": len(mapped),
+            "summary": mapped_summary,
+            "items": mapped[:args.limit] if args.limit else mapped,
+        }
+    }
+
+    _out({"data": result}, args.pretty)
+
+
+def _cmd_trades_profit(agent, args, start, end, stock_filter):
+    """기간별 손익 조회."""
+    if args.daily_profit:
+        # 일별 손익 합산
+        data = agent.account_api.get_period_profit(
+            start_date=start,
+            end_date=end,
+        )
+        if not data or data.get("rt_cd") != "0":
+            _out({"error": "기간별 손익 조회 실패", "detail": data.get("msg1") if data else None})
+            return
+
+        items = data.get("output1", [])
+        mapped = []
+        for item in items:
+            m = remap(item, DAILY_PROFIT)
+            m["date"] = _fmt_date(m.get("date", ""))
+            for k in ["realizedPL", "sellAmount", "buyAmount", "totalFees"]:
+                if k in m:
+                    m[k] = _fmt_number(m[k])
+            if m.get("realizedPLRate"):
+                m["realizedPLRate"] = f"{m['realizedPLRate']}%"
+            mapped.append(m)
+
+        result = {
+            "dailyProfit": {
+                "period": f"{_fmt_date(start)} ~ {_fmt_date(end)}",
+                "count": len(mapped),
+                "items": mapped,
+            }
+        }
+        _out({"data": result}, args.pretty)
+        return
+
+    # 종목별 실현손익
+    data = agent.account_api.get_period_trade_profit(
+        start_date=start,
+        end_date=end,
+        pdno=stock_filter,
+    )
+
+    if not data or data.get("rt_cd") != "0":
+        _out({"error": "기간별 손익 조회 실패", "detail": data.get("msg1") if data else None})
+        return
+
+    items = data.get("output1", [])
+    summary = data.get("output2", {})
+
+    mapped = []
+    for item in items:
+        m = remap(item, PERIOD_PROFIT)
+        for k in ["buyQty", "buyAmount", "sellQty", "sellAmount", "realizedPL", "totalFees"]:
+            if k in m:
+                m[k] = _fmt_number(m[k])
+        if m.get("realizedPLRate"):
+            m["realizedPLRate"] = f"{m['realizedPLRate']}%"
+        mapped.append(m)
+
+    # output2 요약
+    profit_summary = {}
+    for k in ["tot_sll_amt", "tot_buy_amt", "tot_rlzt_pfls", "tot_prsm_tlex_smtl"]:
+        v = summary.get(k)
+        if v:
+            label = {
+                "tot_sll_amt": "totalSellAmount",
+                "tot_buy_amt": "totalBuyAmount",
+                "tot_rlzt_pfls": "totalRealizedPL",
+                "tot_prsm_tlex_smtl": "totalFees",
+            }.get(k, k)
+            profit_summary[label] = _fmt_number(v)
+    if summary.get("tot_rlzt_erng_rt"):
+        profit_summary["totalRealizedPLRate"] = f"{summary['tot_rlzt_erng_rt']}%"
+
+    result = {
+        "profit": {
+            "period": f"{_fmt_date(start)} ~ {_fmt_date(end)}",
+            "count": len(mapped),
+            "summary": profit_summary,
+            "items": mapped,
+        }
+    }
+
+    _out({"data": result}, args.pretty)
+
+
 def cmd_query(args):
     """API 직접 호출 — kis query <domain> <method> [key=value ...]"""
     agent = _create_agent()
@@ -426,6 +671,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--orderbook", action="store_true", help="호가 포함 (해외선물)")
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
+    # trades (거래내역)
+    p = sub.add_parser("trades", help="거래내역/체결/손익 조회")
+    p.add_argument("--from", dest="start", default="today", help="시작일 (today, 7d, 30d, 3m, 2026-03-01)")
+    p.add_argument("--to", dest="end", default="", help="종료일 (기본: 오늘)")
+    p.add_argument("--buy", action="store_true", help="매수만")
+    p.add_argument("--sell", action="store_true", help="매도만")
+    p.add_argument("--stock", default="", help="종목코드 필터 (예: 005930)")
+    p.add_argument("--filled", action="store_true", help="체결 완료건만")
+    p.add_argument("--limit", type=int, default=0, help="최대 건수 (0=전체)")
+    p.add_argument("--profit", action="store_true", help="기간별 실현손익 모드")
+    p.add_argument("--daily-profit", action="store_true", help="일별 손익 합산 (--profit과 함께)")
+    p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
     # query (API 직접 호출)
     p = sub.add_parser(
         "query", help="API 직접 호출 (kis query stock get_stock_price code=005930)"
@@ -457,6 +715,7 @@ def main():
         "orderbook": cmd_orderbook,
         "overseas": cmd_overseas,
         "futures": cmd_futures,
+        "trades": cmd_trades,
         "query": cmd_query,
         "schema": cmd_schema,
     }
