@@ -185,6 +185,58 @@ OVERSEAS_OPTION_PRICE = {
     "vega": "vega",
 }
 
+# 일별 주문체결 (output1)
+TRADE_EXECUTION = {
+    "ord_dt": "date",
+    "ord_tmd": "time",
+    "pdno": "code",
+    "prdt_name": "name",
+    "sll_buy_dvsn_cd_name": "side",
+    "ord_dvsn_name": "orderType",
+    "ord_qty": "orderQty",
+    "ord_unpr": "orderPrice",
+    "tot_ccld_qty": "filledQty",
+    "avg_prvs": "avgPrice",
+    "tot_ccld_amt": "filledAmount",
+    "rmn_qty": "remainQty",
+    "cncl_yn": "cancelled",
+    "odno": "orderNo",
+    "orgn_odno": "origOrderNo",
+}
+
+# 체결 요약 (output2)
+TRADE_SUMMARY = {
+    "tot_ord_qty": "totalOrderQty",
+    "tot_ccld_qty": "totalFilledQty",
+    "tot_ccld_amt": "totalFilledAmount",
+    "prsm_tlex_smtl": "totalFees",
+    "pchs_avg_pric": "avgPurchasePrice",
+}
+
+# 기간별 실현손익 (output1)
+PERIOD_PROFIT = {
+    "pdno": "code",
+    "prdt_name": "name",
+    "sll_buy_dvsn_cd_name": "side",
+    "buy_qty": "buyQty",
+    "buy_amt": "buyAmount",
+    "sll_qty": "sellQty",
+    "sll_amt": "sellAmount",
+    "rlzt_pfls": "realizedPL",
+    "rlzt_erng_rt": "realizedPLRate",
+    "prsm_tlex_smtl": "totalFees",
+}
+
+# 기간별 손익 일별합산 (output1)
+DAILY_PROFIT = {
+    "bsop_dt": "date",
+    "rlzt_pfls": "realizedPL",
+    "rlzt_erng_rt": "realizedPLRate",
+    "sll_amt": "sellAmount",
+    "buy_amt": "buyAmount",
+    "prsm_tlex_smtl": "totalFees",
+}
+
 # 종목정보
 STOCK_INFO = {
     "prdt_abrv_name": "name",

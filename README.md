@@ -26,6 +26,11 @@ kis balance --holdings              # 계좌 잔고 + 보유종목
 kis orderbook 005930                # 호가 10호가
 kis futures 101S03                  # 선물 시세
 
+kis trades                          # 당일 체결내역
+kis trades --from 7d --pretty       # 최근 7일 (사람 읽기용)
+kis trades --from 30d --sell        # 최근 30일 매도만
+kis trades --from 3m --profit       # 기간별 실현손익
+
 kis query stock get_stock_price code=005930  # API 직접 호출
 kis schema Stock                    # 타입 스키마 (LLM introspection)
 ```
@@ -52,11 +57,7 @@ kis schema Stock                    # 타입 스키마 (LLM introspection)
 pip install kis-agent
 ```
 
-WebSocket 실시간 데이터가 필요한 경우:
-
-```bash
-pip install kis-agent[websocket]
-```
+WebSocket, aiohttp, openpyxl은 기본 의존성에 포함되어 별도 설치가 불필요합니다.
 
 ## 사전 준비
 
