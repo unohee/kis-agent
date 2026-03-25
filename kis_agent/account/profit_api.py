@@ -67,7 +67,7 @@ class AccountProfitAPI(BaseAPI):
                 else "TTTC0081R"
             )
 
-            res = self.client.make_request(
+            res = self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-daily-ccld",
                 tr_id=tr_id,
                 params={
@@ -273,7 +273,7 @@ class AccountProfitAPI(BaseAPI):
     ) -> Optional[pd.DataFrame]:
         """기간별 실현손익 조회. as_dict=True면 Dict, False면 DataFrame 반환."""
         try:
-            res = self.client.make_request(
+            res = self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-period-trade-profit",
                 tr_id="TTTC8715R",
                 params={
@@ -332,7 +332,7 @@ class AccountProfitAPI(BaseAPI):
     ) -> Optional[pd.DataFrame]:
         """기간별손익일별합산조회 - 일별 손익 합산 조회."""
         try:
-            res = self.client.make_request(
+            res = self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-period-profit",
                 tr_id="TTTC8708R",
                 params={
@@ -381,7 +381,7 @@ class AccountProfitAPI(BaseAPI):
     ) -> Optional[pd.DataFrame]:
         """기간별계좌권리현황조회 - 배당, 증자 등 권리 현황 조회."""
         try:
-            res = self.client.make_request(
+            res = self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/period-rights",
                 tr_id="CTRGA011R",
                 params={

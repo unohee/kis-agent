@@ -32,6 +32,9 @@ dependencies = [
     "pandas>=1.5.0,<3.0.0",
     "python-dotenv>=0.21.0,<2.0.0",
     "pycryptodome>=3.23.0,<4.0.0",
+    "websockets>=12.0,<16.0",
+    "aiohttp>=3.9.0,<4.0.0",
+    "openpyxl>=3.0.0,<4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -61,6 +64,7 @@ all = [
 
 [project.scripts]
 kis = "kis_agent.cli.main:main"
+kis-bridge = "kis_agent.cli_bridge:main"
 
 [project.urls]
 Homepage = "https://github.com/unohee/kis-agent"

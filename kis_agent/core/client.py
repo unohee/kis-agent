@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from .auth import auth, getTREnv
+from .auth import auth, getTREnv, read_token
 from .config import KISConfig
 from .rate_limiter import RateLimiter, get_global_rate_limiter
 
@@ -299,29 +299,47 @@ class KISClient:
                     except Exception as e:
                         logger.warning(f"토큰 만료 시간 파싱 실패, 재발급 진행: {e}")
 
-                logger.info("토큰 발급을 시작합니다...")
-                if self.config is None:
-                    # config가 없으면 환경 변수로 토큰 발급
-                    token_data = auth(svr=self.svr)
-                    if token_data:
-                        self.token = token_data.get("access_token")
-                        self.token_expired = token_data.get(
-                            "access_token_token_expired"
+                # 캐시된 토큰 먼저 확인 (네트워크 호출 없이)
+                app_key = (
+                    self.config.APP_KEY if self.config else os.getenv("KIS_APP_KEY", "")
+                )
+                cached = read_token(app_key=app_key) if app_key else None
+
+                if cached:
+                    self.token = cached.get("access_token")
+                    self.token_expired = cached.get("access_token_token_expired")
+                    logger.info(f"캐시된 토큰 사용 (만료: {self.token_expired})")
+                    # auth() 호출하여 헤더 설정 (토큰 재발급 없이 기존 토큰 로드)
+                    if self.config is None:
+                        auth(svr=self.svr)
+                        self.base_url = os.getenv(
+                            "KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"
                         )
-                        logger.info(f"토큰 발급 완료 (만료: {self.token_expired})")
-                    self.base_url = os.getenv(
-                        "KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"
-                    )
+                    else:
+                        auth(config=self.config, svr=self.svr)
+                        self.base_url = self.config.BASE_URL
                 else:
-                    # config가 있으면 config로 토큰 발급
-                    token_data = auth(config=self.config, svr=self.svr)
-                    if token_data:
-                        self.token = token_data.get("access_token")
-                        self.token_expired = token_data.get(
-                            "access_token_token_expired"
+                    logger.info("토큰 발급을 시작합니다...")
+                    if self.config is None:
+                        token_data = auth(svr=self.svr)
+                        if token_data:
+                            self.token = token_data.get("access_token")
+                            self.token_expired = token_data.get(
+                                "access_token_token_expired"
+                            )
+                            logger.info(f"토큰 발급 완료 (만료: {self.token_expired})")
+                        self.base_url = os.getenv(
+                            "KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"
                         )
-                        logger.info(f"토큰 발급 완료 (만료: {self.token_expired})")
-                    self.base_url = self.config.BASE_URL
+                    else:
+                        token_data = auth(config=self.config, svr=self.svr)
+                        if token_data:
+                            self.token = token_data.get("access_token")
+                            self.token_expired = token_data.get(
+                                "access_token_token_expired"
+                            )
+                            logger.info(f"토큰 발급 완료 (만료: {self.token_expired})")
+                        self.base_url = self.config.BASE_URL
             except Exception as e:
                 logger.error(f"인증 실패: {e}", exc_info=True)
                 raise
