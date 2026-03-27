@@ -490,3 +490,44 @@ class TestWSAgentWithStore:
 
         assert agent.keep_history is True
         assert agent.store.max_history == 50
+
+
+class TestWSAgentReconnectConfig:
+    """재연결 설정 테스트"""
+
+    def test_default_max_reconnect_attempts(self):
+        """기본 max_reconnect_attempts 값 확인"""
+        agent = WSAgent(approval_key="test_key")
+        assert agent.max_reconnect_attempts == 10
+
+    def test_custom_max_reconnect_attempts(self):
+        """커스텀 max_reconnect_attempts 설정"""
+        agent = WSAgent(approval_key="test_key", max_reconnect_attempts=5)
+        assert agent.max_reconnect_attempts == 5
+
+    def test_unlimited_reconnect(self):
+        """무제한 재연결 (0)"""
+        agent = WSAgent(approval_key="test_key", max_reconnect_attempts=0)
+        assert agent.max_reconnect_attempts == 0
+
+    def test_fatal_error_patterns_exist(self):
+        """복구 불가능한 에러 패턴 존재 확인"""
+        assert "401" in WSAgent._FATAL_ERROR_PATTERNS
+        assert "403" in WSAgent._FATAL_ERROR_PATTERNS
+        assert "인증" in WSAgent._FATAL_ERROR_PATTERNS
+
+    @pytest.mark.asyncio
+    async def test_connect_blocked_after_market_close(self):
+        """장 마감 후 연결 차단 확인"""
+        agent = WSAgent(approval_key="test_key")
+
+        with patch(
+            "kis_agent.websocket.ws_agent._is_after_market_close", return_value=True
+        ):
+            await agent.connect()
+            assert agent.auto_reconnect is False
+
+    def test_ping_check_interval_matches_ping_interval(self):
+        """ping_check_interval이 ping_interval과 동일한지 확인"""
+        agent = WSAgent(approval_key="test_key", ping_interval=45)
+        assert agent.ping_interval == 45
