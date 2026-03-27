@@ -47,6 +47,9 @@ def _is_after_market_close() -> bool:
 class WSAgent:
     """다중 구독 웹소켓 에이전트. 종목/지수/선물 동시 구독, 자동 재연결, AES256 처리."""
 
+    # 복구 불가능한 에러 패턴 (이 에러 발생 시 재연결 중단)
+    _FATAL_ERROR_PATTERNS = frozenset({"401", "403", "인증", "권한", "만료", "expired"})
+
     def __init__(
         self,
         approval_key: str,
@@ -54,6 +57,7 @@ class WSAgent:
         ping_interval: int = 30,
         ping_timeout: int = 30,
         auto_reconnect: bool = True,
+        max_reconnect_attempts: int = 10,
         client: Optional[Any] = None,  # KISClient 인스턴스 (토큰 재발급용)
     ):
         """
@@ -65,6 +69,7 @@ class WSAgent:
             ping_interval (int): ping 전송 간격 (초)
             ping_timeout (int): ping 응답 대기 시간 (초)
             auto_reconnect (bool): 연결 실패 시 자동 재연결 여부
+            max_reconnect_attempts (int): 최대 재연결 시도 횟수 (기본 10회, 0=무제한)
             client (Optional[Any]): KISClient 인스턴스. 제공 시 토큰 재발급 시 approval_key도 갱신
 
         Raises:
@@ -72,20 +77,13 @@ class WSAgent:
         """
         if not approval_key:
             raise ValueError("approval_key는 필수입니다")
-        """
-        Args:
-            approval_key: 웹소켓 승인키
-            url: 웹소켓 URL
-            ping_interval: ping 전송 간격
-            ping_timeout: ping 응답 대기 시간
-            auto_reconnect: 자동 재연결 여부
-            client: KISClient 인스턴스 (토큰 재발급용)
-        """
+
         self.approval_key = approval_key
         self.url = url
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.auto_reconnect = auto_reconnect
+        self.max_reconnect_attempts = max_reconnect_attempts
         self.client = client  # KISClient 인스턴스 저장 (토큰 재발급용)
 
         # 웹소켓 연결
@@ -478,9 +476,9 @@ class WSAgent:
                         f"구독 진행: {idx + 1}/{total} (성공: {len(results['success'])})"
                     )
 
-                # 구독 사이 딜레이 (0.1초) - 서버 부하 방지
+                # 구독 사이 딜레이 (0.5초) - KIS 서버 rate limit 준수
                 if idx < total - 1:
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.5)
 
             except Exception as e:
                 logger.error(f"구독 요청 중 예외 발생: {sub_id} - {e}")
@@ -698,18 +696,17 @@ class WSAgent:
             websocket: 웹소켓 연결 객체
         """
         ping_retry_count = 0
-        max_ping_retries = 5  # ping/pong 최대 재시도 횟수 증가 (3→5)
-        # 다량 구독 중에도 ping 응답을 받을 수 있도록 타임아웃 증가
-        # ping_interval * 3으로 설정하여 구독 처리 중에도 ping 응답 대기 시간 확보
-        recv_timeout = max(90, self.ping_interval * 3)  # recv 타임아웃 증가 (60→90초)
+        max_ping_retries = 5
+        recv_timeout = max(90, self.ping_interval * 3)
         last_ping_time = None
-        ping_check_interval = 20  # 20초마다 ping 체크
+        # ping 체크 간격을 ping_interval과 동일하게 설정
+        # (이전: 20초 고정 → 조용한 시장에서 불필요한 ping 폭풍 발생)
+        ping_check_interval = self.ping_interval
 
         while self.connected:
             try:
-                # recv 타임아웃을 더 짧게 설정하여 ping 체크 주기적으로 수행
                 data = await asyncio.wait_for(
-                    websocket.recv(), timeout=min(recv_timeout, ping_check_interval)
+                    websocket.recv(), timeout=ping_check_interval
                 )
                 await self._handle_message(data)
                 ping_retry_count = 0  # 메시지 수신 성공 시 재시도 카운트 리셋
@@ -784,9 +781,12 @@ class WSAgent:
         """
         # 장 마감 후 연결 시도 차단 (EOD 모드)
         if _is_after_market_close():
-            logger.info("📴 장 마감 시간 - WebSocket 연결 시도 차단 (EOD 모드)")
+            logger.info("장 마감 시간 - WebSocket 연결 시도 차단 (EOD 모드)")
             self.auto_reconnect = False
             return
+
+        reconnect_count = 0
+        consecutive_failures = 0  # 연결 성공 없이 연속 실패 횟수
 
         while self.auto_reconnect:
             receive_task = None
@@ -800,10 +800,10 @@ class WSAgent:
                 ) as websocket:
                     self.ws = websocket
                     self.connected = True
+                    consecutive_failures = 0  # 연결 성공 시 리셋
                     logger.info("웹소켓 연결 성공")
 
                     # 메시지 수신 Task 먼저 시작 (백그라운드)
-                    # 이렇게 해야 구독 응답을 받을 수 있음
                     receive_task = asyncio.create_task(self._receive_loop(websocket))
 
                     # 수신 루프가 시작될 때까지 잠시 대기
@@ -816,11 +816,15 @@ class WSAgent:
                     await receive_task
 
             except Exception as e:
-                logger.error(f"웹소켓 오류: {e}")
+                error_str = str(e)
+                logger.error(f"웹소켓 오류: {error_str}")
+                consecutive_failures += 1
 
-                # 토큰 재발급이 필요한 경우 (401, 403 등 인증 오류)
-                if "401" in str(e) or "403" in str(e) or "인증" in str(e):
-                    logger.warning("인증 오류 감지. approval_key 갱신 시도...")
+                # 복구 불가능한 에러 판별
+                is_fatal = any(p in error_str for p in self._FATAL_ERROR_PATTERNS)
+
+                if is_fatal:
+                    # 인증 에러: client가 있으면 1회 갱신 시도
                     if self.client:
                         try:
                             new_approval_key = self.client.get_ws_approval_key(
@@ -829,8 +833,16 @@ class WSAgent:
                             if new_approval_key:
                                 self.update_approval_key(new_approval_key)
                                 logger.info("approval_key 갱신 완료. 재연결 시도...")
+                                continue  # 갱신 성공 시 바로 재연결
                         except Exception as refresh_error:
                             logger.error(f"approval_key 갱신 실패: {refresh_error}")
+
+                    # client 없거나 갱신 실패 → 중단
+                    logger.error(
+                        f"복구 불가능한 에러로 재연결 중단: {error_str}"
+                    )
+                    self.auto_reconnect = False
+                    break
 
             finally:
                 self.connected = False
@@ -842,18 +854,32 @@ class WSAgent:
                     with contextlib.suppress(asyncio.CancelledError):
                         await receive_task
 
-            if self.auto_reconnect:
-                # 장 마감 후(15:30 이후) 재연결 중단 (EOD 모드)
-                if _is_after_market_close():
-                    logger.info("📴 장 마감 시간 - WebSocket 재연결 중단 (EOD 모드)")
-                    self.auto_reconnect = False
-                    break
-
-                self.stats["reconnects"] += 1
-                logger.info("5초 후 재연결 시도...")
-                await asyncio.sleep(5)
-            else:
+            if not self.auto_reconnect:
                 break
+
+            # 장 마감 체크
+            if _is_after_market_close():
+                logger.info("장 마감 시간 - WebSocket 재연결 중단 (EOD 모드)")
+                self.auto_reconnect = False
+                break
+
+            # 최대 재연결 횟수 체크
+            reconnect_count += 1
+            if self.max_reconnect_attempts > 0 and reconnect_count >= self.max_reconnect_attempts:
+                logger.error(
+                    f"최대 재연결 횟수({self.max_reconnect_attempts}) 초과. 재연결 중단."
+                )
+                self.auto_reconnect = False
+                break
+
+            # 지수 백오프 (5s → 10s → 20s → 40s → 60s cap)
+            backoff = min(5 * (2 ** (consecutive_failures - 1)), 60)
+            self.stats["reconnects"] += 1
+            logger.info(
+                f"재연결 {reconnect_count}/{self.max_reconnect_attempts or '∞'} "
+                f"({backoff}초 후 시도, 연속실패={consecutive_failures})"
+            )
+            await asyncio.sleep(backoff)
 
     async def disconnect(self):
         """
