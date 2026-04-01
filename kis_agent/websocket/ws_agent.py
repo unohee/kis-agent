@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import re
 from base64 import b64decode
 from datetime import datetime
 from datetime import time as dt_time
@@ -48,7 +49,15 @@ class WSAgent:
     """다중 구독 웹소켓 에이전트. 종목/지수/선물 동시 구독, 자동 재연결, AES256 처리."""
 
     # 복구 불가능한 에러 패턴 (이 에러 발생 시 재연결 중단)
-    _FATAL_ERROR_PATTERNS = frozenset({"401", "403", "인증", "권한", "만료", "expired"})
+    # 워드 바운더리(\b)로 감싸서 포트 번호 등의 오탐 방지
+    _FATAL_ERROR_PATTERNS = [
+        re.compile(r"\b401\b"),
+        re.compile(r"\b403\b"),
+        re.compile(r"인증"),
+        re.compile(r"권한"),
+        re.compile(r"만료"),
+        re.compile(r"expired", re.IGNORECASE),
+    ]
 
     def __init__(
         self,
@@ -681,7 +690,7 @@ class WSAgent:
         else:
             handler(data, metadata)
 
-    async def _receive_loop(self, websocket):
+    async def _receive_loop(self, websocket) -> str:
         """
         메시지 수신 루프 (별도 Task로 실행)
 
@@ -694,10 +703,13 @@ class WSAgent:
 
         Args:
             websocket: 웹소켓 연결 객체
+
+        Returns:
+            str: 종료 사유 ("disconnected" | "ping_failed" | "connection_closed" |
+                 "cancelled" | "error")
         """
         ping_retry_count = 0
         max_ping_retries = 5
-        recv_timeout = max(90, self.ping_interval * 3)
         last_ping_time = None
         # ping 체크 간격을 ping_interval과 동일하게 설정
         # (이전: 20초 고정 → 조용한 시장에서 불필요한 ping 폭풍 발생)
@@ -733,7 +745,7 @@ class WSAgent:
                             logger.error(
                                 f"ping/pong 타임아웃 {max_ping_retries}회 연속 실패, 재연결 필요"
                             )
-                            break
+                            return "ping_failed"
                         logger.warning(
                             f"ping/pong 타임아웃 ({ping_retry_count}/{max_ping_retries}), 재시도..."
                         )
@@ -745,7 +757,7 @@ class WSAgent:
                             logger.error(
                                 f"ping/pong 실패 {max_ping_retries}회 연속: {e}"
                             )
-                            break
+                            return "ping_failed"
                         logger.warning(
                             f"ping/pong 오류 ({ping_retry_count}/{max_ping_retries}): {e}"
                         )
@@ -756,13 +768,15 @@ class WSAgent:
 
             except ConnectionClosed:
                 logger.warning("웹소켓 연결 종료 (수신 루프)")
-                break
+                return "connection_closed"
             except asyncio.CancelledError:
                 logger.debug("수신 루프 취소됨")
-                break
+                return "cancelled"
             except Exception as e:
                 logger.error(f"수신 루프 오류: {e}")
-                break
+                return "error"
+
+        return "disconnected"
 
     async def connect(self):
         """
@@ -787,16 +801,19 @@ class WSAgent:
 
         reconnect_count = 0
         consecutive_failures = 0  # 연결 성공 없이 연속 실패 횟수
+        should_reconnect = True  # 이번 루프에서 재연결 시도할지 여부
 
         while self.auto_reconnect:
             receive_task = None
+            should_reconnect = True
             try:
                 logger.info(f"웹소켓 연결 시도: {self.url}")
 
+                # 버그4 수정: 라이브러리 자동 ping 비활성화 → _receive_loop의 수동 ping만 사용
                 async with websockets.connect(
                     self.url,
-                    ping_interval=self.ping_interval,
-                    ping_timeout=self.ping_timeout,
+                    ping_interval=None,
+                    ping_timeout=None,
                 ) as websocket:
                     self.ws = websocket
                     self.connected = True
@@ -809,22 +826,48 @@ class WSAgent:
                     # 수신 루프가 시작될 때까지 잠시 대기
                     await asyncio.sleep(0.1)
 
-                    # 모든 구독 요청 전송 (수신 루프와 병렬로 실행)
-                    await self._subscribe_all()
+                    # 버그5 수정: _subscribe_all 중 receive_task 사망 감지
+                    subscribe_task = asyncio.create_task(self._subscribe_all())
+                    done, pending = await asyncio.wait(
+                        [receive_task, subscribe_task],
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
 
-                    # 수신 루프 완료 대기 (연결이 끊어질 때까지)
-                    await receive_task
+                    # 수신 루프가 먼저 끝난 경우 → 구독 태스크 취소
+                    if receive_task in done:
+                        if not subscribe_task.done():
+                            subscribe_task.cancel()
+                            with contextlib.suppress(asyncio.CancelledError):
+                                await subscribe_task
+                        logger.warning("구독 중 수신 루프 종료 감지")
+                    else:
+                        # 구독 완료 → 수신 루프 완료 대기
+                        await receive_task
+
+                    # 버그1 수정: 수신 루프 종료 사유로 재연결 여부 판단
+                    exit_reason = receive_task.result() if receive_task.done() else "unknown"
+                    if exit_reason == "disconnected":
+                        # self.connected=False로 정상 종료 (disconnect() 호출)
+                        should_reconnect = False
+                        logger.info("정상 종료 — 재연결하지 않음")
+                    elif exit_reason == "cancelled":
+                        should_reconnect = False
+                        logger.info("수신 루프 취소됨 — 재연결하지 않음")
+                    else:
+                        # ping_failed, connection_closed, error → 재연결
+                        logger.info(f"수신 루프 종료 사유: {exit_reason} — 재연결 시도")
 
             except Exception as e:
                 error_str = str(e)
                 logger.error(f"웹소켓 오류: {error_str}")
                 consecutive_failures += 1
 
-                # 복구 불가능한 에러 판별
-                is_fatal = any(p in error_str for p in self._FATAL_ERROR_PATTERNS)
+                # 버그6 수정: 정규식 워드 바운더리로 오탐 방지
+                is_fatal = any(p.search(error_str) for p in self._FATAL_ERROR_PATTERNS)
 
                 if is_fatal:
                     # 인증 에러: client가 있으면 1회 갱신 시도
+                    approval_refreshed = False
                     if self.client:
                         try:
                             new_approval_key = self.client.get_ws_approval_key(
@@ -832,29 +875,36 @@ class WSAgent:
                             )
                             if new_approval_key:
                                 self.update_approval_key(new_approval_key)
+                                # 버그2 수정: consecutive_failures 리셋, finally 우회 방지
+                                consecutive_failures = 0
+                                approval_refreshed = True
                                 logger.info("approval_key 갱신 완료. 재연결 시도...")
-                                continue  # 갱신 성공 시 바로 재연결
                         except Exception as refresh_error:
                             logger.error(f"approval_key 갱신 실패: {refresh_error}")
 
-                    # client 없거나 갱신 실패 → 중단
-                    logger.error(
-                        f"복구 불가능한 에러로 재연결 중단: {error_str}"
-                    )
-                    self.auto_reconnect = False
-                    break
+                    if not approval_refreshed:
+                        # client 없거나 갱신 실패 → 중단
+                        logger.error(
+                            f"복구 불가능한 에러로 재연결 중단: {error_str}"
+                        )
+                        self.auto_reconnect = False
+                        should_reconnect = False
 
             finally:
                 self.connected = False
                 self.ws = None
                 self.active_subscriptions.clear()
+                # 버그3 수정: 구독 대기 상태 정리
+                self._pending_subscriptions.clear()
+                self._subscription_results.clear()
+                self._subscription_errors.clear()
                 # 수신 Task 정리
                 if receive_task and not receive_task.done():
                     receive_task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await receive_task
 
-            if not self.auto_reconnect:
+            if not self.auto_reconnect or not should_reconnect:
                 break
 
             # 장 마감 체크
