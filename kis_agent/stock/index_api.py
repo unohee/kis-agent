@@ -281,8 +281,8 @@ class StockIndexAPI(BaseAPI):
             endpoint=API_ENDPOINTS["FUTUREOPTION_INQUIRE_PRICE"],
             tr_id="FHMIF10000000",
             params={
-                "fid_cond_mrkt_div_code": market_div_code,
-                "fid_input_iscd": input_iscd,
+                "FID_COND_MRKT_DIV_CODE": market_div_code,
+                "FID_INPUT_ISCD": input_iscd,
             },
         )
 

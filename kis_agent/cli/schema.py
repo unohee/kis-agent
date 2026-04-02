@@ -16,6 +16,10 @@ SCHEMA_SDL = '''\
 # kis overseas <excd> <symb>          해외주식 시세
 # kis overseas <excd> <symb> --detail PER/PBR/시총 등 상세
 # kis futures <code>                  선물옵션 시세
+# kis order buy 005930 --qty 10 --price 70000  지정가 매수
+# kis order sell 005930 --qty 10 --type market 시장가 매도
+# kis order cancel <주문번호>          주문 취소
+# kis order list                       미체결 조회
 # kis trades                          당일 체결내역
 # kis trades --from -7d               최근 7일 체결
 # kis trades --from -30d --profit     기간별 실현손익
@@ -286,6 +290,93 @@ type OverseasFuturesPrice {
   bidPrice: String
   """매도호가"""
   askPrice: String
+}
+
+# === 주문 ===
+# kis order buy 005930 --qty 10 --price 70000          지정가 매수
+# kis order buy 005930 --qty 10 --type market           시장가 매수
+# kis order sell 005930 --qty 10 --type best            최유리지정가 매도
+# kis order buy AAPL --qty 5 --price 230 --overseas NAS 해외 지정가 매수
+# kis order cancel 0014898200                           주문 취소
+# kis order modify 0014898200 --price 72000             주문 정정
+# kis order list                                        미체결 목록
+
+enum DomesticOrderType {
+  """국내주식 주문유형"""
+  limit
+  """시장가"""
+  market
+  """조건부지정가"""
+  cond
+  """최유리지정가"""
+  best
+  """장전시간외"""
+  pre
+  """장후시간외"""
+  after
+  """IOC지정가"""
+  ioc
+  """FOK지정가"""
+  fok
+}
+
+enum OverseasOrderType {
+  """해외주식 주문유형"""
+  limit
+  """LOO (장개시지정가)"""
+  loo
+  """LOC (장마감지정가)"""
+  loc
+  """MOO (장개시시장가, 매도만)"""
+  moo
+  """MOC (장마감시장가, 매도만)"""
+  moc
+}
+
+type OrderResult {
+  """주문 상태 (accepted)"""
+  status: String!
+  """주문번호"""
+  orderNo: String!
+  """주문시각"""
+  time: String
+  """매수/매도"""
+  side: String
+  """종목코드"""
+  code: String
+  """종목명"""
+  name: String
+  """주문수량"""
+  qty: Int
+  """주문가격"""
+  price: String
+  """주문유형"""
+  type: String
+}
+
+type PendingOrder {
+  """주문일자"""
+  date: String
+  """주문시각"""
+  time: String
+  """주문번호"""
+  orderNo: String!
+  """종목코드"""
+  code: String!
+  """종목명"""
+  name: String
+  """매수/매도"""
+  side: String
+  """주문유형"""
+  orderType: String
+  """주문수량"""
+  orderQty: String
+  """주문가격"""
+  orderPrice: String
+  """체결수량"""
+  filledQty: String
+  """잔여수량"""
+  remainQty: String
 }
 
 # === 거래내역 ===

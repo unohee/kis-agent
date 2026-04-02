@@ -4,11 +4,28 @@
 각 도구는 query_type 또는 action 파라미터로 세부 기능을 선택합니다.
 """
 
+import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from ..errors import InvalidParameterError, validate_api_response
 from ..server import get_agent, server
+
+logger = logging.getLogger(__name__)
+
+
+def _inject_stock_name(result: Dict[str, Any], agent, code: str) -> Dict[str, Any]:
+    """API 응답에 종목명을 주입한다. 조회 실패 시 원본 그대로 반환."""
+    try:
+        info = agent.stock_api.search_stock_info(code=code)
+        if info and info.get("output"):
+            o = info["output"]
+            name = o.get("prdt_abrv_name") or o.get("prdt_name")
+            if name:
+                result["_stock_name"] = name
+    except Exception:
+        logger.debug(f"종목명 조회 실패: {code}")
+    return result
 
 
 # =============================================================================
@@ -56,23 +73,29 @@ async def stock_quote(
 
     if query_type == "price":
         result = agent.get_stock_price(code)
-        return validate_api_response(result, "현재가 조회")
+        validated = validate_api_response(result, "현재가 조회")
+        return _inject_stock_name(validated, agent, code)
     elif query_type == "detail":
         result = agent.inquire_price(code, market)
-        return validate_api_response(result, "현재가 상세 조회")
+        validated = validate_api_response(result, "현재가 상세 조회")
+        return _inject_stock_name(validated, agent, code)
     elif query_type == "detail2":
         result = agent.inquire_price_2(code, market)
-        return validate_api_response(result, "현재가 상세 조회 2")
+        validated = validate_api_response(result, "현재가 상세 조회 2")
+        return _inject_stock_name(validated, agent, code)
     elif query_type == "orderbook":
         result = agent.get_orderbook_raw(code)
-        return validate_api_response(result, "호가 조회")
+        validated = validate_api_response(result, "호가 조회")
+        return _inject_stock_name(validated, agent, code)
     elif query_type == "execution":
         result = agent.inquire_ccnl(code, market)
-        return validate_api_response(result, "체결 정보 조회")
+        validated = validate_api_response(result, "체결 정보 조회")
+        return _inject_stock_name(validated, agent, code)
     elif query_type == "time_execution":
         hour = hour or "155900"
         result = agent.inquire_time_itemconclusion(code, hour)
-        return validate_api_response(result, "시간별 체결 조회")
+        validated = validate_api_response(result, "시간별 체결 조회")
+        return _inject_stock_name(validated, agent, code)
 
 
 # =============================================================================
@@ -118,25 +141,27 @@ async def stock_chart(
 
     if timeframe == "minute":
         if date:
-            # 특정일 전체 분봉 (내부 페이지네이션)
             result = agent.get_daily_minute_price(code, date)
-            return validate_api_response(result, f"분봉 조회 ({date})")
+            validated = validate_api_response(result, f"분봉 조회 ({date})")
         else:
-            # 당일 전체 분봉
             result = agent.get_intraday_price(code)
-            return validate_api_response(result, "당일 분봉 조회")
+            validated = validate_api_response(result, "당일 분봉 조회")
     elif timeframe == "daily":
         result = agent.inquire_daily_itemchartprice(code, start_date, end_date)
-        return validate_api_response(result, "일봉 데이터 조회")
+        validated = validate_api_response(result, "일봉 데이터 조회")
     elif timeframe == "daily_30":
         result = agent.inquire_daily_price(code, period)
-        return validate_api_response(result, "최근 30일 조회")
+        validated = validate_api_response(result, "최근 30일 조회")
     elif timeframe == "weekly":
         result = agent.inquire_daily_price(code, "W")
-        return validate_api_response(result, "주봉 데이터 조회")
+        validated = validate_api_response(result, "주봉 데이터 조회")
     elif timeframe == "monthly":
         result = agent.inquire_daily_price(code, "M")
-        return validate_api_response(result, "월봉 데이터 조회")
+        validated = validate_api_response(result, "월봉 데이터 조회")
+    else:
+        raise InvalidParameterError("timeframe", f"유효한 값: {valid_timeframes}")
+
+    return _inject_stock_name(validated, agent, code)
 
 
 # =============================================================================

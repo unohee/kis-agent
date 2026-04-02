@@ -1,10 +1,27 @@
 """Stock price and market data MCP tools"""
 
+import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from ..errors import InvalidParameterError, validate_api_response
 from ..server import get_agent, server
+
+logger = logging.getLogger(__name__)
+
+
+def _inject_stock_name(result: Dict[str, Any], agent, code: str) -> Dict[str, Any]:
+    """API 응답에 종목명을 주입한다."""
+    try:
+        info = agent.stock_api.search_stock_info(code=code)
+        if info and info.get("output"):
+            o = info["output"]
+            name = o.get("prdt_abrv_name") or o.get("prdt_name")
+            if name:
+                result["_stock_name"] = name
+    except Exception:
+        logger.debug(f"종목명 조회 실패: {code}")
+    return result
 
 
 @server.tool()
@@ -25,7 +42,8 @@ async def get_stock_price(code: str) -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.get_stock_price(code)
-    return validate_api_response(result, "주식 현재가 조회")
+    validated = validate_api_response(result, "주식 현재가 조회")
+    return _inject_stock_name(validated, agent, code)
 
 
 @server.tool()
@@ -47,7 +65,8 @@ async def get_daily_price(
 
     agent = get_agent()
     result = agent.inquire_daily_itemchartprice(stock_code, start_date, end_date)
-    return validate_api_response(result, "일봉 데이터 조회")
+    validated = validate_api_response(result, "일봉 데이터 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -69,7 +88,8 @@ async def inquire_daily_price(
 
     agent = get_agent()
     result = agent.inquire_daily_price(stock_code, period, org_adj_prc)
-    return validate_api_response(result, "일자별 시세 조회")
+    validated = validate_api_response(result, "일자별 시세 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -87,7 +107,8 @@ async def get_intraday_price(stock_code: str) -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.get_intraday_price(stock_code)
-    return validate_api_response(result, "당일 분봉 조회")
+    validated = validate_api_response(result, "당일 분봉 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -106,7 +127,8 @@ async def inquire_price(stock_code: str, market: str = "J") -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.inquire_price(stock_code, market)
-    return validate_api_response(result, "현재가 상세 조회")
+    validated = validate_api_response(result, "현재가 상세 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -125,7 +147,8 @@ async def inquire_price_2(stock_code: str, market: str = "J") -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.inquire_price_2(stock_code, market)
-    return validate_api_response(result, "현재가 상세 조회 2")
+    validated = validate_api_response(result, "현재가 상세 조회 2")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -144,7 +167,8 @@ async def inquire_ccnl(stock_code: str, market: str = "J") -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.inquire_ccnl(stock_code, market)
-    return validate_api_response(result, "체결 정보 조회")
+    validated = validate_api_response(result, "체결 정보 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -163,7 +187,8 @@ async def get_stock_ccnl(stock_code: str, market: str = "J") -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.get_stock_ccnl(stock_code, market)
-    return validate_api_response(result, "주식 체결 조회")
+    validated = validate_api_response(result, "주식 체결 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -184,7 +209,8 @@ async def inquire_time_itemconclusion(
 
     agent = get_agent()
     result = agent.inquire_time_itemconclusion(stock_code, hour)
-    return validate_api_response(result, "시간별 체결 조회")
+    validated = validate_api_response(result, "시간별 체결 조회")
+    return _inject_stock_name(validated, agent, stock_code)
 
 
 @server.tool()
@@ -217,11 +243,11 @@ async def get_minute_price(code: str, time_code: str = "093000") -> Dict[str, An
         raise InvalidParameterError("code", "종목코드는 6자리여야 합니다")
 
     agent = get_agent()
-    # deprecated: get_intraday_price로 포워딩
     result = agent.get_intraday_price(code)
-    return validate_api_response(
+    validated = validate_api_response(
         result, "당일 분봉 조회 (deprecated → get_intraday_price)"
     )
+    return _inject_stock_name(validated, agent, code)
 
 
 @server.tool()
@@ -244,7 +270,8 @@ async def get_daily_minute_price(code: str, date: str) -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.get_daily_minute_price(code, date)
-    return validate_api_response(result, "특정일 전체 분봉 조회")
+    validated = validate_api_response(result, "특정일 전체 분봉 조회")
+    return _inject_stock_name(validated, agent, code)
 
 
 @server.tool()
@@ -279,7 +306,8 @@ async def inquire_minute_price(code: str, date: Optional[str] = None) -> Dict[st
 
     agent = get_agent()
     result = agent.get_daily_minute_price(code, date)
-    return validate_api_response(result, "분봉시세조회")
+    validated = validate_api_response(result, "분봉시세조회")
+    return _inject_stock_name(validated, agent, code)
 
 
 @server.tool()
@@ -297,7 +325,8 @@ async def get_orderbook_raw(code: str) -> Dict[str, Any]:
 
     agent = get_agent()
     result = agent.get_orderbook_raw(code)
-    return validate_api_response(result, "호가 조회")
+    validated = validate_api_response(result, "호가 조회")
+    return _inject_stock_name(validated, agent, code)
 
 
 @server.tool()
@@ -319,7 +348,8 @@ async def fetch_minute_data(
 
     agent = get_agent()
     result = agent.fetch_minute_data(code, date, cache_dir)
-    return {"success": True, "data": result}
+    response = {"success": True, "data": result}
+    return _inject_stock_name(response, agent, code)
 
 
 @server.tool()
@@ -338,7 +368,35 @@ async def calculate_support_resistance(code: str, date: str = "") -> Dict[str, A
 
     agent = get_agent()
     result = agent.calculate_support_resistance(code, date)
-    return {"success": True, "data": result}
+    response = {"success": True, "data": result}
+    return _inject_stock_name(response, agent, code)
+
+
+@server.tool()
+async def search_stock(query: str, limit: int = 20) -> Dict[str, Any]:
+    """종목 검색 (종목코드 또는 종목명으로 검색)
+
+    KRX 전종목 마스터를 기반으로 종목코드 또는 종목명 부분 매칭 검색.
+    첫 호출 시 마스터파일 다운로드 (이후 하루 1회 자동 갱신, 로컬 캐시).
+
+    Args:
+        query: 검색어 (종목코드 6자리 또는 종목명, 예: "삼성", "005930", "카카오")
+        limit: 최대 결과 수 (기본 20)
+
+    Returns:
+        Dict: 검색 결과
+            - query: 검색어
+            - count: 결과 수
+            - results: [{"code": "005930", "name": "삼성전자", "market": "코스피"}, ...]
+    """
+    from kis_agent.utils.stock_master import search as _search_stocks
+
+    results = _search_stocks(query, limit=limit)
+    return {
+        "query": query,
+        "count": len(results),
+        "results": results,
+    }
 
 
 @server.tool()

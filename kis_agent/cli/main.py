@@ -31,6 +31,7 @@ from kis_agent.cli.field_map import (
     OVERSEAS_OPTION_PRICE,
     OVERSEAS_PRICE,
     OVERSEAS_PRICE_DETAIL,
+    PENDING_ORDER,
     PERIOD_PROFIT,
     STOCK_PRICE,
     TRADE_EXECUTION,
@@ -38,6 +39,8 @@ from kis_agent.cli.field_map import (
     remap,
 )
 from kis_agent.cli.schema import get_schema
+from kis_agent.utils.stock_master import resolve_code
+from kis_agent.utils.stock_master import search as search_stocks
 
 
 def _create_agent():
@@ -147,13 +150,48 @@ def _out(data, pretty=False):
     print(json.dumps(data, ensure_ascii=False, indent=indent, default=str))
 
 
+def _resolve(code_or_name: str) -> str:
+    """종목코드 또는 종목명을 종목코드(6자리)로 변환. 실패 시 원본 반환."""
+    resolved = resolve_code(code_or_name)
+    if resolved:
+        return resolved
+    return code_or_name
+
+
 def _get_name(agent, code: str):
-    """종목명 조회."""
+    """국내 종목명 조회."""
     try:
         data = agent.stock_api.search_stock_info(code=code)
         if data and data.get("output"):
             o = data["output"]
             return o.get("prdt_abrv_name") or o.get("prdt_name")
+    except Exception:
+        pass
+    return None
+
+
+# 해외 거래소코드 → 상품유형코드 매핑 (get_stock_info용)
+_OVERSEAS_EXCD_TO_PRDT_TYPE = {
+    "NAS": "512", "NYS": "512", "AMS": "512",  # 미국
+    "HKS": "513",  # 홍콩
+    "SHS": "514",  # 중국 상해A
+    "SZS": "515",  # 중국 심천A
+    "TSE": "516",  # 일본
+    "HNX": "517", "HSX": "517",  # 베트남
+}
+
+
+def _get_overseas_name(agent, excd: str, symb: str):
+    """해외 종목명 조회."""
+    try:
+        prdt_type_cd = _OVERSEAS_EXCD_TO_PRDT_TYPE.get(excd, "512")
+        pdno = f"{excd}.{symb}"
+        data = agent.overseas_api.get_stock_info(
+            prdt_type_cd=prdt_type_cd, pdno=pdno
+        )
+        if data and data.get("output"):
+            o = data["output"]
+            return o.get("prdt_name") or o.get("prdt_eng_name")
     except Exception:
         pass
     return None
@@ -167,7 +205,7 @@ def _get_name(agent, code: str):
 def cmd_price(args):
     """국내 주식 현재가 조회. --daily로 일별 시세 포함."""
     agent = _create_agent()
-    code = args.code
+    code = _resolve(args.code)
 
     result = {"stock": {"code": code}}
 
@@ -218,7 +256,7 @@ def cmd_balance(args):
 def cmd_orderbook(args):
     """호가(매수/매도 10호가) 조회."""
     agent = _create_agent()
-    code = args.code
+    code = _resolve(args.code)
 
     result = {"stock": {"code": code}}
     name = _get_name(agent, code)
@@ -254,6 +292,11 @@ def cmd_overseas(args):
 
     result = {"overseas": {"exchange": excd, "symbol": symb}}
 
+    # 종목명
+    name = _get_overseas_name(agent, excd, symb)
+    if name:
+        result["overseas"]["name"] = name
+
     if args.detail:
         data = agent.overseas_api.get_price_detail(excd=excd, symb=symb)
         if data and data.get("output"):
@@ -275,9 +318,13 @@ def cmd_overseas(args):
 
 
 def cmd_futures(args):
-    """선물옵션 시세 조회. --overseas로 해외선물, --option으로 해외옵션."""
+    """선물옵션 시세 조회. --overseas로 해외선물, --option으로 해외옵션, --night로 야간."""
     agent = _create_agent()
     code = args.code
+
+    # 야간 선물옵션 모드
+    if args.night:
+        return _cmd_futures_night(agent, args, code)
 
     if args.overseas or args.option:
         # 해외선물/옵션
@@ -319,6 +366,46 @@ def cmd_futures(args):
             if name:
                 result["futures"]["name"] = name
             result["futures"]["price"] = mapped
+
+    _out({"data": result}, args.pretty)
+
+
+def _cmd_futures_night(agent, args, code):
+    """야간 선물옵션 조회."""
+    result = {"nightFutures": {"code": code}}
+
+    # --balance: 야간 잔고
+    if args.balance:
+        data = agent.futures_api.inquire_ngt_balance()
+        if data and data.get("output"):
+            items = data["output"] if isinstance(data["output"], list) else [data["output"]]
+            result["nightFutures"]["balance"] = items
+        else:
+            result["nightFutures"]["balance"] = []
+        _out({"data": result}, args.pretty)
+        return
+
+    # --ccnl: 야간 체결내역
+    if args.ccnl:
+        data = agent.futures_api.inquire_ngt_ccnl()
+        if data and data.get("output"):
+            items = data["output"] if isinstance(data["output"], list) else [data["output"]]
+            result["nightFutures"]["executions"] = items
+        else:
+            result["nightFutures"]["executions"] = []
+        _out({"data": result}, args.pretty)
+        return
+
+    # 기본: 야간선물 시세 (기존 inquire-price에 야간 종목코드 사용)
+    data = agent.futures_api.get_price(code=code)
+    if data and data.get("output"):
+        mapped = remap(data["output"], FUTURES_PRICE)
+        name = mapped.pop("name", None)
+        if name:
+            result["nightFutures"]["name"] = name
+        result["nightFutures"]["price"] = mapped
+    elif data and data.get("rt_cd") != "0":
+        result["nightFutures"]["error"] = data.get("msg1", "조회 실패")
 
     _out({"data": result}, args.pretty)
 
@@ -558,6 +645,386 @@ def _cmd_trades_profit(agent, args, start, end, stock_filter):
     _out({"data": result}, args.pretty)
 
 
+# ============================================================
+# 주문 타입 매핑
+# ============================================================
+
+# 국내주식 주문구분 코드
+_DOMESTIC_ORDER_TYPES = {
+    "limit": "00",       # 지정가
+    "market": "01",      # 시장가
+    "cond": "02",        # 조건부지정가
+    "best": "03",        # 최유리지정가
+    "pre": "05",         # 장전시간외
+    "after": "06",       # 장후시간외
+    "ioc": "11",         # IOC지정가
+    "fok": "12",         # FOK지정가
+}
+
+# 해외주식 주문구분 코드
+_OVERSEAS_ORDER_TYPES = {
+    "limit": "00",       # 지정가
+    "moo": "31",         # MOO (매도만)
+    "loo": "32",         # LOO
+    "moc": "33",         # MOC (매도만)
+    "loc": "34",         # LOC
+}
+
+# 해외주식 거래소 매핑 (조회용 → 주문용)
+_OVERSEAS_EXCG_MAP = {
+    "NAS": "NASD", "NYS": "NYSE", "AMS": "AMEX",
+    "HKS": "SEHK", "SHS": "SHAA", "SZS": "SZAA",
+    "TSE": "TKSE", "HNX": "HASE", "HSX": "VNSE",
+    # 주문용 코드 직접 입력도 허용
+    "NASD": "NASD", "NYSE": "NYSE", "AMEX": "AMEX",
+    "SEHK": "SEHK", "SHAA": "SHAA", "SZAA": "SZAA",
+    "TKSE": "TKSE", "HASE": "HASE", "VNSE": "VNSE",
+}
+
+
+def _confirm_order(action: str, details: dict) -> bool:
+    """주문 실행 전 확인. --yes 없으면 stderr로 확인 프롬프트."""
+    import sys
+
+    info_lines = [f"  {k}: {v}" for k, v in details.items() if v]
+    msg = f"\n{'='*50}\n  [{action}]\n{'='*50}\n"
+    msg += "\n".join(info_lines)
+    msg += f"\n{'='*50}\n"
+    sys.stderr.write(msg)
+    sys.stderr.write("  실행하시겠습니까? (y/N): ")
+    sys.stderr.flush()
+    try:
+        answer = input().strip().lower()
+    except EOFError:
+        return False
+    return answer in ("y", "yes")
+
+
+def cmd_order(args):
+    """주문 실행 — 매수/매도/취소/정정/미체결 조회."""
+    action = args.action
+
+    if action == "list":
+        return _cmd_order_list(args)
+    elif action in ("buy", "sell"):
+        return _cmd_order_execute(args)
+    elif action == "cancel":
+        return _cmd_order_cancel(args)
+    elif action == "modify":
+        return _cmd_order_modify(args)
+    else:
+        _out({"error": f"Unknown action: {action}. Use: buy, sell, cancel, modify, list"})
+        sys.exit(1)
+
+
+def _cmd_order_list(args):
+    """미체결 주문 목록 조회."""
+    agent = _create_agent()
+
+    if args.overseas:
+        # 해외주식 미체결
+        excd = _OVERSEAS_EXCG_MAP.get(args.overseas.upper(), args.overseas.upper())
+        data = agent.overseas_api.get_nccs_orders(ovrs_excg_cd=excd)
+    else:
+        # 국내주식 미체결
+        data = agent.account_api.inquire_psbl_rvsecncl()
+
+    if not data:
+        _out({"error": "미체결 주문 조회 실패"})
+        return
+
+    items = data.get("output", data.get("output1", []))
+    if not items:
+        _out({"data": {"orders": {"count": 0, "items": []}}}, args.pretty)
+        return
+
+    mapped = []
+    for item in items:
+        m = remap(item, PENDING_ORDER)
+        if m.get("date"):
+            m["date"] = _fmt_date(m["date"])
+        if m.get("time"):
+            m["time"] = _fmt_time(m["time"])
+        for k in ["orderQty", "orderPrice", "filledQty", "remainQty"]:
+            if k in m:
+                m[k] = _fmt_number(m[k])
+        mapped.append(m)
+
+    _out({"data": {"orders": {"count": len(mapped), "items": mapped}}}, args.pretty)
+
+
+def _cmd_order_execute(args):
+    """매수/매도 주문 실행."""
+    agent = _create_agent()
+    is_buy = args.action == "buy"
+    code = args.code
+
+    if args.overseas:
+        return _cmd_order_overseas(agent, args, is_buy)
+
+    # 국내주식 주문
+    order_type = _DOMESTIC_ORDER_TYPES.get(args.type, args.type)
+    qty = args.qty
+    price = args.price if args.price else 0
+
+    # 시장가/최유리 계열은 가격 0
+    if order_type in ("01", "03", "05", "06"):
+        price = 0
+
+    # 종목명 조회
+    name = _get_name(agent, code)
+    side_label = "매수" if is_buy else "매도"
+    type_label = {v: k for k, v in _DOMESTIC_ORDER_TYPES.items()}.get(order_type, order_type)
+
+    details = {
+        "종목": f"{code} ({name})" if name else code,
+        "구분": side_label,
+        "주문유형": type_label,
+        "수량": f"{qty:,}주",
+        "가격": f"{price:,}원" if price else "시장가",
+        "거래소": args.exchange.upper(),
+    }
+
+    if not args.yes and not _confirm_order(f"국내주식 {side_label}", details):
+        _out({"cancelled": True, "message": "주문이 취소되었습니다"})
+        return
+
+    try:
+        buy_sell = "BUY" if is_buy else "SELL"
+        result = agent.account_api.order_cash(
+            pdno=code,
+            qty=qty,
+            price=price,
+            buy_sell=buy_sell,
+            order_type=order_type,
+            exchange=args.exchange.upper(),
+        )
+
+        if not result:
+            _out({"error": "주문 실패: 응답 없음"})
+            return
+
+        if result.get("rt_cd") != "0":
+            _out({"error": result.get("msg1", "주문 실패"), "code": result.get("msg_cd")})
+            return
+
+        output = result.get("output", {})
+        _out({"data": {
+            "order": {
+                "status": "accepted",
+                "orderNo": output.get("odno", ""),
+                "time": _fmt_time(output.get("ord_tmd", "")),
+                "side": side_label,
+                "code": code,
+                "name": name,
+                "qty": qty,
+                "price": price if price else "시장가",
+                "type": type_label,
+            }
+        }}, args.pretty)
+
+    except Exception as e:
+        _out({"error": str(e), "code": type(e).__name__})
+        sys.exit(1)
+
+
+def _cmd_order_overseas(agent, args, is_buy):
+    """해외주식 주문 실행."""
+    excd = _OVERSEAS_EXCG_MAP.get(args.overseas.upper(), args.overseas.upper())
+    code = args.code.upper()
+    order_type = _OVERSEAS_ORDER_TYPES.get(args.type, args.type)
+    qty = args.qty
+    price = args.price if args.price else 0
+
+    side_label = "매수" if is_buy else "매도"
+    type_label = {v: k for k, v in _OVERSEAS_ORDER_TYPES.items()}.get(order_type, order_type)
+
+    # MOO/MOC는 매도만 가능
+    if is_buy and order_type in ("31", "33"):
+        _out({"error": f"{type_label} 주문은 매도만 가능합니다"})
+        return
+
+    details = {
+        "거래소": excd,
+        "종목": code,
+        "구분": side_label,
+        "주문유형": type_label,
+        "수량": f"{qty:,}주",
+        "가격": f"{price}" if price else "시장가",
+    }
+
+    if not args.yes and not _confirm_order(f"해외주식 {side_label}", details):
+        _out({"cancelled": True, "message": "주문이 취소되었습니다"})
+        return
+
+    try:
+        if is_buy:
+            result = agent.overseas_api.buy_order(
+                ovrs_excg_cd=excd, pdno=code, qty=qty,
+                price=price, ord_dvsn=order_type,
+            )
+        else:
+            result = agent.overseas_api.sell_order(
+                ovrs_excg_cd=excd, pdno=code, qty=qty,
+                price=price, ord_dvsn=order_type,
+            )
+
+        if not result:
+            _out({"error": "주문 실패: 응답 없음"})
+            return
+
+        if result.get("rt_cd") != "0":
+            _out({"error": result.get("msg1", "주문 실패"), "code": result.get("msg_cd")})
+            return
+
+        output = result.get("output", {})
+        _out({"data": {
+            "order": {
+                "status": "accepted",
+                "orderNo": output.get("odno", ""),
+                "time": _fmt_time(output.get("ord_tmd", "")),
+                "side": side_label,
+                "exchange": excd,
+                "code": code,
+                "qty": qty,
+                "price": price if price else "시장가",
+                "type": type_label,
+            }
+        }}, args.pretty)
+
+    except Exception as e:
+        _out({"error": str(e), "code": type(e).__name__})
+        sys.exit(1)
+
+
+def _cmd_order_cancel(args):
+    """주문 취소."""
+    agent = _create_agent()
+    order_no = args.order_no
+
+    if args.overseas:
+        excd = _OVERSEAS_EXCG_MAP.get(args.overseas.upper(), args.overseas.upper())
+        code = args.code.upper() if args.code else ""
+
+        details = {"거래소": excd, "종목": code, "주문번호": order_no}
+        if not args.yes and not _confirm_order("해외주식 주문 취소", details):
+            _out({"cancelled": True, "message": "취소가 중단되었습니다"})
+            return
+
+        try:
+            result = agent.overseas_api.cancel_order(
+                ovrs_excg_cd=excd, pdno=code,
+                orgn_odno=order_no, qty=args.qty or 0,
+            )
+        except Exception as e:
+            _out({"error": str(e), "code": type(e).__name__})
+            return
+    else:
+        details = {"주문번호": order_no, "수량": f"{args.qty}주" if args.qty else "전량"}
+        if not args.yes and not _confirm_order("주문 취소", details):
+            _out({"cancelled": True, "message": "취소가 중단되었습니다"})
+            return
+
+        try:
+            result = agent.account_api.order_rvsecncl(
+                org_order_no=order_no,
+                qty=args.qty or 0,
+                price=0,
+                order_type="01",
+                cncl_type="취소",
+            )
+        except Exception as e:
+            _out({"error": str(e), "code": type(e).__name__})
+            return
+
+    if not result:
+        _out({"error": "취소 실패: 응답 없음"})
+        return
+
+    if result.get("rt_cd") != "0":
+        _out({"error": result.get("msg1", "취소 실패"), "code": result.get("msg_cd")})
+        return
+
+    output = result.get("output", {})
+    _out({"data": {
+        "cancel": {
+            "status": "accepted",
+            "orderNo": output.get("odno", ""),
+            "origOrderNo": order_no,
+        }
+    }}, args.pretty)
+
+
+def _cmd_order_modify(args):
+    """주문 정정."""
+    agent = _create_agent()
+    order_no = args.order_no
+    price = args.price or 0
+    qty = args.qty or 0
+    order_type = _DOMESTIC_ORDER_TYPES.get(args.type, args.type)
+
+    if args.overseas:
+        excd = _OVERSEAS_EXCG_MAP.get(args.overseas.upper(), args.overseas.upper())
+        code = args.code.upper() if args.code else ""
+
+        details = {
+            "거래소": excd, "종목": code, "주문번호": order_no,
+            "변경가격": f"{price}" if price else "-",
+            "변경수량": f"{qty}주" if qty else "-",
+        }
+        if not args.yes and not _confirm_order("해외주식 주문 정정", details):
+            _out({"cancelled": True, "message": "정정이 중단되었습니다"})
+            return
+
+        try:
+            result = agent.overseas_api.modify_order(
+                ovrs_excg_cd=excd, pdno=code,
+                orgn_odno=order_no, qty=qty, price=price,
+            )
+        except Exception as e:
+            _out({"error": str(e), "code": type(e).__name__})
+            return
+    else:
+        details = {
+            "주문번호": order_no,
+            "변경가격": f"{price:,}원" if price else "-",
+            "변경수량": f"{qty:,}주" if qty else "-",
+            "주문유형": args.type,
+        }
+        if not args.yes and not _confirm_order("주문 정정", details):
+            _out({"cancelled": True, "message": "정정이 중단되었습니다"})
+            return
+
+        try:
+            result = agent.account_api.order_rvsecncl(
+                org_order_no=order_no,
+                qty=qty,
+                price=price,
+                order_type=order_type,
+                cncl_type="정정",
+            )
+        except Exception as e:
+            _out({"error": str(e), "code": type(e).__name__})
+            return
+
+    if not result:
+        _out({"error": "정정 실패: 응답 없음"})
+        return
+
+    if result.get("rt_cd") != "0":
+        _out({"error": result.get("msg1", "정정 실패"), "code": result.get("msg_cd")})
+        return
+
+    output = result.get("output", {})
+    _out({"data": {
+        "modify": {
+            "status": "accepted",
+            "orderNo": output.get("odno", ""),
+            "origOrderNo": order_no,
+        }
+    }}, args.pretty)
+
+
 def cmd_query(args):
     """API 직접 호출 — kis query <domain> <method> [key=value ...]"""
     agent = _create_agent()
@@ -607,6 +1074,27 @@ def cmd_query(args):
         sys.exit(1)
 
 
+def cmd_search(args):
+    """종목 검색 (종목코드 또는 종목명)."""
+    query = args.query
+    limit = args.limit
+
+    results = search_stocks(query, limit=limit)
+    if not results:
+        _out({"data": {"search": {"query": query, "results": [], "count": 0}}})
+        return
+
+    _out({
+        "data": {
+            "search": {
+                "query": query,
+                "count": len(results),
+                "results": results,
+            }
+        }
+    }, args.pretty)
+
+
 def cmd_schema(args):
     """스키마 출력."""
     type_name = args.type
@@ -636,7 +1124,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # price
     p = sub.add_parser("price", help="주식 현재가 조회")
-    p.add_argument("code", help="종목코드 (예: 005930)")
+    p.add_argument("code", help="종목코드 또는 종목명 (예: 005930, 삼성전자)")
     p.add_argument("--daily", action="store_true", help="일별 시세 포함")
     p.add_argument("--period", default="D", help="기간 (D:일, W:주, M:월)")
     p.add_argument("--days", type=int, default=30, help="일수 (기본 30)")
@@ -649,7 +1137,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # orderbook
     p = sub.add_parser("orderbook", help="호가 조회")
-    p.add_argument("code", help="종목코드")
+    p.add_argument("code", help="종목코드 또는 종목명")
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # overseas
@@ -662,13 +1150,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # futures
-    p = sub.add_parser("futures", help="선물옵션 시세 조회 (국내/해외)")
-    p.add_argument("code", help="종목코드 (국내: 101S03, 해외: CLM26, ESM26)")
+    p = sub.add_parser("futures", help="선물옵션 시세 조회 (국내/해외/야간)")
+    p.add_argument("code", help="종목코드 (국내: 101S03, 야간: 101W09, 해외: CLM26)")
     p.add_argument(
         "--overseas", action="store_true", help="해외선물 (CME, NYMEX, EUREX 등)"
     )
     p.add_argument("--option", action="store_true", help="해외옵션 (그릭스 포함)")
     p.add_argument("--orderbook", action="store_true", help="호가 포함 (해외선물)")
+    p.add_argument("--night", action="store_true", help="야간선물 모드 (18:00~05:00)")
+    p.add_argument("--balance", action="store_true", help="잔고 조회 (--night와 함께)")
+    p.add_argument("--ccnl", action="store_true", help="체결내역 조회 (--night와 함께)")
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # trades (거래내역)
@@ -682,6 +1173,63 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=0, help="최대 건수 (0=전체)")
     p.add_argument("--profit", action="store_true", help="기간별 실현손익 모드")
     p.add_argument("--daily-profit", action="store_true", help="일별 손익 합산 (--profit과 함께)")
+    p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    # order (주문)
+    p = sub.add_parser("order", help="주문 실행 (매수/매도/취소/정정/미체결)")
+    order_sub = p.add_subparsers(dest="action", help="주문 액션")
+
+    # order buy
+    ob = order_sub.add_parser("buy", help="매수 주문")
+    ob.add_argument("code", help="종목코드 (국내: 005930, 해외: AAPL)")
+    ob.add_argument("--qty", type=int, required=True, help="주문수량")
+    ob.add_argument("--price", type=float, default=0, help="주문가격 (0=시장가)")
+    ob.add_argument("--type", default="limit", help="주문유형 (limit, market, best, ioc, fok, pre, after, loo, loc)")
+    ob.add_argument("--exchange", default="KRX", help="거래소 (KRX, NXT, SOR)")
+    ob.add_argument("--overseas", default="", help="해외거래소 (NAS, NYS, AMS, HKS, TSE)")
+    ob.add_argument("--yes", action="store_true", help="확인 없이 즉시 실행")
+    ob.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    # order sell
+    os_ = order_sub.add_parser("sell", help="매도 주문")
+    os_.add_argument("code", help="종목코드")
+    os_.add_argument("--qty", type=int, required=True, help="주문수량")
+    os_.add_argument("--price", type=float, default=0, help="주문가격 (0=시장가)")
+    os_.add_argument("--type", default="limit", help="주문유형 (limit, market, best, moo, moc, loo, loc)")
+    os_.add_argument("--exchange", default="KRX", help="거래소 (KRX, NXT, SOR)")
+    os_.add_argument("--overseas", default="", help="해외거래소")
+    os_.add_argument("--yes", action="store_true", help="확인 없이 즉시 실행")
+    os_.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    # order cancel
+    oc = order_sub.add_parser("cancel", help="주문 취소")
+    oc.add_argument("order_no", help="주문번호")
+    oc.add_argument("--code", default="", help="종목코드 (해외주식 필수)")
+    oc.add_argument("--qty", type=int, default=0, help="취소수량 (0=전량)")
+    oc.add_argument("--overseas", default="", help="해외거래소")
+    oc.add_argument("--yes", action="store_true", help="확인 없이 즉시 실행")
+    oc.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    # order modify
+    om = order_sub.add_parser("modify", help="주문 정정")
+    om.add_argument("order_no", help="주문번호")
+    om.add_argument("--code", default="", help="종목코드 (해외주식 필수)")
+    om.add_argument("--qty", type=int, default=0, help="변경수량")
+    om.add_argument("--price", type=float, default=0, help="변경가격")
+    om.add_argument("--type", default="limit", help="주문유형")
+    om.add_argument("--overseas", default="", help="해외거래소")
+    om.add_argument("--yes", action="store_true", help="확인 없이 즉시 실행")
+    om.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    # order list
+    ol = order_sub.add_parser("list", help="미체결 주문 조회")
+    ol.add_argument("--overseas", default="", help="해외거래소 (지정 시 해외 미체결)")
+    ol.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    # search (종목 검색)
+    p = sub.add_parser("search", help="종목 검색 (코드 또는 이름)")
+    p.add_argument("query", help="검색어 (종목코드 또는 종목명, 예: 삼성, 005930, 카카오)")
+    p.add_argument("--limit", type=int, default=20, help="최대 결과 수 (기본 20)")
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # query (API 직접 호출)
@@ -716,6 +1264,8 @@ def main():
         "overseas": cmd_overseas,
         "futures": cmd_futures,
         "trades": cmd_trades,
+        "order": cmd_order,
+        "search": cmd_search,
         "query": cmd_query,
         "schema": cmd_schema,
     }

@@ -237,6 +237,23 @@ DAILY_PROFIT = {
     "prsm_tlex_smtl": "totalFees",
 }
 
+# 미체결 주문 목록 (inquire_psbl_rvsecncl output)
+PENDING_ORDER = {
+    "ord_dt": "date",
+    "ord_tmd": "time",
+    "odno": "orderNo",
+    "orgn_odno": "origOrderNo",
+    "pdno": "code",
+    "prdt_name": "name",
+    "sll_buy_dvsn_cd_name": "side",
+    "ord_dvsn_name": "orderType",
+    "ord_qty": "orderQty",
+    "ord_unpr": "orderPrice",
+    "tot_ccld_qty": "filledQty",
+    "rmn_qty": "remainQty",
+    "ord_dvsn_cd": "orderTypeCode",
+}
+
 # 종목정보
 STOCK_INFO = {
     "prdt_abrv_name": "name",

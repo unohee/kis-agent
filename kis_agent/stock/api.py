@@ -25,32 +25,17 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     현재 날짜 기준으로 거래되고 있는 가장 활발한 KOSPI200 선물 종목코드를 반환합니다.
 
     KOSPI200 선물은 3, 6, 9, 12월 만기로 거래되며, 만기일은 매월 두 번째 주 목요일입니다.
-    현재 날짜를 기준으로 가장 가까운 활성 선물 코드를 자동으로 계산합니다.
 
     Args:
         today (Optional[datetime]): 기준 날짜. None이면 현재 날짜 사용
 
     Returns:
-        str: KOSPI200 선물 종목코드 (6자리, 예: "101W09")
-
-    Example:
-        >>> from kis_agent.stock.api import get_kospi200_futures_code
-        >>> from datetime import datetime
-        >>>
-        >>> # 현재 활성 선물 코드
-        >>> current_code = get_kospi200_futures_code()
-        >>> print(current_code)  # "101W09" (2025년 9월물)
-        >>>
-        >>> # 특정 날짜 기준
-        >>> specific_date = datetime(2025, 10, 1)
-        >>> future_code = get_kospi200_futures_code(specific_date)
-        >>> print(future_code)  # "101W12" (2025년 12월물)
+        str: KOSPI200 선물 종목코드 (6자리, 예: "A01606")
 
     Note:
-        - 종목코드 패턴: 101W + MM (MM: 03, 06, 09, 12)
+        - 종목코드 패턴: A016 + YYMM (YY: 연도 끝 2자리, MM: 만기월)
+        - 마스터 파일(fo_idx_code_mts.mst) 기준 코드 체계
         - 만기일: 매월 두 번째 주 목요일 (15:30 마감)
-        - 만기일 지나면 자동으로 다음 만기월로 전환
-        - 12월물 만기 후에는 다음해 3월물로 전환
     """
     if today is None:
         today = datetime.now()
@@ -66,27 +51,30 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     expiry_months = [3, 6, 9, 12]
     current_year = today.year
     current_month = today.month
-
     if current_month in expiry_months:
         expiry_date = get_second_thursday(current_year, current_month)
         if today.date() > expiry_date.date():
+            found = False
             for month in expiry_months:
                 if month > current_month:
-                    expiry = month
+                    expiry_month = month
+                    found = True
                     break
-            else:
-                expiry = 3
+            if not found:
+                expiry_month = 3
         else:
-            expiry = current_month
+            expiry_month = current_month
     else:
+        found = False
         for month in expiry_months:
             if month > current_month:
-                expiry = month
+                expiry_month = month
+                found = True
                 break
-        else:
-            expiry = 3
+        if not found:
+            expiry_month = 3
 
-    return f"101W{expiry:02d}"
+    return f"A016{expiry_month:02d}"
 
 
 class StockAPI(BaseAPI):
