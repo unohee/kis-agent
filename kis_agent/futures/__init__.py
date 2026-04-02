@@ -215,6 +215,22 @@ class Futures(BaseAPI):
         """
         return self.account_api.inquire_deposit()
 
+    # ===== 야간 선물옵션 메서드 (직접 위임) =====
+
+    def inquire_ngt_balance(self) -> Optional[Dict]:
+        """야간 선물옵션 잔고 조회. Delegate to: FuturesAccountAPI"""
+        return self.account_api.inquire_ngt_balance()
+
+    def inquire_ngt_ccnl(
+        self, inqr_strt_dt: str = "", inqr_end_dt: str = ""
+    ) -> Optional[Dict]:
+        """야간 선물옵션 체결내역 조회. Delegate to: FuturesOrderAPI"""
+        return self.order.inquire_ngt_ccnl(inqr_strt_dt, inqr_end_dt)
+
+    def inquire_psbl_ngt_order(self, code: str) -> Optional[Dict]:
+        """야간 선물옵션 주문가능 수량 조회. Delegate to: FuturesOrderAPI"""
+        return self.order.inquire_psbl_ngt_order(code)
+
     # ===== 종목코드 자동 생성 편의 메서드 =====
 
     def get_current_futures_price(self) -> Optional[Dict]:

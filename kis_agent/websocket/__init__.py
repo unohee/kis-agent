@@ -32,10 +32,21 @@ WebSocket 모듈
 from .client import KisWebSocket  # deprecated: use WSAgent
 
 # ============================================
+# Deprecated 지원 모듈 (WSAgent에서 미사용)
+# ============================================
+from .connection import ConnectionManager  # deprecated: WSAgent가 직접 websockets 사용
+
+# ============================================
 # 지원 모듈 (WSAgent 내부에서 사용)
 # ============================================
 from .data_processor import DataProcessor
+from .enhanced_client import EnhancedWebSocketClient  # deprecated: use WSAgentWithStore
 from .event_manager import Event, EventManager, EventType
+from .factory import (
+    ClientType,
+    WebSocketClientBuilder,
+    WebSocketClientFactory,
+)  # deprecated
 from .message_handlers import (
     IndexHandler,
     MessageHandler,
@@ -44,17 +55,6 @@ from .message_handlers import (
     ProgramTradingHandler,
     TradeHandler,
 )
-
-# ============================================
-# Deprecated 지원 모듈 (WSAgent에서 미사용)
-# ============================================
-from .connection import ConnectionManager  # deprecated: WSAgent가 직접 websockets 사용
-from .enhanced_client import EnhancedWebSocketClient  # deprecated: use WSAgentWithStore
-from .factory import (
-    ClientType,
-    WebSocketClientBuilder,
-    WebSocketClientFactory,
-)  # deprecated
 from .refactored_client import RefactoredWebSocketClient  # deprecated: use WSAgent
 from .ws_agent import WSAgent
 from .ws_helpers import RealtimeDataParser, RealtimeDataStore, WSAgentWithStore
