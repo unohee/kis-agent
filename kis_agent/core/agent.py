@@ -14,11 +14,13 @@ from ..stock import (
 )
 from ..stock.interest import InterestStockAPI
 from ..stock.investor_api import StockInvestorAPI
+from ..utils.futures_master import load_futures as _load_futures_master
 from ..utils.sector_code import (
     SECTOR_CODES,
     get_sector_code_by_market,
     get_sector_codes,
 )
+from ..utils.stock_master import load_stocks as _load_stock_master
 from ..websocket.client import KisWebSocket
 from .base_exception_handler import BaseExceptionHandler, exception_handler
 from .client import KISClient
@@ -251,6 +253,31 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
         self.overseas_futures_api = OverseasFutures(
             self.client, self.account_info, _from_agent=True
         )
+
+        # 종목 마스터 사전 로드 (캐시 있으면 즉시 반환, 없으면 백그라운드 다운로드)
+        self._preload_masters()
+
+    def _preload_masters(self) -> None:
+        """종목 마스터 파일 사전 로드.
+
+        캐시가 오늘 날짜면 즉시 반환 (수 ms).
+        캐시가 없거나 오래됐으면 백그라운드 스레드에서 다운로드.
+        실패해도 Agent 초기화를 블로킹하지 않음.
+        """
+        import threading
+
+        def _load():
+            try:
+                stocks = _load_stock_master()
+                futures = _load_futures_master()
+                self.logger.info(
+                    f"종목 마스터 로드 완료: 주식 {len(stocks)}개, 선물옵션 {len(futures)}개"
+                )
+            except Exception as e:
+                self.logger.warning(f"종목 마스터 로드 실패 (무시): {e}")
+
+        thread = threading.Thread(target=_load, daemon=True)
+        thread.start()
 
     @property
     def overseas(self) -> OverseasStockAPI:

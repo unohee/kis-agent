@@ -23,10 +23,14 @@ logger = logging.getLogger(__name__)
 MARKET_CLOSE_TIME = dt_time(15, 30)
 
 
-def _is_after_market_close() -> bool:
+def _is_after_market_close(has_night_session: bool = False) -> bool:
     """장 마감 후인지 확인 (KRX: 15:30 이후, NXT: 20:00 이후)
 
     NXT 세션 (16:00-20:00)은 마감으로 처리하지 않음
+    야간선물/옵션 구독 시 야간 세션 (18:00-05:00)도 마감으로 처리하지 않음
+
+    Args:
+        has_night_session: 야간선물/옵션 구독이 포함되어 있는지 여부
     """
     kst = pytz.timezone("Asia/Seoul")
     now = datetime.now(kst)
@@ -41,8 +45,24 @@ def _is_after_market_close() -> bool:
     if nxt_start <= current_time <= nxt_end:
         return False  # NXT 세션 중이므로 마감 아님
 
-    # 15:30 이후 체크 (NXT 세션 제외)
+    # 야간선물/옵션 세션 체크 (18:00-05:00 익일)
+    if has_night_session:
+        night_start = dt_time(18, 0)
+        night_end = dt_time(5, 0)
+        if current_time >= night_start or current_time <= night_end:
+            return False  # 야간 세션 중이므로 마감 아님
+
+    # 15:30 이후 체크 (NXT/야간 세션 제외)
     return current_time > MARKET_CLOSE_TIME
+
+
+# 야간선물/옵션 SubscriptionType 목록
+_NIGHT_SESSION_TYPES = {
+    "H0MFCNT0",  # NIGHT_FUTURES_TRADE
+    "H0MFASP0",  # NIGHT_FUTURES_ASK_BID
+    "H0EUCNT0",  # NIGHT_OPTION_TRADE
+    "H0EUASP0",  # NIGHT_OPTION_ASK_BID
+}
 
 
 class WSAgent:
@@ -126,6 +146,13 @@ class WSAgent:
             "last_message_time": None,
         }
 
+    def _ws_closed(self) -> bool:
+        """WebSocket 연결이 닫혔는지 확인 (websockets v14+ 호환)"""
+        if self.ws is None:
+            return True
+        # websockets v14+: close_code가 설정되면 연결이 닫힌 것
+        return self.ws.close_code is not None
+
     def update_approval_key(self, new_approval_key: str) -> None:
         """
         approval_key 갱신 (토큰 재발급 시 사용)
@@ -198,7 +225,7 @@ class WSAgent:
         self.subscriptions[sub_id] = subscription
 
         # 연결되어 있으면 비동기 태스크 생성 (결과 추적)
-        if self.connected and self.ws and not self.ws.closed:
+        if self.connected and self.ws and not self._ws_closed():
             task = asyncio.create_task(self._send_subscription(subscription))
             # 태스크 완료 시 실패 로깅을 위한 콜백 추가
             task.add_done_callback(lambda t: self._on_subscription_task_done(t, sub_id))
@@ -246,7 +273,7 @@ class WSAgent:
         self.subscriptions[sub_id] = subscription
 
         # 연결되어 있으면 구독 요청 및 응답 대기
-        if self.connected and self.ws and not self.ws.closed:
+        if self.connected and self.ws and not self._ws_closed():
             success = await self._send_subscription(subscription)
             if not success:
                 # 구독 실패 시 등록 제거
@@ -273,7 +300,7 @@ class WSAgent:
         subscription = self.subscriptions[sub_id]
 
         # 구독 해제 메시지 전송 (연결 상태 상세 검증)
-        if self.connected and self.ws and not self.ws.closed:
+        if self.connected and self.ws and not self._ws_closed():
             asyncio.create_task(self._send_unsubscription(subscription))
 
         # 구독 정보 삭제
@@ -342,7 +369,7 @@ class WSAgent:
         for attempt in range(max_retries):
             try:
                 # 연결 상태 상세 검증
-                if not self.ws or self.ws.closed:
+                if not self.ws or self._ws_closed():
                     logger.error(f"구독 요청 실패 - 웹소켓 연결 없음: {sub_id}")
                     return False
 
@@ -461,7 +488,7 @@ class WSAgent:
             sub_id = f"{subscription.sub_type.value}_{subscription.key}"
 
             # 연결 상태 확인
-            if not self.ws or self.ws.closed:
+            if not self.ws or self._ws_closed():
                 logger.error(
                     f"구독 중단 - 연결 끊김 (성공: {len(results['success'])}, 남은: {total - idx})"
                 )
@@ -793,8 +820,13 @@ class WSAgent:
         Raises:
             Exception: 연결 실패 또는 메시지 처리 오류
         """
-        # 장 마감 후 연결 시도 차단 (EOD 모드)
-        if _is_after_market_close():
+        # 야간선물/옵션 구독 여부 확인
+        has_night = any(
+            sub.sub_type.value in _NIGHT_SESSION_TYPES
+            for sub in self.subscriptions.values()
+        )
+        # 장 마감 후 연결 시도 차단 (EOD 모드) — 야간 세션 구독 시 예외
+        if _is_after_market_close(has_night_session=has_night):
             logger.info("장 마감 시간 - WebSocket 연결 시도 차단 (EOD 모드)")
             self.auto_reconnect = False
             return
@@ -907,8 +939,8 @@ class WSAgent:
             if not self.auto_reconnect or not should_reconnect:
                 break
 
-            # 장 마감 체크
-            if _is_after_market_close():
+            # 장 마감 체크 (야간 세션 구독 시 예외)
+            if _is_after_market_close(has_night_session=has_night):
                 logger.info("장 마감 시간 - WebSocket 재연결 중단 (EOD 모드)")
                 self.auto_reconnect = False
                 break
