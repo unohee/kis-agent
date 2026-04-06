@@ -16,57 +16,51 @@ from ..core.client import API_ENDPOINTS
 class FuturesPriceAPI(BaseAPI):
     """선물옵션 시세 조회 전용 API 클래스 (11개 메서드)"""
 
-    def get_price(self, code: str) -> Optional[Dict]:
+    def get_price(self, code: str, market: str = "F") -> Optional[Dict]:
         """
         선물옵션 현재가 시세 조회
 
         Args:
-            code: 선물옵션 종목코드 (예: '101S12' KOSPI200 선물)
+            code: 선물옵션 종목코드 (예: 'A01606' KOSPI200 선물 6월물)
+            market: 시장 구분 코드
+                - F: 지수선물, O: 지수옵션
+                - JF: 주식선물, JO: 주식옵션
+                - CF: 상품/금리/통화선물
+                - CM: 야간선물, EU: 야간옵션
 
         Returns:
             FuturesPriceResponse: 선물옵션 현재가 정보
-                - output.fuop_prpr: 선물옵션 현재가
-                - output.prdy_vrss: 전일 대비
-                - output.acml_vol: 누적 거래량
-                - output.optn_theo_pric: 옵션 이론가 (옵션만)
-                - output.impl_vola: 내재변동성 (옵션만)
 
         Example:
-            >>> price = agent.futures.get_price("101S12")  # KOSPI200 선물
-            >>> print(price['output']['fuop_prpr'])  # 현재가
-            >>> print(price['output']['acml_vol'])   # 거래량
+            >>> price = agent.futures.get_price("A01606")  # 주간 선물
+            >>> price = agent.futures.get_price("A01606", market="CM")  # 야간 선물
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_INQUIRE_PRICE"],
             tr_id="FHMIF10000000",
             params={
-                "FID_COND_MRKT_DIV_CODE": "F",  # F:선물, O:옵션
+                "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
             },
         )
 
-    def get_orderbook(self, code: str) -> Optional[Dict]:
+    def get_orderbook(self, code: str, market: str = "F") -> Optional[Dict]:
         """
         선물옵션 현재가 호가 조회
 
         Args:
             code: 선물옵션 종목코드
-
-        Returns:
-            FuturesOrderbookResponse: 호가 정보
-                - output1: 매도호가 (askp1~askp10, askp_rsqn1~askp_rsqn10)
-                - output2: 매수호가 (bidp1~bidp10, bidp_rsqn1~bidp_rsqn10)
+            market: 시장 구분 코드 (F/O/CM/EU 등, get_price 참조)
 
         Example:
-            >>> orderbook = agent.futures.get_orderbook("101S12")
-            >>> print(orderbook['output1']['askp1'])  # 매도호가1
-            >>> print(orderbook['output2']['bidp1'])  # 매수호가1
+            >>> orderbook = agent.futures.get_orderbook("A01606")  # 주간
+            >>> orderbook = agent.futures.get_orderbook("A01606", market="CM")  # 야간
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_INQUIRE_ASKING_PRICE"],
             tr_id="FHMIF10010000",
             params={
-                "FID_COND_MRKT_DIV_CODE": "F",
+                "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
             },
         )
@@ -77,6 +71,7 @@ class FuturesPriceAPI(BaseAPI):
         start_date: str = "",
         end_date: str = "",
         period: str = "D",
+        market: str = "F",
     ) -> Optional[Dict]:
         """
         선물옵션 일별차트 조회
@@ -107,7 +102,7 @@ class FuturesPriceAPI(BaseAPI):
             endpoint=API_ENDPOINTS["FUTURES_INQUIRE_DAILY_FUOPCHARTPRICE"],
             tr_id="FHKIF03020100",
             params={
-                "FID_COND_MRKT_DIV_CODE": "F",
+                "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_DATE_1": start_date,
                 "FID_INPUT_DATE_2": end_date,
@@ -116,7 +111,7 @@ class FuturesPriceAPI(BaseAPI):
         )
 
     def inquire_time_fuopchartprice(
-        self, code: str, hour: str = "153000", tick_range: str = "1"
+        self, code: str, hour: str = "153000", tick_range: str = "1", market: str = "F"
     ) -> Optional[Dict]:
         """
         선물옵션 분봉 차트 조회
@@ -144,10 +139,10 @@ class FuturesPriceAPI(BaseAPI):
             endpoint=API_ENDPOINTS["FUTURES_INQUIRE_TIME_FUOPCHARTPRICE"],
             tr_id="FHKIF03020200",
             params={
-                "FID_COND_MRKT_DIV_CODE": "F",
+                "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_HOUR_1": hour,
-                "FID_PW_DATA_INCU_YN": "Y",  # 과거 데이터 포함 여부
+                "FID_PW_DATA_INCU_YN": "Y",
                 "FID_TICK_RANGE": tick_range,
             },
         )
@@ -286,7 +281,7 @@ class FuturesPriceAPI(BaseAPI):
             },
         )
 
-    def exp_price_trend(self, code: str) -> Optional[Dict]:
+    def exp_price_trend(self, code: str, market: str = "F") -> Optional[Dict]:
         """
         선물옵션 일중 예상체결가 추이 조회
 
@@ -309,13 +304,14 @@ class FuturesPriceAPI(BaseAPI):
             endpoint=API_ENDPOINTS["FUTURES_EXP_PRICE_TREND"],
             tr_id="FHPIF05110100",
             params={
-                "FID_COND_MRKT_DIV_CODE": "F",
+                "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
             },
         )
 
     def inquire_ccnl_bstime(
-        self, code: str, start_time: str = "090000", end_time: str = "153000"
+        self, code: str, start_time: str = "090000", end_time: str = "153000",
+        market: str = "F",
     ) -> Optional[Dict]:
         """
         선물옵션 시간대별 체결내역 조회
@@ -341,7 +337,7 @@ class FuturesPriceAPI(BaseAPI):
             endpoint=API_ENDPOINTS["FUTURES_INQUIRE_CCNL_BSTIME"],
             tr_id="CTFO5139R",
             params={
-                "FID_COND_MRKT_DIV_CODE": "F",
+                "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_HOUR_1": start_time,
                 "FID_INPUT_HOUR_2": end_time,

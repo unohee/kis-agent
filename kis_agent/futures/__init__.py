@@ -14,6 +14,7 @@ from typing import Any, Dict, Literal, Optional
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
 from .account_api import FuturesAccountAPI
+from ..utils.futures_master import get_current_futures as _get_current_master
 from .code_generator import (
     FuturesCodeGenerator,
     generate_call_option,
@@ -123,41 +124,33 @@ class Futures(BaseAPI):
 
     # ===== 시세 관련 메서드 (FuturesPriceAPI 위임) =====
 
-    def get_price(self, code: str) -> Optional[Dict]:
+    def get_price(self, code: str, market: str = "F") -> Optional[Dict]:
         """
         선물옵션 현재가 시세 조회
 
-        Delegate to: FuturesPriceAPI.get_price()
-
         Args:
-            code: 선물옵션 종목코드
-
-        Returns:
-            FuturesPriceResponse: 현재가 정보
+            code: 선물옵션 종목코드 (예: 'A01606')
+            market: 시장 구분 (F/O/CM/EU 등)
 
         Example:
-            >>> price = agent.futures.get_price("101S12")
-            >>> print(price['output']['fuop_prpr'])
+            >>> price = agent.futures.get_price("A01606")  # 주간 선물
+            >>> price = agent.futures.get_price("A01606", market="CM")  # 야간 선물
         """
-        return self.price.get_price(code)
+        return self.price.get_price(code, market)
 
-    def get_orderbook(self, code: str) -> Optional[Dict]:
+    def get_orderbook(self, code: str, market: str = "F") -> Optional[Dict]:
         """
         선물옵션 호가 조회
 
-        Delegate to: FuturesPriceAPI.get_orderbook()
-
         Args:
             code: 선물옵션 종목코드
-
-        Returns:
-            FuturesOrderbookResponse: 호가 정보
+            market: 시장 구분 (F/O/CM/EU 등)
 
         Example:
-            >>> orderbook = agent.futures.get_orderbook("101S12")
-            >>> print(orderbook['output1']['askp1'])
+            >>> orderbook = agent.futures.get_orderbook("A01606")
+            >>> orderbook = agent.futures.get_orderbook("A01606", market="CM")
         """
-        return self.price.get_orderbook(code)
+        return self.price.get_orderbook(code, market)
 
     def inquire_daily_fuopchartprice(
         self,
@@ -165,17 +158,19 @@ class Futures(BaseAPI):
         start_date: str = "",
         end_date: str = "",
         period: str = "D",
+        market: str = "F",
     ) -> Optional[Dict]:
         """선물옵션 일별차트 조회. Delegate to: FuturesPriceAPI"""
         return self.price.inquire_daily_fuopchartprice(
-            code, start_date, end_date, period
+            code, start_date, end_date, period, market
         )
 
     def inquire_time_fuopchartprice(
-        self, code: str, hour: str = "153000", tick_range: str = "1"
+        self, code: str, hour: str = "153000", tick_range: str = "1",
+        market: str = "F",
     ) -> Optional[Dict]:
         """선물옵션 분봉차트 조회. Delegate to: FuturesPriceAPI"""
-        return self.price.inquire_time_fuopchartprice(code, hour, tick_range)
+        return self.price.inquire_time_fuopchartprice(code, hour, tick_range, market)
 
     def display_board_callput(
         self,
@@ -233,48 +228,46 @@ class Futures(BaseAPI):
 
     # ===== 종목코드 자동 생성 편의 메서드 =====
 
-    def get_current_futures_price(self) -> Optional[Dict]:
+    def get_current_futures_price(self, market: str = "F") -> Optional[Dict]:
         """
-        현재 월물 선물 현재가 조회 (종목코드 자동 생성)
+        현재 근월물 선물 현재가 조회 (종목코드 자동, 마스터 기반)
 
-        Returns:
-            FuturesPriceResponse: 현재가 정보
+        Args:
+            market: 시장 구분 (F: 주간선물, CM: 야간선물)
 
         Example:
-            >>> # 종목코드 입력 불필요 - 자동으로 현재 월물 조회
-            >>> price = agent.futures.get_current_futures_price()
-            >>> print(price['output']['fuop_prpr'])
+            >>> price = agent.futures.get_current_futures_price()  # 주간
+            >>> price = agent.futures.get_current_futures_price(market="CM")  # 야간
         """
-        code = generate_current_futures()
-        return self.price.get_price(code)
+        master = _get_current_master("kospi200")
+        if not master:
+            return None
+        return self.price.get_price(master["code"], market)
 
-    def get_next_futures_price(self) -> Optional[Dict]:
+    def get_next_futures_price(self, market: str = "F") -> Optional[Dict]:
         """
-        차근월물 선물 현재가 조회 (종목코드 자동 생성)
+        차근월물 선물 현재가 조회 (마스터 기반)
 
-        Returns:
-            FuturesPriceResponse: 현재가 정보
-
-        Example:
-            >>> price = agent.futures.get_next_futures_price()
-            >>> print(price['output']['fuop_prpr'])
+        Args:
+            market: 시장 구분 (F: 주간선물, CM: 야간선물)
         """
-        code = generate_next_futures()
-        return self.price.get_price(code)
+        from ..utils.futures_master import get_futures_by_month_type
+        candidates = get_futures_by_month_type("2", "지수선물")
+        if not candidates:
+            return None
+        return self.price.get_price(candidates[0]["code"], market)
 
-    def get_current_futures_orderbook(self) -> Optional[Dict]:
+    def get_current_futures_orderbook(self, market: str = "F") -> Optional[Dict]:
         """
-        현재 월물 선물 호가 조회 (종목코드 자동 생성)
+        현재 근월물 선물 호가 조회 (마스터 기반)
 
-        Returns:
-            FuturesOrderbookResponse: 호가 정보
-
-        Example:
-            >>> orderbook = agent.futures.get_current_futures_orderbook()
-            >>> print(orderbook['output1']['askp1'])
+        Args:
+            market: 시장 구분 (F: 주간선물, CM: 야간선물)
         """
-        code = generate_current_futures()
-        return self.price.get_orderbook(code)
+        master = _get_current_master("kospi200")
+        if not master:
+            return None
+        return self.price.get_orderbook(master["code"], market)
 
     def get_option_price(
         self,
