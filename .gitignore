@@ -52,7 +52,18 @@ tokens/
 .env
 .env.*
 !.env.example
+!pykis-mcp-server/.env.example
 src/kis/core/credit/KIS_Token.json
+KIS_Token*.json
+**/KIS_Token*.json
+
+# Master file cache (downloaded at runtime)
+*.mst
+*.mst.zip
+*.cod
+*.cod.zip
+fo_idx_code*
+fo_com_code*
 
 # Logs
 *.log
