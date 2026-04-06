@@ -154,7 +154,7 @@ class TestWSAgent:
         """구독 요청 전송 테스트"""
         # 웹소켓 모의 객체
         ws_mock = AsyncMock()
-        ws_mock.closed = False  # 연결 상태 설정
+        ws_mock.close_code = None  # websockets v16+ 호환
         ws_agent.ws = ws_mock
 
         subscription = Subscription(sub_type=SubscriptionType.STOCK_TRADE, key="005930")
@@ -304,7 +304,7 @@ class TestWSAgent:
         """비동기 구독 테스트 - 성공"""
         # 웹소켓 모의 객체 설정
         ws_mock = AsyncMock()
-        ws_mock.closed = False
+        ws_mock.close_code = None
         ws_agent.ws = ws_mock
         ws_agent.connected = True
 
@@ -337,7 +337,7 @@ class TestWSAgent:
         """비동기 구독 테스트 - 타임아웃"""
         # 웹소켓 모의 객체 설정
         ws_mock = AsyncMock()
-        ws_mock.closed = False
+        ws_mock.close_code = None
         ws_agent.ws = ws_mock
         ws_agent.connected = True
 
@@ -370,7 +370,7 @@ class TestWSAgent:
         """구독 요청 테스트 - 웹소켓 연결 종료됨"""
         # 웹소켓 모의 객체 - 닫힌 상태
         ws_mock = AsyncMock()
-        ws_mock.closed = True
+        ws_mock.close_code = 1000  # 정상 종료 코드 = closed
         ws_agent.ws = ws_mock
 
         subscription = Subscription(sub_type=SubscriptionType.STOCK_TRADE, key="005930")
@@ -399,7 +399,7 @@ class TestWSAgent:
         """모든 구독 요청 결과 테스트"""
         # 웹소켓 모의 객체
         ws_mock = AsyncMock()
-        ws_mock.closed = False
+        ws_mock.close_code = None
         ws_agent.ws = ws_mock
         ws_agent.connected = True
 
