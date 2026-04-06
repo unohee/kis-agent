@@ -37,11 +37,17 @@ class SubscriptionType(Enum):
     PROGRAM_TRADE = "H0STPGM0"  # 프로그램매매 실시간 (KRX)
     MEMBER_TRADE = "H0MBCNT0"  # 회원사별 실시간 매매동향
 
-    # 선물/옵션
+    # 선물/옵션 (주간)
     FUTURES_TRADE = "H0CFCNT0"  # 선물 체결
     FUTURES_ASK_BID = "H0CFASP0"  # 선물 호가
     OPTION_TRADE = "H0OPCNT0"  # 옵션 체결
     OPTION_ASK_BID = "H0OPASP0"  # 옵션 호가
+
+    # KRX 야간선물/옵션
+    NIGHT_FUTURES_TRADE = "H0MFCNT0"  # 야간선물 체결 [실시간-064]
+    NIGHT_FUTURES_ASK_BID = "H0MFASP0"  # 야간선물 호가 [실시간-065]
+    NIGHT_OPTION_TRADE = "H0EUCNT0"  # 야간옵션 체결 [실시간-032]
+    NIGHT_OPTION_ASK_BID = "H0EUASP0"  # 야간옵션 호가 [실시간-033]
 
     # 해외
     OVERSEAS_STOCK = "HDFSCNT0"  # 해외주식 체결

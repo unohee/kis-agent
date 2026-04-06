@@ -226,6 +226,203 @@ class RealtimeDataParser:
         "exch_cls_code",
     ]
 
+    # KRX 야간선물 체결 필드 (H0MFCNT0) [실시간-064]
+    NIGHT_FUTURES_TRADE_FIELDS = [
+        "futs_shrn_iscd",
+        "bsop_hour",
+        "futs_prdy_vrss",
+        "prdy_vrss_sign",
+        "futs_prdy_ctrt",
+        "futs_prpr",
+        "futs_oprc",
+        "futs_hgpr",
+        "futs_lwpr",
+        "last_cnqn",
+        "acml_vol",
+        "acml_tr_pbmn",
+        "hts_thpr",
+        "mrkt_basis",
+        "dprt",
+        "nmsc_fctn_stpl_prc",
+        "fmsc_fctn_stpl_prc",
+        "spead_prc",
+        "hts_otst_stpl_qty",
+        "otst_stpl_qty_icdc",
+        "oprc_hour",
+        "oprc_vrss_prpr_sign",
+        "oprc_vrss_nmix_prpr",
+        "hgpr_hour",
+        "hgpr_vrss_prpr_sign",
+        "hgpr_vrss_nmix_prpr",
+        "lwpr_hour",
+        "lwpr_vrss_prpr_sign",
+        "lwpr_vrss_nmix_prpr",
+        "shnu_rate",
+        "cttr",
+        "esdg",
+        "otst_stpl_rgbf_qty_icdc",
+        "thpr_basis",
+        "futs_askp1",
+        "futs_bidp1",
+        "askp_rsqn1",
+        "bidp_rsqn1",
+        "seln_cntg_csnu",
+        "shnu_cntg_csnu",
+        "ntby_cntg_csnu",
+        "seln_cntg_smtn",
+        "shnu_cntg_smtn",
+        "total_askp_rsqn",
+        "total_bidp_rsqn",
+        "prdy_vol_vrss_acml_vol_rate",
+        "dynm_mxpr",
+        "dynm_llam",
+        "dynm_prc_limt_yn",
+    ]
+
+    # KRX 야간선물 호가 필드 (H0MFASP0) [실시간-065]
+    NIGHT_FUTURES_ORDERBOOK_FIELDS = [
+        "futs_shrn_iscd",
+        "bsop_hour",
+        "futs_askp1",
+        "futs_askp2",
+        "futs_askp3",
+        "futs_askp4",
+        "futs_askp5",
+        "futs_bidp1",
+        "futs_bidp2",
+        "futs_bidp3",
+        "futs_bidp4",
+        "futs_bidp5",
+        "askp_csnu1",
+        "askp_csnu2",
+        "askp_csnu3",
+        "askp_csnu4",
+        "askp_csnu5",
+        "bidp_csnu1",
+        "bidp_csnu2",
+        "bidp_csnu3",
+        "bidp_csnu4",
+        "bidp_csnu5",
+        "askp_rsqn1",
+        "askp_rsqn2",
+        "askp_rsqn3",
+        "askp_rsqn4",
+        "askp_rsqn5",
+        "bidp_rsqn1",
+        "bidp_rsqn2",
+        "bidp_rsqn3",
+        "bidp_rsqn4",
+        "bidp_rsqn5",
+        "total_askp_csnu",
+        "total_bidp_csnu",
+        "total_askp_rsqn",
+        "total_bidp_rsqn",
+        "total_askp_rsqn_icdc",
+        "total_bidp_rsqn_icdc",
+    ]
+
+    # KRX 야간옵션 체결 필드 (H0EUCNT0) [실시간-032]
+    NIGHT_OPTION_TRADE_FIELDS = [
+        "optn_shrn_iscd",
+        "bsop_hour",
+        "optn_prpr",
+        "prdy_vrss_sign",
+        "optn_prdy_vrss",
+        "prdy_ctrt",
+        "optn_oprc",
+        "optn_hgpr",
+        "optn_lwpr",
+        "last_cnqn",
+        "acml_vol",
+        "acml_tr_pbmn",
+        "hts_thpr",
+        "hts_otst_stpl_qty",
+        "otst_stpl_qty_icdc",
+        "oprc_hour",
+        "oprc_vrss_prpr_sign",
+        "oprc_vrss_nmix_prpr",
+        "hgpr_hour",
+        "hgpr_vrss_prpr_sign",
+        "hgpr_vrss_nmix_prpr",
+        "lwpr_hour",
+        "lwpr_vrss_prpr_sign",
+        "lwpr_vrss_nmix_prpr",
+        "shnu_rate",
+        "prmm_val",
+        "invl_val",
+        "tmvl_val",
+        "delta",
+        "gama",
+        "vega",
+        "theta",
+        "rho",
+        "hts_ints_vltl",
+        "esdg",
+        "otst_stpl_rgbf_qty_icdc",
+        "thpr_basis",
+        "unas_hist_vltl",
+        "cttr",
+        "dprt",
+        "mrkt_basis",
+        "optn_askp1",
+        "optn_bidp1",
+        "askp_rsqn1",
+        "bidp_rsqn1",
+        "seln_cntg_csnu",
+        "shnu_cntg_csnu",
+        "ntby_cntg_csnu",
+        "seln_cntg_smtn",
+        "shnu_cntg_smtn",
+        "total_askp_rsqn",
+        "total_bidp_rsqn",
+        "prdy_vol_vrss_acml_vol_rate",
+        "dynm_mxpr",
+        "dynm_prc_limt_yn",
+        "dynm_llam",
+    ]
+
+    # KRX 야간옵션 호가 필드 (H0EUASP0) [실시간-033]
+    NIGHT_OPTION_ORDERBOOK_FIELDS = [
+        "optn_shrn_iscd",
+        "bsop_hour",
+        "optn_askp1",
+        "optn_askp2",
+        "optn_askp3",
+        "optn_askp4",
+        "optn_askp5",
+        "optn_bidp1",
+        "optn_bidp2",
+        "optn_bidp3",
+        "optn_bidp4",
+        "optn_bidp5",
+        "askp_csnu1",
+        "askp_csnu2",
+        "askp_csnu3",
+        "askp_csnu4",
+        "askp_csnu5",
+        "bidp_csnu1",
+        "bidp_csnu2",
+        "bidp_csnu3",
+        "bidp_csnu4",
+        "bidp_csnu5",
+        "askp_rsqn1",
+        "askp_rsqn2",
+        "askp_rsqn3",
+        "askp_rsqn4",
+        "askp_rsqn5",
+        "bidp_rsqn1",
+        "bidp_rsqn2",
+        "bidp_rsqn3",
+        "bidp_rsqn4",
+        "bidp_rsqn5",
+        "total_askp_csnu",
+        "total_bidp_csnu",
+        "total_askp_rsqn",
+        "total_bidp_rsqn",
+        "total_askp_rsqn_icdc",
+        "total_bidp_rsqn_icdc",
+    ]
+
     # NXT 프로그램매매 필드 (H0NXPGM0)
     PROGRAM_TRADE_NXT_FIELDS = [
         "mksc_shrn_iscd",
@@ -260,6 +457,11 @@ class RealtimeDataParser:
             ST.PROGRAM_TRADE_NXT: cls.PROGRAM_TRADE_NXT_FIELDS,
             ST.MARKET_OPERATION_NXT: cls.MARKET_OPERATION_NXT_FIELDS,
             ST.MEMBER_TRADE_NXT: cls.MEMBER_TRADE_FIELDS,
+            # KRX 야간선물/옵션
+            ST.NIGHT_FUTURES_TRADE: cls.NIGHT_FUTURES_TRADE_FIELDS,
+            ST.NIGHT_FUTURES_ASK_BID: cls.NIGHT_FUTURES_ORDERBOOK_FIELDS,
+            ST.NIGHT_OPTION_TRADE: cls.NIGHT_OPTION_TRADE_FIELDS,
+            ST.NIGHT_OPTION_ASK_BID: cls.NIGHT_OPTION_ORDERBOOK_FIELDS,
         }
 
         fields = field_map.get(sub_type)
@@ -298,6 +500,27 @@ class RealtimeDataParser:
             "vrss",
             "nmix",
             "icdc",
+            # 선물/옵션 공통
+            "askp",
+            "bidp",
+            "basis",
+            "dprt",
+            "esdg",
+            "cttr",
+            "stpl",
+            # 옵션 그릭스/가치
+            "delta",
+            "gama",
+            "vega",
+            "theta",
+            "rho",
+            "prmm_val",
+            "invl_val",
+            "tmvl_val",
+            "vltl",
+            "spead",
+            "mxpr",
+            "llam",
         ]
 
         for keyword in numeric_keywords:
@@ -349,6 +572,26 @@ class RealtimeDataParser:
         """지수 예상체결 데이터 파싱"""
 
         return cls.parse(SubscriptionType.INDEX_EXPECTED, values)
+
+    @classmethod
+    def parse_night_futures_trade(cls, values: List[str]) -> Dict[str, Any]:
+        """야간선물 체결 데이터 파싱"""
+        return cls.parse(SubscriptionType.NIGHT_FUTURES_TRADE, values)
+
+    @classmethod
+    def parse_night_futures_orderbook(cls, values: List[str]) -> Dict[str, Any]:
+        """야간선물 호가 데이터 파싱"""
+        return cls.parse(SubscriptionType.NIGHT_FUTURES_ASK_BID, values)
+
+    @classmethod
+    def parse_night_option_trade(cls, values: List[str]) -> Dict[str, Any]:
+        """야간옵션 체결 데이터 파싱"""
+        return cls.parse(SubscriptionType.NIGHT_OPTION_TRADE, values)
+
+    @classmethod
+    def parse_night_option_orderbook(cls, values: List[str]) -> Dict[str, Any]:
+        """야간옵션 호가 데이터 파싱"""
+        return cls.parse(SubscriptionType.NIGHT_OPTION_ASK_BID, values)
 
 
 class RealtimeDataStore:
@@ -411,6 +654,18 @@ class RealtimeDataStore:
 
     def get_member_trade(self, code: str) -> Optional[Dict[str, Any]]:
         return self.get(code, SubscriptionType.MEMBER_TRADE)
+
+    def get_night_futures_trade(self, code: str) -> Optional[Dict[str, Any]]:
+        return self.get(code, SubscriptionType.NIGHT_FUTURES_TRADE)
+
+    def get_night_futures_orderbook(self, code: str) -> Optional[Dict[str, Any]]:
+        return self.get(code, SubscriptionType.NIGHT_FUTURES_ASK_BID)
+
+    def get_night_option_trade(self, code: str) -> Optional[Dict[str, Any]]:
+        return self.get(code, SubscriptionType.NIGHT_OPTION_TRADE)
+
+    def get_night_option_orderbook(self, code: str) -> Optional[Dict[str, Any]]:
+        return self.get(code, SubscriptionType.NIGHT_OPTION_ASK_BID)
 
     def get_history(
         self, code: str, sub_type: Any, limit: Optional[int] = None
