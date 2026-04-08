@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
+import httpx
 import requests
 
 from .auth import auth, getTREnv, read_token
@@ -464,7 +465,7 @@ class KISClient:
                 if self.verbose:
                     logger.info(f"[API] ({method}) {tr_id} 시도 {attempt+1}/{retries}")
 
-                response = requests.request(
+                response = httpx.request(
                     method.upper(),
                     url,
                     headers=headers,
@@ -616,7 +617,7 @@ class KISClient:
                             f"[{tr_id}] 로직 오류: 예상치 못한 HTTP/API 상태 (시도 {attempt+1}/{retries}). 응답: {data}. HTTP Status: {response.status_code if response else 'N/A'}"
                         )
                         return data
-            except requests.exceptions.RequestException as e:
+            except (httpx.RequestError, requests.exceptions.RequestException) as e:
                 logger.error(f"[{tr_id}] 요청 실패 (시도 {attempt+1}/{retries}): {e}")
                 last_exception = e
                 if attempt < retries - 1:
@@ -704,7 +705,7 @@ class KISClient:
             "grant_type": "client_credentials",
             "appkey": self.config.app_key if self.config else os.getenv("KIS_APP_KEY"),
             "secretkey": (
-                self.config.app_secret if self.config else os.getenv("KIS_APP_SECRET")
+                self.config.app_secret if self.config else (os.getenv("KIS_APP_SECRET") or os.getenv("KIS_SECRET"))
             ),
         }
 

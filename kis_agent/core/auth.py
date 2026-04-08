@@ -94,7 +94,7 @@ def _get_token_path_for_app_key(app_key: str, base_path: str = token_tmp) -> str
 # 환경 변수 기반 설정 로드 - STONKS 환경변수도 인식
 _cfg = {
     "my_app": os.getenv("KIS_APP_KEY") or os.getenv("MY_APP") or "",
-    "my_sec": os.getenv("KIS_APP_SECRET") or os.getenv("MY_SEC") or "",
+    "my_sec": os.getenv("KIS_APP_SECRET") or os.getenv("KIS_SECRET") or os.getenv("MY_SEC") or "",
     "my_acct_stock": os.getenv("KIS_ACCOUNT_NO") or os.getenv("MY_ACCT_STOCK") or "",
     "my_prod": os.getenv("KIS_ACCOUNT_CODE") or os.getenv("MY_PROD") or "01",
     "prod": os.getenv("KIS_BASE_URL")
