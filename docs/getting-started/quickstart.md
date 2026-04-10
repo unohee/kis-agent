@@ -58,6 +58,16 @@ result = agent.order_rvsecncl(org_order_no, qty, price, order_type, cncl_type)
 !!! danger "실전투자 주의"
     `is_real=True`로 설정된 경우 실제 돈이 투자됩니다. 모의투자에서 충분히 테스트하세요.
 
+## 주문 정정/취소
+
+```python
+# 정정/취소는 account_api를 통해 접근
+result = agent.account_api.order_rvsecncl(
+    org_order_no="0001234567", qty=10, price=72000,
+    order_type="00", cncl_type="정정"
+)
+```
+
 ## 실시간 데이터
 
 ```python

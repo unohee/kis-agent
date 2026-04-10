@@ -157,7 +157,7 @@ fi = agent.stock_api.foreign_institution_total()
 
 ```python
 # 투자자별 매매동향
-investor = agent.get_stock_investor("005930")
+investor = agent.stock_api.get_stock_investor("005930")
 
 # 거래원별 매매
 member = agent.stock_api.get_stock_member("005930")

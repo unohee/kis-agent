@@ -8,10 +8,10 @@ WebSocket을 통해 실시간 체결, 호가, 지수, 선물옵션 데이터를 
 import asyncio
 
 ws_client = agent.websocket(
-    codes=["005930", "035420"],
-    include_orderbook=True,
-    on_trade=lambda data: print(f"체결: {data}"),
-    on_orderbook=lambda data: print(f"호가: {data}"),
+    stock_codes=["005930", "035420"],
+    enable_index=True,
+    enable_program_trading=True,
+    enable_ask_bid=True,
 )
 
 asyncio.run(ws_client.start())

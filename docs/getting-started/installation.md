@@ -64,17 +64,28 @@ print("Account:", os.getenv('KIS_ACCOUNT_NO'))
 
 ## 실전투자 vs 모의투자
 
-`Agent` 초기화 시 `is_real` 파라미터로 전환합니다:
+`Agent` 초기화 시 `base_url` 파라미터로 전환합니다:
 
 ```python
 from kis_agent import Agent
 
-# 모의투자 (기본값)
-agent = Agent(...)
+# 실전투자 (기본값)
+agent = Agent(
+    app_key=os.environ['KIS_APP_KEY'],
+    app_secret=os.environ['KIS_APP_SECRET'],
+    account_no=os.environ['KIS_ACCOUNT_NO'],
+    account_code=os.environ.get('KIS_ACCOUNT_CODE', '01'),
+)
 
-# 실전투자
-agent = Agent(..., is_real=True)
+# 모의투자
+agent = Agent(
+    app_key=os.environ['KIS_APP_KEY'],
+    app_secret=os.environ['KIS_APP_SECRET'],
+    account_no=os.environ['KIS_ACCOUNT_NO'],
+    account_code=os.environ.get('KIS_ACCOUNT_CODE', '01'),
+    base_url="https://openapivts.koreainvestment.com:29443",
+)
 ```
 
 !!! note "모의투자 먼저"
-    처음에는 반드시 모의투자로 테스트한 후 실전투자로 전환하세요.
+    처음에는 반드시 모의투자(`base_url` 변경)로 테스트한 후 실전투자로 전환하세요.
