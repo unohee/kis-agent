@@ -152,3 +152,70 @@ from kis_agent.utils.stock_master import (
     search,                  # 종목 검색
 )
 ```
+
+### 자동 다운로드 및 캐싱
+
+종목 마스터 데이터는 한국투자증권 마스터파일 서버에서 **하루 1회 자동 다운로드**되고 로컬에 캐시됩니다. 수동 관리가 필요 없습니다.
+
+#### 주식 마스터 (`stock_master.py`)
+
+KOSPI/KOSDAQ 전종목 코드+이름을 관리합니다.
+
+- **다운로드 소스**: `https://new.real.download.dws.co.kr/common/master/kospi_code.mst.zip`, `kosdaq_code.mst.zip`
+- **캐시 경로**: `~/.kis_agent/master/stocks.csv`
+- **갱신 주기**: 하루 1회 (날짜 기준, 첫 호출 시 자동 다운로드)
+- **캐시 계층**: 메모리 캐시 → 파일 캐시 → 다운로드
+- **폴백**: 다운로드 실패 시 만료된 파일 캐시 사용
+
+```python
+from kis_agent.utils.stock_master import load_stocks, search, resolve_code
+
+# 전종목 로드 (자동 다운로드+캐싱)
+stocks = load_stocks()                  # [{"code": "005930", "name": "삼성전자", "market": "코스피"}, ...]
+stocks = load_stocks(force_refresh=True)  # 강제 재다운로드
+
+# 종목 검색 (정확→접두사→부분 매칭 순)
+results = search("삼성", limit=10)
+
+# 종목명 → 코드 변환
+code = resolve_code("삼성전자")  # "005930"
+code = resolve_code("005930")    # "005930" (6자리는 그대로 반환)
+```
+
+#### 선물옵션 마스터 (`futures_master.py`)
+
+지수/상품 선물옵션 전종목을 관리합니다.
+
+- **다운로드 소스**: `fo_idx_code_mts.mst.zip` (지수선물옵션), `fo_com_code.mst.zip` (상품선물옵션)
+- **캐시 경로**: `~/.kis_agent/master/futures.csv`
+- **갱신 주기**: 하루 1회 (동일 메커니즘)
+- **분류 코드**: 지수선물, 지수콜/풋옵션, 미니선물, 위클리옵션, 코스닥150 등 17종
+- **월물 구분**: 연결선물, 최근월물, 차근월물, 차차근월물
+
+```python
+from kis_agent.utils.futures_master import (
+    load_futures, search_futures, get_current_futures, resolve_futures_code
+)
+
+# 전종목 로드
+futures = load_futures()
+
+# 선물 검색
+results = search_futures("KOSPI200")
+
+# 현재 근월물 조회
+current = get_current_futures("kospi200")  # {"code": "101S06", "name": "F 202606", ...}
+
+# 단축코드 해석
+info = resolve_futures_code("101S06")
+```
+
+#### CLI에서의 활용
+
+CLI에서 종목명으로 입력하면 내부적으로 `resolve_code()`를 호출하여 자동 변환합니다:
+
+```bash
+kis price 삼성전자        # → resolve_code("삼성전자") → "005930"
+kis search 카카오         # → search("카카오")
+kis futures 101S06       # → futures_master에서 종목명 자동 조회
+```
