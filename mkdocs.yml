@@ -1,0 +1,81 @@
+site_name: KIS-Agent
+site_description: 한국투자증권 OpenAPI Python 래퍼 — CLI & Python SDK
+site_url: https://unohee.github.io/kis-agent
+repo_url: https://github.com/unohee/kis-agent
+repo_name: unohee/kis-agent
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 다크 모드로 전환
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 라이트 모드로 전환
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: ko
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - 시작하기:
+      - 설치 및 설정: getting-started/installation.md
+      - 빠른 시작: getting-started/quickstart.md
+  - CLI:
+      - CLI 사용법: cli/usage.md
+  - Python API:
+      - 국내 주식: api/stock.md
+      - 해외 주식: api/overseas.md
+      - 선물/옵션: api/futures.md
+      - 계좌 관리: api/account.md
+      - 실시간 WebSocket: api/websocket.md
+  - 고급 가이드:
+      - LLM Agent 연동: advanced/llm-agent.md
+      - 성능 및 캐싱: advanced/performance.md
+  - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/unohee/kis-agent
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/kis-agent/

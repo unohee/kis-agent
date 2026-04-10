@@ -61,6 +61,9 @@ all = [
     "websockets>=12.0,<17.0",
     "aiohttp>=3.9.0,<4.0.0",
 ]
+docs = [
+    "mkdocs-material>=9.5.0,<10.0.0",
+]
 
 [project.scripts]
 kis = "kis_agent.cli.main:main"
@@ -69,7 +72,7 @@ kis-bridge = "kis_agent.cli_bridge:main"
 [project.urls]
 Homepage = "https://github.com/unohee/kis-agent"
 Repository = "https://github.com/unohee/kis-agent.git"
-Documentation = "https://github.com/unohee/kis-agent/blob/main/README.md"
+Documentation = "https://unohee.github.io/kis-agent"
 "Bug Tracker" = "https://github.com/unohee/kis-agent/issues"
 Changelog = "https://github.com/unohee/kis-agent/blob/main/CHANGELOG.md"
 

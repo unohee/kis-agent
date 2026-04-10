@@ -1,3 +1,6 @@
+# MkDocs
+site/
+
 # Python
 __pycache__/
 *.py[cod]
