@@ -78,33 +78,29 @@ def check_python_installation():
 
 
 def load_env():
-    """환경변수 로드."""
+    """현재 작업 디렉토리의 .env만 로드 (기존 환경변수는 덮어쓰지 않음).
+
+    (v1.7.0부터 패키지 부모 디렉토리/~/.env 검색은 제거. 의도치 않은 환경 오염 방지.)
+    """
     from dotenv import load_dotenv
 
-    for p in [
-        ".env",
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
-        os.path.expanduser("~/.env"),
-    ]:
-        if os.path.exists(p):
-            load_dotenv(p)
-            break
+    if os.path.exists(".env"):
+        load_dotenv(".env", override=False)
 
 
 def create_agent():
-    """환경변수에서 인증 정보를 로드하여 Agent 생성."""
+    """KIS_* 환경변수에서 인증 정보를 로드하여 Agent 생성."""
     load_env()
 
     from kis_agent import Agent
+    from kis_agent.core.constants import REAL_BASE_URL
 
     agent = Agent(
         app_key=os.environ.get("KIS_APP_KEY", ""),
-        app_secret=os.environ.get("KIS_APP_SECRET", os.environ.get("KIS_SECRET", "")),
+        app_secret=os.environ.get("KIS_APP_SECRET", ""),
         account_no=os.environ.get("KIS_ACCOUNT_NO", ""),
         account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
-        base_url=os.environ.get(
-            "KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"
-        ),
+        base_url=os.environ.get("KIS_BASE_URL", REAL_BASE_URL),
     )
 
     return agent

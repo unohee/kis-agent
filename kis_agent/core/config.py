@@ -1,13 +1,18 @@
+import os
 from dataclasses import dataclass
+
+from .constants import MOCK_BASE_URL, REAL_BASE_URL
 
 
 @dataclass
 class KISConfig:
-    """API 인증 및 계좌 정보를 관리하는 설정 클래스
+    """API 인증 및 계좌 정보를 관리하는 설정 클래스.
 
-    Note:
-        .env 파일 지원이 제거되었습니다.
-        API 키는 반드시 매개변수로 직정 전달해야 합니다.
+    환경변수 자동 로드를 지원한다.
+
+    - `KISConfig(app_key=..., ...)`로 매개변수 직접 전달 가능.
+    - `KISConfig.from_env()`로 환경변수에서 일괄 로드 가능 (KIS_* prefix만 인식).
+    - `.env` 파일은 `kis_agent.core.auth` 임포트 시 자동 로드된다 (override=False — 기존 환경변수 우선).
     """
 
     APP_KEY: str = ""
@@ -24,59 +29,65 @@ class KISConfig:
         account_no: str = None,
         account_code: str = None,
     ):
-        """
-        설정을 초기화합니다.
-
-        Args:
-            app_key (str): API 앱 키 (필수)
-            app_secret (str): API 앱 시크릿 (필수)
-            base_url (str): API 베이스 URL (기본값: 실전투자 URL)
-            account_no (str): 계좌번호 (필수)
-            account_code (str): 계좌 상품코드 (필수)
-        """
-        # 매개변수 설정
         self.APP_KEY = app_key or ""
         self.APP_SECRET = app_secret or ""
-        self.BASE_URL = base_url or "https://openapi.koreainvestment.com:9443"
+        self.BASE_URL = base_url or REAL_BASE_URL
         self.ACCOUNT_NO = account_no or ""
         self.ACCOUNT_CODE = account_code or ""
 
         self._validate()
 
+    @classmethod
+    def from_env(cls) -> "KISConfig":
+        """환경변수에서 KISConfig를 생성한다.
+
+        인식하는 환경변수 (KIS_* prefix 전용 — legacy MY_*/PROD_URL 등은 인식하지 않음):
+
+        - `KIS_APP_KEY` (필수)
+        - `KIS_APP_SECRET` (필수)
+        - `KIS_ACCOUNT_NO` (필수)
+        - `KIS_ACCOUNT_CODE` (선택, 기본 "01")
+        - `KIS_BASE_URL` (선택, 기본 실전투자 URL)
+
+        Raises:
+            ValueError: 필수 환경변수가 누락된 경우.
+        """
+        return cls(
+            app_key=os.environ.get("KIS_APP_KEY", ""),
+            app_secret=os.environ.get("KIS_APP_SECRET", ""),
+            base_url=os.environ.get("KIS_BASE_URL", REAL_BASE_URL),
+            account_no=os.environ.get("KIS_ACCOUNT_NO", ""),
+            account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
+        )
+
     @property
     def account_stock(self) -> str:
-        """계좌 번호 반환"""
         return self.ACCOUNT_NO
 
     @property
     def account_product(self) -> str:
-        """계좌 상품 코드 반환"""
         return self.ACCOUNT_CODE
 
     @property
     def app_key(self) -> str:
-        """APP KEY 반환"""
         return self.APP_KEY
 
     @property
     def app_secret(self) -> str:
-        """APP SECRET 반환"""
         return self.APP_SECRET
 
     @property
     def account_no(self) -> str:
-        """계좌 번호 반환"""
         return self.ACCOUNT_NO
 
     @property
     def account_product_code(self) -> str:
-        """계좌 상품 코드 반환"""
         return self.ACCOUNT_CODE
 
     @property
     def is_real(self) -> bool:
-        """실투자 여부 (BASE_URL로 판단)"""
-        return "openapi.koreainvestment.com:9443" in self.BASE_URL
+        """실전투자 여부 (BASE_URL이 실전 URL과 일치하면 True)."""
+        return MOCK_BASE_URL not in self.BASE_URL
 
     def _validate(self) -> None:
         missing_fields = []
@@ -94,7 +105,8 @@ class KISConfig:
         if missing_fields:
             raise ValueError(
                 f"필수 설정 값이 누락되었습니다: {', '.join(missing_fields)}\n"
-                "필요한 모든 매개변수를 제공해주세요."
+                "필요한 모든 매개변수를 제공하거나 KIS_APP_KEY/KIS_APP_SECRET/"
+                "KIS_ACCOUNT_NO 환경변수를 설정한 뒤 KISConfig.from_env()를 사용하세요."
             )
 
 
