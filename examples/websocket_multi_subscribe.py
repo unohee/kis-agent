@@ -120,25 +120,28 @@ async def main():
 
     load_dotenv()
 
+    from kis_agent.core.config import KISConfig
+
     app_key = os.getenv("KIS_APP_KEY")
     app_secret = os.getenv("KIS_APP_SECRET")
-    account_number = os.getenv("KIS_ACCOUNT_NUMBER")
+    account_no = os.getenv("KIS_ACCOUNT_NO")
+    account_code = os.getenv("KIS_ACCOUNT_CODE", "01")
 
-    if not all([app_key, app_secret, account_number]):
+    if not all([app_key, app_secret, account_no]):
         print(
-            "환경변수를 설정해주세요: KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NUMBER"
+            "환경변수를 설정해주세요: KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO"
         )
         return
 
-    # 클라이언트 초기화
-    client = KISClient(
+    # 클라이언트 초기화 (실전 URL이 기본)
+    client = KISClient(config=KISConfig(
         app_key=app_key,
         app_secret=app_secret,
-        account_number=account_number,
-        is_real=True,  # 실전투자
-    )
+        account_no=account_no,
+        account_code=account_code,
+    ))
 
-    account_info = {"CANO": account_number[:8], "ACNT_PRDT_CD": account_number[8:]}
+    account_info = {"CANO": account_no, "ACNT_PRDT_CD": account_code}
 
     # 감시할 종목 설정
     stock_codes = [

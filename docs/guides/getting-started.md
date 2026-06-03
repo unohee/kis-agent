@@ -43,7 +43,8 @@ pip install -e .
 # .env 파일
 KIS_APP_KEY=your_app_key_here
 KIS_APP_SECRET=your_app_secret_here
-KIS_ACCOUNT_NUMBER=12345678-01
+KIS_ACCOUNT_NO=12345678   # 종합계좌번호 앞 8자리
+KIS_ACCOUNT_CODE=01       # 계좌 상품코드 (주식: "01", 선물옵션: "03")
 ```
 
 ### 2. 설정 파일 확인
@@ -56,49 +57,53 @@ from dotenv import load_dotenv
 load_dotenv()
 
 print("App Key:", os.getenv('KIS_APP_KEY')[:10] + "...")
-print("Account:", os.getenv('KIS_ACCOUNT_NUMBER'))
+print("Account:", os.getenv('KIS_ACCOUNT_NO'), os.getenv('KIS_ACCOUNT_CODE'))
 ```
 
 ## 🔑 기본 인증
 
-### KISClient 초기화
-```python
-from kis_agent.core.client import KISClient
+### Agent 초기화 (권장)
 
-# 클라이언트 생성
-client = KISClient(
-    app_key=os.getenv('KIS_APP_KEY'),
-    app_secret=os.getenv('KIS_APP_SECRET'),
-    account_number=os.getenv('KIS_ACCOUNT_NUMBER'),
-    is_real=True  # 실전투자: True, 모의투자: False
+`Agent`는 KISClient·인증·각 도메인 API(StockAPI 등)를 하나로 묶은 파사드입니다.
+`.env`에서 `KIS_*` 환경변수를 자동으로 읽고 싶으면 `KISConfig.from_env()`를 사용하세요.
+
+```python
+from kis_agent import Agent
+from kis_agent.core.config import KISConfig
+
+# (a) 환경변수에서 자동 로드
+config = KISConfig.from_env()
+agent = Agent(
+    app_key=config.APP_KEY,
+    app_secret=config.APP_SECRET,
+    account_no=config.ACCOUNT_NO,
+    account_code=config.ACCOUNT_CODE,
+    base_url=config.BASE_URL,  # 비워두면 실전투자 URL이 기본
 )
 
-# 연결 테스트
-print("인증 토큰:", client.get_access_token()[:20] + "...")
+# (b) 또는 명시적 매개변수
+agent = Agent(
+    app_key=os.getenv("KIS_APP_KEY"),
+    app_secret=os.getenv("KIS_APP_SECRET"),
+    account_no=os.getenv("KIS_ACCOUNT_NO"),
+    account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
+)
 ```
 
 ##  REST API 사용
 
 ### 주식 정보 조회
 ```python
-from kis_agent.stock.api import StockAPI
+# Agent를 통해 주식 도메인 API 호출
+price = agent.get_stock_price("005930")  # 삼성전자
+print(f"삼성전자 현재가: {price['output']['stck_prpr']}원")
 
-# 계좌 정보 설정
-account_info = {
-    'CANO': os.getenv('KIS_ACCOUNT_NUMBER').split('-')[0],
-    'ACNT_PRDT_CD': os.getenv('KIS_ACCOUNT_NUMBER').split('-')[1]
-}
-
-# 주식 API 초기화
-stock_api = StockAPI(client=client, account_info=account_info)
-
-# 삼성전자 현재가 조회
-price_data = stock_api.get_stock_price("005930")
-print(f"삼성전자 현재가: {price_data['output']['stck_prpr']}원")
-
-# 일일 가격 데이터 조회
-daily_data = stock_api.get_daily_price("005930")
-print(f"일일 데이터 건수: {len(daily_data)}개")
+# 기간별 일봉 데이터
+daily = agent.inquire_daily_itemchartprice(
+    "005930",
+    start_date="20250101",
+    end_date="20251231",
+)
 ```
 
 ### 계좌 정보 조회

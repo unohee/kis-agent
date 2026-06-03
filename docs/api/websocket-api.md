@@ -351,12 +351,14 @@ from kis_agent.core.client import KISClient
 from kis_agent.websocket import WSAgent, SubscriptionType
 
 async def main():
-    # 클라이언트 초기화
-    client = KISClient(
+    # 클라이언트 초기화 (KISConfig를 통한 설정 권장)
+    from kis_agent.core.config import KISConfig
+    client = KISClient(config=KISConfig(
         app_key="your_app_key",
         app_secret="your_app_secret",
-        account_number="your_account"
-    )
+        account_no="12345678",
+        account_code="01",
+    ))
     
     # WSAgent 생성
     approval_key = client.get_ws_approval_key()
@@ -426,7 +428,8 @@ asyncio.run(main())
 ```bash
 KIS_APP_KEY=your_app_key
 KIS_APP_SECRET=your_app_secret
-KIS_ACCOUNT_NUMBER=your_account
+KIS_ACCOUNT_NO=12345678          # 종합계좌번호 앞 8자리
+KIS_ACCOUNT_CODE=01              # 계좌 상품코드
 ```
 
 ### 로깅 설정

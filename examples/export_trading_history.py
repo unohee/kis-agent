@@ -53,17 +53,21 @@ def main():
     # 1. KIS 클라이언트 초기화
     logger.info("KIS 클라이언트 초기화...")
 
-    KISClient(
+    from kis_agent.core.config import KISConfig
+    from kis_agent.core.constants import MOCK_BASE_URL
+
+    KISClient(config=KISConfig(
         app_key=os.getenv("KIS_APP_KEY"),
         app_secret=os.getenv("KIS_APP_SECRET"),
-        account_number=os.getenv("KIS_ACCOUNT_NUMBER"),
-        is_real=False,  # 모의투자로 테스트
-    )
+        account_no=os.getenv("KIS_ACCOUNT_NO"),
+        account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
+        base_url=MOCK_BASE_URL,  # 모의투자로 테스트
+    ))
 
     # 계좌 정보 설정
     account_info = {
-        "CANO": os.getenv("KIS_ACCOUNT_NUMBER").split("-")[0],
-        "ACNT_PRDT_CD": os.getenv("KIS_ACCOUNT_NUMBER").split("-")[1],
+        "CANO": os.getenv("KIS_ACCOUNT_NO"),
+        "ACNT_PRDT_CD": os.getenv("KIS_ACCOUNT_CODE", "01"),
     }
 
     # 2. 날짜 설정 (최근 30일)
