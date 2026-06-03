@@ -354,7 +354,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {
@@ -392,7 +392,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     # json.JSONDecodeError를 발생시켜야 함
@@ -426,7 +426,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {"data": "no_rt_cd"}
@@ -456,7 +456,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {
@@ -508,7 +508,7 @@ class TestMakeRequest:
                         }
                     return mock_response
 
-                with patch("requests.request", side_effect=side_effect):
+                with patch("httpx.request", side_effect=side_effect):
                     client = client_module.KISClient(
                         enable_rate_limiter=False, verbose=False
                     )
@@ -552,7 +552,7 @@ class TestMakeRequest:
                         }
                     return mock_response
 
-                with patch("requests.request", side_effect=side_effect), patch(
+                with patch("httpx.request", side_effect=side_effect), patch(
                     "time.sleep"
                 ):  # 대기 시간 건너뛰기
                     client = client_module.KISClient(
@@ -578,7 +578,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 500
                     mock_response.json.return_value = {
@@ -612,7 +612,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_request.side_effect = requests.exceptions.ConnectionError(
                         "Connection failed"
                     )
@@ -640,7 +640,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {"rt_cd": "0"}
@@ -672,7 +672,7 @@ class TestMakeRequest:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {"rt_cd": "0", "output": {}}
@@ -809,7 +809,7 @@ class TestGetKospi200Index:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {
@@ -982,7 +982,7 @@ class TestRateLimiterIntegration:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {"rt_cd": "0"}
@@ -1016,7 +1016,7 @@ class TestRateLimiterIntegration:
                 mock_tr_env.my_token = "Bearer token"
                 mock_get_tr_env.return_value = mock_tr_env
 
-                with patch("requests.request") as mock_request:
+                with patch("httpx.request") as mock_request:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
                     mock_response.json.return_value = {
