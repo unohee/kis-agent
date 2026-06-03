@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://unohee.github.io/kis-agent/sitemap.xml

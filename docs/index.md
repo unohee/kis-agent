@@ -1,6 +1,12 @@
-# KIS-Agent
+---
+title: KIS-Agent — 한국투자증권 OpenAPI Python SDK & CLI
+description: 한국투자증권 OpenAPI를 위한 Python 래퍼 라이브러리. CLI·Python SDK·LLM Agent·MCP 서버를 통해 국내/해외 주식, 선물옵션, 실시간 WebSocket 시세와 자동매매를 지원합니다.
+keywords: 한국투자증권, KIS OpenAPI, Python, SDK, CLI, kis-agent, 주식 API, 자동매매, 트레이딩, WebSocket, LLM Agent, MCP, pykis, 국내주식, 해외주식, 선물옵션
+---
 
-**한국투자증권 OpenAPI Python 래퍼** — CLI & Python SDK
+# KIS-Agent — 한국투자증권 OpenAPI Python 래퍼
+
+**CLI와 Python SDK로 쉽게 쓰는 한국투자증권 OpenAPI** — 국내·해외 주식, 선물옵션, 실시간 WebSocket, LLM Agent 연동까지.
 
 [![PyPI version](https://badge.fury.io/py/kis-agent.svg)](https://pypi.org/project/kis-agent/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/kis-agent.svg)](https://pypi.org/project/kis-agent/)

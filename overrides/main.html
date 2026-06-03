@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{#-
+  SEO 최적화 블록: OG / Twitter Card / canonical / JSON-LD / 추가 메타.
+  page.meta 우선, 없으면 config 기본값 사용.
+-#}
+
+{% block extrahead %}
+  {% set page_title = (page.meta and page.meta.title) or page.title or config.site_name %}
+  {% set page_desc = (page.meta and page.meta.description) or config.site_description %}
+  {% set page_url = page.canonical_url or config.site_url %}
+  {% set og_image = (page.meta and page.meta.image) or (config.site_url ~ 'assets/og-image.png') %}
+  {% set site_keywords = 'KIS, 한국투자증권, OpenAPI, Python, SDK, CLI, 주식 API, 트레이딩, 자동매매, WebSocket, LLM Agent, MCP, kis-agent, pykis, 국내주식, 해외주식, 선물옵션' %}
+  {% set page_keywords = (page.meta and page.meta.keywords) or site_keywords %}
+
+  {% if config.extra.google_site_verification %}<meta name="google-site-verification" content="{{ config.extra.google_site_verification }}">{% endif %}
+  {% if config.extra.naver_site_verification %}<meta name="naver-site-verification" content="{{ config.extra.naver_site_verification }}">{% endif %}
+
+  <link rel="canonical" href="{{ page_url }}">
+  <meta name="description" content="{{ page_desc }}">
+  <meta name="keywords" content="{{ page_keywords }}">
+  <meta name="author" content="unohee">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_desc }}">
+  <meta property="og:url" content="{{ page_url }}">
+  {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+  <meta property="og:locale" content="ko_KR">
+
+  <meta name="twitter:card" content="{% if og_image %}summary_large_image{% else %}summary{% endif %}">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_desc }}">
+  {% if og_image %}<meta name="twitter:image" content="{{ og_image }}">{% endif %}
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "KIS-Agent",
+    "alternateName": "kis-agent",
+    "description": "{{ config.site_description }}",
+    "url": "{{ config.site_url }}",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Cross-platform",
+    "programmingLanguage": "Python",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "unohee",
+      "url": "https://github.com/unohee"
+    },
+    "codeRepository": "https://github.com/unohee/kis-agent",
+    "license": "https://opensource.org/licenses/MIT",
+    "keywords": "{{ site_keywords }}"
+  }
+  </script>
+{% endblock %}
