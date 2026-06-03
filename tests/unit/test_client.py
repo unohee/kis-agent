@@ -183,7 +183,7 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    @patch("requests.request")
+    @patch("httpx.request")
     def test_make_request_success(self, mock_request, mock_get_tr_env, mock_auth):
         """API 요청 성공"""
         mock_auth.return_value = {
@@ -221,7 +221,7 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    @patch("requests.request")
+    @patch("httpx.request")
     def test_make_request_json_decode_error(
         self, mock_request, mock_get_tr_env, mock_auth
     ):
@@ -259,7 +259,7 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    @patch("requests.request")
+    @patch("httpx.request")
     def test_make_request_no_rt_cd(self, mock_request, mock_get_tr_env, mock_auth):
         """rt_cd 없는 응답 처리"""
         mock_auth.return_value = {
@@ -289,7 +289,7 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    @patch("requests.request")
+    @patch("httpx.request")
     def test_make_request_api_error(self, mock_request, mock_get_tr_env, mock_auth):
         """API 오류 응답 처리"""
         mock_auth.return_value = {
@@ -323,7 +323,7 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    @patch("requests.request")
+    @patch("httpx.request")
     def test_make_request_http_error_with_retry(
         self, mock_request, mock_get_tr_env, mock_auth
     ):
@@ -363,7 +363,7 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    @patch("requests.request")
+    @patch("httpx.request")
     def test_make_request_exception_handling(
         self, mock_request, mock_get_tr_env, mock_auth
     ):
