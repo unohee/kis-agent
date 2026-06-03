@@ -10,6 +10,9 @@ pip install kis-agent
 [![PyPI Downloads](https://img.shields.io/pypi/dm/kis-agent.svg)](https://pypi.org/project/kis-agent/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://img.shields.io/badge/docs-mkdocs--material-526CFE?logo=materialformkdocs)](https://unohee.github.io/kis-agent/)
+
+**📖 공식 문서:** **[unohee.github.io/kis-agent](https://unohee.github.io/kis-agent/)** — 설치, 빠른 시작, CLI · Python API 레퍼런스, LLM Agent · MCP 연동, 아키텍처 가이드.
 
 ## CLI
 
@@ -64,14 +67,30 @@ WebSocket, aiohttp, openpyxl은 기본 의존성에 포함되어 별도 설치�
 1. [한국투자증권 API 포털](https://apiportal.koreainvestment.com)에서 API 신청
 2. APP_KEY와 APP_SECRET 발급
 3. 계좌번호(CANO)와 계좌상품코드(ACNT_PRDT_CD) 확인
-4. `.env` 파일 설정:
+4. `.env` 파일 설정 (`.env.example`를 복사하여 사용):
 
 ```bash
 KIS_APP_KEY=발급받은_앱키
-KIS_SECRET=발급받은_시크릿      # 또는 KIS_APP_SECRET
+KIS_APP_SECRET=발급받은_시크릿
 KIS_ACCOUNT_NO=계좌번호
-KIS_ACCOUNT_CODE=01
+KIS_ACCOUNT_CODE=01                # 선택 (기본 "01" = 주식, "03" = 선물옵션)
+KIS_BASE_URL=                       # 선택 (모의투자: https://openapivts.koreainvestment.com:29443)
 ```
+
+> **v1.7.0 Breaking change**: 환경변수 이름이 `KIS_*` prefix로 통일되었습니다.
+> 이전 별칭(`MY_APP`, `MY_SEC`, `KIS_SECRET`, `MY_ACCT_STOCK`, `MY_PROD`, `PROD_URL`,
+> `VPS_URL`, `MY_AGENT`)은 더 이상 인식되지 않습니다. 사용 중인 `.env`를
+> 다음과 같이 마이그레이션하세요:
+>
+> | 이전 이름 | 새 이름 |
+> | --- | --- |
+> | `MY_APP` | `KIS_APP_KEY` |
+> | `MY_SEC` / `KIS_SECRET` | `KIS_APP_SECRET` |
+> | `MY_ACCT_STOCK` | `KIS_ACCOUNT_NO` |
+> | `MY_PROD` | `KIS_ACCOUNT_CODE` |
+> | `PROD_URL` | `KIS_BASE_URL` |
+> | `VPS_URL` | `KIS_VPS_URL` |
+> | `MY_AGENT` | `KIS_USER_AGENT` |
 
 ## Python API
 

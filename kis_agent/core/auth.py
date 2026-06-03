@@ -22,6 +22,8 @@ from typing import Any, Dict, Optional
 import requests
 from dotenv import load_dotenv
 
+from .constants import KIS_USER_AGENT_DEFAULT, MOCK_BASE_URL, REAL_BASE_URL
+
 # 모듈 레벨 로거 설정 (기본적으로 WARNING 이상만 출력)
 _logger = logging.getLogger(__name__)
 
@@ -29,15 +31,13 @@ _logger = logging.getLogger(__name__)
 # 구조: {app_key_prefix: {"access_token": str, "access_token_token_expired": str, "cached_at": datetime, "expired": datetime}}
 _token_cache: Dict[str, Dict[str, Any]] = {}
 
-# 환경설정 파일 로드 우선순위: 1) 현재 작업 디렉토리 .env, 2) PyKIS 패키지 루트 .env
-# 다른 프로젝트에서 PyKIS를 사용할 때는 해당 프로젝트의 .env를 우선 사용
+# .env 자동 로드: 현재 작업 디렉토리의 .env만 인식하며, 기존 환경변수는 덮어쓰지 않음.
+# (이전 버전은 패키지 부모 디렉토리(../../.env)까지 검색하고 override=True로 덮어썼으나,
+#  의도치 않은 환경 오염 가능성이 있어 v1.7.0에서 제거. 사용자가 임포트 위치와 무관하게
+#  자기 프로젝트의 .env를 사용하려면 dotenv를 직접 호출하거나 KISConfig에 매개변수 전달.)
 current_dir_env = os.path.join(os.getcwd(), ".env")
-pykis_root_env = os.path.join(os.path.dirname(__file__), "../../.env")
-
 if os.path.exists(current_dir_env):
-    load_dotenv(dotenv_path=current_dir_env, override=True)  # 현재 디렉토리 .env 우선
-elif os.path.exists(pykis_root_env):
-    load_dotenv(dotenv_path=pykis_root_env, override=True)  # PyKIS 루트 .env 대체
+    load_dotenv(dotenv_path=current_dir_env, override=False)
 
 
 def clearConsole() -> int:
@@ -91,17 +91,17 @@ def _get_token_path_for_app_key(app_key: str, base_path: str = token_tmp) -> str
     return os.path.join(dir_path, f"{base_name}_{key_hash}.json")
 
 
-# 환경 변수 기반 설정 로드 - STONKS 환경변수도 인식
+# 환경 변수 기반 설정 로드 — KIS_* prefix 전용
+# (Legacy 별칭 MY_APP/MY_SEC/KIS_SECRET/MY_ACCT_STOCK/MY_PROD/PROD_URL/VPS_URL/MY_AGENT 는
+#  v1.7.0에서 제거됨. 마이그레이션은 README 참조)
 _cfg = {
-    "my_app": os.getenv("KIS_APP_KEY") or os.getenv("MY_APP") or "",
-    "my_sec": os.getenv("KIS_APP_SECRET") or os.getenv("KIS_SECRET") or os.getenv("MY_SEC") or "",
-    "my_acct_stock": os.getenv("KIS_ACCOUNT_NO") or os.getenv("MY_ACCT_STOCK") or "",
-    "my_prod": os.getenv("KIS_ACCOUNT_CODE") or os.getenv("MY_PROD") or "01",
-    "prod": os.getenv("KIS_BASE_URL")
-    or os.getenv("PROD_URL")
-    or "https://openapi.koreainvestment.com:9443",
-    "vps": os.getenv("KIS_VPS_URL", "https://openapivts.koreainvestment.com:29443"),
-    "my_agent": os.getenv("KIS_USER_AGENT", "KIS_AGENT"),
+    "my_app": os.getenv("KIS_APP_KEY", ""),
+    "my_sec": os.getenv("KIS_APP_SECRET", ""),
+    "my_acct_stock": os.getenv("KIS_ACCOUNT_NO", ""),
+    "my_prod": os.getenv("KIS_ACCOUNT_CODE", "01"),
+    "prod": os.getenv("KIS_BASE_URL", REAL_BASE_URL),
+    "vps": os.getenv("KIS_VPS_URL", MOCK_BASE_URL),
+    "my_agent": os.getenv("KIS_USER_AGENT", KIS_USER_AGENT_DEFAULT),
 }
 
 # 이전 설정 파일 로드 로직 제거

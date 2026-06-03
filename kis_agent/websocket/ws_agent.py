@@ -14,6 +14,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from websockets.exceptions import ConnectionClosed
 
+from ..core.constants import WS_REAL_URL
 from .ws_helpers import RealtimeDataParser, RealtimeDataStore, WSAgentWithStore
 from .ws_types import Subscription, SubscriptionType
 
@@ -82,7 +83,7 @@ class WSAgent:
     def __init__(
         self,
         approval_key: str,
-        url: str = "ws://ops.koreainvestment.com:21000",
+        url: str = WS_REAL_URL,
         ping_interval: int = 30,
         ping_timeout: int = 30,
         auto_reconnect: bool = True,

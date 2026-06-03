@@ -32,6 +32,7 @@ import warnings
 from enum import Enum
 from typing import List, Union
 
+from ..core.constants import WS_REAL_URL
 from .connection import ConnectionManager
 from .data_processor import DataProcessor
 from .event_manager import EventManager
@@ -117,7 +118,7 @@ class WebSocketClientFactory:
         최소한의 기능만 포함된 가벼운 클라이언트입니다.
         """
         connection = ConnectionManager(
-            url=kwargs.get("url", "ws://ops.koreainvestment.com:21000"),
+            url=kwargs.get("url", WS_REAL_URL),
             auto_reconnect=False,
         )
 
@@ -145,7 +146,7 @@ class WebSocketClientFactory:
         자동 재연결, 로깅, 메트릭 수집이 활성화된 클라이언트입니다.
         """
         connection = ConnectionManager(
-            url=kwargs.get("url", "ws://ops.koreainvestment.com:21000"),
+            url=kwargs.get("url", WS_REAL_URL),
             auto_reconnect=True,
             ping_interval=20,
             ping_timeout=30,
@@ -188,7 +189,7 @@ class WebSocketClientFactory:
         시장 전반을 모니터링하기 위한 클라이언트입니다.
         """
         connection = ConnectionManager(
-            url=kwargs.get("url", "ws://ops.koreainvestment.com:21000"),
+            url=kwargs.get("url", WS_REAL_URL),
             auto_reconnect=True,
             ping_interval=30,
             ping_timeout=30,
@@ -229,7 +230,7 @@ class WebSocketClientFactory:
         백테스트용으로 데이터만 수집하는 클라이언트입니다.
         """
         connection = ConnectionManager(
-            url=kwargs.get("url", "ws://ops.koreainvestment.com:21000"),
+            url=kwargs.get("url", WS_REAL_URL),
             auto_reconnect=False,  # 백테스트는 재연결 불필요
         )
 
@@ -292,7 +293,7 @@ class WebSocketClientBuilder:
             stacklevel=2,
         )
         self.approval_key = approval_key
-        self.url = "ws://ops.koreainvestment.com:21000"
+        self.url = WS_REAL_URL
         self.auto_reconnect = True
         self.ping_interval = 30
         self.ping_timeout = 30

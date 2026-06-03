@@ -17,6 +17,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
 from ..core.client import KISClient
+from ..core.constants import WS_REAL_URL
 from ..stock.api import StockAPI
 
 # 로깅 레벨을 INFO로 설정
@@ -49,7 +50,7 @@ class KisWebSocket:
         self.client = client
         self.account_info = account_info
         self.stock_api = StockAPI(client=client, account_info=account_info)
-        self.url = "ws://ops.koreainvestment.com:21000"  # 고정 URL
+        self.url = WS_REAL_URL  # 고정 URL (constants.WS_REAL_URL)
         self.stock_codes = stock_codes or []
 
         # 기능 활성화 플래그

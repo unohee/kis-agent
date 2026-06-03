@@ -25,6 +25,7 @@ from ..websocket.client import KisWebSocket
 from .base_exception_handler import BaseExceptionHandler, exception_handler
 from .client import KISClient
 from .config import KISConfig
+from .constants import REAL_BASE_URL
 from .method_discovery import MethodDiscoveryMixin
 from .rate_limiter import RateLimiter, get_global_rate_limiter
 from .technical_analysis import TechnicalAnalysisMixin
@@ -84,7 +85,7 @@ class Agent(TechnicalAnalysisMixin, MethodDiscoveryMixin, BaseExceptionHandler):
         app_secret: str,
         account_no: str,
         account_code: str,
-        base_url: str = "https://openapi.koreainvestment.com:9443",
+        base_url: str = REAL_BASE_URL,
         client: Optional[KISClient] = None,
         account_info: Optional[Dict] = None,
         enable_rate_limiter: bool = True,

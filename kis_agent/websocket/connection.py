@@ -11,6 +11,8 @@ from typing import Any, Dict
 
 import websockets
 
+from ..core.constants import WS_REAL_URL
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +31,7 @@ class ConnectionManager:
 
     def __init__(
         self,
-        url: str = "ws://ops.koreainvestment.com:21000",
+        url: str = WS_REAL_URL,
         ping_interval: int = 30,
         ping_timeout: int = 30,
         auto_reconnect: bool = True,

@@ -53,27 +53,20 @@ def _create_agent():
     logging.basicConfig(level=logging.WARNING, format="%(message)s", stream=sys.stderr)
     logging.getLogger("kis_agent").setLevel(logging.WARNING)
 
-    # .env 파일 탐색
-    for p in [
-        ".env",
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"
-        ),
-    ]:
-        if os.path.exists(p):
-            load_dotenv(p)
-            break
+    # 현재 작업 디렉토리의 .env만 로드 (기존 환경변수는 보존)
+    # (v1.7.0부터 패키지 부모 디렉토리 검색 제거)
+    if os.path.exists(".env"):
+        load_dotenv(".env", override=False)
 
     from kis_agent import Agent
+    from kis_agent.core.constants import REAL_BASE_URL
 
     agent = Agent(
         app_key=os.environ["KIS_APP_KEY"],
-        app_secret=os.environ.get("KIS_APP_SECRET", os.environ.get("KIS_SECRET", "")),
+        app_secret=os.environ["KIS_APP_SECRET"],
         account_no=os.environ["KIS_ACCOUNT_NO"],
         account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
-        base_url=os.environ.get(
-            "KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"
-        ),
+        base_url=os.environ.get("KIS_BASE_URL", REAL_BASE_URL),
     )
 
     # Agent 생성 시 한 번만 영업일 확인 (공휴일 포함)

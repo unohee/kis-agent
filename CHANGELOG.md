@@ -4,6 +4,35 @@
 
 ## [Unreleased]
 
+### 🔒 보안·일관성 리팩터 (v1.7.0 예정)
+
+**환경변수 정리 — Breaking Change**
+
+- 환경변수 이름이 `KIS_*` prefix로 통일됨. Legacy 별칭 즉시 제거:
+  - `MY_APP` → `KIS_APP_KEY`
+  - `MY_SEC` / `KIS_SECRET` → `KIS_APP_SECRET`
+  - `MY_ACCT_STOCK` → `KIS_ACCOUNT_NO`
+  - `MY_PROD` → `KIS_ACCOUNT_CODE`
+  - `PROD_URL` → `KIS_BASE_URL`
+  - `VPS_URL` → `KIS_VPS_URL`
+  - `MY_AGENT` → `KIS_USER_AGENT`
+- `.env.example`가 무관한 LLM API 키 템플릿이었던 문제 수정. 실제 `KIS_*` 변수만 포함하도록 재작성.
+- `.env` 자동 로드 정책 변경: 패키지 부모 디렉토리(`../../.env`) 검색 제거. `override=True` → `override=False`로 변경하여 명시적으로 설정된 환경변수가 항상 우선.
+
+**구조 일관성 개선**
+
+- `kis_agent/core/constants.py` 신설: `REAL_BASE_URL`, `MOCK_BASE_URL`, `WS_REAL_URL`, `WS_MOCK_URL`, `AccountProductCode(Enum)`, `KIS_USER_AGENT_DEFAULT`를 단일 진실의 출처로 통합.
+- `kis_agent/core/endpoints.py` 신설: `client.py`에 산재했던 `API_ENDPOINTS` dict 분리.
+- WebSocket URL(`ws://ops.koreainvestment.com:21000`) 8곳 하드코딩을 `constants.WS_REAL_URL` 참조로 통일.
+- REST URL(`https://openapi.koreainvestment.com:9443`) 6곳 하드코딩을 `constants.REAL_BASE_URL` 참조로 통일.
+- `KISConfig.from_env()` 클래스메서드 추가. `KIS_*` 환경변수에서 일괄 로드.
+- `client.py`의 `os.getenv` 직접 호출 분산 제거. `config=None`이면 `KISConfig.from_env()`를 자동 시도하여 단일 진실의 출처로 집중.
+- `KISConfig` 도크스트링 정정: 이전엔 ".env 지원 제거됨"이라 적혀있었으나 실제로는 `auth.py`가 `load_dotenv` 호출 중이던 모순을 해소. ".env 자동 로드 지원"으로 명확화.
+
+**마이그레이션 가이드**
+
+기존 `.env`에 legacy 별칭만 정의된 사용자는 위 매핑 표에 따라 변수명을 갱신해야 합니다. 자세한 안내는 README의 "사전 준비" 섹션 참조.
+
 ### ✨ 기능 추가
 
 #### CLI (LLM Agent Tool) — `kis` 명령 (NEW!)
