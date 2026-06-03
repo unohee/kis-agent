@@ -17,6 +17,10 @@ WebSocket 모듈
     ws.subscribe_stocks(["005930", "000660"])
     await ws.connect()
 
+    # 모의투자 엔드포인트 사용
+    from kis_agent.core.constants import get_ws_url
+    ws = WSAgent(approval_key, url=get_ws_url(is_real=False))
+
 .. deprecated:: 1.3.0
     KisWebSocket, EnhancedWebSocketClient, RefactoredWebSocketClient,
     WebSocketClientFactory, WebSocketClientBuilder는 deprecated되었습니다.

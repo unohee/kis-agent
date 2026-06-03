@@ -11,10 +11,33 @@ from enum import Enum
 REAL_BASE_URL = "https://openapi.koreainvestment.com:9443"
 MOCK_BASE_URL = "https://openapivts.koreainvestment.com:29443"
 
+# WebSocket 엔드포인트
+# (KIS 공식 샘플 open-trading-api/legacy/websocket/python/* 에서 확인된 값)
 WS_REAL_URL = "ws://ops.koreainvestment.com:21000"
 WS_MOCK_URL = "ws://ops.koreainvestment.com:31000"
 
 KIS_USER_AGENT_DEFAULT = "KIS_AGENT"
+
+
+def get_ws_url(is_real: bool = True) -> str:
+    """실전/모의 WebSocket URL을 선택한다.
+
+    KIS는 실전과 모의 WS 엔드포인트를 분리 운영한다:
+    - 실전: `ws://ops.koreainvestment.com:21000` (`WS_REAL_URL`)
+    - 모의: `ws://ops.koreainvestment.com:31000` (`WS_MOCK_URL`)
+
+    Args:
+        is_real: True면 실전 URL, False면 모의 URL.
+
+    Returns:
+        선택된 WebSocket URL.
+
+    Example:
+        >>> from kis_agent.core.constants import get_ws_url
+        >>> from kis_agent.websocket import WSAgent
+        >>> ws = WSAgent(approval_key, url=get_ws_url(is_real=False))
+    """
+    return WS_REAL_URL if is_real else WS_MOCK_URL
 
 
 class AccountProductCode(str, Enum):
@@ -35,4 +58,5 @@ __all__ = [
     "WS_MOCK_URL",
     "KIS_USER_AGENT_DEFAULT",
     "AccountProductCode",
+    "get_ws_url",
 ]
