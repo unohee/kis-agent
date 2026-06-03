@@ -1,12 +1,16 @@
-site_name: KIS-Agent
-site_description: 한국투자증권 OpenAPI Python 래퍼 — CLI & Python SDK
-site_url: https://unohee.github.io/kis-agent
+site_name: KIS-Agent — 한국투자증권 OpenAPI Python SDK
+site_description: 한국투자증권 OpenAPI Python 래퍼. CLI와 Python SDK로 국내·해외 주식, 선물옵션, 실시간 WebSocket, 자동매매, LLM Agent·MCP 연동을 지원합니다. pip install kis-agent 한 줄로 시작하세요.
+site_author: unohee
+site_url: https://unohee.github.io/kis-agent/
 repo_url: https://github.com/unohee/kis-agent
 repo_name: unohee/kis-agent
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2025 unohee — MIT License
 
 theme:
   name: material
   language: ko
+  custom_dir: overrides
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -36,7 +40,10 @@ theme:
 
 plugins:
   - search:
-      lang: ko
+      lang:
+        - ko
+        - en
+  - tags
 
 markdown_extensions:
   - admonition
@@ -77,8 +84,24 @@ nav:
   - Changelog: changelog.md
 
 extra:
+  generator: false
+  # Search Console 등록 시 인증 코드를 여기에 채워 넣으세요.
+  # google_site_verification: "YOUR_GOOGLE_CODE"
+  # naver_site_verification: "YOUR_NAVER_CODE"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/unohee/kis-agent
+      name: GitHub 저장소
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/kis-agent/
+      name: PyPI 패키지
+  analytics:
+    feedback:
+      title: 이 페이지가 도움이 되었나요?
+      ratings:
+        - icon: material/thumb-up-outline
+          name: 도움이 되었습니다
+          data: 1
+        - icon: material/thumb-down-outline
+          name: 개선이 필요합니다
+          data: 0
