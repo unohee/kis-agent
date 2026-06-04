@@ -89,20 +89,13 @@ class KISClient:
         self.rate_limit_lock = threading.Lock()  # 인스턴스별 rate limit lock
         self.token_refresh_lock = threading.Lock()  # 토큰 재생성 동기화용 락
 
-        # Rate Limiter 설정 (2025.09.21 실측 기반)
-        # 공식 스펙: 초당 20회 / 분당 1000회
-        # 안정 운영: 초당 18회 / 분당 900회 (실측 기반 권장)
-        # 전역 싱글턴 사용: 모든 KISClient/Agent가 동일한 Rate Limiter 공유
+        # Rate Limiter 설정 — 기본값은 kis_agent.core.rate_limiter의 DEFAULT_*
+        # (공식 스펙 20 RPS / 1000 RPM 대비 75% / 80% 안전 마진).
+        # 전역 싱글턴 사용: 모든 KISClient/Agent가 동일한 Rate Limiter 공유.
+        # 명시적으로 전달된 rate_limiter가 있으면 그것을 사용 (테스트 등 특수 목적).
         self.enable_rate_limiter = enable_rate_limiter
         if enable_rate_limiter:
-            # 명시적으로 전달된 rate_limiter가 있으면 사용, 없으면 전역 싱글턴 사용
-            self.rate_limiter = rate_limiter or get_global_rate_limiter(
-                requests_per_second=18,  # 실측 기반 안정 한계
-                requests_per_minute=900,  # 실측 기반 안정 한계
-                min_interval_ms=55,  # 최소 55ms 간격 (18 RPS 기준)
-                burst_size=10,  # 순간 처리량 허용
-                enable_adaptive=True,
-            )
+            self.rate_limiter = rate_limiter or get_global_rate_limiter()
         else:
             self.rate_limiter = None
 

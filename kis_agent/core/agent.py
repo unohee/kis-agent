@@ -177,28 +177,17 @@ class Agent(
             )
 
         # Rate Limiter 설정 (전역 싱글턴 패턴)
-        # 모든 Agent와 KISClient가 동일한 Rate Limiter 인스턴스를 공유하여
-        # API 호출 제한을 전역적으로 관리합니다.
+        # 기본값은 kis_agent.core.rate_limiter의 DEFAULT_* 상수를 사용한다
+        # (공식 20 RPS / 1000 RPM 대비 75% / 80% 안전 마진).
+        # 사용자가 rate_limiter_config로 일부 키를 override할 수 있다.
         if enable_rate_limiter:
             if rate_limiter:
-                # 명시적으로 전달된 rate_limiter 사용 (테스트 등 특수 목적)
                 self.rate_limiter = rate_limiter
+            elif rate_limiter_config:
+                # 사용자 override는 첫 호출에서만 적용됨 (싱글턴이므로)
+                self.rate_limiter = get_global_rate_limiter(**rate_limiter_config)
             else:
-                # 전역 싱글턴 Rate Limiter 사용 (2025.09.21 실측 기반)
-                # 공식 스펙: 초당 20회 / 분당 1000회
-                # 안정 운영: 초당 18회 / 분당 900회 (실측 기반 권장)
-                default_config = {
-                    "requests_per_second": 18,  # 실측 기반 안정 한계
-                    "requests_per_minute": 900,  # 실측 기반 안정 한계
-                    "min_interval_ms": 55,  # 최소 55ms 간격 (18 RPS 기준)
-                    "burst_size": 10,  # 순간 처리량 허용
-                    "enable_adaptive": True,
-                }
-                if rate_limiter_config:
-                    default_config.update(rate_limiter_config)
-
-                # 전역 싱글턴 Rate Limiter 획득
-                self.rate_limiter = get_global_rate_limiter(**default_config)
+                self.rate_limiter = get_global_rate_limiter()
         else:
             self.rate_limiter = None
 

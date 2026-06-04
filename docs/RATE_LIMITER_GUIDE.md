@@ -1,20 +1,32 @@
 # Rate Limiter 설정 가이드
 
-## 📊 기본 설정 (2025.09.21 기준)
+## 📊 기본 설정 (v1.7.x 기준)
 
-PyKIS의 Rate Limiter는 실제 테스트를 바탕으로 안정성을 우선시하여 설정되었습니다.
+kis-agent의 Rate Limiter는 KIS 공식 한도(20 RPS / 1000 RPM) 대비 충분한 안전
+마진을 두고, 동시 호출 시에도 sliding window 위반이 발생하지 않도록 설계되어
+있습니다.
 
 ### 기본값
 ```python
-# pykis/core/rate_limiter.py 기본 설정
+# kis_agent/core/rate_limiter.py의 DEFAULT_* 상수
 {
-    'requests_per_second': 18,   # API 스펙: 20 (안정성을 위해 90% 수준)
-    'requests_per_minute': 900,  # API 스펙: 1000 (안정성을 위해 90% 수준)
-    'min_interval_ms': 50,        # API 권장: 50ms
-    'burst_size': 10,             # 순간 버스트 허용량
-    'enable_adaptive': True       # 적응형 백오프 활성화
+    'requests_per_second': 15,   # 공식 한도 20의 75% (5회 여유)
+    'requests_per_minute': 800,  # 공식 한도 1000의 80% (200회 여유)
+    'min_interval_ms': 70,       # 15 RPS의 이론적 67ms + 3ms jitter
+    'burst_size': 3,             # priority>=1 시 effective RPS = 18
+    'enable_adaptive': True      # 적응형 백오프 활성화
 }
 ```
+
+### 안전 보장
+
+- **공식 한도 자동 클램프**: `RateLimiter(requests_per_second=25)`처럼 공식 한도를
+  초과하는 값을 주면 자동으로 20으로 clamp됩니다 (RPM도 동일).
+- **동시 호출 안전**: 다수의 스레드가 동시에 acquire()를 호출해도 sliding window
+  내 요청 수가 한도를 넘지 않습니다 (1ms safety padding + slot reservation).
+- **Lock-free sleep**: `acquire()`의 `time.sleep()`이 lock 바깥에서 실행되어 한
+  스레드의 대기가 다른 스레드를 블록하지 않습니다.
+- **전역 싱글턴**: 모든 KISClient/Agent가 동일한 RateLimiter 인스턴스를 공유합니다.
 
 ## 🎯 사용 시나리오별 권장 설정
 
