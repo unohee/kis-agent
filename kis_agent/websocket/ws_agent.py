@@ -57,12 +57,25 @@ def _is_after_market_close(has_night_session: bool = False) -> bool:
     return current_time > MARKET_CLOSE_TIME
 
 
-# 야간선물/옵션 SubscriptionType 목록
+# 장 마감 후에도 연결을 허용해야 하는 SubscriptionType TR_ID 목록
+# (야간선물/옵션, 해외주식/선물 — 24h 또는 야간 세션이 존재하는 상품)
 _NIGHT_SESSION_TYPES = {
     "H0MFCNT0",  # NIGHT_FUTURES_TRADE
     "H0MFASP0",  # NIGHT_FUTURES_ASK_BID
+    "H0MFCNI0",  # NIGHT_FUTURES_NOTICE
     "H0EUCNT0",  # NIGHT_OPTION_TRADE
     "H0EUASP0",  # NIGHT_OPTION_ASK_BID
+    "H0EUANC0",  # NIGHT_OPTION_EXPECTED
+    "H0EUCNI0",  # NIGHT_OPTION_NOTICE
+    "HDFSCNT0",  # OVERSEAS_STOCK (해외주식 — 현지 장 기준)
+    "HDFSASP0",  # OVERSEAS_STOCK_ASK_BID
+    "HDFSASP1",  # OVERSEAS_STOCK_ASK_BID_ASIA
+    "H0GSCNI0",  # OVERSEAS_STOCK_NOTICE
+    "H0GSCNI9",  # OVERSEAS_STOCK_NOTICE_AH
+    "HDFFF020",  # OVERSEAS_FUTURES
+    "HDFFF010",  # OVERSEAS_FUTURES_ASK_BID
+    "HDFFF2C0",  # OVERSEAS_FUTURES_NOTICE
+    "HDFFF1C0",  # OVERSEAS_FUTURES_ORDER_NOTICE
 }
 
 
@@ -257,6 +270,8 @@ class WSAgent:
             result = task.result()
             if not result:
                 logger.warning(f"백그라운드 구독 실패: {sub_id}")
+        except asyncio.CancelledError:
+            pass  # disconnect() 시 정상 cancel — 로그 불필요
         except Exception as e:
             logger.error(f"구독 태스크 예외: {sub_id} - {e}")
 
@@ -576,7 +591,7 @@ class WSAgent:
 
             return tr_id, tr_key, json_data
 
-        elif data[0] in ("0", "1"):
+        elif data and data[0] in ("0", "1"):
             # 바이너리 메시지
             parts = data.split("|")
             if len(parts) >= 4:
@@ -625,17 +640,14 @@ class WSAgent:
         if not msg1:
             return False
 
-        sub_id = f"{tr_id}_{tr_key}" if tr_key else tr_id
+        # tr_key 없이는 어느 pending 구독의 응답인지 특정할 수 없으므로 fallback 불가
+        if not tr_key:
+            return False
+
+        sub_id = f"{tr_id}_{tr_key}"
 
         # 대기 중인 구독이 있는지 확인
         pending_event = self._pending_subscriptions.get(sub_id)
-        if not pending_event:
-            # tr_key 없이 tr_id만으로도 확인
-            for key in list(self._pending_subscriptions.keys()):
-                if key.startswith(f"{tr_id}_"):
-                    sub_id = key
-                    pending_event = self._pending_subscriptions.get(sub_id)
-                    break
 
         if pending_event:
             # 구독 성공
@@ -750,8 +762,12 @@ class WSAgent:
             if asyncio.iscoroutinefunction(handler):
                 await handler(data, metadata)
             else:
-                # to_thread로 격리해 수신 루프 블록 방지
+                # to_thread로 격리해 수신 루프 블록 방지.
+                # 주의: to_thread는 이미 시작된 스레드를 cancel할 수 없다.
+                # CancelledError는 await 지점에서 전파되도록 재발생시킨다.
                 await asyncio.to_thread(handler, data, metadata)
+        except asyncio.CancelledError:
+            raise  # 태스크 cancel 신호 — 삼키지 말고 전파
         except Exception as e:
             logger.error(f"핸들러 실행 오류 ({getattr(handler, '__name__', handler)}): {e}")
             self.stats["errors"] += 1
@@ -965,10 +981,12 @@ class WSAgent:
                 self.connected = False
                 self.ws = None
                 self.active_subscriptions.clear()
-                # 버그3 수정: 구독 대기 상태 정리
+                # 구독 대기 상태 정리
                 self._pending_subscriptions.clear()
                 self._subscription_results.clear()
                 self._subscription_errors.clear()
+                # 재연결 후 stale AES 키로 복호화 오류 방지
+                self.aes_keys.clear()
                 # 수신 Task 정리
                 if receive_task and not receive_task.done():
                     receive_task.cancel()
@@ -978,7 +996,11 @@ class WSAgent:
             if not self.auto_reconnect or not should_reconnect:
                 break
 
-            # 장 마감 체크 (야간 세션 구독 시 예외)
+            # 장 마감 체크 — 재연결 직전에 재계산하여 루프 중 추가된 야간 구독 반영
+            has_night = any(
+                sub.sub_type.value in _NIGHT_SESSION_TYPES
+                for sub in self.subscriptions.values()
+            )
             if _is_after_market_close(has_night_session=has_night):
                 logger.info("장 마감 시간 - WebSocket 재연결 중단 (EOD 모드)")
                 self.auto_reconnect = False
@@ -994,7 +1016,8 @@ class WSAgent:
                 break
 
             # 지수 백오프 (5s → 10s → 20s → 40s → 60s cap)
-            backoff = min(5 * (2 ** (consecutive_failures - 1)), 60)
+            # consecutive_failures=0(ping_failed/connection_closed 경로)이면 음수 지수 방지
+            backoff = min(5 * (2 ** max(consecutive_failures - 1, 0)), 60)
             self.stats["reconnects"] += 1
             logger.info(
                 f"재연결 {reconnect_count}/{self.max_reconnect_attempts or '∞'} "
@@ -1484,12 +1507,12 @@ class WSAgent:
         """
         sub_ids = []
         sub_ids.append(
-            self.subscribe(SubscriptionType.FUTURES_TRADE, code, handler, **metadata)
+            self.subscribe(SubscriptionType.INDEX_FUTURES_TRADE, code, handler, **metadata)
         )
         if with_orderbook:
             sub_ids.append(
                 self.subscribe(
-                    SubscriptionType.FUTURES_ASK_BID, code, handler, **metadata
+                    SubscriptionType.INDEX_FUTURES_ASK_BID, code, handler, **metadata
                 )
             )
         return sub_ids
@@ -1502,7 +1525,7 @@ class WSAgent:
         **metadata,
     ) -> List[str]:
         """
-        옵션 실시간 구독 (편의 메서드)
+        지수옵션 실시간 구독 (편의 메서드)
 
         Args:
             code: 옵션 종목코드
@@ -1515,13 +1538,188 @@ class WSAgent:
         """
         sub_ids = []
         sub_ids.append(
-            self.subscribe(SubscriptionType.OPTION_TRADE, code, handler, **metadata)
+            self.subscribe(SubscriptionType.INDEX_OPTION_TRADE, code, handler, **metadata)
         )
         if with_orderbook:
             sub_ids.append(
                 self.subscribe(
-                    SubscriptionType.OPTION_ASK_BID, code, handler, **metadata
+                    SubscriptionType.INDEX_OPTION_ASK_BID, code, handler, **metadata
                 )
+            )
+        return sub_ids
+
+    def subscribe_stock_futures(
+        self,
+        code: str,
+        handler: Optional[Callable] = None,
+        with_orderbook: bool = False,
+        with_expected: bool = False,
+        **metadata,
+    ) -> List[str]:
+        """
+        주식선물 실시간 구독 (편의 메서드)
+
+        Args:
+            code: 주식선물 종목코드
+            handler: 데이터 수신 핸들러
+            with_orderbook: 호가 데이터도 함께 구독
+            with_expected: 예상체결 데이터도 함께 구독
+            **metadata: 추가 메타데이터
+
+        Returns:
+            List[str]: 생성된 구독 ID 리스트
+
+        Example:
+            >>> agent.subscribe_stock_futures("111V06", with_orderbook=True)
+            ['H0ZFCNT0_111V06', 'H0ZFASP0_111V06']
+        """
+        sub_ids = []
+        sub_ids.append(
+            self.subscribe(SubscriptionType.STOCK_FUTURES_TRADE, code, handler, **metadata)
+        )
+        if with_orderbook:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.STOCK_FUTURES_ASK_BID, code, handler, **metadata)
+            )
+        if with_expected:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.STOCK_FUTURES_EXPECTED, code, handler, **metadata)
+            )
+        return sub_ids
+
+    def subscribe_stock_options(
+        self,
+        code: str,
+        handler: Optional[Callable] = None,
+        with_orderbook: bool = False,
+        with_expected: bool = False,
+        **metadata,
+    ) -> List[str]:
+        """
+        주식옵션 실시간 구독 (편의 메서드)
+
+        Args:
+            code: 주식옵션 종목코드
+            handler: 데이터 수신 핸들러
+            with_orderbook: 호가 데이터도 함께 구독
+            with_expected: 예상체결 데이터도 함께 구독
+            **metadata: 추가 메타데이터
+
+        Returns:
+            List[str]: 생성된 구독 ID 리스트
+
+        Example:
+            >>> agent.subscribe_stock_options("211V05059", with_orderbook=True)
+            ['H0ZOCNT0_211V05059', 'H0ZOASP0_211V05059']
+        """
+        sub_ids = []
+        sub_ids.append(
+            self.subscribe(SubscriptionType.STOCK_OPTION_TRADE, code, handler, **metadata)
+        )
+        if with_orderbook:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.STOCK_OPTION_ASK_BID, code, handler, **metadata)
+            )
+        if with_expected:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.STOCK_OPTION_EXPECTED, code, handler, **metadata)
+            )
+        return sub_ids
+
+    def subscribe_overtime(
+        self,
+        code: str,
+        handler: Optional[Callable] = None,
+        with_expected: bool = False,
+        **metadata,
+    ) -> List[str]:
+        """
+        시간외 단일가 실시간 구독 (편의 메서드)
+
+        Args:
+            code: 종목코드
+            handler: 데이터 수신 핸들러
+            with_expected: 시간외 예상체결도 함께 구독
+            **metadata: 추가 메타데이터
+
+        Returns:
+            List[str]: 생성된 구독 ID 리스트 [호가, 체결, (예상체결)]
+
+        Example:
+            >>> agent.subscribe_overtime("005930", with_expected=True)
+            ['H0STOAA0_005930', 'H0STOUP0_005930', 'H0STOAC0_005930']
+        """
+        sub_ids = [
+            self.subscribe(SubscriptionType.OVERTIME_ASK_BID, code, handler, **metadata),
+            self.subscribe(SubscriptionType.OVERTIME_TRADE, code, handler, **metadata),
+        ]
+        if with_expected:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.OVERTIME_EXPECTED, code, handler, **metadata)
+            )
+        return sub_ids
+
+    def subscribe_overseas_stock(
+        self,
+        code: str,
+        handler: Optional[Callable] = None,
+        with_orderbook: bool = False,
+        **metadata,
+    ) -> List[str]:
+        """
+        해외주식 실시간 구독 (편의 메서드)
+
+        Args:
+            code: 종목코드 (예: "AAPL", "MSFT")
+            handler: 데이터 수신 핸들러
+            with_orderbook: 실시간 호가도 함께 구독 (미국 1호가 무료)
+            **metadata: 추가 메타데이터
+
+        Returns:
+            List[str]: 생성된 구독 ID 리스트
+
+        Example:
+            >>> agent.subscribe_overseas_stock("AAPL", with_orderbook=True)
+            ['HDFSCNT0_AAPL', 'HDFSASP0_AAPL']
+        """
+        sub_ids = [
+            self.subscribe(SubscriptionType.OVERSEAS_STOCK, code, handler, **metadata)
+        ]
+        if with_orderbook:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.OVERSEAS_STOCK_ASK_BID, code, handler, **metadata)
+            )
+        return sub_ids
+
+    def subscribe_overseas_futures(
+        self,
+        code: str,
+        handler: Optional[Callable] = None,
+        with_orderbook: bool = False,
+        **metadata,
+    ) -> List[str]:
+        """
+        해외선물옵션 실시간 구독 (편의 메서드)
+
+        Args:
+            code: 종목코드
+            handler: 데이터 수신 핸들러
+            with_orderbook: 실시간 호가도 함께 구독
+            **metadata: 추가 메타데이터
+
+        Returns:
+            List[str]: 생성된 구독 ID 리스트
+
+        Example:
+            >>> agent.subscribe_overseas_futures("ESM25", with_orderbook=True)
+            ['HDFFF020_ESM25', 'HDFFF010_ESM25']
+        """
+        sub_ids = [
+            self.subscribe(SubscriptionType.OVERSEAS_FUTURES, code, handler, **metadata)
+        ]
+        if with_orderbook:
+            sub_ids.append(
+                self.subscribe(SubscriptionType.OVERSEAS_FUTURES_ASK_BID, code, handler, **metadata)
             )
         return sub_ids
 

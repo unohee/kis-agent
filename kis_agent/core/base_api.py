@@ -118,7 +118,7 @@ class BaseAPI(ExceptionHandler):
 
     agent = Agent(
         app_key="YOUR_APP_KEY",
-        app_secret="YOUR_APP_SECRET",
+        app_secret="YOUR_APP_SECRET",  # cxt-ignore: hardcoded_secret
         account_no="YOUR_ACCOUNT_NO",
         account_code="01"
     )

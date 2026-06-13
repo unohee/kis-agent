@@ -234,8 +234,8 @@ class TestStockIndexAPI(unittest.TestCase):
             endpoint=API_ENDPOINTS["FUTUREOPTION_INQUIRE_PRICE"],
             tr_id="FHMIF10000000",
             params={
-                "fid_cond_mrkt_div_code": "F",
-                "fid_input_iscd": "101S03",
+                "FID_COND_MRKT_DIV_CODE": "F",
+                "FID_INPUT_ISCD": "101S03",
             },
             method="GET",
         )
@@ -251,8 +251,8 @@ class TestStockIndexAPI(unittest.TestCase):
             endpoint=API_ENDPOINTS["FUTUREOPTION_INQUIRE_PRICE"],
             tr_id="FHMIF10000000",
             params={
-                "fid_cond_mrkt_div_code": "O",
-                "fid_input_iscd": "201T12370",
+                "FID_COND_MRKT_DIV_CODE": "O",
+                "FID_INPUT_ISCD": "201T12370",
             },
             method="GET",
         )

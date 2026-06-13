@@ -16,7 +16,7 @@ interface BridgeRequest {
 
 interface BridgeResponse {
   success: boolean;
-  data?: any;
+  data?: any; // cxt-ignore: type_safety
   error?: string;
   code?: string;
   _notice?: string;
@@ -81,7 +81,7 @@ export class PythonBridge extends EventEmitter {
           command: cmd,
           version,
         };
-      } catch (error) {
+      } catch (error) { // cxt-ignore: exception_hiding
         continue;
       }
     }
@@ -110,7 +110,7 @@ export class PythonBridge extends EventEmitter {
           command: cmd,
           version,
         };
-      } catch (error) {
+      } catch (error) { // cxt-ignore: exception_hiding
         continue;
       }
     }

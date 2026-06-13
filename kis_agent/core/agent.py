@@ -63,7 +63,7 @@ class Agent(
         >>> from kis_agent import Agent
         >>> agent = Agent(
         ...     app_key="YOUR_APP_KEY",
-        ...     app_secret="YOUR_APP_SECRET",
+        ...     app_secret="YOUR_APP_SECRET",  # cxt-ignore: hardcoded_secret
         ...     account_no="12345678",
         ...     account_code="01"
         ... )
@@ -128,7 +128,7 @@ class Agent(
             >>> # 실전투자 Agent 생성
             >>> agent = Agent(
             ...     app_key="YOUR_APP_KEY",
-            ...     app_secret="YOUR_APP_SECRET",
+            ...     app_secret="YOUR_APP_SECRET",  # cxt-ignore: hardcoded_secret
             ...     account_no="12345678",
             ...     account_code="01"
             ... )
@@ -136,7 +136,7 @@ class Agent(
             >>> # 모의투자 Agent 생성
             >>> agent = Agent(
             ...     app_key="YOUR_APP_KEY",
-            ...     app_secret="YOUR_APP_SECRET",
+            ...     app_secret="YOUR_APP_SECRET",  # cxt-ignore: hardcoded_secret
             ...     account_no="12345678",
             ...     account_code="01",
             ...     base_url="https://openapivts.koreainvestment.com:29443"
@@ -145,7 +145,7 @@ class Agent(
             >>> # Rate Limiter 비활성화
             >>> agent = Agent(
             ...     app_key="YOUR_APP_KEY",
-            ...     app_secret="YOUR_APP_SECRET",
+            ...     app_secret="YOUR_APP_SECRET",  # cxt-ignore: hardcoded_secret
             ...     account_no="12345678",
             ...     account_code="01",
             ...     enable_rate_limiter=False
@@ -170,7 +170,7 @@ class Agent(
                 "예시:\n"
                 "  agent = Agent(\n"
                 "      app_key='YOUR_APP_KEY',\n"
-                "      app_secret='YOUR_APP_SECRET',\n"
+                "      app_secret='YOUR_APP_SECRET',\n"  # cxt-ignore: hardcoded_secret
                 "      account_no='12345678',\n"
                 "      account_code='01'\n"
                 "  )"

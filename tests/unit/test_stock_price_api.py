@@ -768,7 +768,7 @@ class TestStockPriceAPIAdditionalMethods(unittest.TestCase):
         mock_futures_code.assert_called_once()
         call_args = self.mock_client.make_request.call_args
         params = call_args[1]["params"]
-        self.assertEqual(params["fid_input_iscd"], "101T12")
+        self.assertEqual(params["FID_INPUT_ISCD"], "101T12")
 
     def test_get_future_option_price_with_code(self):
         """선물옵션 시세 조회 - 코드 지정"""
@@ -780,8 +780,8 @@ class TestStockPriceAPIAdditionalMethods(unittest.TestCase):
         self.assertEqual(result, expected_response)
         call_args = self.mock_client.make_request.call_args
         params = call_args[1]["params"]
-        self.assertEqual(params["fid_cond_mrkt_div_code"], "O")
-        self.assertEqual(params["fid_input_iscd"], "201T12370")
+        self.assertEqual(params["FID_COND_MRKT_DIV_CODE"], "O")
+        self.assertEqual(params["FID_INPUT_ISCD"], "201T12370")
 
     def test_get_future_orderbook_default(self):
         """선물 호가창 조회 - 기본값 (지수선물)"""

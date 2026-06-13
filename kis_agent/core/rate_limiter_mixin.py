@@ -96,7 +96,7 @@ class RateLimiterControlMixin:
 
         Example:
             >>> agent.reset_rate_limiter()
-            >>> print("Rate limiter 초기화 완료")
+            >>> print("Rate limiter 초기화 완료")  # cxt-ignore: fake_execution
         """
         if self.rate_limiter:
             self.rate_limiter.reset()

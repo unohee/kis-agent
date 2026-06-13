@@ -23,6 +23,8 @@ class TestGetKospi200FuturesCode:
     2. 비만기월 (1, 2, 4, 5, 7, 8, 10, 11월)에 다음 만기월 코드 반환
     3. 12월 만기 후 다음해 3월물로 전환 확인
     4. today=None 시 현재 날짜 기준 동작 확인
+
+    코드 형식: A016MM (A016 고정 + 2자리 만기월)
     """
 
     def test_current_date_execution(self):
@@ -31,7 +33,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code()
 
         # Assert
-        assert code.startswith("101W"), "코드는 101W로 시작해야 함"
+        assert code.startswith("A016"), "코드는 A016으로 시작해야 함"
         assert len(code) == 6, "코드는 6자리여야 함"
         assert code[4:] in ["03", "06", "09", "12"], "만기월은 03, 06, 09, 12 중 하나"
 
@@ -44,7 +46,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W03", "3월 만기일 전에는 101W03 반환"
+        assert code == "A01603", "3월 만기일 전에는 A01603 반환"
 
     def test_march_expiry_after_expiry_date(self):
         """3월 만기일 후 - 6월물로 전환"""
@@ -55,7 +57,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W06", "3월 만기일 후에는 101W06 반환"
+        assert code == "A01606", "3월 만기일 후에는 A01606 반환"
 
     def test_june_expiry_before_expiry_date(self):
         """6월 만기일 전 - 6월물 반환"""
@@ -66,7 +68,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W06", "6월 만기일 전에는 101W06 반환"
+        assert code == "A01606", "6월 만기일 전에는 A01606 반환"
 
     def test_june_expiry_after_expiry_date(self):
         """6월 만기일 후 - 9월물로 전환"""
@@ -77,7 +79,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W09", "6월 만기일 후에는 101W09 반환"
+        assert code == "A01609", "6월 만기일 후에는 A01609 반환"
 
     def test_september_expiry_before_expiry_date(self):
         """9월 만기일 전 - 9월물 반환"""
@@ -88,7 +90,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W09", "9월 만기일 전에는 101W09 반환"
+        assert code == "A01609", "9월 만기일 전에는 A01609 반환"
 
     def test_september_expiry_after_expiry_date(self):
         """9월 만기일 후 - 12월물로 전환"""
@@ -99,7 +101,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W12", "9월 만기일 후에는 101W12 반환"
+        assert code == "A01612", "9월 만기일 후에는 A01612 반환"
 
     def test_december_expiry_before_expiry_date(self):
         """12월 만기일 전 - 12월물 반환"""
@@ -110,7 +112,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W12", "12월 만기일 전에는 101W12 반환"
+        assert code == "A01612", "12월 만기일 전에는 A01612 반환"
 
     def test_december_expiry_after_expiry_date_rollover_to_march(self):
         """12월 만기일 후 - 다음해 3월물로 전환"""
@@ -121,7 +123,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W03", "12월 만기일 후에는 다음해 3월물 101W03 반환"
+        assert code == "A01603", "12월 만기일 후에는 다음해 3월물 A01603 반환"
 
     def test_non_expiry_month_january(self):
         """비만기월 (1월) - 다음 만기월 3월물 반환"""
@@ -132,7 +134,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W03", "1월에는 다음 만기월인 101W03 반환"
+        assert code == "A01603", "1월에는 다음 만기월인 A01603 반환"
 
     def test_non_expiry_month_february(self):
         """비만기월 (2월) - 다음 만기월 3월물 반환"""
@@ -143,7 +145,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W03", "2월에는 다음 만기월인 101W03 반환"
+        assert code == "A01603", "2월에는 다음 만기월인 A01603 반환"
 
     def test_non_expiry_month_april(self):
         """비만기월 (4월) - 다음 만기월 6월물 반환"""
@@ -154,7 +156,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W06", "4월에는 다음 만기월인 101W06 반환"
+        assert code == "A01606", "4월에는 다음 만기월인 A01606 반환"
 
     def test_non_expiry_month_may(self):
         """비만기월 (5월) - 다음 만기월 6월물 반환"""
@@ -165,7 +167,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W06", "5월에는 다음 만기월인 101W06 반환"
+        assert code == "A01606", "5월에는 다음 만기월인 A01606 반환"
 
     def test_non_expiry_month_july(self):
         """비만기월 (7월) - 다음 만기월 9월물 반환"""
@@ -176,7 +178,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W09", "7월에는 다음 만기월인 101W09 반환"
+        assert code == "A01609", "7월에는 다음 만기월인 A01609 반환"
 
     def test_non_expiry_month_august(self):
         """비만기월 (8월) - 다음 만기월 9월물 반환"""
@@ -187,7 +189,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W09", "8월에는 다음 만기월인 101W09 반환"
+        assert code == "A01609", "8월에는 다음 만기월인 A01609 반환"
 
     def test_non_expiry_month_october(self):
         """비만기월 (10월) - 다음 만기월 12월물 반환"""
@@ -198,7 +200,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W12", "10월에는 다음 만기월인 101W12 반환"
+        assert code == "A01612", "10월에는 다음 만기월인 A01612 반환"
 
     def test_non_expiry_month_november(self):
         """비만기월 (11월) - 다음 만기월 12월물 반환"""
@@ -209,7 +211,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W12", "11월에는 다음 만기월인 101W12 반환"
+        assert code == "A01612", "11월에는 다음 만기월인 A01612 반환"
 
     def test_edge_case_second_thursday_calculation(self):
         """
@@ -225,7 +227,7 @@ class TestGetKospi200FuturesCode:
 
         # Assert
         # 만기일 당일은 "before" 처리 (date() 비교에서 > 사용)
-        assert code == "101W03", "만기일 당일은 현재 월 코드 반환"
+        assert code == "A01603", "만기일 당일은 현재 월 코드 반환"
 
     def test_edge_case_second_thursday_next_day(self):
         """
@@ -240,7 +242,7 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W06", "만기일 다음날은 다음 만기월 코드 반환"
+        assert code == "A01606", "만기일 다음날은 다음 만기월 코드 반환"
 
     def test_year_rollover_from_december_to_march(self):
         """연말 롤오버: 12월 만기 후 다음해 3월물로 전환"""
@@ -251,10 +253,10 @@ class TestGetKospi200FuturesCode:
         code = get_kospi200_futures_code(test_date)
 
         # Assert
-        assert code == "101W03", "12월 말에는 다음해 3월물 101W03 반환"
+        assert code == "A01603", "12월 말에는 다음해 3월물 A01603 반환"
 
     def test_code_format_validation(self):
-        """코드 형식 검증: 항상 101W + 2자리 월"""
+        """코드 형식 검증: 항상 A016 + 2자리 월"""
         # Arrange: 다양한 날짜
         test_dates = [
             datetime(2025, 1, 1),
@@ -267,7 +269,7 @@ class TestGetKospi200FuturesCode:
             code = get_kospi200_futures_code(test_date)
 
             # Assert
-            assert code.startswith("101W"), f"{test_date}: 코드는 101W로 시작"
+            assert code.startswith("A016"), f"{test_date}: 코드는 A016으로 시작"
             assert len(code) == 6, f"{test_date}: 코드는 6자리"
             assert code[4:].isdigit(), f"{test_date}: 마지막 2자리는 숫자"
             month_part = int(code[4:])

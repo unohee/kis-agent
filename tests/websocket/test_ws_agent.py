@@ -225,7 +225,7 @@ class TestWSAgent:
         sub3 = ws_agent.subscribe(SubscriptionType.INDEX, "0001")
 
         # 선물
-        sub4 = ws_agent.subscribe(SubscriptionType.FUTURES_TRADE, "101S6000")
+        sub4 = ws_agent.subscribe(SubscriptionType.INDEX_FUTURES_TRADE, "101S6000")
 
         assert len(ws_agent.subscriptions) == 4
         assert all(sub in ws_agent.subscriptions for sub in [sub1, sub2, sub3, sub4])

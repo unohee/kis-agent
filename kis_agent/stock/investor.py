@@ -111,7 +111,7 @@ class InvestorPositionAnalyzer(ExceptionHandler):
                 "foreign_institution_total": foreign_institution_total,
                 "inquire_investor_time_by_market": inquire_investor_time_by_market,
             }
-        except ImportError as e:
+        except Exception as e:
             self._log_warning(f"투자자 API import 실패: {e}")
             return None
 

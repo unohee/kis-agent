@@ -1,0 +1,3 @@
+# 예제/데모/벤치마크 파일 — fake_execution BS 패턴 false positive
+examples/
+tests/benchmark_pykis.py

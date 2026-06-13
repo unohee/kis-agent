@@ -32,20 +32,29 @@ class TestSubscriptionType:
 
     def test_index_subscription_types(self):
         """지수 구독 타입 확인"""
-        assert SubscriptionType.INDEX.value == "H0IF1000"
+        assert SubscriptionType.INDEX.value == "H0UPCNT0"     # 수정: H0IF1000 → H0UPCNT0 (공식 TR_ID)
         assert SubscriptionType.INDEX_EXPECTED.value == "H0UPANC0"
 
     def test_program_member_subscription_types(self):
         """프로그램매매/회원사 구독 타입 확인"""
         assert SubscriptionType.PROGRAM_TRADE.value == "H0STPGM0"  # KRX
-        assert SubscriptionType.MEMBER_TRADE.value == "H0MBCNT0"
+        assert SubscriptionType.MEMBER_TRADE.value == "H0STMBC0"   # 수정: H0MBCNT0 → H0STMBC0 (공식 TR_ID)
 
     def test_futures_options_subscription_types(self):
-        """선물/옵션 구독 타입 확인"""
-        assert SubscriptionType.FUTURES_TRADE.value == "H0CFCNT0"
-        assert SubscriptionType.FUTURES_ASK_BID.value == "H0CFASP0"
-        assert SubscriptionType.OPTION_TRADE.value == "H0OPCNT0"
-        assert SubscriptionType.OPTION_ASK_BID.value == "H0OPASP0"
+        """지수선물/옵션, 상품선물, 주식선물/옵션 구독 타입 확인"""
+        # 지수선물/옵션
+        assert SubscriptionType.INDEX_FUTURES_TRADE.value == "H0IFCNT0"
+        assert SubscriptionType.INDEX_FUTURES_ASK_BID.value == "H0IFASP0"
+        assert SubscriptionType.INDEX_OPTION_TRADE.value == "H0IOCNT0"    # 수정: H0OPCNT0 → H0IOCNT0
+        assert SubscriptionType.INDEX_OPTION_ASK_BID.value == "H0IOASP0"  # 수정: H0OPASP0 → H0IOASP0
+        # 상품선물
+        assert SubscriptionType.COMMODITY_FUTURES_TRADE.value == "H0CFCNT0"
+        assert SubscriptionType.COMMODITY_FUTURES_ASK_BID.value == "H0CFASP0"
+        # 주식선물/옵션
+        assert SubscriptionType.STOCK_FUTURES_TRADE.value == "H0ZFCNT0"
+        assert SubscriptionType.STOCK_FUTURES_ASK_BID.value == "H0ZFASP0"
+        assert SubscriptionType.STOCK_OPTION_TRADE.value == "H0ZOCNT0"
+        assert SubscriptionType.STOCK_OPTION_ASK_BID.value == "H0ZOASP0"
 
     def test_overseas_subscription_types(self):
         """해외 구독 타입 확인"""
@@ -89,7 +98,7 @@ class TestWSAgentConvenienceMethods:
         assert "H0STASP0_005930" in sub_ids
         assert "H0UNANC0_005930" in sub_ids
         assert "H0STPGM0_005930" in sub_ids  # PROGRAM_TRADE (KRX)
-        assert "H0MBCNT0_005930" in sub_ids
+        assert "H0STMBC0_005930" in sub_ids   # 수정: H0MBCNT0 → H0STMBC0
 
     def test_subscribe_stocks(self):
         """여러 종목 구독"""
@@ -107,9 +116,9 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_index()
 
         assert len(sub_ids) == 3
-        assert "H0IF1000_0001" in sub_ids  # KOSPI
-        assert "H0IF1000_1001" in sub_ids  # KOSDAQ
-        assert "H0IF1000_2001" in sub_ids  # KOSPI200
+        assert "H0UPCNT0_0001" in sub_ids  # KOSPI  (수정: H0IF1000 → H0UPCNT0)
+        assert "H0UPCNT0_1001" in sub_ids  # KOSDAQ
+        assert "H0UPCNT0_2001" in sub_ids  # KOSPI200
 
     def test_subscribe_index_with_expected(self):
         """예상체결 포함 지수 구독"""
@@ -117,10 +126,10 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_index(with_expected=True)
 
         assert len(sub_ids) == 6
-        # 지수
-        assert "H0IF1000_0001" in sub_ids
-        assert "H0IF1000_1001" in sub_ids
-        assert "H0IF1000_2001" in sub_ids
+        # 지수 (수정: H0IF1000 → H0UPCNT0)
+        assert "H0UPCNT0_0001" in sub_ids
+        assert "H0UPCNT0_1001" in sub_ids
+        assert "H0UPCNT0_2001" in sub_ids
         # 예상체결
         assert "H0UPANC0_0001" in sub_ids
         assert "H0UPANC0_1001" in sub_ids
@@ -141,8 +150,8 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_member_trading(["005930", "000660"])
 
         assert len(sub_ids) == 2
-        assert "H0MBCNT0_005930" in sub_ids
-        assert "H0MBCNT0_000660" in sub_ids
+        assert "H0STMBC0_005930" in sub_ids   # 수정: H0MBCNT0 → H0STMBC0
+        assert "H0STMBC0_000660" in sub_ids
 
     def test_subscribe_futures(self):
         """선물 구독"""
@@ -150,8 +159,8 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_futures("101S6000", with_orderbook=True)
 
         assert len(sub_ids) == 2
-        assert "H0CFCNT0_101S6000" in sub_ids
-        assert "H0CFASP0_101S6000" in sub_ids
+        assert "H0IFCNT0_101S6000" in sub_ids   # subscribe_futures → 지수선물 (수정)
+        assert "H0IFASP0_101S6000" in sub_ids
 
     def test_subscribe_options(self):
         """옵션 구독"""
@@ -159,8 +168,8 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_options("201S6C300", with_orderbook=True)
 
         assert len(sub_ids) == 2
-        assert "H0OPCNT0_201S6C300" in sub_ids
-        assert "H0OPASP0_201S6C300" in sub_ids
+        assert "H0IOCNT0_201S6C300" in sub_ids   # subscribe_options → 지수옵션 (수정: H0OPCNT0 → H0IOCNT0)
+        assert "H0IOASP0_201S6C300" in sub_ids
 
     def test_unsubscribe_stock(self):
         """종목 관련 모든 구독 해제"""
@@ -512,9 +521,11 @@ class TestWSAgentReconnectConfig:
 
     def test_fatal_error_patterns_exist(self):
         """복구 불가능한 에러 패턴 존재 확인"""
-        assert "401" in WSAgent._FATAL_ERROR_PATTERNS
-        assert "403" in WSAgent._FATAL_ERROR_PATTERNS
-        assert "인증" in WSAgent._FATAL_ERROR_PATTERNS
+        # _FATAL_ERROR_PATTERNS는 compiled re.Pattern 목록
+        patterns_str = [p.pattern for p in WSAgent._FATAL_ERROR_PATTERNS]
+        assert any("401" in p for p in patterns_str)
+        assert any("403" in p for p in patterns_str)
+        assert any("인증" in p for p in patterns_str)
 
     @pytest.mark.asyncio
     async def test_connect_blocked_after_market_close(self):

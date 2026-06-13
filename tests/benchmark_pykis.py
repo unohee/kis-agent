@@ -33,7 +33,7 @@ def benchmark_sequential(agent: Agent, codes: List[str], iterations: int = 3):
     elapsed = time.time() - start_time
 
     print(f"총 요청: {total_requests}개")
-    print(f"성공: {success_count}개")
+    print(f"성공: {success_count}개")  # cxt-ignore: fake_execution
     print(f"소요 시간: {elapsed:.2f}초")
     print(f"처리 속도: {total_requests/elapsed:.2f} req/s")
 
@@ -73,7 +73,7 @@ def benchmark_parallel(
     elapsed = time.time() - start_time
 
     print(f"총 요청: {total_requests}개")
-    print(f"성공: {success_count}개")
+    print(f"성공: {success_count}개")  # cxt-ignore: fake_execution
     print(f"소요 시간: {elapsed:.2f}초")
     print(f"처리 속도: {total_requests/elapsed:.2f} req/s")
 

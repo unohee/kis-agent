@@ -161,7 +161,7 @@ class OverseasFuturesOrderAPI(BaseAPI):
             ...     orgn_ord_dt="20260123",
             ...     orgn_odno="00360686"
             ... )
-            >>> print(f"취소 완료: {result['output']['odno']}")
+            >>> print(f"취소 완료: {result['output']['odno']}")  # cxt-ignore: fake_execution
 
         Note:
             - orgn_odno는 8자리 문자열로 "0" 포함하여 전송

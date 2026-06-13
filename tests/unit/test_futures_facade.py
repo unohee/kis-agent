@@ -97,7 +97,7 @@ class TestFuturesFacade(unittest.TestCase):
             result = self.facade.get_price("101S12")
 
             self.assertEqual(result, expected_response)
-            self.facade.price.get_price.assert_called_once_with("101S12")
+            self.facade.price.get_price.assert_called_once_with("101S12", "F")
 
     def test_get_orderbook_delegation(self):
         """get_orderbook 위임 메서드 동작 확인"""
@@ -114,7 +114,7 @@ class TestFuturesFacade(unittest.TestCase):
             result = self.facade.get_orderbook("101S12")
 
             self.assertEqual(result, expected_response)
-            self.facade.price.get_orderbook.assert_called_once_with("101S12")
+            self.facade.price.get_orderbook.assert_called_once_with("101S12", "F")
 
     def test_inquire_balance_delegation(self):
         """inquire_balance 위임 메서드 동작 확인"""
@@ -163,7 +163,7 @@ class TestFuturesFacade(unittest.TestCase):
 
             self.assertEqual(result, expected_response)
             self.facade.price.inquire_daily_fuopchartprice.assert_called_once_with(
-                "101S12", "20260101", "20260131", "D"
+                "101S12", "20260101", "20260131", "D", "F"
             )
 
     def test_inquire_time_fuopchartprice_delegation(self):
@@ -179,7 +179,7 @@ class TestFuturesFacade(unittest.TestCase):
 
             self.assertEqual(result, expected_response)
             self.facade.price.inquire_time_fuopchartprice.assert_called_once_with(
-                "101S12", "153000", "5"
+                "101S12", "153000", "5", "F"
             )
 
     def test_display_board_callput_delegation(self):
