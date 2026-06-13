@@ -270,18 +270,62 @@ class FuturesConclusionResponse(BaseResponse):
 
 
 class DisplayBoardCallPutRow(TypedDict, total=False):
-    """옵션 콜/풋 전광판 행"""
+    """옵션 콜/풋 전광판 행 (FHPIF05030100)"""
 
-    item_code: str  # 종목코드
-    item_name: str  # 종목명
-    fuop_prpr: str  # 선물옵션 현재가
-    prdy_vrss: str  # 전일대비
-    prdy_ctrt: str  # 전일대비율
-    acml_vol: str  # 누적거래량
-    optn_theo_pric: str  # 옵션이론가
-    impl_vola: str  # 내재변동성
-    optn_delta: str  # 델타
-    optn_gamma: str  # 감마
+    # 종목 기본
+    item_code: str          # 종목코드
+    item_name: str          # 종목명
+    acpr: str               # 행사가
+    optn_shrn_iscd: str     # 옵션 단축 종목코드
+    atm_cls_name: str       # ATM 구분 명 (ATM/ITM/OTM)
+
+    # 가격
+    optn_prpr: str          # 옵션 현재가
+    optn_bidp: str          # 옵션 매수호가
+    optn_askp: str          # 옵션 매도호가
+    optn_oprc: str          # 옵션 시가
+    optn_hgpr: str          # 옵션 최고가
+    optn_lwpr: str          # 옵션 최저가
+    optn_mxpr: str          # 옵션 상한가
+    optn_llam: str          # 옵션 하한가
+    optn_prdy_vrss: str     # 옵션 전일 대비
+    optn_prdy_ctrt: str     # 옵션 전일 대비율
+    prdy_vrss_sign: str     # 전일 대비 부호
+    unch_prpr: str          # 환산 현재가
+    hts_thpr: str           # HTS 이론가
+    rgbf_vrss_icdc: str     # 직전 대비 증감
+
+    # 거래량/잔량
+    acml_vol: str           # 누적 거래량
+    acml_tr_pbmn: str       # 누적 거래 대금
+    seln_rsqn: str          # 매도 잔량
+    shnu_rsqn: str          # 매수 잔량
+    total_askp_rsqn: str    # 총 매도호가 잔량
+    total_bidp_rsqn: str    # 총 매수호가 잔량
+    hts_otst_stpl_qty: str  # HTS 미결제 약정 수량
+    otst_stpl_qty_icdc: str # 미결제 약정 수량 증감
+
+    # 내재변동성 / 그릭스 (VKOSPI 계산에 사용)
+    hts_ints_vltl: str      # HTS 내재 변동성 (KIS 제공 IV — Black-Scholes 역산값)
+    delta_val: str          # 델타 값
+    gama: str               # 감마
+    vega: str               # 베가
+    theta: str              # 세타
+    rho: str                # 로우
+
+    # 가치 분해
+    invl_val: str           # 내재가치 값
+    tmvl_val: str           # 시간가치 값
+    esdg: str               # 괴리도
+    dprt: str               # 괴리율
+    hist_vltl: str          # 역사적 변동성
+
+    # 지수/선물 참조
+    nmix_sdpr: str          # 지수 기준가
+    futs_antc_cnpr: str     # 선물 예상체결가
+    futs_antc_cntg_vrss: str    # 선물 예상체결 대비
+    antc_cntg_vrss_sign: str    # 예상 체결 대비 부호
+    antc_cntg_prdy_ctrt: str    # 예상 체결 전일 대비율
 
 
 class DisplayBoardCallPutResponse(BaseResponse):

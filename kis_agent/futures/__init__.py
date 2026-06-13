@@ -25,6 +25,7 @@ from .code_generator import (
 from .historical import FuturesContractCode, FuturesHistoricalAPI
 from .order_api import FuturesOrderAPI
 from .price_api import FuturesPriceAPI
+from .vkospi import VKOSPICalculator, VKOSPIResult, get_option_expiry_months, get_days_to_expiry
 
 
 class Futures(BaseAPI):
@@ -490,6 +491,47 @@ class Futures(BaseAPI):
             max_bars=max_bars,
         )
 
+    def get_vkospi(
+        self,
+        near_expiry: Optional[str] = None,
+        far_expiry: Optional[str] = None,
+    ) -> Optional["VKOSPIResult"]:
+        """
+        VKOSPI 프록시 계산.
+
+        선근월/차근월 옵션 전광판을 조회하여 베가 가중 내재변동성을 보간한다.
+        KRX 공식 VKOSPI 대비 ±2pt 오차 수준.
+
+        Args:
+            near_expiry: 선근월 만기 (YYYYMM). None이면 자동 산출.
+            far_expiry:  차근월 만기 (YYYYMM). None이면 자동 산출.
+
+        Returns:
+            VKOSPIResult 또는 None (장 외 / 데이터 부족)
+
+        Example:
+            >>> result = agent.futures.get_vkospi()
+            >>> print(result.value)   # 예: 18.53
+            >>> print(result)         # 상세 정보
+        """
+        from datetime import date as _date
+        today = _date.today()
+        near_month, far_month = get_option_expiry_months(today)
+
+        if near_expiry is None:
+            near_expiry = f"{near_month[0]}{near_month[1]:02d}"
+        if far_expiry is None:
+            far_expiry = f"{far_month[0]}{far_month[1]:02d}"
+
+        near_resp = self.price.display_board_callput(near_expiry)
+        far_resp = self.price.display_board_callput(far_expiry)
+
+        if not near_resp or not far_resp:
+            return None
+
+        calc = VKOSPICalculator()
+        return calc.calculate(near_resp, far_resp, today)
+
 
 # __all__ 정의
 __all__ = [
@@ -504,4 +546,8 @@ __all__ = [
     "generate_next_futures",  # 차근월물 코드
     "generate_call_option",  # 콜옵션 코드
     "generate_put_option",  # 풋옵션 코드
+    "VKOSPICalculator",     # VKOSPI 계산기
+    "VKOSPIResult",         # 계산 결과 타입
+    "get_option_expiry_months",  # 선근월/차근월 만기 조회
+    "get_days_to_expiry",        # 잔존일수 계산
 ]
