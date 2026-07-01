@@ -47,6 +47,11 @@ export class PythonBridgeError extends Error {
 }
 
 export class PythonBridge extends EventEmitter {
+  // Bounded buffers guard against unbounded memory growth from a misbehaving
+  // bridge process (stderr floods / oversized stdout without a newline).
+  private static readonly MAX_STDERR_BUFFER = 64 * 1024;
+  private static readonly MAX_STDOUT_BUFFER = 1024 * 1024;
+
   private scriptPath: string;
   private timeout: number = 30000; // 기본 30000ms
   private pythonCommand: string = 'python3';
@@ -175,9 +180,22 @@ export class PythonBridge extends EventEmitter {
 
     child.stderr.on('data', (data: string) => {
       if (this.pendingRequest) {
-        this.pendingRequest.stderr += data;
+        const combined = this.pendingRequest.stderr + data;
+        // Keep the most recent bytes so the tail (usually the exception line) survives.
+        this.pendingRequest.stderr =
+          combined.length > PythonBridge.MAX_STDERR_BUFFER
+            ? combined.slice(combined.length - PythonBridge.MAX_STDERR_BUFFER)
+            : combined;
       }
       this.emit('stderr', data);
+    });
+
+    // Without an 'error' listener an EPIPE (writing to a dead process) would be
+    // thrown as an unhandled stream error and crash the Node process.
+    child.stdin.on('error', (error: Error) => {
+      this.failPendingRequest(
+        new PythonBridgeError('StdinError', `Python bridge stdin stream error: ${error.message}`)
+      );
     });
 
     child.on('close', (code, signal) => {
@@ -237,6 +255,41 @@ export class PythonBridge extends EventEmitter {
 
       this.handleResponseLine(line);
     }
+
+    // Guard against unbounded growth when no newline-delimited response ever
+    // arrives (broken JSON fragment or an oversized single line from the bridge).
+    if (this.stdoutBuffer.length > PythonBridge.MAX_STDOUT_BUFFER) {
+      this.stdoutBuffer = '';
+      this.failPendingRequest(
+        new PythonBridgeError(
+          'ResponseOverflow',
+          `Python bridge stdout exceeded ${PythonBridge.MAX_STDOUT_BUFFER} bytes without a complete response line`
+        )
+      );
+      if (this.child && !this.child.killed) {
+        this.child.kill('SIGTERM');
+      }
+    }
+  }
+
+  /**
+   * 진행 중인 요청을 정리하고 에러로 reject. pendingRequest가 없으면 no-op이므로
+   * 여러 실패 경로(stdin write/error, stdout overflow)에서 중복 호출해도 안전하다.
+   */
+  private failPendingRequest(error: PythonBridgeError): void {
+    const pending = this.pendingRequest;
+    if (!pending) {
+      return;
+    }
+
+    this.pendingRequest = null;
+    clearTimeout(pending.timeoutHandle);
+
+    if (error.pythonError === undefined && pending.stderr) {
+      error.pythonError = pending.stderr;
+    }
+
+    pending.reject(error);
   }
 
   private handleResponseLine(line: string): void {
@@ -331,9 +384,19 @@ export class PythonBridge extends EventEmitter {
         timeoutHandle,
       };
 
-      // 요청 JSON을 stdin으로 전송
+      // 요청 JSON을 stdin으로 전송 — write 실패(닫힌 stdin, EPIPE)를 즉시 reject해
+      // timeout까지 대기하지 않도록 한다.
       const requestJson = JSON.stringify(request);
-      child.stdin.write(requestJson + '\n');
+      child.stdin.write(requestJson + '\n', (writeError) => {
+        if (writeError) {
+          this.failPendingRequest(
+            new PythonBridgeError(
+              'StdinWriteError',
+              `Failed to write request to Python bridge stdin: ${writeError.message}`
+            )
+          );
+        }
+      });
     });
   }
 
@@ -355,8 +418,21 @@ export class PythonBridge extends EventEmitter {
       );
 
       const response: BridgeResponse = JSON.parse(output.trim());
+
+      // async call()과 동일하게, 실패 응답은 성공 경로로 반환하지 않고 throw한다.
+      if (!response.success && response.code) {
+        throw new PythonBridgeError(
+          response.code,
+          response.error || 'Unknown error from Python bridge'
+        );
+      }
+
       return response;
     } catch (error) {
+      // 위에서 던진 구조화된 에러는 ProcessError로 재포장하지 않고 그대로 전파.
+      if (error instanceof PythonBridgeError) {
+        throw error;
+      }
       if (error instanceof Error) {
         if (error.message.includes('ETIMEDOUT')) {
           throw new PythonBridgeError(

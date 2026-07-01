@@ -251,7 +251,8 @@ describe('PythonBridge', () => {
       const responsePromise = bridge.call({ method: 'test_api.method', params: { code: '005930' } });
 
       expect(child.stdin.write).toHaveBeenCalledWith(
-        '{"method":"test_api.method","params":{"code":"005930"}}\n'
+        '{"method":"test_api.method","params":{"code":"005930"}}\n',
+        expect.any(Function)
       );
 
       child.stdout.emit('data', '{"success":true,"data":{"price":70000}}');
@@ -278,8 +279,16 @@ describe('PythonBridge', () => {
       await expect(second).resolves.toEqual({ success: true, data: { step: 2 } });
 
       expect(spawn).toHaveBeenCalledTimes(1);
-      expect(child.stdin.write).toHaveBeenNthCalledWith(1, '{"method":"test_api.first"}\n');
-      expect(child.stdin.write).toHaveBeenNthCalledWith(2, '{"method":"test_api.second"}\n');
+      expect(child.stdin.write).toHaveBeenNthCalledWith(
+        1,
+        '{"method":"test_api.first"}\n',
+        expect.any(Function)
+      );
+      expect(child.stdin.write).toHaveBeenNthCalledWith(
+        2,
+        '{"method":"test_api.second"}\n',
+        expect.any(Function)
+      );
     });
 
     it('should reject concurrent calls when no request id is available', async () => {
@@ -331,6 +340,52 @@ describe('PythonBridge', () => {
         _notice: 'market closed',
       });
     });
+
+    it('should reject immediately when stdin.write reports an error', async () => {
+      const child = createMockChild();
+      child.stdin.write.mockImplementation((_data: string, cb?: (err?: Error | null) => void) => {
+        cb?.(new Error('write EPIPE'));
+        return false;
+      });
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+
+      await expect(bridge.call({ method: 'test_api.method' })).rejects.toMatchObject({
+        code: 'StdinWriteError',
+      });
+    });
+
+    it('should reject when the stdin stream emits an error event', async () => {
+      const child = createMockChild();
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+      const responsePromise = bridge.call({ method: 'test_api.method' });
+
+      child.stdin.emit('error', new Error('EPIPE'));
+
+      await expect(responsePromise).rejects.toMatchObject({
+        code: 'StdinError',
+      });
+    });
+
+    it('should reject when stdout grows past the buffer limit without a newline', async () => {
+      const child = createMockChild();
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+      const responsePromise = bridge.call({ method: 'test_api.method' });
+
+      // No newline → the line is never dispatched; buffer must be bounded.
+      child.stdout.emit('data', 'x'.repeat(1024 * 1024 + 1));
+
+      await expect(responsePromise).rejects.toMatchObject({
+        code: 'ResponseOverflow',
+      });
+      expect(child.kill).toHaveBeenCalled();
+      expect(bridge['stdoutBuffer']).toBe('');
+    });
   });
 
   describe('Synchronous Call', () => {
@@ -354,6 +409,24 @@ describe('PythonBridge', () => {
         success: true,
         data: { ok: true },
       });
+    });
+
+    it('should throw PythonBridgeError when the bridge returns a failure response', () => {
+      (execFileSync as jest.Mock).mockReturnValue(
+        '{"success":false,"error":"Invalid code","code":"ValueError"}\n'
+      );
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+
+      expect(() => bridge.callSync({ method: 'test_api.method' })).toThrow(PythonBridgeError);
+      try {
+        bridge.callSync({ method: 'test_api.method' });
+      } catch (error) {
+        expect(error).toBeInstanceOf(PythonBridgeError);
+        // Must preserve the structured code, not re-wrap it as ProcessError.
+        expect((error as PythonBridgeError).code).toBe('ValueError');
+        expect((error as PythonBridgeError).message).toBe('Invalid code');
+      }
     });
   });
 });
