@@ -35,6 +35,8 @@ interface PythonCheckResult {
   version?: string;
 }
 
+const MAX_STREAM_BUFFER_LENGTH = 1024 * 1024;
+
 export class PythonBridgeError extends Error {
   constructor(
     public code: string,
@@ -53,6 +55,7 @@ export class PythonBridge extends EventEmitter {
   private child: ChildProcessWithoutNullStreams | null = null;
   private stdoutBuffer = '';
   private pendingRequest: PendingRequest | null = null;
+  private readonly maxStreamBufferLength = MAX_STREAM_BUFFER_LENGTH;
 
   constructor(scriptPath: string, timeout?: number) {
     super();
@@ -175,9 +178,26 @@ export class PythonBridge extends EventEmitter {
 
     child.stderr.on('data', (data: string) => {
       if (this.pendingRequest) {
-        this.pendingRequest.stderr += data;
+        this.pendingRequest.stderr = this.appendBoundedBuffer(
+          this.pendingRequest.stderr,
+          data,
+          'stderr'
+        );
       }
       this.emit('stderr', data);
+    });
+
+    child.stdin.on('error', (error) => {
+      const handled = this.rejectPendingRequest(
+        'StdinError',
+        `Failed to write to Python bridge stdin: ${error.message}`,
+        this.pendingRequest?.stderr,
+        true
+      );
+
+      if (!handled) {
+        this.emit('stdinError', error);
+      }
     });
 
     child.on('close', (code, signal) => {
@@ -228,7 +248,14 @@ export class PythonBridge extends EventEmitter {
         break;
       }
 
-      const line = this.stdoutBuffer.slice(0, newlineIndex).trim();
+      const rawLine = this.stdoutBuffer.slice(0, newlineIndex);
+
+      if (rawLine.length > this.maxStreamBufferLength) {
+        this.rejectOversizedStdout(rawLine.length);
+        return;
+      }
+
+      const line = rawLine.trim();
       this.stdoutBuffer = this.stdoutBuffer.slice(newlineIndex + 1);
 
       if (!line) {
@@ -236,6 +263,10 @@ export class PythonBridge extends EventEmitter {
       }
 
       this.handleResponseLine(line);
+    }
+
+    if (this.stdoutBuffer.length > this.maxStreamBufferLength) {
+      this.rejectOversizedStdout(this.stdoutBuffer.length);
     }
   }
 
@@ -294,6 +325,58 @@ export class PythonBridge extends EventEmitter {
     this.stdoutBuffer = '';
   }
 
+  private appendBoundedBuffer(current: string, chunk: string, label: string): string {
+    const next = current + chunk;
+
+    if (next.length <= this.maxStreamBufferLength) {
+      return next;
+    }
+
+    const marker = `[${label} truncated to last ${this.maxStreamBufferLength} characters]\n`;
+    const tailLength = Math.max(this.maxStreamBufferLength - marker.length, 0);
+    return marker + next.slice(-tailLength);
+  }
+
+  private rejectPendingRequest(
+    code: string,
+    message: string,
+    pythonError?: string,
+    terminateChild = false
+  ): boolean {
+    const pending = this.pendingRequest;
+
+    if (!pending) {
+      return false;
+    }
+
+    this.pendingRequest = null;
+    clearTimeout(pending.timeoutHandle);
+
+    if (terminateChild && this.child && !this.child.killed) {
+      this.child.kill('SIGTERM');
+    }
+
+    pending.reject(new PythonBridgeError(code, message, pythonError ?? pending.stderr));
+    return true;
+  }
+
+  private rejectOversizedStdout(length: number): void {
+    this.stdoutBuffer = '';
+    const handled = this.rejectPendingRequest(
+      'ResponseTooLarge',
+      `Python bridge stdout exceeded ${this.maxStreamBufferLength} characters before a newline-delimited response (received ${length} characters)`,
+      undefined,
+      true
+    );
+
+    if (!handled) {
+      this.emit('stdoutOverflow', {
+        maxBufferLength: this.maxStreamBufferLength,
+        length,
+      });
+    }
+  }
+
   /**
    * Python CLI Bridge로 메서드 호출
    */
@@ -333,7 +416,26 @@ export class PythonBridge extends EventEmitter {
 
       // 요청 JSON을 stdin으로 전송
       const requestJson = JSON.stringify(request);
-      child.stdin.write(requestJson + '\n');
+      try {
+        child.stdin.write(requestJson + '\n', (error?: Error | null) => {
+          if (error) {
+            this.rejectPendingRequest(
+              'StdinWriteError',
+              `Failed to write request to Python bridge stdin: ${error.message}`,
+              undefined,
+              true
+            );
+          }
+        });
+      } catch (error) {
+        const writeError = error instanceof Error ? error : new Error(String(error));
+        this.rejectPendingRequest(
+          'StdinWriteError',
+          `Failed to write request to Python bridge stdin: ${writeError.message}`,
+          undefined,
+          true
+        );
+      }
     });
   }
 
@@ -355,9 +457,28 @@ export class PythonBridge extends EventEmitter {
       );
 
       const response: BridgeResponse = JSON.parse(output.trim());
+      if (!response.success && response.code) {
+        throw new PythonBridgeError(
+          response.code,
+          response.error || 'Unknown error from Python bridge'
+        );
+      }
+
       return response;
     } catch (error) {
+      if (error instanceof PythonBridgeError) {
+        throw error;
+      }
+
       if (error instanceof Error) {
+        if (error instanceof SyntaxError) {
+          throw new PythonBridgeError(
+            'ResponseParseError',
+            `Failed to parse Python response: ${error.message}`,
+            error.message
+          );
+        }
+
         if (error.message.includes('ETIMEDOUT')) {
           throw new PythonBridgeError(
             'TimeoutError',

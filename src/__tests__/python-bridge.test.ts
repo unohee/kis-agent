@@ -251,7 +251,8 @@ describe('PythonBridge', () => {
       const responsePromise = bridge.call({ method: 'test_api.method', params: { code: '005930' } });
 
       expect(child.stdin.write).toHaveBeenCalledWith(
-        '{"method":"test_api.method","params":{"code":"005930"}}\n'
+        '{"method":"test_api.method","params":{"code":"005930"}}\n',
+        expect.any(Function)
       );
 
       child.stdout.emit('data', '{"success":true,"data":{"price":70000}}');
@@ -278,8 +279,16 @@ describe('PythonBridge', () => {
       await expect(second).resolves.toEqual({ success: true, data: { step: 2 } });
 
       expect(spawn).toHaveBeenCalledTimes(1);
-      expect(child.stdin.write).toHaveBeenNthCalledWith(1, '{"method":"test_api.first"}\n');
-      expect(child.stdin.write).toHaveBeenNthCalledWith(2, '{"method":"test_api.second"}\n');
+      expect(child.stdin.write).toHaveBeenNthCalledWith(
+        1,
+        '{"method":"test_api.first"}\n',
+        expect.any(Function)
+      );
+      expect(child.stdin.write).toHaveBeenNthCalledWith(
+        2,
+        '{"method":"test_api.second"}\n',
+        expect.any(Function)
+      );
     });
 
     it('should reject concurrent calls when no request id is available', async () => {
@@ -331,6 +340,75 @@ describe('PythonBridge', () => {
         _notice: 'market closed',
       });
     });
+
+    it('should reject stdin write callback errors without waiting for timeout', async () => {
+      const child = createMockChild();
+      child.stdin.write.mockImplementation((_chunk: string, callback: (error?: Error) => void) => {
+        callback(new Error('EPIPE'));
+        return false;
+      });
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+      const responsePromise = bridge.call({ method: 'test_api.method' });
+
+      await expect(responsePromise).rejects.toMatchObject({
+        code: 'StdinWriteError',
+        message: expect.stringContaining('EPIPE'),
+      });
+      expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+    });
+
+    it('should reject stdin stream errors without waiting for timeout', async () => {
+      const child = createMockChild();
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+      const responsePromise = bridge.call({ method: 'test_api.method' });
+
+      child.stdin.emit('error', new Error('stream closed'));
+
+      await expect(responsePromise).rejects.toMatchObject({
+        code: 'StdinError',
+        message: expect.stringContaining('stream closed'),
+      });
+      expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+    });
+
+    it('should keep stderr bounded while preserving recent stderr context', async () => {
+      const child = createMockChild();
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+      const responsePromise = bridge.call({ method: 'test_api.method' });
+
+      child.stderr.emit('data', 'start'.repeat(300000));
+      child.stderr.emit('data', 'recent stderr context');
+      child.stdout.emit('data', '{"success":false,"error":"failed","code":"ValueError"}\n');
+
+      await expect(responsePromise).rejects.toMatchObject({
+        code: 'ValueError',
+        pythonError: expect.stringContaining('recent stderr context'),
+      });
+      await expect(responsePromise).rejects.toMatchObject({
+        pythonError: expect.stringContaining('[stderr truncated'),
+      });
+    });
+
+    it('should reject oversized stdout without a newline-delimited response', async () => {
+      const child = createMockChild();
+      (spawn as jest.Mock).mockReturnValue(child);
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+      const responsePromise = bridge.call({ method: 'test_api.method' });
+
+      child.stdout.emit('data', 'x'.repeat(1024 * 1024 + 1));
+
+      await expect(responsePromise).rejects.toMatchObject({
+        code: 'ResponseTooLarge',
+      });
+      expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+    });
   });
 
   describe('Synchronous Call', () => {
@@ -354,6 +432,17 @@ describe('PythonBridge', () => {
         success: true,
         data: { ok: true },
       });
+    });
+
+    it('should throw PythonBridgeError for failed bridge responses', () => {
+      (execFileSync as jest.Mock).mockReturnValue(
+        '{"success":false,"error":"Invalid code","code":"ValueError"}\n'
+      );
+
+      const bridge = new PythonBridge('/tmp/dummy_bridge.py');
+
+      expect(() => bridge.callSync({ method: 'test_api.method' })).toThrow(PythonBridgeError);
+      expect(() => bridge.callSync({ method: 'test_api.method' })).toThrow('Invalid code');
     });
   });
 });
