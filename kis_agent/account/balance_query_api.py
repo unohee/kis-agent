@@ -194,7 +194,7 @@ class AccountBalanceQueryAPI(BaseAPI):
         try:
             res = self.client.make_request(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
-                tr_id="TTTC8908R" if self.client.is_real else "VTTC8908R",
+                tr_id="TTTC8908R",  # 모의투자 변환은 client.make_request가 처리
                 params={
                     "CANO": self.account["CANO"],
                     "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],

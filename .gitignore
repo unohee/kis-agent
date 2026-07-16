@@ -94,9 +94,13 @@ postman_collections/
 *.xlsx
 
 # Scripts (but keep response_documentation and CI tools)
-scripts/
+# 'scripts/'로 디렉터리를 통째 제외하면 git이 내부를 훑지 않아 아래 '!' 예외가
+# 동작하지 않는다. 'scripts/*'로 내용물만 제외해야 예외가 먹는다.
+scripts/*
 !scripts/response_documentation/
 !scripts/check_loc.py
+# 모의투자 TR_ID 매핑의 출처 검증용 (tests/unit/test_paper_trading.py가 사용)
+!scripts/extract_paper_tr_mapping.py
 
 # Node
 node_modules/

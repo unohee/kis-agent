@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from .constants import MOCK_BASE_URL, REAL_BASE_URL
+from .constants import MOCK_BASE_URL, REAL_BASE_URL, resolve_environment
 
 
 @dataclass
@@ -28,10 +28,13 @@ class KISConfig:
         base_url: str = None,
         account_no: str = None,
         account_code: str = None,
+        paper: bool = None,
     ):
         self.APP_KEY = app_key or ""
         self.APP_SECRET = app_secret or ""
-        self.BASE_URL = base_url or REAL_BASE_URL
+        # base_url이 없으면 paper / KIS_PAPER / KIS_BASE_URL로 결정한다.
+        # 여기서 REAL_BASE_URL로 바로 떨어뜨리면 진입점마다 동작이 갈린다.
+        self.BASE_URL, _ = resolve_environment(base_url=base_url, paper=paper)
         self.ACCOUNT_NO = account_no or ""
         self.ACCOUNT_CODE = account_code or ""
 
@@ -47,15 +50,18 @@ class KISConfig:
         - `KIS_APP_SECRET` (필수)
         - `KIS_ACCOUNT_NO` (필수)
         - `KIS_ACCOUNT_CODE` (선택, 기본 "01")
+        - `KIS_PAPER` (선택, 1/true/yes/on 이면 모의투자)
         - `KIS_BASE_URL` (선택, 기본 실전투자 URL)
 
         Raises:
-            ValueError: 필수 환경변수가 누락된 경우.
+            ValueError: 필수 환경변수가 누락된 경우, `KIS_PAPER` 값이
+                올바르지 않은 경우, 또는 `KIS_PAPER`와 `KIS_BASE_URL`이
+                서로 모순되는 경우.
         """
+        # base_url을 넘기지 않으면 __init__이 KIS_PAPER/KIS_BASE_URL을 해석한다.
         return cls(
             app_key=os.environ.get("KIS_APP_KEY", ""),
             app_secret=os.environ.get("KIS_APP_SECRET", ""),
-            base_url=os.environ.get("KIS_BASE_URL", REAL_BASE_URL),
             account_no=os.environ.get("KIS_ACCOUNT_NO", ""),
             account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
         )

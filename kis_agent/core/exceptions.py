@@ -28,6 +28,8 @@ import traceback
 from functools import wraps
 from typing import Any, Callable, Optional, Type, Union
 
+from .tr_mapping import PaperTradingNotSupportedError
+
 # =============================================================================
 # PyKIS 전용 예외 클래스 계층
 # =============================================================================
@@ -198,12 +200,19 @@ class ExceptionHandler:
         # 에러 메시지 구성
         error_msg = f"[{context}] {exception.__class__.__name__}: {str(exception)}"
 
-        # 로깅 (exc_info=True로 traceback 자동 포함)
-        self._exception_logger.error(error_msg, exc_info=True)
+        # "이 API는 모의투자에 없다"는 장애가 아니라 환경의 정상적인 사실이다.
+        # 모의투자 사용자가 매 호출마다 traceback을 보지 않도록 INFO로 낮춘다.
+        if isinstance(exception, PaperTradingNotSupportedError):
+            self._exception_logger.info(error_msg)
+        else:
+            # 로깅 (exc_info=True로 traceback 자동 포함)
+            self._exception_logger.error(error_msg, exc_info=True)
 
         if reraise:
-            # PyKIS 예외는 그대로, 그 외는 APIException으로 래핑
-            if isinstance(exception, PyKISException):
+            # PyKIS 예외와 모의투자 미지원 예외는 그대로, 그 외는 APIException으로 래핑.
+            # PaperTradingNotSupportedError를 감싸면 호출부가 "모의 미지원"과
+            # 실제 API 오류를 구분할 수 없다 (문서가 약속한 타입이기도 하다).
+            if isinstance(exception, (PyKISException, PaperTradingNotSupportedError)):
                 raise
             raise APIException(error_msg) from exception
         else:

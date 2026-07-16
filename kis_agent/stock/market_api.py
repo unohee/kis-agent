@@ -13,6 +13,7 @@ import pandas as pd
 
 from ..core.base_api import BaseAPI
 from ..core.client import API_ENDPOINTS
+from ..core.tr_mapping import PaperTradingNotSupportedError
 
 
 class StockMarketAPI(BaseAPI):
@@ -399,6 +400,11 @@ class StockMarketAPI(BaseAPI):
             return self._make_request_dict(
                 endpoint=API_ENDPOINTS["CHK_HOLIDAY"], tr_id="CTCA0903R", params=params
             )
+        except PaperTradingNotSupportedError:
+            # 휴장일 조회는 모의투자 미지원. 모의에선 정상 상황이므로 조용히 넘긴다
+            # (호출부는 None을 받아 주말 여부로 폴백한다).
+            logging.info("국내 휴장일 조회는 모의투자에서 지원되지 않습니다")
+            return None
         except Exception as e:
             logging.error(f"국내 휴장일 정보 조회 실패: {e}")
             return None

@@ -202,7 +202,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
         self.assertEqual(result, expected_response)
         self.assertEqual(result["output"]["odno"], "0000123456")
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수
+        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
         self.assertEqual(call_kwargs[1]["params"]["SLL_BUY_DVSN_CD"], "02")
         self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "01")  # 시장가
 
@@ -219,7 +219,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수
+        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
         self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "00")  # 지정가
 
     def test_order_sell_market_success(self):
@@ -235,7 +235,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1102U")  # 매도
+        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
         self.assertEqual(call_kwargs[1]["params"]["SLL_BUY_DVSN_CD"], "01")
 
     def test_order_sell_limit_success(self):
@@ -251,7 +251,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1102U")  # 매도
+        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
         self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "00")  # 지정가
 
     def test_order_invalid_order_type(self):
@@ -293,7 +293,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1104U")  # 취소
+        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1103U")  # 정정/취소 공통
         self.assertEqual(call_kwargs[1]["params"]["ORGN_ODNO"], "0000123456")
 
     def test_order_rvsecncl_modify_success(self):
@@ -311,7 +311,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1103U")  # 정정
+        self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1103U")  # 정정/취소 공통
         self.assertEqual(call_kwargs[1]["params"]["ORD_UNPR"], "341.00")
 
     def test_order_rvsecncl_invalid_action(self):
@@ -333,12 +333,17 @@ class TestFuturesOrderAPI(unittest.TestCase):
 @pytest.mark.parametrize(
     "order_type,expected_tr_id",
     [
-        ("01", "TTTO1102U"),  # 매도
+        ("01", "TTTO1101U"),  # 매도
         ("02", "TTTO1101U"),  # 매수
     ],
 )
 def test_order_tr_id_selection(order_type, expected_tr_id):
-    """주문 구분에 따른 TR_ID 선택 검증"""
+    """주간 주문은 매수/매도 모두 TTTO1101U 하나를 쓴다.
+
+    매수/매도 구분은 TR_ID가 아니라 SLL_BUY_DVSN_CD 필드로 한다 (공식 문서
+    '선물옵션 주문' 시트: "TTTO1101U : 선물 옵션 매수 매도 주문 주간").
+    이전에는 매도에 TTTO1102U를 보냈으나 그런 TR_ID는 존재하지 않는다.
+    """
     mock_client = Mock()
     mock_client.base_url = "https://openapi.koreainvestment.com:9443"
     api = FuturesOrderAPI(

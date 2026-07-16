@@ -216,27 +216,24 @@ class FuturesOrderAPI(BaseAPI):
             ... )
 
         Note:
-            TR_ID는 실전/모의 환경 및 매도/매수에 따라 자동 선택
-            - 실전 매수: TTTO1101U
-            - 실전 매도: TTTO1102U
-            - 야간 매수: STTN1101U (야간 거래 시)
-            - 야간 매도: STTN1102U (야간 거래 시)
+            매수/매도는 TR_ID가 아니라 SLL_BUY_DVSN_CD 필드로 구분한다.
+            주간 주문은 매수·매도 모두 TTTO1101U 하나를 쓴다 (모의: VTTO1101U).
+            모의투자 TR_ID 변환은 client.make_request가 처리한다.
 
         Warning:
             실전 주문 시 반드시 주의하여 사용하세요.
             주문 전 inquire_psbl_order()로 주문 가능 수량을 확인하세요.
+
+            이 메서드의 요청 본문 필드명은 공식 스펙과 일치하지 않는다
+            (스펙: CANO/ACNT_PRDT_CD/SHTN_PDNO/UNIT_PRICE). 실전·모의 양쪽에서
+            실패한다. TR_ID만 먼저 바로잡았고 본문 수정은 별도 작업이다.
         """
-        # TR_ID 선택 (매수/매도 구분)
-        if order_type == "01":  # 매도
-            tr_id = "TTTO1102U"
-        elif order_type == "02":  # 매수
-            tr_id = "TTTO1101U"
-        else:
+        if order_type not in ("01", "02"):
             raise ValueError(f"Invalid order_type: {order_type} (01:매도, 02:매수)")
 
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_ORDER"],
-            tr_id=tr_id,
+            tr_id="TTTO1101U",  # 매수/매도 공통 (주간)
             params={
                 "ACNT_NO": self._get_account_no(),
                 "ACNT_PDNO": self._get_account_code(),
@@ -289,21 +286,21 @@ class FuturesOrderAPI(BaseAPI):
             ... )
 
         Note:
-            TR_ID는 정정/취소 구분에 따라 자동 선택
-            - 정정: TTTO1103U
-            - 취소: TTTO1104U
+            주간 정정·취소는 모두 TTTO1103U 하나를 쓴다 (모의: VTTO1103U).
+            정정/취소 구분은 TR_ID가 아니라 본문 필드로 해야 한다.
+
+        Warning:
+            이 메서드의 요청 본문은 공식 스펙과 일치하지 않는다 — 정정/취소
+            구분 필드(RVSE_CNCL_DVSN_CD)를 보내지 않고, 계좌/가격 필드명도
+            스펙(CANO/ACNT_PRDT_CD/UNIT_PRICE)과 다르다. 실전·모의 양쪽에서
+            실패한다. TR_ID만 먼저 바로잡았고 본문 수정은 별도 작업이다.
         """
-        # TR_ID 선택 (정정/취소 구분)
-        if action == "01":  # 정정
-            tr_id = "TTTO1103U"
-        elif action == "02":  # 취소
-            tr_id = "TTTO1104U"
-        else:
+        if action not in ("01", "02"):
             raise ValueError(f"Invalid action: {action} (01:정정, 02:취소)")
 
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_ORDER_RVSECNCL"],
-            tr_id=tr_id,
+            tr_id="TTTO1103U",  # 정정/취소 공통 (주간)
             params={
                 "ACNT_NO": self._get_account_no(),
                 "ACNT_PDNO": self._get_account_code(),
