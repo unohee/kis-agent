@@ -14,7 +14,8 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from websockets.exceptions import ConnectionClosed
 
-from ..core.constants import WS_REAL_URL
+from ..core.constants import WS_MOCK_URL, WS_REAL_URL
+from ..core.tr_mapping import resolve_tr_id
 from .ws_helpers import RealtimeDataParser, RealtimeDataStore, WSAgentWithStore
 from .ws_types import Subscription, SubscriptionType
 
@@ -57,6 +58,17 @@ def _is_after_market_close(has_night_session: bool = False) -> bool:
     return current_time > MARKET_CLOSE_TIME
 
 
+# 체결통보 TR_ID (실전 + 모의). 체결통보 메시지는 AES256으로 암호화되어 오므로
+# 최초 구독 응답에서 key/iv를 받아 보관해야 한다.
+_NOTICE_TR_IDS = {
+    "H0STCNI0",  # 국내주식 체결통보 (실전)
+    "H0STCNI9",  # 국내주식 체결통보 (모의)
+    "H0IFCNI0",  # 선물옵션 체결통보 (실전)
+    "H0IFCNI9",  # 선물옵션 체결통보 (모의)
+    "H0GSCNI0",  # 해외주식 체결통보 (실전)
+    "H0GSCNI9",  # 해외주식 체결통보 (모의)
+}
+
 # 장 마감 후에도 연결을 허용해야 하는 SubscriptionType TR_ID 목록
 # (야간선물/옵션, 해외주식/선물 — 24h 또는 야간 세션이 존재하는 상품)
 _NIGHT_SESSION_TYPES = {
@@ -71,7 +83,7 @@ _NIGHT_SESSION_TYPES = {
     "HDFSASP0",  # OVERSEAS_STOCK_ASK_BID
     "HDFSASP1",  # OVERSEAS_STOCK_ASK_BID_ASIA
     "H0GSCNI0",  # OVERSEAS_STOCK_NOTICE
-    "H0GSCNI9",  # OVERSEAS_STOCK_NOTICE_AH
+    "H0GSCNI9",  # OVERSEAS_STOCK_NOTICE_PAPER (모의투자)
     "HDFFF020",  # OVERSEAS_FUTURES
     "HDFFF010",  # OVERSEAS_FUTURES_ASK_BID
     "HDFFF2C0",  # OVERSEAS_FUTURES_NOTICE
@@ -123,6 +135,8 @@ class WSAgent:
 
         self.approval_key = approval_key
         self.url = url
+        # 모의투자 WS 서버(WS_MOCK_URL)면 체결통보 TR_ID를 모의투자용으로 바꿔야 한다.
+        self.is_real = WS_MOCK_URL not in url
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.auto_reconnect = auto_reconnect
@@ -205,6 +219,21 @@ class WSAgent:
         if self.connected:
             logger.warning("연결 중 approval_key 갱신됨. 재연결이 필요할 수 있습니다.")
 
+    def _resolve_sub_type(self, sub_type: SubscriptionType) -> SubscriptionType:
+        """Map a subscription type to its paper-trading counterpart when needed.
+
+        Resolving here (rather than at each send site) keeps the subscription ID,
+        the AES key table, and the subscribe/unsubscribe frames all agreeing on
+        one TR_ID.
+
+        Raises:
+            PaperTradingNotSupportedError: On paper trading, when the
+                subscription type has no paper-trading TR_ID.
+        """
+        if self.is_real:
+            return sub_type
+        return SubscriptionType(resolve_tr_id(sub_type.value, is_real=False))
+
     def subscribe(
         self,
         sub_type: SubscriptionType,
@@ -244,6 +273,7 @@ class WSAgent:
         Returns:
             구독 ID
         """
+        sub_type = self._resolve_sub_type(sub_type)
         sub_id = f"{sub_type.value}_{key}"
 
         if sub_id in self.subscriptions:
@@ -294,6 +324,7 @@ class WSAgent:
         Returns:
             tuple[str, bool]: (구독 ID, 성공 여부)
         """
+        sub_type = self._resolve_sub_type(sub_type)
         sub_id = f"{sub_type.value}_{key}"
 
         if sub_id in self.subscriptions:
@@ -583,8 +614,8 @@ class WSAgent:
             tr_id = header.get("tr_id")
             tr_key = header.get("tr_key")
 
-            # AES 키 저장
-            if tr_id in ["H0STCNI0", "H0STCNI9"]:
+            # AES 키 저장 (체결통보는 암호화되어 오므로 실전/모의 양쪽 TR 모두 필요)
+            if tr_id in _NOTICE_TR_IDS:
                 output = body.get("output", {})
                 if "key" in output and "iv" in output:
                     self.aes_keys[tr_id] = (output["key"], output["iv"])

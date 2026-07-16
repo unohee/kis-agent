@@ -309,8 +309,12 @@ class TestAccountBalanceQueryAPI:
         assert result is not None
         assert result["ord_psbl_cash"] == "5000000"
 
-    def test_inquire_psbl_order_mock_account(self, balance_api, mock_client):
-        """모의 계좌 매수 가능 조회"""
+    def test_inquire_psbl_order_passes_real_tr_id(self, balance_api, mock_client):
+        """API 계층은 항상 실전 TR_ID를 넘긴다.
+
+        모의투자 변환(TTTC8908R -> VTTC8908R)은 client.make_request가 단일
+        관문에서 처리한다 (tests/unit/test_paper_trading.py 참조).
+        """
         # Arrange
         mock_client.is_real = False
         mock_client.make_request.return_value = {
@@ -319,11 +323,11 @@ class TestAccountBalanceQueryAPI:
         }
 
         # Act
-        result = balance_api.inquire_psbl_order(price=70000)
+        balance_api.inquire_psbl_order(price=70000)
 
         # Assert
         call_args = mock_client.make_request.call_args
-        assert call_args[1]["tr_id"] == "VTTC8908R"
+        assert call_args[1]["tr_id"] == "TTTC8908R"
 
     def test_inquire_psbl_order_failure(self, balance_api, mock_client):
         """매수 가능 조회 실패"""

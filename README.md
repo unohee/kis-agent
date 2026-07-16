@@ -74,8 +74,35 @@ KIS_APP_KEY=발급받은_앱키
 KIS_APP_SECRET=발급받은_시크릿
 KIS_ACCOUNT_NO=계좌번호
 KIS_ACCOUNT_CODE=01                # 선택 (기본 "01" = 주식, "03" = 선물옵션)
-KIS_BASE_URL=                       # 선택 (모의투자: https://openapivts.koreainvestment.com:29443)
+KIS_PAPER=                          # 선택 (1이면 모의투자 — URL·TR_ID 자동 적용)
+KIS_BASE_URL=                       # 선택 (KIS_PAPER=1이면 불필요)
 ```
+
+### 모의투자
+
+`paper=True`로 Agent를 만들면 모의투자 URL과 모의투자 전용 TR_ID가 자동 적용됩니다.
+모의투자 APP KEY/SECRET/계좌번호는 실전과 별도로 발급받아야 합니다.
+
+```python
+agent = Agent(
+    app_key=os.environ["KIS_APP_KEY"],
+    app_secret=os.environ["KIS_APP_SECRET"],
+    account_no=os.environ["KIS_ACCOUNT_NO"],
+    account_code="01",
+    paper=True,          # 또는 .env에 KIS_PAPER=1
+)
+```
+
+CLI는 `.env`의 `KIS_PAPER=1`만 설정하면 됩니다:
+
+```bash
+KIS_PAPER=1 kis balance
+```
+
+> **모의투자 미지원 API**: KIS는 전체 336개 API 중 43개만 모의투자로 제공합니다.
+> 해외선물옵션·장내채권·순위/투자자동향·재무 등은 모의투자에서 쓸 수 없습니다.
+> 미지원 API를 모의투자로 호출하면 `PaperTradingNotSupportedError`가 발생합니다.
+> 지원 목록은 `kis_agent/core/tr_mapping.py`의 `REAL_TO_PAPER_TR`를 참고하세요.
 
 > **v1.7.0 Breaking change**: 환경변수 이름이 `KIS_*` prefix로 통일되었습니다.
 > 이전 별칭(`MY_APP`, `MY_SEC`, `KIS_SECRET`, `MY_ACCT_STOCK`, `MY_PROD`, `PROD_URL`,

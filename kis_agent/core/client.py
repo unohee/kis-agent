@@ -11,9 +11,10 @@ import requests
 
 from .auth import auth, getTREnv, read_token
 from .config import KISConfig
-from .constants import MOCK_BASE_URL, REAL_BASE_URL
+from .constants import MOCK_BASE_URL, REAL_BASE_URL, resolve_environment  # noqa: F401
 from .endpoints import API_ENDPOINTS
 from .rate_limiter import RateLimiter, get_global_rate_limiter
+from .tr_mapping import PaperTradingNotSupportedError, resolve_tr_id  # noqa: F401
 
 # 로깅 설정
 logging.basicConfig(
@@ -99,11 +100,19 @@ class KISClient:
         else:
             self.rate_limiter = None
 
-        # 초기 토큰 발급 또는 기존 토큰 재사용
+        # base_url/is_real을 토큰 발급 *전에* 확정한다. is_real은 TR_ID 변환의
+        # 근거이므로 _initialize_token의 부수효과에 의존해선 안 된다.
+        if self.config and self.config.BASE_URL:
+            self.base_url = self.config.BASE_URL
+        else:
+            # config가 없는 경로도 KIS_PAPER를 존중해야 한다 (Agent/CLI와 동일 헬퍼).
+            self.base_url, _ = resolve_environment()
+        self.is_real = MOCK_BASE_URL not in self.base_url
+
+        # 초기 토큰 발급 또는 기존 토큰 재사용 (내부에서 base_url을 다시 확정한다)
         self._initialize_token()
 
-        # is_real 속성 설정 (실전투자 여부 판단)
-        # 실전 URL은 constants.REAL_BASE_URL, 모의 URL은 constants.MOCK_BASE_URL 참조.
+        # 토큰 발급 과정에서 base_url이 바뀌었을 수 있으므로 is_real을 재계산.
         self.is_real = MOCK_BASE_URL not in getattr(self, "base_url", "")
 
     def _initialize_token(self) -> None:
@@ -139,7 +148,7 @@ class KISClient:
                     # auth() 호출하여 헤더 설정 (토큰 재발급 없이 기존 토큰 로드)
                     if self.config is None:
                         auth(svr=self.svr)
-                        self.base_url = os.getenv("KIS_BASE_URL", REAL_BASE_URL)
+                        self.base_url, _ = resolve_environment()
                     else:
                         auth(config=self.config, svr=self.svr)
                         self.base_url = self.config.BASE_URL
@@ -153,7 +162,7 @@ class KISClient:
                                 "access_token_token_expired"
                             )
                             logger.info(f"토큰 발급 완료 (만료: {self.token_expired})")
-                        self.base_url = os.getenv("KIS_BASE_URL", REAL_BASE_URL)
+                        self.base_url, _ = resolve_environment()
                     else:
                         token_data = auth(config=self.config, svr=self.svr)
                         if token_data:
@@ -255,10 +264,16 @@ class KISClient:
             Optional[Dict[str, Any]]: API 응답 데이터
 
         Raises:
+            PaperTradingNotSupportedError: 모의투자 환경에서 모의투자를 지원하지
+                않는 API를 호출한 경우.
             Exception: API 요청 실패 시 발생
         """
         # 요청 전 토큰 만료 체크 및 자동 갱신
         self._check_and_refresh_token()
+
+        # 모의투자면 TR_ID를 모의투자용으로 변환한다. 호출부가 실전 TR_ID를
+        # 하드코딩해도 여기서 일괄 처리되도록 이 지점을 단일 관문으로 둔다.
+        tr_id = resolve_tr_id(tr_id, self.is_real)
 
         url = f"{self.base_url}{endpoint}"
 

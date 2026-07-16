@@ -344,7 +344,9 @@ class TestCreateAgent:
                 assert call_kwargs['app_key'] == ''
                 assert call_kwargs['app_secret'] == ''
                 assert call_kwargs['account_code'] == '01'
-                assert 'koreainvestment.com' in call_kwargs['base_url']
+                # base_url은 더 이상 CLI가 넘기지 않는다 — Agent가 KIS_BASE_URL /
+                # KIS_PAPER 환경변수에서 직접 해석한다.
+                assert 'base_url' not in call_kwargs
 
 
 class TestJSONRoundTrip:

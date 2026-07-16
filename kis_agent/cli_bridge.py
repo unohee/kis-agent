@@ -93,14 +93,13 @@ def create_agent():
     load_env()
 
     from kis_agent import Agent
-    from kis_agent.core.constants import REAL_BASE_URL
 
+    # base_url/paper는 Agent가 KIS_BASE_URL·KIS_PAPER 환경변수에서 직접 해석한다.
     agent = Agent(
         app_key=os.environ.get("KIS_APP_KEY", ""),
         app_secret=os.environ.get("KIS_APP_SECRET", ""),
         account_no=os.environ.get("KIS_ACCOUNT_NO", ""),
         account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
-        base_url=os.environ.get("KIS_BASE_URL", REAL_BASE_URL),
     )
 
     return agent

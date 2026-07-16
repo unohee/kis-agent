@@ -18,8 +18,13 @@ class SubscriptionType(Enum):
     STOCK_TRADE = "H0STCNT0"       # 국내주식 실시간 체결가 (KRX)
     STOCK_ASK_BID = "H0STASP0"     # 국내주식 실시간 호가 (KRX)
     STOCK_EXPECTED = "H0UNANC0"    # 국내주식 실시간 예상체결 (통합)
-    STOCK_NOTICE = "H0STCNI0"      # 국내주식 체결통보
-    STOCK_NOTICE_AH = "H0STCNI9"   # 국내주식 시간외 체결통보
+    STOCK_NOTICE = "H0STCNI0"      # 국내주식 체결통보 (실전)
+    # 모의투자용 체결통보. KIS 공식 문서 '국내주식 실시간체결통보' 시트:
+    # "※ 모의투자는 H0STCNI9 로 변경하여 사용합니다."
+    STOCK_NOTICE_PAPER = "H0STCNI9"
+    # Deprecated: 시간외가 아니라 모의투자용이다 (오라벨). Enum 별칭이므로
+    # 기존 코드는 계속 동작한다. STOCK_NOTICE_PAPER를 사용할 것.
+    STOCK_NOTICE_AH = "H0STCNI9"
 
     # 국내주식 시간외 (KRX)
     OVERTIME_ASK_BID = "H0STOAA0"  # 시간외 단일가 호가
@@ -47,7 +52,8 @@ class SubscriptionType(Enum):
     INDEX_FUTURES_ASK_BID = "H0IFASP0" # 지수선물 실시간 호가
     INDEX_OPTION_TRADE = "H0IOCNT0"     # 지수옵션 실시간 체결 (수정: H0OPCNT0 → H0IOCNT0)
     INDEX_OPTION_ASK_BID = "H0IOASP0"  # 지수옵션 실시간 호가 (수정: H0OPASP0 → H0IOASP0)
-    FUOPT_NOTICE = "H0IFCNI0"           # 선물옵션 체결통보
+    FUOPT_NOTICE = "H0IFCNI0"           # 선물옵션 체결통보 (실전)
+    FUOPT_NOTICE_PAPER = "H0IFCNI9"     # 선물옵션 체결통보 (모의투자)
 
     # 상품선물 (KRX)
     COMMODITY_FUTURES_TRADE = "H0CFCNT0"    # 상품선물 실시간 체결
@@ -74,8 +80,10 @@ class SubscriptionType(Enum):
     OVERSEAS_STOCK = "HDFSCNT0"             # 해외주식 실시간 체결
     OVERSEAS_STOCK_ASK_BID = "HDFSASP0"    # 해외주식 실시간 호가 (미국 1호가 무료)
     OVERSEAS_STOCK_ASK_BID_ASIA = "HDFSASP1"  # 해외주식 지연호가 (아시아)
-    OVERSEAS_STOCK_NOTICE = "H0GSCNI0"     # 해외주식 체결통보
-    OVERSEAS_STOCK_NOTICE_AH = "H0GSCNI9"  # 해외주식 시간외 체결통보
+    OVERSEAS_STOCK_NOTICE = "H0GSCNI0"     # 해외주식 체결통보 (실전)
+    OVERSEAS_STOCK_NOTICE_PAPER = "H0GSCNI9"  # 해외주식 체결통보 (모의투자)
+    # Deprecated: 시간외가 아니라 모의투자용이다 (오라벨). Enum 별칭.
+    OVERSEAS_STOCK_NOTICE_AH = "H0GSCNI9"
 
     # 해외선물옵션
     OVERSEAS_FUTURES = "HDFFF020"           # 해외선물옵션 실시간 체결

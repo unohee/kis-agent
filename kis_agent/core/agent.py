@@ -25,7 +25,7 @@ from ..websocket.client import KisWebSocket
 from .base_exception_handler import BaseExceptionHandler, exception_handler
 from .client import KISClient
 from .config import KISConfig
-from .constants import REAL_BASE_URL
+from .constants import REAL_BASE_URL, resolve_environment  # noqa: F401
 from .method_discovery import MethodDiscoveryMixin
 from .rate_limiter import RateLimiter, get_global_rate_limiter
 from .rate_limiter_mixin import RateLimiterControlMixin
@@ -91,7 +91,8 @@ class Agent(
         app_secret: str,
         account_no: str,
         account_code: str,
-        base_url: str = REAL_BASE_URL,
+        base_url: Optional[str] = None,
+        paper: Optional[bool] = None,
         client: Optional[KISClient] = None,
         account_info: Optional[Dict] = None,
         enable_rate_limiter: bool = True,
@@ -106,9 +107,14 @@ class Agent(
             app_secret (str): 한국투자증권 API 앱 시크릿 (필수)
             account_no (str): 계좌번호 (필수)
             account_code (str): 계좌 상품코드 (필수)
-            base_url (str): API 베이스 URL (기본값: 실전투자 URL)
+            base_url (str, optional): API 베이스 URL. None이면 `paper` /
+                `KIS_PAPER` / `KIS_BASE_URL` 로부터 결정된다 (기본: 실전투자).
                 - 실전투자: "https://openapi.koreainvestment.com:9443"
                 - 모의투자: "https://openapivts.koreainvestment.com:29443"
+            paper (bool, optional): 모의투자 사용 여부. True면 모의투자 URL과
+                모의투자 TR_ID가 자동 적용된다. None이면 `KIS_PAPER` 환경변수,
+                그것도 없으면 `base_url` 모양으로 추론한다.
+                `base_url`과 모순되면 ValueError.
             client (KISClient, optional): API 클라이언트. None이면 새로 생성
             account_info (Dict, optional): 계좌 정보. None이면 자동 설정
             enable_rate_limiter (bool): Rate Limiter 사용 여부 (기본값: True)
@@ -139,7 +145,7 @@ class Agent(
             ...     app_secret="YOUR_APP_SECRET",  # cxt-ignore: hardcoded_secret
             ...     account_no="12345678",
             ...     account_code="01",
-            ...     base_url="https://openapivts.koreainvestment.com:29443"
+            ...     paper=True
             ... )
             >>>
             >>> # Rate Limiter 비활성화
@@ -175,6 +181,12 @@ class Agent(
                 "      account_code='01'\n"
                 "  )"
             )
+
+        # 실전/모의 환경 결정 (paper > KIS_PAPER > base_url 순으로 의도를 해석).
+        # 모순 시 ValueError — 잘못된 환경으로 주문이 나가는 것보다 낫다.
+        base_url, self.is_real = resolve_environment(base_url=base_url, paper=paper)
+        if not self.is_real:
+            self.logger.info("모의투자 모드로 실행합니다 (모의투자 TR_ID 자동 적용)")
 
         # Rate Limiter 설정 (전역 싱글턴 패턴)
         # 기본값은 kis_agent.core.rate_limiter의 DEFAULT_* 상수를 사용한다
