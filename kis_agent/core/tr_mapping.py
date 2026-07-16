@@ -32,32 +32,35 @@ regenerates this table from it and ``--check`` diffs the two;
 ``tests/unit/test_paper_trading.py`` runs that check when the workbook is present.
 Re-run it after KIS publishes a new spec revision.
 
-Cross-checked against the official sample repo (`open-trading-api`, commit 37a084d).
-Where the two disagree, the workbook wins — it is newer and states the paper
-contract explicitly, whereas the samples carry stale copy-paste errors. Two such
-errors were confirmed and are deliberately *not* reproduced here:
+Cross-checked against the official sample repo (`open-trading-api`, commit
+885dd4e, 2026-07-09). Every disagreement traced back to `legacy/`, which KIS no
+longer keeps in sync; the workbook and the current samples agree with this table
+throughout. Note when re-checking that `legacy/` (including its Postman
+collections) is not evidence of the live paper contract:
 
-- ``legacy/Sample01/kis_ovrseastk.py:76`` maps 베트남 매도 (``TTTS0310U``) to
-  ``VTTS0311U``, the same TR its line 60 gives 베트남 매수. The workbook and the
-  모의계좌 Postman collection both say 매도 is ``VTTS0310U``.
-- ``examples_llm/overseas_stock/order/order.py`` maps 미국 매도 (``TTTT1006U``)
-  to ``VTTT1006U``, which exists nowhere else. The 모의계좌 Postman collection
-  says ``VTTT1001U``.
+- 미국 매도 ``TTTT1006U`` -> ``VTTT1001U``: the samples used to say
+  ``VTTT1006U``, which exists in no other source. KIS corrected them to
+  ``VTTT1001U`` in 885dd4e ("해외주식 주문 모의TR 업데이트"), matching the
+  workbook and this table.
+- 베트남 매도 ``TTTS0310U`` -> ``VTTS0310U``: ``legacy/Sample01/kis_ovrseastk.py:76``
+  still says ``VTTS0311U`` — the TR its own line 60 gives 베트남 *매수*, i.e. a
+  copy-paste error 885dd4e did not sweep up. The current samples
+  (``examples_llm``, ``examples_user``) say ``VTTS0310U``.
 
-Legacy (구) TR_IDs — ``TTTC0801U``/``TTTC0802U``/``TTTC0803U``/``TTTC8001R``/
-``CTSC9115R`` — are intentionally absent: this codebase does not send them, and
-KIS warns they may be blocked without notice in favour of the new TR_IDs.
-
-Genuinely disputed between the two sources (workbook says 미지원, the *모의계좌*
-Postman collection ships a runnable request against the paper host). Left
-unsupported here, following the workbook as the newer source — revisit if a
-paper account proves otherwise:
+Deliberately left unsupported, all claimed only by `legacy/` and absent from
+both the workbook and the current samples:
 
 - ``TTTS3018R`` 해외주식 미체결내역 — workbook: "※ 해외주식 미체결내역 API
-  모의투자에서는 사용이 불가합니다"; Postman ``V_해외주식 미체결내역`` =
-  ``VTTS3018R``.
+  모의투자에서는 사용이 불가합니다". ``VTTS3018R`` appears in zero current
+  samples; ``examples_llm/overseas_stock/inquire_nccs`` names no paper TR at all.
+  Only ``legacy/`` and its Postman v1.6 collection ship it.
 - ``JTCE1001U``/``JTCE1002U`` 선물옵션 야간 주문·정정취소 — workbook: "야간은
-  모의투자 미제공"; Postman: ``VTCE1001U``/``VTCE1002U``. (Unused here anyway.)
+  모의투자 미제공". Zero hits in the current samples.
+- Legacy (구) TR_IDs ``TTTC0801U``/``TTTC0802U``/``TTTC0803U``/``TTTC8001R``/
+  ``CTSC9115R`` — zero hits in the current samples, and this codebase does not
+  send them. KIS warns they may be blocked without notice.
+
+If a paper account ever proves one of these live, add it here with that evidence.
 
 The mapping is an explicit lookup table rather than a substitution rule. A rule
 such as ``"V" + real[1:]`` would be wrong in three ways: it mangles the quote
