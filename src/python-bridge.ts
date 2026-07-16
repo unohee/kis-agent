@@ -23,6 +23,7 @@ interface BridgeResponse {
 }
 
 interface PendingRequest {
+  child: ChildProcessWithoutNullStreams;
   reject: (reason?: unknown) => void;
   resolve: (value: BridgeResponse | PromiseLike<BridgeResponse>) => void;
   stderr: string;
@@ -175,17 +176,26 @@ export class PythonBridge extends EventEmitter {
     child.stderr.setEncoding('utf-8');
 
     child.stdout.on('data', (data: string) => {
-      this.handleStdoutData(data);
+      if (this.child !== child) {
+        return;
+      }
+      this.handleStdoutData(data, child);
     });
 
     child.stderr.on('data', (data: string) => {
-      if (this.pendingRequest) {
-        const combined = this.pendingRequest.stderr + data;
+      if (this.child !== child) {
+        return;
+      }
+
+      const pending = this.pendingRequest;
+      if (pending && pending.child === child) {
+        const combined = pending.stderr + data;
         // Keep the most recent bytes so the tail (usually the exception line) survives.
-        this.pendingRequest.stderr =
+        const stderr =
           combined.length > PythonBridge.MAX_STDERR_BUFFER
             ? combined.slice(combined.length - PythonBridge.MAX_STDERR_BUFFER)
             : combined;
+        pending.stderr = stderr;
       }
       this.emit('stderr', data);
     });
@@ -194,16 +204,26 @@ export class PythonBridge extends EventEmitter {
     // thrown as an unhandled stream error and crash the Node process.
     child.stdin.on('error', (error: Error) => {
       this.failPendingRequest(
-        new PythonBridgeError('StdinError', `Python bridge stdin stream error: ${error.message}`)
+        new PythonBridgeError('StdinError', `Python bridge stdin stream error: ${error.message}`),
+        child
       );
     });
 
     child.on('close', (code, signal) => {
-      const pending = this.pendingRequest;
-      this.child = null;
-      this.pendingRequest = null;
+      const pending = this.pendingRequest?.child === child ? this.pendingRequest : null;
+      const isActiveChild = this.child === child;
+
+      if (isActiveChild) {
+        this.child = null;
+        this.stdoutBuffer = '';
+      }
+
+      if (!pending && !isActiveChild) {
+        return;
+      }
 
       if (pending) {
+        this.pendingRequest = null;
         clearTimeout(pending.timeoutHandle);
         pending.reject(
           new PythonBridgeError(
@@ -218,26 +238,32 @@ export class PythonBridge extends EventEmitter {
     });
 
     child.on('error', (error) => {
-      const pending = this.pendingRequest;
-      this.child = null;
-      this.pendingRequest = null;
+      const pending = this.pendingRequest?.child === child ? this.pendingRequest : null;
 
-      if (pending) {
-        clearTimeout(pending.timeoutHandle);
-        pending.reject(
-          new PythonBridgeError(
-            'ProcessError',
-            `Failed to spawn Python process: ${error.message}`,
-            pending.stderr
-          )
-        );
+      if (this.child === child) {
+        this.child = null;
+        this.stdoutBuffer = '';
       }
+
+      if (!pending) {
+        return;
+      }
+
+      this.pendingRequest = null;
+      clearTimeout(pending.timeoutHandle);
+      pending.reject(
+        new PythonBridgeError(
+          'ProcessError',
+          `Failed to spawn Python process: ${error.message}`,
+          pending.stderr
+        )
+      );
     });
 
     return child;
   }
 
-  private handleStdoutData(data: string): void {
+  private handleStdoutData(data: string, child: ChildProcessWithoutNullStreams): void {
     this.stdoutBuffer += data;
 
     while (true) {
@@ -253,7 +279,7 @@ export class PythonBridge extends EventEmitter {
         continue;
       }
 
-      this.handleResponseLine(line);
+      this.handleResponseLine(line, child);
     }
 
     // Guard against unbounded growth when no newline-delimited response ever
@@ -264,10 +290,14 @@ export class PythonBridge extends EventEmitter {
         new PythonBridgeError(
           'ResponseOverflow',
           `Python bridge stdout exceeded ${PythonBridge.MAX_STDOUT_BUFFER} bytes without a complete response line`
-        )
+        ),
+        child
       );
-      if (this.child && !this.child.killed) {
-        this.child.kill('SIGTERM');
+      if (this.child === child) {
+        this.child = null;
+        if (!child.killed) {
+          child.kill('SIGTERM');
+        }
       }
     }
   }
@@ -276,9 +306,16 @@ export class PythonBridge extends EventEmitter {
    * 진행 중인 요청을 정리하고 에러로 reject. pendingRequest가 없으면 no-op이므로
    * 여러 실패 경로(stdin write/error, stdout overflow)에서 중복 호출해도 안전하다.
    */
-  private failPendingRequest(error: PythonBridgeError): void {
+  private failPendingRequest(
+    error: PythonBridgeError,
+    child?: ChildProcessWithoutNullStreams
+  ): void {
     const pending = this.pendingRequest;
     if (!pending) {
+      return;
+    }
+
+    if (child && pending.child !== child) {
       return;
     }
 
@@ -292,10 +329,10 @@ export class PythonBridge extends EventEmitter {
     pending.reject(error);
   }
 
-  private handleResponseLine(line: string): void {
+  private handleResponseLine(line: string, child: ChildProcessWithoutNullStreams): void {
     const pending = this.pendingRequest;
 
-    if (!pending) {
+    if (!pending || pending.child !== child) {
       this.emit('unhandledResponse', line);
       return;
     }
@@ -367,8 +404,18 @@ export class PythonBridge extends EventEmitter {
       // 타임아웃 설정 (밀리초)
       const timeout = request.timeout || this.timeout;
       const timeoutHandle = setTimeout(() => {
+        if (this.pendingRequest?.child !== child) {
+          return;
+        }
+
         this.pendingRequest = null;
-        child.kill('SIGTERM');
+        if (this.child === child) {
+          this.child = null;
+          this.stdoutBuffer = '';
+        }
+        if (!child.killed) {
+          child.kill('SIGTERM');
+        }
         reject(
           new PythonBridgeError(
             'TimeoutError',
@@ -378,6 +425,7 @@ export class PythonBridge extends EventEmitter {
       }, timeout);
 
       this.pendingRequest = {
+        child,
         resolve,
         reject,
         stderr: '',
@@ -393,7 +441,8 @@ export class PythonBridge extends EventEmitter {
             new PythonBridgeError(
               'StdinWriteError',
               `Failed to write request to Python bridge stdin: ${writeError.message}`
-            )
+            ),
+            child
           );
         }
       });

@@ -386,6 +386,42 @@ describe('PythonBridge', () => {
       expect(child.kill).toHaveBeenCalled();
       expect(bridge['stdoutBuffer']).toBe('');
     });
+
+    it('should ignore late events from a replaced child process', async () => {
+      jest.useFakeTimers();
+
+      try {
+        const oldChild = createMockChild();
+        const newChild = createMockChild();
+        (spawn as jest.Mock).mockReturnValueOnce(oldChild).mockReturnValueOnce(newChild);
+
+        const bridge = new PythonBridge('/tmp/dummy_bridge.py', 10);
+        const first = bridge.call({ method: 'test_api.first' });
+
+        jest.advanceTimersByTime(10);
+
+        await expect(first).rejects.toMatchObject({
+          code: 'TimeoutError',
+        });
+
+        const second = bridge.call({ method: 'test_api.second' });
+
+        oldChild.stdout.emit('data', '{"success":true,"data":{"stale":true}}\n');
+        oldChild.stderr.emit('data', 'late stderr');
+        oldChild.emit('close', null, 'SIGTERM');
+        oldChild.emit('error', new Error('late child error'));
+
+        newChild.stdout.emit('data', '{"success":true,"data":{"fresh":true}}\n');
+
+        await expect(second).resolves.toEqual({
+          success: true,
+          data: { fresh: true },
+        });
+        expect(spawn).toHaveBeenCalledTimes(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('Synchronous Call', () => {
