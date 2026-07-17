@@ -33,7 +33,7 @@ _token_cache: Dict[str, Dict[str, Any]] = {}
 
 # .env 자동 로드: 현재 작업 디렉토리의 .env만 인식하며, 기존 환경변수는 덮어쓰지 않음.
 # (이전 버전은 패키지 부모 디렉토리(../../.env)까지 검색하고 override=True로 덮어썼으나,
-#  의도치 않은 환경 오염 가능성이 있어 v1.7.0에서 제거. 사용자가 임포트 위치와 무관하게
+#  의도치 않은 환경 오염 가능성이 있어 v1.8.0에서 제거. 사용자가 임포트 위치와 무관하게
 #  자기 프로젝트의 .env를 사용하려면 dotenv를 직접 호출하거나 KISConfig에 매개변수 전달.)
 current_dir_env = os.path.join(os.getcwd(), ".env")
 if os.path.exists(current_dir_env):
@@ -93,7 +93,7 @@ def _get_token_path_for_app_key(app_key: str, base_path: str = token_tmp) -> str
 
 # 환경 변수 기반 설정 로드 — KIS_* prefix 전용
 # (Legacy 별칭 MY_APP/MY_SEC/KIS_SECRET/MY_ACCT_STOCK/MY_PROD/PROD_URL/VPS_URL/MY_AGENT 는
-#  v1.7.0에서 제거됨. 마이그레이션은 README 참조)
+#  v1.8.0에서 제거됨. 마이그레이션은 README 참조)
 _cfg = {
     "my_app": os.getenv("KIS_APP_KEY", ""),
     "my_sec": os.getenv("KIS_APP_SECRET", ""),

@@ -36,6 +36,7 @@ from uuid import uuid4
 
 class ResponseStatus(str, Enum):
     """응답 상태 열거형."""
+
     OK = "ok"
     ERROR = "error"
     TIMEOUT = "timeout"
@@ -51,6 +52,7 @@ class CliRequest:
         timeout: 타임아웃 (밀리초, 기본값: 30000)
         id: 요청 ID (선택, 자동 생성)
     """
+
     method: str
     args: Dict[str, Any] = field(default_factory=dict)
     timeout: int = 30000
@@ -72,7 +74,7 @@ class CliRequest:
             method=data.get("method"),
             args=data.get("args", {}),
             timeout=data.get("timeout", 30000),
-            id=data.get("id")
+            id=data.get("id"),
         )
 
 
@@ -86,6 +88,7 @@ class CliResponseSuccess:
         status: 상태 ("ok")
         notice: 시장 상태 공지 (선택)
     """
+
     id: str
     result: Any
     status: ResponseStatus = ResponseStatus.OK
@@ -113,6 +116,7 @@ class CliResponseError:
         code: 에러 클래스명
         status: 상태 ("error" 또는 "timeout")
     """
+
     id: Optional[str]
     error: str
     code: str
@@ -155,7 +159,10 @@ class CliMessageValidator:
 
         parts = method.split(".")
         if len(parts) != 2 or not all(part.isidentifier() for part in parts):
-            return False, f"Invalid 'method' format: '{method}'. Both domain and method must be valid identifiers"
+            return (
+                False,
+                f"Invalid 'method' format: '{method}'. Both domain and method must be valid identifiers",
+            )
 
         # args 필드 검증
         if "args" in data:
@@ -195,7 +202,10 @@ class CliMessageValidator:
             return False, "Missing or invalid 'status' field"
 
         if data["status"] != "ok":
-            return False, f"Success response must have status='ok', got '{data['status']}'"
+            return (
+                False,
+                f"Success response must have status='ok', got '{data['status']}'",
+            )
 
         # notice 필드 검증 (선택)
         if "_notice" in data and data["_notice"] is not None:
@@ -215,7 +225,9 @@ class CliMessageValidator:
             (유효 여부, 에러 메시지)
         """
         # 필수 필드: id, error, code, status
-        if "id" not in data or (data["id"] is not None and not isinstance(data["id"], str)):
+        if "id" not in data or (
+            data["id"] is not None and not isinstance(data["id"], str)
+        ):
             return False, "'id' must be a string or null"
 
         if "error" not in data or not isinstance(data["error"], str):
@@ -225,7 +237,10 @@ class CliMessageValidator:
             return False, "Missing or invalid 'code' field (string required)"
 
         if "status" not in data or data["status"] not in ("error", "timeout"):
-            return False, "Missing or invalid 'status' field (must be 'error' or 'timeout')"
+            return (
+                False,
+                "Missing or invalid 'status' field (must be 'error' or 'timeout')",
+            )
 
         return True, None
 
@@ -257,4 +272,7 @@ class CliMessageValidator:
             return CliMessageValidator.validate_response_error(data)
 
         else:
-            return False, f"Invalid 'status': {status}. Must be 'ok', 'error', or 'timeout'"
+            return (
+                False,
+                f"Invalid 'status': {status}. Must be 'ok', 'error', or 'timeout'",
+            )

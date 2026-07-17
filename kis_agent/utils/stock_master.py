@@ -68,11 +68,13 @@ def _download_master(exchange: str) -> List[Dict[str, str]]:
         if len(code) > 6:
             code = code[-6:]
         if code and name and len(code) == 6:
-            symbols.append({
-                "code": code,
-                "name": name,
-                "market": "코스피" if exchange == "kospi" else "코스닥",
-            })
+            symbols.append(
+                {
+                    "code": code,
+                    "name": name,
+                    "market": "코스피" if exchange == "kospi" else "코스닥",
+                }
+            )
 
     return symbols
 

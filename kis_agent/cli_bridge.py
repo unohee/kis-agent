@@ -42,6 +42,7 @@ from typing import Any, Dict
 
 class TimeoutError(Exception):
     """타임아웃 에러."""
+
     pass
 
 
@@ -80,7 +81,7 @@ def check_python_installation():
 def load_env():
     """현재 작업 디렉토리의 .env만 로드 (기존 환경변수는 덮어쓰지 않음).
 
-    (v1.7.0부터 패키지 부모 디렉토리/~/.env 검색은 제거. 의도치 않은 환경 오염 방지.)
+    (v1.8.0부터 패키지 부모 디렉토리/~/.env 검색은 제거. 의도치 않은 환경 오염 방지.)
     """
     from dotenv import load_dotenv
 
@@ -141,7 +142,9 @@ def check_market_status(agent) -> None:
                 if prev_holiday is False:
                     _market_status["last_business_day"] = prev_str
                     bday = prev.strftime("%Y-%m-%d %a")
-                    _market_status["notice"] = f"휴장일 — 데이터는 직전 영업일({bday}) 기준"
+                    _market_status["notice"] = (
+                        f"휴장일 — 데이터는 직전 영업일({bday}) 기준"
+                    )
                     break
             except Exception:
                 if prev.weekday() < 5:
@@ -225,7 +228,11 @@ def handle_request(request_json: str, agent: Any, timeout: int = 30000) -> str:
         request = json.loads(request_json)
     except json.JSONDecodeError as e:
         return json.dumps(
-            {"success": False, "error": f"Invalid JSON: {str(e)}", "code": "JSONDecodeError"}
+            {
+                "success": False,
+                "error": f"Invalid JSON: {str(e)}",
+                "code": "JSONDecodeError",
+            }
         )
 
     method = request.get("method")
@@ -235,12 +242,20 @@ def handle_request(request_json: str, agent: Any, timeout: int = 30000) -> str:
 
     if not method:
         return json.dumps(
-            {"success": False, "error": "Missing 'method' field", "code": "ValidationError"}
+            {
+                "success": False,
+                "error": "Missing 'method' field",
+                "code": "ValidationError",
+            }
         )
 
     if not isinstance(timeout_ms, int) or timeout_ms <= 0:
         return json.dumps(
-            {"success": False, "error": "'timeout' must be a positive integer", "code": "ValidationError"}
+            {
+                "success": False,
+                "error": "'timeout' must be a positive integer",
+                "code": "ValidationError",
+            }
         )
 
     # 타임아웃 설정

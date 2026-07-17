@@ -104,7 +104,7 @@ KIS_PAPER=1 kis balance
 > 미지원 API를 모의투자로 호출하면 `PaperTradingNotSupportedError`가 발생합니다.
 > 지원 목록은 `kis_agent/core/tr_mapping.py`의 `REAL_TO_PAPER_TR`를 참고하세요.
 
-> **v1.7.0 Breaking change**: 환경변수 이름이 `KIS_*` prefix로 통일되었습니다.
+> **v1.8.0 Breaking change**: 환경변수 이름이 `KIS_*` prefix로 통일되었습니다.
 > 이전 별칭(`MY_APP`, `MY_SEC`, `KIS_SECRET`, `MY_ACCT_STOCK`, `MY_PROD`, `PROD_URL`,
 > `VPS_URL`, `MY_AGENT`)은 더 이상 인식되지 않습니다. 사용 중인 `.env`를
 > 다음과 같이 마이그레이션하세요:

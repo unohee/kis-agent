@@ -13,8 +13,8 @@ from typing import Any, Dict, Literal, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
-from .account_api import FuturesAccountAPI
 from ..utils.futures_master import get_current_futures as _get_current_master
+from .account_api import FuturesAccountAPI
 from .code_generator import (
     FuturesCodeGenerator,
     generate_call_option,
@@ -25,7 +25,12 @@ from .code_generator import (
 from .historical import FuturesContractCode, FuturesHistoricalAPI
 from .order_api import FuturesOrderAPI
 from .price_api import FuturesPriceAPI
-from .vkospi import VKOSPICalculator, VKOSPIResult, get_option_expiry_months, get_days_to_expiry
+from .vkospi import (
+    VKOSPICalculator,
+    VKOSPIResult,
+    get_days_to_expiry,
+    get_option_expiry_months,
+)
 
 
 class Futures(BaseAPI):
@@ -167,7 +172,10 @@ class Futures(BaseAPI):
         )
 
     def inquire_time_fuopchartprice(
-        self, code: str, hour: str = "153000", tick_range: str = "1",
+        self,
+        code: str,
+        hour: str = "153000",
+        tick_range: str = "1",
         market: str = "F",
     ) -> Optional[Dict]:
         """선물옵션 분봉차트 조회. Delegate to: FuturesPriceAPI"""
@@ -253,6 +261,7 @@ class Futures(BaseAPI):
             market: 시장 구분 (F: 주간선물, CM: 야간선물)
         """
         from ..utils.futures_master import get_futures_by_month_type
+
         candidates = get_futures_by_month_type("2", "지수선물")
         if not candidates:
             return None
@@ -515,6 +524,7 @@ class Futures(BaseAPI):
             >>> print(result)         # 상세 정보
         """
         from datetime import date as _date
+
         today = _date.today()
         near_month, far_month = get_option_expiry_months(today)
 
@@ -546,8 +556,8 @@ __all__ = [
     "generate_next_futures",  # 차근월물 코드
     "generate_call_option",  # 콜옵션 코드
     "generate_put_option",  # 풋옵션 코드
-    "VKOSPICalculator",     # VKOSPI 계산기
-    "VKOSPIResult",         # 계산 결과 타입
+    "VKOSPICalculator",  # VKOSPI 계산기
+    "VKOSPIResult",  # 계산 결과 타입
     "get_option_expiry_months",  # 선근월/차근월 만기 조회
-    "get_days_to_expiry",        # 잔존일수 계산
+    "get_days_to_expiry",  # 잔존일수 계산
 ]
