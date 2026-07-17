@@ -658,3 +658,209 @@ def _url_fetch(
         ar = APIResp(res)
         ar.printError(url)
         return ar
+
+
+# =============================================================================
+# 비동기 인증 (aiohttp)
+# =============================================================================
+#
+# 동기 auth()/reAuth()의 비동기 짝. 토큰 발급은 네트워크 대기가 대부분이라
+# 여러 계정을 동시에 인증하거나 asyncio 앱에서 이벤트 루프를 막지 않으려면
+# 비동기 경로가 필요하다.
+#
+# aiohttp는 선택적 의존성이다. 모듈 임포트 시점이 아니라 호출 시점에 확인해서,
+# 동기 경로만 쓰는 사용자가 aiohttp 없이도 이 모듈을 임포트할 수 있게 한다.
+
+
+def apply_token_env(
+    token: str,
+    svr: str = "prod",
+    product: Optional[str] = None,
+    config=None,
+) -> None:
+    """Install an already-issued token into the TR environment and headers.
+
+    `auth()`가 토큰을 받은 뒤 수행하는 마무리 단계만 떼어낸 것. 비동기 경로가
+    토큰을 이미 await로 받아둔 상태에서 `auth()`를 다시 부르면 동기 HTTP가
+    한 번 더 나가므로(그리고 이벤트 루프를 막으므로) 이 부분만 재사용한다.
+
+    Args:
+        token: 발급받은 access token (Bearer 접두어 없이).
+        svr: 'prod' 또는 'vps'.
+        product: 계좌 상품코드. None이면 config/모듈 설정에서 가져온다.
+        config: `KISConfig` 인스턴스.
+    """
+    if product is None:
+        product = config.ACCOUNT_CODE if config is not None else _cfg.get("my_prod", "")
+
+    # changeTREnv()는 appkey/appsecret을 인자 config가 아니라 모듈 `_cfg`에서
+    # 읽는다. 동기 auth()가 그 전에 _cfg를 config로 채우기 때문에 동작하는 것이라,
+    # 이 단계를 빠뜨리면 헤더의 appkey가 빈 문자열이 된다.
+    # auth()처럼 _cfg를 통째로 재할당하지는 않는다 — 그러면 paper_app/vps 같은
+    # 다른 슬롯이 사라진다.
+    if config is not None:
+        slot_app, slot_sec = (
+            ("my_app", "my_sec") if svr == "prod" else ("paper_app", "paper_sec")
+        )
+        _cfg[slot_app] = config.APP_KEY
+        _cfg[slot_sec] = config.APP_SECRET
+        _cfg["my_acct_stock"] = config.ACCOUNT_NO
+        _cfg["my_prod"] = config.ACCOUNT_CODE
+        _cfg[svr] = config.BASE_URL
+
+    changeTREnv(f"Bearer {token}", svr, product, config)
+
+    _base_headers["authorization"] = _TRENV.my_token
+    _base_headers["appkey"] = _TRENV.my_app
+    _base_headers["appsecret"] = _TRENV.my_sec
+
+    global _last_auth_time
+    _last_auth_time = datetime.now()
+
+
+def _require_aiohttp():
+    """Import aiohttp lazily so the sync path does not depend on it."""
+    try:
+        import aiohttp
+    except ImportError as e:
+        raise ImportError(
+            "aiohttp is not installed. 비동기 인증을 쓰려면 설치하세요: "
+            "pip install 'kis-agent[async]' 또는 pip install aiohttp"
+        ) from e
+    return aiohttp
+
+
+def _app_key_for(config=None, svr: str = "prod") -> str:
+    """Pick the APP_KEY slot the way the sync auth() does.
+
+    토큰 캐시는 APP_KEY별로 분리되므로 캐시 조회와 토큰 요청이 **같은 키**를
+    골라야 한다. 여기서 갈라지면 모의(vps)인데 실전 토큰을 재사용하거나,
+    맞는 모의 토큰을 두고도 캐시 미스가 난다.
+    """
+    if config is not None:
+        return config.APP_KEY
+    # svr에 따라 실전/모의 키 슬롯을 고른다 (동기 auth()와 동일 규칙).
+    return _cfg.get("my_app" if svr == "prod" else "paper_app", "")
+
+
+def _build_token_request(config=None, svr: str = "prod"):
+    """Assemble the token request shared by auth_async and reAuth_async.
+
+    Mirrors the sync auth(): config가 있으면 그 값을, 없으면 모듈 `_cfg`를 쓴다.
+
+    Returns:
+        (url, payload, app_key) — app_key는 토큰 캐시를 APP_KEY별로 분리하는 데 쓴다.
+    """
+    app_key = _app_key_for(config, svr)
+    if config is not None:
+        app_secret = config.APP_SECRET
+        base_url = config.BASE_URL
+    else:
+        app_secret = _cfg.get("my_sec" if svr == "prod" else "paper_sec", "")
+        base_url = _cfg.get(svr, "") or os.getenv("KIS_BASE_URL", REAL_BASE_URL)
+
+    payload = {
+        "grant_type": "client_credentials",
+        "appkey": app_key,
+        "appsecret": app_secret,
+    }
+    return f"{base_url}/oauth2/tokenP", payload, app_key
+
+
+async def _issue_token_async(config=None, svr: str = "prod") -> Dict[str, Any]:
+    """Request a fresh token over aiohttp and cache it.
+
+    Raises:
+        ImportError: aiohttp가 설치되지 않은 경우.
+        RuntimeError: 토큰 발급이 실패한 경우 (동기 auth()와 동일하게 조용히
+            None을 반환하지 않는다 — 인증 실패를 감추면 이후 모든 호출이
+            영문 모를 401로 실패한다).
+    """
+    aiohttp = _require_aiohttp()
+
+    url, payload, app_key = _build_token_request(config=config, svr=svr)
+
+    async with aiohttp.ClientSession() as session, session.post(
+        url, data=json.dumps(payload), headers=_getBaseHeader()
+    ) as res:
+        if res.status != 200:
+            body = await res.text()
+            _logger.error(f"토큰 발급 실패 - 응답코드: {res.status}, 응답내용: {body}")
+            raise RuntimeError(f"KIS API 토큰 발급 실패 (HTTP {res.status})")
+
+        data = await res.json()
+
+    token = {
+        "access_token": data.get("access_token"),
+        "access_token_token_expired": data.get("access_token_token_expired"),
+    }
+    save_token(
+        token["access_token"], token["access_token_token_expired"], app_key=app_key
+    )
+    # 동기 auth()는 토큰 발급 후 헤더/TR 환경까지 설치한다. 비동기가 이를
+    # 빠뜨리면 "인증은 됐는데 이후 호출이 헤더 없이 나가는" 비대칭이 생긴다.
+    apply_token_env(token["access_token"], svr=svr, config=config)
+    _logger.info("토큰 발급 완료 (async)")
+    return token
+
+
+async def _auth_async_impl(
+    config=None, svr: str = "prod", context: str = "async"
+) -> Dict[str, Any]:
+    """Shared body of auth_async/reAuth_async: reuse the cache, else issue.
+
+    캐시를 쓰든 새로 발급하든 **항상** TR 환경을 설치한다. 캐시 히트일 때만
+    건너뛰면 "두 번째 호출부터 헤더가 안 붙는" 자리 잡기 힘든 버그가 된다.
+    """
+    app_key = _app_key_for(config, svr)
+    cached = read_token(app_key=app_key) if app_key else read_token()
+    if cached:
+        _logger.debug(f"캐시된 토큰 재사용 ({context})")
+        apply_token_env(cached["access_token"], svr=svr, config=config)
+        return cached
+
+    return await _issue_token_async(config=config, svr=svr)
+
+
+async def auth_async(config=None, svr: str = "prod") -> Dict[str, Any]:
+    """Issue an access token asynchronously, reusing the cached one when valid.
+
+    동기 `auth()`의 비동기 짝. 캐시된 토큰이 있으면 네트워크를 타지 않는다
+    (KIS는 1일 1회 발급이 원칙이라 캐시 재사용이 중요하다).
+
+    Args:
+        config: `KISConfig` 인스턴스. None이면 모듈 `_cfg`를 사용한다.
+        svr: 'prod'(실전) 또는 'vps'(모의).
+
+    Returns:
+        `{"access_token": ..., "access_token_token_expired": ...}`
+
+    Raises:
+        ImportError: aiohttp 미설치.
+        RuntimeError: 토큰 발급 실패.
+
+    Example:
+        >>> token = await auth_async(config)
+    """
+    return await _auth_async_impl(config=config, svr=svr, context="async")
+
+
+async def reAuth_async(config=None, svr: str = "prod") -> Dict[str, Any]:
+    """Refresh the access token asynchronously.
+
+    동기 `reAuth()`의 비동기 짝. `auth_async()`와 마찬가지로 유효한 캐시가
+    있으면 그대로 쓴다 — 만료 전 재발급은 KIS가 기존 토큰을 그대로 돌려주므로
+    호출만 낭비된다.
+
+    Args:
+        config: `KISConfig` 인스턴스. None이면 모듈 `_cfg`를 사용한다.
+        svr: 'prod'(실전) 또는 'vps'(모의).
+
+    Returns:
+        `{"access_token": ..., "access_token_token_expired": ...}`
+
+    Raises:
+        ImportError: aiohttp 미설치.
+        RuntimeError: 토큰 발급 실패.
+    """
+    return await _auth_async_impl(config=config, svr=svr, context="async reAuth")

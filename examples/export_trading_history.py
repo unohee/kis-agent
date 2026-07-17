@@ -32,6 +32,7 @@ from dotenv import load_dotenv
 # 프로젝트 경로 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from kis_agent import Agent
 from kis_agent.utils.trading_report import (
     TradingReportGenerator,
     generate_trading_report,
@@ -53,22 +54,18 @@ def main():
     # 1. KIS 클라이언트 초기화
     logger.info("KIS 클라이언트 초기화...")
 
-    from kis_agent.core.config import KISConfig
-    from kis_agent.core.constants import MOCK_BASE_URL
-
-    KISClient(config=KISConfig(
-        app_key=os.getenv("KIS_APP_KEY"),
-        app_secret=os.getenv("KIS_APP_SECRET"),
-        account_no=os.getenv("KIS_ACCOUNT_NO"),
-        account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
-        base_url=MOCK_BASE_URL,  # 모의투자로 테스트
-    ))
+    # 모의투자로 테스트한다 (paper=True가 모의 URL과 모의 TR_ID를 함께 적용).
+    # 실전으로 돌리려면 paper 인자를 빼면 된다.
+    agent = Agent(
+        app_key=os.environ["KIS_APP_KEY"],
+        app_secret=os.environ["KIS_APP_SECRET"],
+        account_no=os.environ["KIS_ACCOUNT_NO"],
+        account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
+        paper=True,
+    )
 
     # 계좌 정보 설정
-    account_info = {
-        "CANO": os.getenv("KIS_ACCOUNT_NO"),
-        "ACNT_PRDT_CD": os.getenv("KIS_ACCOUNT_CODE", "01"),
-    }
+    account_info = agent.account_info
 
     # 2. 날짜 설정 (최근 30일)
     end_date = datetime.now()

@@ -77,6 +77,7 @@ nav:
       - 계좌 관리: api/account.md
       - 실시간 WebSocket: api/websocket.md
   - 고급 가이드:
+      - 비동기 사용 (asyncio): advanced/async.md
       - LLM Agent 연동: advanced/llm-agent.md
       - MCP 서버: advanced/mcp-server.md
       - 아키텍처: advanced/architecture.md

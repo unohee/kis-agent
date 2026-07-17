@@ -4,6 +4,45 @@
 
 ## [Unreleased]
 
+### ⚡ 비동기 인증 (NEW)
+
+`Agent(...)`/`KISClient(...)`는 생성자에서 동기 HTTP로 토큰을 발급해 asyncio 앱의
+이벤트 루프를 막았습니다. 토큰 발급만 비동기로 처리하는 경로를 추가합니다.
+
+```python
+agent = await Agent.create_async(
+    app_key=..., app_secret=..., account_no=..., account_code="01",
+)
+```
+
+- `Agent.create_async()`, `KISClient.create_async()`, `client.refresh_token_async()`
+- `kis_agent.core.auth.auth_async()` / `reAuth_async()` — 유효한 캐시 토큰이 있으면
+  네트워크를 타지 않습니다 (KIS는 1일 1회 발급 원칙).
+- `apply_token_env()` — 이미 발급받은 토큰을 TR 환경/헤더에 반영 (동기 `auth()`의
+  마무리 단계를 재사용).
+
+`tests/unit/test_auth_async.py`는 이 계약을 검증하는 테스트가 있었으나 구현이 없어
+21개 전부 skip 상태였습니다. 이제 19개가 실제로 실행됩니다 (2개는 aiohttp 미설치
+환경 전용).
+
+### ✨ 기능 추가
+
+- `StockAPI.get_daily_index_chart_price()` — 국내주식업종기간별시세(일/주/월/년).
+  `INQUIRE_DAILY_INDEXCHARTPRICE` 엔드포인트 상수만 있고 이를 호출하는 메서드가
+  없어 `examples/daily_index_chart_price_example.py`가 동작하지 않았습니다.
+
+### 🐛 수정
+
+- `Agent.__getattr__`의 위임 목록에서 `investor_api`/`interest_api`가 빠져 있어
+  `agent.get_interest_group_list()` 등 8개 메서드를 Agent를 통해 호출할 수 없던
+  문제. Agent가 해당 모듈을 만들어놓고 위임하지 않아 "없는 메서드"로 보였습니다.
+
+### 📝 문서
+
+- 동작하지 않던 예제 정리: 미구현 기능 시연, 제거된 `KIS_SECRET` 사용,
+  개명 전 `from pykis import`, 정의되지 않은 이름(`agent`/`KISClient`/
+  `KisWebSocket`), 존재하지 않는 메서드명.
+
 ### ✨ 기능 추가
 
 #### CLI (LLM Agent Tool) — `kis` 명령 (NEW!)

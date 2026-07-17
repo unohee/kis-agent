@@ -121,7 +121,9 @@ def demonstrate_basic_features(agent: Agent):
     # 3.
     print("\n3.    ()")
     try:
-        daily_price = agent.get_daily_price("035720", period="D")
+        # 기간별시세(output1/output2 반환). 일자별 최근 30건만 필요하면
+        # agent.inquire_daily_price()를 쓰면 되고, 그쪽은 output을 반환한다.
+        daily_price = agent.inquire_daily_itemchartprice("035720", period="D")
         if daily_price and daily_price.get("rt_cd") == "0":
             output = daily_price.get("output2", [])
             if output:
