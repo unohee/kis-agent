@@ -15,6 +15,7 @@
 
 import argparse
 import json
+import logging
 import os
 import sys
 from datetime import datetime, timedelta
@@ -45,8 +46,6 @@ from kis_agent.utils.stock_master import search as search_stocks
 
 def _create_agent():
     """환경변수에서 인증 정보를 로드하여 Agent 생성 + 영업일 확인."""
-    import logging
-
     from dotenv import load_dotenv
 
     # CLI에서는 WARNING 이상만 stderr로 출력 (토큰/Rate Limiter 로그 숨김)
@@ -151,14 +150,16 @@ def _resolve(code_or_name: str) -> str:
 
 
 def _get_name(agent, code: str):
-    """국내 종목명 조회."""
+    """국내 종목명 조회. 실패해도 None을 반환한다 (종목명은 부가 정보)."""
     try:
         data = agent.stock_api.search_stock_info(code=code)
         if data and data.get("output"):
             o = data["output"]
             return o.get("prdt_abrv_name") or o.get("prdt_name")
-    except Exception:
-        pass
+    except Exception as e:
+        # 종목명 조회 실패로 CLI 전체를 중단시키지 않는다. 다만 조용히 삼키면
+        # 원인 추적이 불가능하므로 debug 레벨로 남긴다 (-v로 확인 가능).
+        logging.getLogger(__name__).debug(f"종목명 조회 실패 ({code}): {e}")
     return None
 
 
@@ -177,7 +178,7 @@ _OVERSEAS_EXCD_TO_PRDT_TYPE = {
 
 
 def _get_overseas_name(agent, excd: str, symb: str):
-    """해외 종목명 조회."""
+    """해외 종목명 조회. 실패해도 None을 반환한다 (종목명은 부가 정보)."""
     try:
         prdt_type_cd = _OVERSEAS_EXCD_TO_PRDT_TYPE.get(excd, "512")
         pdno = f"{excd}.{symb}"
@@ -185,8 +186,8 @@ def _get_overseas_name(agent, excd: str, symb: str):
         if data and data.get("output"):
             o = data["output"]
             return o.get("prdt_name") or o.get("prdt_eng_name")
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger(__name__).debug(f"해외 종목명 조회 실패 ({excd}.{symb}): {e}")
     return None
 
 
@@ -425,11 +426,9 @@ def _parse_date(s: str) -> str:
     if len(s) >= 2 and s[-1] in ("d", "m", "y"):
         digits = s[:-1].lstrip("-")  # -7d도 7d도 동일 처리
         unit = s[-1]
-        try:
+        # 숫자가 아니면 상대날짜가 아니다 (예: "day") — 아래 절대날짜 해석으로 넘어간다.
+        if digits.isdigit():
             n = int(digits)
-        except ValueError:
-            pass
-        else:
             today = datetime.now()
             if unit == "d":
                 return (today - timedelta(days=n)).strftime("%Y%m%d")

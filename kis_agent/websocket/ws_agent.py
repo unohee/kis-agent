@@ -304,7 +304,8 @@ class WSAgent(WSSubscriptionMixin):
             if not result:
                 logger.warning(f"백그라운드 구독 실패: {sub_id}")
         except asyncio.CancelledError:
-            pass  # disconnect() 시 정상 cancel — 로그 불필요
+            # disconnect() 시 정상 cancel — 오류가 아니다.
+            logger.debug(f"구독 태스크 취소됨: {sub_id}")
         except Exception as e:
             logger.error(f"구독 태스크 예외: {sub_id} - {e}")
 
