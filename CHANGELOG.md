@@ -4,35 +4,6 @@
 
 ## [Unreleased]
 
-### 🔒 보안·일관성 리팩터 (v1.7.0 예정)
-
-**환경변수 정리 — Breaking Change**
-
-- 환경변수 이름이 `KIS_*` prefix로 통일됨. Legacy 별칭 즉시 제거:
-  - `MY_APP` → `KIS_APP_KEY`
-  - `MY_SEC` / `KIS_SECRET` → `KIS_APP_SECRET`
-  - `MY_ACCT_STOCK` → `KIS_ACCOUNT_NO`
-  - `MY_PROD` → `KIS_ACCOUNT_CODE`
-  - `PROD_URL` → `KIS_BASE_URL`
-  - `VPS_URL` → `KIS_VPS_URL`
-  - `MY_AGENT` → `KIS_USER_AGENT`
-- `.env.example`가 무관한 LLM API 키 템플릿이었던 문제 수정. 실제 `KIS_*` 변수만 포함하도록 재작성.
-- `.env` 자동 로드 정책 변경: 패키지 부모 디렉토리(`../../.env`) 검색 제거. `override=True` → `override=False`로 변경하여 명시적으로 설정된 환경변수가 항상 우선.
-
-**구조 일관성 개선**
-
-- `kis_agent/core/constants.py` 신설: `REAL_BASE_URL`, `MOCK_BASE_URL`, `WS_REAL_URL`, `WS_MOCK_URL`, `AccountProductCode(Enum)`, `KIS_USER_AGENT_DEFAULT`를 단일 진실의 출처로 통합.
-- `kis_agent/core/endpoints.py` 신설: `client.py`에 산재했던 `API_ENDPOINTS` dict 분리.
-- WebSocket URL(`ws://ops.koreainvestment.com:21000`) 8곳 하드코딩을 `constants.WS_REAL_URL` 참조로 통일.
-- REST URL(`https://openapi.koreainvestment.com:9443`) 6곳 하드코딩을 `constants.REAL_BASE_URL` 참조로 통일.
-- `KISConfig.from_env()` 클래스메서드 추가. `KIS_*` 환경변수에서 일괄 로드.
-- `client.py`의 `os.getenv` 직접 호출 분산 제거. `config=None`이면 `KISConfig.from_env()`를 자동 시도하여 단일 진실의 출처로 집중.
-- `KISConfig` 도크스트링 정정: 이전엔 ".env 지원 제거됨"이라 적혀있었으나 실제로는 `auth.py`가 `load_dotenv` 호출 중이던 모순을 해소. ".env 자동 로드 지원"으로 명확화.
-
-**마이그레이션 가이드**
-
-기존 `.env`에 legacy 별칭만 정의된 사용자는 위 매핑 표에 따라 변수명을 갱신해야 합니다. 자세한 안내는 README의 "사전 준비" 섹션 참조.
-
 ### ✨ 기능 추가
 
 #### CLI (LLM Agent Tool) — `kis` 명령 (NEW!)
@@ -104,6 +75,102 @@ for day in result['output2'][:5]:
 **테스트:**
 - `testing/test_daily_price_pagination_20260131_v1.py` - 100건 제한 검증
 - `testing/test_daily_price_all_20260131_v1.py` - 페이지네이션 기능 검증
+
+## [1.8.0] - 2026-07-17
+
+> v1.7.0은 코드에만 범프되고 태그·릴리즈가 없었습니다. 아래 "보안·일관성 리팩터"는
+> v1.7.0으로 예정됐던 내용이며, 모의투자 지원과 함께 v1.8.0으로 출시됩니다.
+
+### 🧪 모의투자 지원 (NEW!)
+
+`base_url`을 모의투자 URL로 지정해도 모든 호출이 HTTP 500 `모의투자 TR 이 아닙니다`로
+실패하던 문제를 해결했습니다 (GitHub #44). 원인은 URL이 아니라 **TR_ID**였습니다 —
+KIS 모의투자는 별도 TR_ID(`TTTC8434R` → `VTTC8434R`)를 요구하는데, 하드코딩된 TR_ID
+63건 중 실전/모의를 구분하던 곳은 단 1곳뿐이었습니다.
+
+**사용법**
+
+```python
+agent = Agent(
+    app_key=..., app_secret=..., account_no=..., account_code="01",
+    paper=True,          # 또는 .env에 KIS_PAPER=1
+)
+```
+
+`paper=True` 하나로 모의투자 URL과 모의투자 TR_ID가 함께 적용됩니다. CLI는 `.env`에
+`KIS_PAPER=1`만 넣으면 됩니다. 기존처럼 `base_url`만 지정해도 계속 동작합니다.
+
+**추가**
+
+- `kis_agent/core/tr_mapping.py` 신설 — 실전→모의 TR_ID 명시적 룩업 테이블. 공식
+  워크북에서 추출하고 공식 샘플 저장소(`open-trading-api`)와 교차 검증.
+- `PaperTradingNotSupportedError` — KIS는 전체 336개 API 중 43개만 모의투자로
+  제공합니다. 미지원 API 호출 시 네트워크 왕복 없이 즉시 예외로 알립니다.
+- `Agent(paper=...)` 매개변수, `KIS_PAPER` 환경변수, `constants.resolve_environment()`.
+  `paper`와 `base_url`이 모순되면 `ValueError` — 잘못된 환경으로 주문이 나가지 않도록.
+- `SubscriptionType.STOCK_NOTICE_PAPER` / `FUOPT_NOTICE_PAPER` /
+  `OVERSEAS_STOCK_NOTICE_PAPER` — 모의투자 체결통보.
+- `scripts/extract_paper_tr_mapping.py` — 공식 워크북에서 매핑을 재생성/대조.
+
+**수정**
+
+- `SubscriptionType.STOCK_NOTICE_AH`가 "시간외"로 오라벨돼 있었으나 실제로는
+  **모의투자용**(`H0STCNI9`)이었습니다. `STOCK_NOTICE_PAPER`로 정정하고 기존 이름은
+  Enum 별칭으로 유지해 하위호환을 보장합니다. `OVERSEAS_STOCK_NOTICE_AH`도 동일.
+- `KIS_PAPER`가 `KISConfig`/`KISClient` 직접 생성 경로에서 무시되던 문제.
+
+### 🐛 수정
+
+- **선물옵션 주문 TR_ID** — 매도에 `TTTO1102U`, 취소에 `TTTO1104U`를 전송하고 있었으나
+  두 TR_ID는 존재하지 않습니다. 공식 문서·샘플·Postman 컬렉션 모두 `TTTO1101U`가
+  매수/매도를, `TTTO1103U`가 정정/취소를 담당하고 구분은 본문 필드(`SLL_BUY_DVSN_CD`)로
+  한다고 일치합니다. **실전투자에서도 실패하던 버그**입니다.
+- `PaperTradingNotSupportedError`가 API 계층에서 `APIException`으로 래핑돼 호출부가
+  "모의 미지원"과 실제 API 오류를 구분할 수 없던 문제.
+- 회원사 순매수 조회가 list 형태 output을 처리하지 못하던 문제.
+- Rate Limiter가 공식 KIS 한도를 초과할 수 있던 문제. lock-free sleep으로 전환하고
+  기본값을 안전하게 조정.
+- WebSocket 구독 속도 최적화, 동기 핸들러 격리, task 누수 수정.
+- `PythonBridge` stdin/`callSync` 에러 처리 강화 및 버퍼 상한 적용.
+
+### ✨ 기능 추가
+
+- VKOSPI 프록시 계산기 (`kis_agent/futures`).
+- `constants.get_ws_url(is_real=...)` — 실전/모의 WebSocket URL 선택 헬퍼.
+
+### ♻️ 리팩터
+
+- `RateLimiterControlMixin`을 `Agent`에서 분리 (955 → 865 LOC).
+- 테스트 커버리지 65% → 71%.
+
+### 🔒 보안·일관성 리팩터
+
+**환경변수 정리 — Breaking Change**
+
+- 환경변수 이름이 `KIS_*` prefix로 통일됨. Legacy 별칭 즉시 제거:
+  - `MY_APP` → `KIS_APP_KEY`
+  - `MY_SEC` / `KIS_SECRET` → `KIS_APP_SECRET`
+  - `MY_ACCT_STOCK` → `KIS_ACCOUNT_NO`
+  - `MY_PROD` → `KIS_ACCOUNT_CODE`
+  - `PROD_URL` → `KIS_BASE_URL`
+  - `VPS_URL` → `KIS_VPS_URL`
+  - `MY_AGENT` → `KIS_USER_AGENT`
+- `.env.example`가 무관한 LLM API 키 템플릿이었던 문제 수정. 실제 `KIS_*` 변수만 포함하도록 재작성.
+- `.env` 자동 로드 정책 변경: 패키지 부모 디렉토리(`../../.env`) 검색 제거. `override=True` → `override=False`로 변경하여 명시적으로 설정된 환경변수가 항상 우선.
+
+**구조 일관성 개선**
+
+- `kis_agent/core/constants.py` 신설: `REAL_BASE_URL`, `MOCK_BASE_URL`, `WS_REAL_URL`, `WS_MOCK_URL`, `AccountProductCode(Enum)`, `KIS_USER_AGENT_DEFAULT`를 단일 진실의 출처로 통합.
+- `kis_agent/core/endpoints.py` 신설: `client.py`에 산재했던 `API_ENDPOINTS` dict 분리.
+- WebSocket URL(`ws://ops.koreainvestment.com:21000`) 8곳 하드코딩을 `constants.WS_REAL_URL` 참조로 통일.
+- REST URL(`https://openapi.koreainvestment.com:9443`) 6곳 하드코딩을 `constants.REAL_BASE_URL` 참조로 통일.
+- `KISConfig.from_env()` 클래스메서드 추가. `KIS_*` 환경변수에서 일괄 로드.
+- `client.py`의 `os.getenv` 직접 호출 분산 제거. `config=None`이면 `KISConfig.from_env()`를 자동 시도하여 단일 진실의 출처로 집중.
+- `KISConfig` 도크스트링 정정: 이전엔 ".env 지원 제거됨"이라 적혀있었으나 실제로는 `auth.py`가 `load_dotenv` 호출 중이던 모순을 해소. ".env 자동 로드 지원"으로 명확화.
+
+**마이그레이션 가이드**
+
+기존 `.env`에 legacy 별칭만 정의된 사용자는 위 매핑 표에 따라 변수명을 갱신해야 합니다. 자세한 안내는 README의 "사전 준비" 섹션 참조.
 
 ## [1.5.0] - 2026-01-23
 
