@@ -1,51 +1,60 @@
-"""
-KOSPI 200 선물 베이시스 계산 예제
+# Created: 2026-07-17
+# Purpose: Compute the KOSPI 200 futures basis (선물가 - 현물지수).
+# Dependencies: kis_agent, python-dotenv
+# Test Status: Verified against a mocked transport; live run needs KIS credentials.
 
-Note: 이 예제는 레거시 StockAPI를 사용합니다. 새 코드에서는 Agent 사용을 권장합니다.
+"""KOSPI 200 선물 베이시스 계산 예제.
+
+베이시스 = 선물가격 - 현물지수. 양수면 콘탱고, 음수면 백워데이션이다.
+
+실행:
+    python examples/calculate_basis.py
+
+`.env`에 `KIS_APP_KEY` / `KIS_APP_SECRET` / `KIS_ACCOUNT_NO`가 필요하다.
+선물옵션 시세는 모의투자도 지원하므로 `KIS_PAPER=1`로도 돌릴 수 있다.
 """
 
 import os
 
-from kis_agent.core.client import KISClient
-from kis_agent.stock import LegacyStockAPI as StockAPI
+from dotenv import load_dotenv
 
-# Set up the KISClient and StockAPI
-client = KISClient()
-account_info = {
-    "CANO": os.environ.get("KIS_CANO"),
-    "ACNT_PRDT_CD": os.environ.get("KIS_ACNT_PRDT_CD"),
-}
-stock_api = StockAPI(client, account_info)
+from kis_agent import Agent
 
-# Fetch the KOSPI 200 index
-# Note: This method is currently not working and is marked as xfail in the tests.
-# We will use a placeholder value for the KOSPI 200 index.
-kospi200_index_response = stock_api.get_kospi200_index()
-kospi200_index = 350.00
+load_dotenv()
 
-# Fetch the futures price
-# Note: The futures code might need to be updated depending on the current month.
-futures_code = "101S06"
-futures_response = stock_api.get_futures_price(futures_code)
 
-if futures_response and futures_response["rt_cd"] == "0":
-    futures_price = float(futures_response["output"]["stck_prpr"])
+def main():
+    agent = Agent(
+        app_key=os.environ["KIS_APP_KEY"],
+        app_secret=os.environ["KIS_APP_SECRET"],
+        account_no=os.environ["KIS_ACCOUNT_NO"],
+        account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
+    )
 
-    if kospi200_index_response and kospi200_index_response["rt_cd"] == "0":
-        kospi200_index = float(kospi200_index_response["output2"]["bstp_nmix_prpr"])
-        basis = futures_price - kospi200_index
-        print(f"KOSPI 200 Index: {kospi200_index}")
-    else:
-        basis = futures_price - kospi200_index
-        print(f"KOSPI 200 Index: {kospi200_index} (Placeholder)")
+    # 근월물 종목코드는 만기마다 바뀐다. 마스터에서 자동 해석해 주는 편의 메서드 사용.
+    futures = agent.futures.get_current_futures_price()
+    if not futures or futures.get("rt_cd") != "0":
+        msg = futures.get("msg1") if futures else "응답 없음"
+        print(f"선물 시세 조회 실패: {msg}")
+        return
 
-    print(f"Futures Price ({futures_code}): {futures_price}")
-    print(f"KOSPI Basis: {basis:.2f}")
-else:
-    print("Failed to fetch futures price.")
-    if futures_response:
-        print(f"Error: {futures_response.get('msg1')}")
+    output = futures.get("output", {})
+    futures_price = float(output.get("futs_prpr", 0))
 
-if kospi200_index_response and kospi200_index_response["rt_cd"] != "0":
-    print("\nFailed to fetch KOSPI 200 index.")
-    print(f"Error: {kospi200_index_response.get('msg1')}")
+    # 현물 지수 (KOSPI200)
+    index = agent.inquire_index_price("0007")
+    if not index or index.get("rt_cd") != "0":
+        msg = index.get("msg1") if index else "응답 없음"
+        print(f"KOSPI200 지수 조회 실패: {msg}")
+        return
+
+    spot = float(index.get("output", {}).get("bstp_nmix_prpr", 0))
+    basis = futures_price - spot
+
+    print(f"선물가격:      {futures_price:>10.2f}")
+    print(f"KOSPI200 지수: {spot:>10.2f}")
+    print(f"베이시스:      {basis:>+10.2f}  ({'콘탱고' if basis > 0 else '백워데이션'})")
+
+
+if __name__ == "__main__":
+    main()

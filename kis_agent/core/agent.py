@@ -85,6 +85,122 @@ class Agent(
     # [변경 이유] 로거 미정의로 flake8 F821 경고 발생. 모듈 레벨 로거를 명시적으로 생성합니다.
     logger = logging.getLogger(__name__)
 
+    @staticmethod
+    def _validate_required(
+        app_key: str, app_secret: str, account_no: str, account_code: str
+    ) -> None:
+        """Reject a half-configured Agent before it reaches the network.
+
+        `__init__`과 `create_async`가 공유한다 — 두 경로가 같은 메시지를 내야
+        사용자가 동기/비동기에 따라 다른 안내를 받지 않는다.
+
+        Raises:
+            ValueError: 필수 매개변수가 하나라도 비어 있는 경우.
+        """
+        if all([app_key, app_secret, account_no, account_code]):
+            return
+        raise ValueError(
+            "필수 매개변수가 누락되었습니다.\n"
+            "Agent를 생성할 때 다음 매개변수가 모두 필요합니다:\n"
+            "  - app_key: 한국투자증권 API 앱 키\n"
+            "  - app_secret: 한국투자증권 API 앱 시크릿\n"
+            "  - account_no: 계좌번호\n"
+            "  - account_code: 계좌 상품코드\n\n"
+            "예시:\n"
+            "  agent = Agent(\n"
+            "      app_key='YOUR_APP_KEY',\n"
+            "      app_secret='YOUR_APP_SECRET',\n"  # cxt-ignore: hardcoded_secret
+            "      account_no='12345678',\n"
+            "      account_code='01'\n"
+            "  )"
+        )
+
+    @classmethod
+    async def create_async(
+        cls,
+        app_key: str,
+        app_secret: str,
+        account_no: str,
+        account_code: str,
+        base_url: Optional[str] = None,
+        paper: Optional[bool] = None,
+        svr: str = "prod",
+        verbose: bool = False,
+        account_info: Optional[Dict] = None,
+        enable_rate_limiter: bool = True,
+        rate_limiter: Optional[RateLimiter] = None,
+        rate_limiter_config: Optional[Dict[str, Any]] = None,
+    ) -> "Agent":
+        """Create an Agent without blocking the event loop on token issuance.
+
+        `Agent(...)`는 생성자에서 동기 HTTP로 토큰을 발급한다. asyncio 앱에서는
+        그 사이 이벤트 루프가 멈추므로, 토큰만 비동기로 받아 동일하게 초기화한
+        Agent를 돌려준다. 인자와 동작은 `__init__`과 같다.
+
+        Args:
+            app_key: 한국투자증권 API 앱 키 (필수).
+            app_secret: 한국투자증권 API 앱 시크릿 (필수).
+            account_no: 계좌번호 (필수).
+            account_code: 계좌 상품코드 (필수).
+            base_url: API 베이스 URL. None이면 `paper`/환경변수로 결정.
+            paper: 모의투자 사용 여부. `__init__`과 동일.
+            svr: 인증 서버 구분 ('prod' 또는 'vps').
+            verbose: 상세 로깅 여부.
+            account_info: 계좌 정보. None이면 자동 설정.
+            enable_rate_limiter: Rate Limiter 사용 여부.
+            rate_limiter: 커스텀 Rate Limiter 인스턴스.
+            rate_limiter_config: Rate Limiter 설정.
+
+        Returns:
+            토큰이 발급된 `Agent`.
+
+        Raises:
+            ValueError: 필수 매개변수 누락 또는 `paper`/`base_url` 모순.
+            ImportError: aiohttp 미설치.
+            RuntimeError: 토큰 발급 실패.
+
+        Example:
+            >>> agent = await Agent.create_async(
+            ...     app_key="...", app_secret="...",
+            ...     account_no="12345678", account_code="01",
+            ... )
+            >>> price = agent.get_stock_price("005930")
+        """
+        # 네트워크를 타기 전에 검증한다 (동기 경로와 동일한 메시지).
+        cls._validate_required(app_key, app_secret, account_no, account_code)
+
+        base_url, _ = resolve_environment(base_url=base_url, paper=paper)
+        config = KISConfig(
+            app_key=app_key,
+            app_secret=app_secret,
+            base_url=base_url,
+            account_no=account_no,
+            account_code=account_code,
+        )
+
+        # 토큰 발급만 비동기로. 완성된 client를 넘기면 __init__은 동기 인증을
+        # 하지 않는다.
+        client = await KISClient.create_async(
+            svr=svr,
+            config=config,
+            verbose=verbose,
+            enable_rate_limiter=enable_rate_limiter,
+            rate_limiter=rate_limiter,
+        )
+
+        return cls(
+            app_key=app_key,
+            app_secret=app_secret,
+            account_no=account_no,
+            account_code=account_code,
+            base_url=base_url,
+            client=client,
+            account_info=account_info,
+            enable_rate_limiter=enable_rate_limiter,
+            rate_limiter=rate_limiter,
+            rate_limiter_config=rate_limiter_config,
+        )
+
     def __init__(
         self,
         app_key: str,
@@ -165,22 +281,7 @@ class Agent(
         super().__init__("Agent")
 
         # 필수 매개변수 검증
-        if not all([app_key, app_secret, account_no, account_code]):
-            raise ValueError(
-                "필수 매개변수가 누락되었습니다.\n"
-                "Agent를 생성할 때 다음 매개변수가 모두 필요합니다:\n"
-                "  - app_key: 한국투자증권 API 앱 키\n"
-                "  - app_secret: 한국투자증권 API 앱 시크릿\n"
-                "  - account_no: 계좌번호\n"
-                "  - account_code: 계좌 상품코드\n\n"
-                "예시:\n"
-                "  agent = Agent(\n"
-                "      app_key='YOUR_APP_KEY',\n"
-                "      app_secret='YOUR_APP_SECRET',\n"  # cxt-ignore: hardcoded_secret
-                "      account_no='12345678',\n"
-                "      account_code='01'\n"
-                "  )"
-            )
+        self._validate_required(app_key, app_secret, account_no, account_code)
 
         # 실전/모의 환경 결정 (paper > KIS_PAPER > base_url 순으로 의도를 해석).
         # 모순 시 ValueError — 잘못된 환경으로 주문이 나가는 것보다 낫다.
@@ -840,8 +941,12 @@ class Agent(
 
         우선순위:
         1. StockAPI - 주식 관련 기본 API (최우선)
-        2. AccountAPI - 계좌 관련 API
-        3. ProgramTradeAPI - 프로그램매매 관련 API
+        2. StockMarketAPI - 시장 데이터 API
+        3. AccountAPI / ProgramTradeAPI / StockInvestorAPI / InterestStockAPI
+
+        `__init__`이 만드는 API 모듈은 전부 여기에 있어야 한다. 빠지면 그
+        모듈의 메서드는 Agent를 통해 호출할 수 없고, 사용자에겐 "메서드가
+        없다"로 보인다 (investor_api/interest_api가 실제로 그랬다).
         """
         # StockAPI를 최우선으로 확인 (메인 주식 API)
         if hasattr(self.stock_api, name):
@@ -852,7 +957,12 @@ class Agent(
             return getattr(self.market_api, name)
 
         # 나머지 API 모듈에서 메서드 찾기
-        for api in (self.account_api, self.program_api):
+        for api in (
+            self.account_api,
+            self.program_api,
+            self.investor_api,
+            self.interest_api,
+        ):
             if hasattr(api, name):
                 return getattr(api, name)
 

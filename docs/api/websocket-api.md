@@ -32,7 +32,7 @@ WSAgent(
 
 **사용 예시:**
 ```python
-from pykis import Agent
+from kis_agent import Agent
 
 # Agent를 통한 간편한 접근 (추천)
 agent = Agent(env_path=".env")

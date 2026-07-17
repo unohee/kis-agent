@@ -23,7 +23,7 @@ def example_basic():
     # Agent 초기화
     agent = Agent(
         app_key=os.getenv("KIS_APP_KEY"),
-        app_secret=os.getenv("KIS_SECRET"),
+        app_secret=os.getenv("KIS_APP_SECRET"),
         account_no=os.getenv("KIS_ACCOUNT_NO"),
         account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
     )
@@ -63,7 +63,7 @@ def example_long_period():
 
     agent = Agent(
         app_key=os.getenv("KIS_APP_KEY"),
-        app_secret=os.getenv("KIS_SECRET"),
+        app_secret=os.getenv("KIS_APP_SECRET"),
         account_no=os.getenv("KIS_ACCOUNT_NO"),
         account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
     )
@@ -102,7 +102,7 @@ def example_multiple_stocks():
 
     agent = Agent(
         app_key=os.getenv("KIS_APP_KEY"),
-        app_secret=os.getenv("KIS_SECRET"),
+        app_secret=os.getenv("KIS_APP_SECRET"),
         account_no=os.getenv("KIS_ACCOUNT_NO"),
         account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
     )
@@ -156,7 +156,7 @@ def example_data_analysis():
 
     agent = Agent(
         app_key=os.getenv("KIS_APP_KEY"),
-        app_secret=os.getenv("KIS_SECRET"),
+        app_secret=os.getenv("KIS_APP_SECRET"),
         account_no=os.getenv("KIS_ACCOUNT_NO"),
         account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
     )
@@ -202,7 +202,7 @@ def example_weekly_data():
 
     agent = Agent(
         app_key=os.getenv("KIS_APP_KEY"),
-        app_secret=os.getenv("KIS_SECRET"),
+        app_secret=os.getenv("KIS_APP_SECRET"),
         account_no=os.getenv("KIS_ACCOUNT_NO"),
         account_code=os.getenv("KIS_ACCOUNT_CODE", "01"),
     )
@@ -240,8 +240,8 @@ def example_weekly_data():
 
 if __name__ == "__main__":
     # 환경변수 확인
-    if not all([os.getenv("KIS_APP_KEY"), os.getenv("KIS_SECRET")]):
-        print("❌ 환경변수 설정 필요: KIS_APP_KEY, KIS_SECRET")
+    if not all([os.getenv("KIS_APP_KEY"), os.getenv("KIS_APP_SECRET")]):
+        print("❌ 환경변수 설정 필요: KIS_APP_KEY, KIS_APP_SECRET")
         print("   .env 파일을 확인하세요.")
         exit(1)
 

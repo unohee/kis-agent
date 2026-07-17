@@ -2,6 +2,19 @@
 
 전체 변경 이력은 [GitHub Releases](https://github.com/unohee/kis-agent/releases)를 참고하세요.
 
+## Unreleased
+
+### 비동기 인증 (NEW)
+- **feat(async)**: `Agent.create_async()` / `KISClient.create_async()` / `client.refresh_token_async()` / `auth_async()` / `reAuth_async()`. 생성자의 동기 토큰 발급이 이벤트 루프를 막던 문제 해결. [가이드](advanced/async.md)
+  - 테스트는 있었으나(`test_auth_async.py`) 구현이 없어 21개 전부 skip 상태였습니다. 이제 19개가 실제로 실행됩니다.
+
+### 기능 추가
+- **feat(stock)**: `get_daily_index_chart_price()` — 국내주식업종기간별시세(일/주/월/년). 엔드포인트 상수만 있고 메서드가 없던 것을 구현.
+- **fix(agent)**: `investor_api` / `interest_api`가 `Agent.__getattr__` 위임 목록에서 빠져 있어 `agent.get_interest_group_list()` 등 8개 메서드를 Agent로 호출할 수 없던 문제.
+
+### 문서
+- **docs**: 동작하지 않던 예제 정리 — 미구현 기능 시연, 제거된 `KIS_SECRET`, 개명 전 `from pykis import`, 정의되지 않은 이름 등.
+
 ## v1.8.0 (2026-07-17)
 
 !!! warning "Breaking change — 환경변수 이름 통일"

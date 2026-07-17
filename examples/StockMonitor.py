@@ -96,7 +96,7 @@ class StockMonitor:
             Optional[Dict]: 일별 시세 정보
         """
         try:
-            return self.agent.get_daily_price(code)
+            return self.agent.inquire_daily_price(code)
         except Exception as e:
             logging.error(f"일별 시세 조회 실패 ({code}): {e}")
             return None
@@ -112,7 +112,7 @@ class StockMonitor:
             Optional[Dict]: 프로그램 매매 요약 정보
         """
         try:
-            return self.agent.get_program_trade_summary(code)
+            return self.agent.get_program_trade_daily_summary(code)
         except Exception as e:
             logging.error(f"프로그램 매매 요약 조회 실패 ({code}): {e}")
             return None

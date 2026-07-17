@@ -111,6 +111,49 @@ class StockPriceAPI(StockIndexAPI):
             },
         )
 
+    def get_daily_index_chart_price(
+        self,
+        input_iscd: str = "0001",
+        start_date: str = "",
+        end_date: str = "",
+        period_div_code: str = "D",
+        market_div_code: str = "U",
+    ) -> Optional[Dict]:
+        """국내주식업종기간별시세 (일/주/월/년) 조회.
+
+        업종 지수의 기간별 OHLCV를 조회한다. 종목이 아니라 업종(KOSPI/KOSDAQ/
+        KOSPI200 등) 단위이며, 분봉인 `get_time_index_chart_price()`와 달리
+        일·주·월·년봉을 지정 기간으로 가져온다.
+
+        Args:
+            input_iscd: 업종 상세코드 (예: "0001"=종합, "0007"=KOSPI200,
+                "1001"=KOSDAQ 종합). 전체 목록은 KIS 포털 업종코드 참조.
+            start_date: 조회 시작일자 (YYYYMMDD).
+            end_date: 조회 종료일자 (YYYYMMDD).
+            period_div_code: 기간분류코드 (D=일봉, W=주봉, M=월봉, Y=년봉).
+            market_div_code: 조건 시장 분류 코드. 업종은 "U".
+
+        Returns:
+            output1=현재 지수 요약, output2[]=기간별 OHLCV 리스트
+            (`stck_bsop_date`=일자, `bstp_nmix_prpr`=지수 종가, `acml_vol`=거래량).
+
+        Example:
+            >>> api.get_daily_index_chart_price(
+            ...     input_iscd="0007", start_date="20260101", end_date="20260717"
+            ... )
+        """
+        return self._make_request_dict(
+            endpoint=API_ENDPOINTS["INQUIRE_DAILY_INDEXCHARTPRICE"],
+            tr_id="FHKUP03500100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": market_div_code,
+                "FID_INPUT_ISCD": input_iscd,
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date,
+                "FID_PERIOD_DIV_CODE": period_div_code,
+            },
+        )
+
     def get_orderbook(self, code: str, market: str = "J") -> Optional[Dict]:
         """
         주식 호가 정보 조회

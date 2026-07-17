@@ -209,7 +209,7 @@ class Agent(...):
 ### 4.2 사용 예시
 
 ```python
-from pykis import Agent
+from kis_agent import Agent
 
 agent = Agent(
     app_key="...",

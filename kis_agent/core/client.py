@@ -9,7 +9,14 @@ from typing import Any, Dict, Optional
 import httpx
 import requests
 
-from .auth import auth, getTREnv, read_token
+from .auth import (
+    _issue_token_async,
+    apply_token_env,
+    auth,
+    auth_async,
+    getTREnv,
+    read_token,
+)
 from .config import KISConfig
 from .constants import MOCK_BASE_URL, REAL_BASE_URL, resolve_environment  # noqa: F401
 from .endpoints import API_ENDPOINTS
@@ -51,6 +58,7 @@ class KISClient:
         verbose: bool = False,
         enable_rate_limiter: bool = True,
         rate_limiter: Optional[RateLimiter] = None,
+        _defer_token: bool = False,
     ):
         """
         KISClient를 초기화합니다.
@@ -61,6 +69,10 @@ class KISClient:
             verbose (bool): 상세 로깅 여부
             enable_rate_limiter (bool): Rate Limiter 사용 여부
             rate_limiter (RateLimiter, optional): 커스텀 Rate Limiter 인스턴스
+            _defer_token (bool): 내부용. True면 생성자에서 토큰을 발급하지 않는다.
+                `create_async()`가 동기 인증(블로킹 네트워크 호출)을 건너뛰고
+                직접 await하기 위해 사용한다. 직접 쓰지 말 것 — 토큰 없는
+                클라이언트가 만들어진다.
 
         Raises:
             Exception: 인증 실패 시 발생
@@ -108,11 +120,81 @@ class KISClient:
             self.base_url, _ = resolve_environment()
         self.is_real = MOCK_BASE_URL not in self.base_url
 
-        # 초기 토큰 발급 또는 기존 토큰 재사용 (내부에서 base_url을 다시 확정한다)
-        self._initialize_token()
+        # 초기 토큰 발급 또는 기존 토큰 재사용 (내부에서 base_url을 다시 확정한다).
+        # create_async()는 여기서 동기 네트워크 호출이 일어나면 이벤트 루프가
+        # 막히므로 건너뛰고 직접 await한다.
+        if not _defer_token:
+            self._initialize_token()
 
         # 토큰 발급 과정에서 base_url이 바뀌었을 수 있으므로 is_real을 재계산.
         self.is_real = MOCK_BASE_URL not in getattr(self, "base_url", "")
+
+    @classmethod
+    async def create_async(
+        cls,
+        svr: str = "prod",
+        config=None,
+        verbose: bool = False,
+        enable_rate_limiter: bool = True,
+        rate_limiter: Optional[RateLimiter] = None,
+    ) -> "KISClient":
+        """Create a client, issuing the token without blocking the event loop.
+
+        `KISClient(...)`는 생성자에서 동기 HTTP로 토큰을 발급하므로 asyncio
+        애플리케이션에서는 이벤트 루프를 막는다. 이 팩토리는 같은 초기화를
+        하되 토큰만 `auth_async()`로 await한다.
+
+        Args:
+            svr: 'prod'(실전) 또는 'vps'(모의).
+            config: `KISConfig` 인스턴스.
+            verbose: 상세 로깅 여부.
+            enable_rate_limiter: Rate Limiter 사용 여부.
+            rate_limiter: 커스텀 Rate Limiter.
+
+        Returns:
+            토큰이 설정된 `KISClient`.
+
+        Raises:
+            ImportError: aiohttp 미설치.
+            RuntimeError: 토큰 발급 실패.
+
+        Example:
+            >>> client = await KISClient.create_async(config=config)
+        """
+        client = cls(
+            svr=svr,
+            config=config,
+            verbose=verbose,
+            enable_rate_limiter=enable_rate_limiter,
+            rate_limiter=rate_limiter,
+            _defer_token=True,
+        )
+
+        token_data = await auth_async(config=config, svr=svr)
+        if token_data:
+            client.token = token_data.get("access_token")
+            client.token_expired = token_data.get("access_token_token_expired")
+            # 동기 경로는 auth()가 헤더/TR 환경까지 세팅한다. 비동기 경로도
+            # 맞춰줘야 make_request()의 getTREnv()가 이 토큰을 본다.
+            # auth()를 다시 부르면 동기 HTTP가 또 나가므로 마무리 단계만 재사용.
+            apply_token_env(client.token, svr=svr, config=config)
+        return client
+
+    async def refresh_token_async(self) -> None:
+        """Force-issue a new token asynchronously and apply it to this client.
+
+        캐시를 건너뛰고 새로 발급한다 — 갱신을 요청했다는 건 기존 토큰을
+        믿지 못한다는 뜻이므로 캐시를 재사용하면 의미가 없다.
+
+        Raises:
+            ImportError: aiohttp 미설치.
+            RuntimeError: 토큰 발급 실패.
+        """
+        token_data = await _issue_token_async(config=self.config, svr=self.svr)
+        if token_data:
+            self.token = token_data.get("access_token")
+            self.token_expired = token_data.get("access_token_token_expired")
+            logger.info(f"토큰 갱신 완료 (async, 만료: {self.token_expired})")
 
     def _initialize_token(self) -> None:
         """초기 토큰 발급 또는 기존 토큰 재사용 (Thread-Safe)"""

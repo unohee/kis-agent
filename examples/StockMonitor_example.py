@@ -77,7 +77,7 @@ class StockMonitor:
         종목의 일별 시세 조회 (pykis Agent 사용)
         """
         try:
-            return self.agent.get_daily_price(code)
+            return self.agent.inquire_daily_price(code)
         except Exception as e:
             logging.error(f"일별 시세 조회 실패 ({code}): {e}")
             return None
