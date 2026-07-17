@@ -56,7 +56,8 @@ result = agent.order_rvsecncl(org_order_no, qty, price, order_type, cncl_type)
 ```
 
 !!! danger "실전투자 주의"
-    `is_real=True`로 설정된 경우 실제 돈이 투자됩니다. 모의투자에서 충분히 테스트하세요.
+    `paper=True`(또는 `KIS_PAPER=1`)를 지정하지 않으면 **실전투자가 기본값**이며 실제 돈이 투자됩니다.
+    [모의투자](paper-trading.md)에서 충분히 테스트한 후 전환하세요.
 
 ## 주문 정정/취소
 

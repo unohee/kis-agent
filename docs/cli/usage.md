@@ -8,9 +8,16 @@ CLI는 `.env` 파일 또는 환경 변수에서 인증 정보를 읽습니다:
 
 ```bash
 KIS_APP_KEY=...
-KIS_SECRET=...        # 또는 KIS_APP_SECRET
+KIS_APP_SECRET=...
 KIS_ACCOUNT_NO=...
 KIS_ACCOUNT_CODE=01
+KIS_PAPER=1           # 선택 — 모의투자로 실행
+```
+
+`KIS_PAPER=1`을 넣으면 모든 `kis` 명령이 모의투자 서버로 나갑니다. 모의투자 자격증명은 실전과 별도로 발급받아야 합니다 ([모의투자 가이드](../getting-started/paper-trading.md)).
+
+```bash
+KIS_PAPER=1 kis balance     # 일회성으로 모의투자 실행
 ```
 
 ---
