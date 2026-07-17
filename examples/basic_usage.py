@@ -47,13 +47,15 @@ def create_agent_from_env():
         )
         print(" Agent   ()")
 
-        #  Agent
+        # 모의투자 Agent (모의투자 URL과 TR_ID가 함께 적용된다).
+        # 모의투자 APP KEY/SECRET/계좌번호는 실전과 별도로 발급받아야 한다.
+        # 전체 예제: examples/paper_trading.py
         # agent_mock = Agent(
         #     app_key=app_key,
         #     app_secret=app_secret,
         #     account_no=account_no,
         #     account_code=account_code,
-        #     base_url="https://openapivts.koreainvestment.com:29443"
+        #     paper=True,
         # )
 
         return agent
