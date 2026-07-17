@@ -12,7 +12,7 @@ pip install kis-agent
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docs](https://img.shields.io/badge/docs-mkdocs--material-526CFE?logo=materialformkdocs)](https://unohee.github.io/kis-agent/)
 
-**📖 공식 문서:** **[unohee.github.io/kis-agent](https://unohee.github.io/kis-agent/)** — 설치, 빠른 시작, CLI · Python API 레퍼런스, LLM Agent · MCP 연동, 아키텍처 가이드.
+**📖 공식 문서:** **[unohee.github.io/kis-agent](https://unohee.github.io/kis-agent/)** — 설치, 빠른 시작, [모의투자](https://unohee.github.io/kis-agent/getting-started/paper-trading/), CLI · Python API 레퍼런스, LLM Agent · MCP 연동, 아키텍처 가이드.
 
 ## CLI
 
@@ -103,6 +103,8 @@ KIS_PAPER=1 kis balance
 > 해외선물옵션·장내채권·순위/투자자동향·재무 등은 모의투자에서 쓸 수 없습니다.
 > 미지원 API를 모의투자로 호출하면 `PaperTradingNotSupportedError`가 발생합니다.
 > 지원 목록은 `kis_agent/core/tr_mapping.py`의 `REAL_TO_PAPER_TR`를 참고하세요.
+
+자세한 내용은 [모의투자 가이드](https://unohee.github.io/kis-agent/getting-started/paper-trading/)를 참고하세요.
 
 > **v1.8.0 Breaking change**: 환경변수 이름이 `KIS_*` prefix로 통일되었습니다.
 > 이전 별칭(`MY_APP`, `MY_SEC`, `KIS_SECRET`, `MY_ACCT_STOCK`, `MY_PROD`, `PROD_URL`,

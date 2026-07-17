@@ -67,6 +67,7 @@ nav:
   - 시작하기:
       - 설치 및 설정: getting-started/installation.md
       - 빠른 시작: getting-started/quickstart.md
+      - 모의투자: getting-started/paper-trading.md
   - CLI:
       - CLI 사용법: cli/usage.md
   - Python API:

@@ -2,6 +2,36 @@
 
 전체 변경 이력은 [GitHub Releases](https://github.com/unohee/kis-agent/releases)를 참고하세요.
 
+## v1.8.0 (2026-07-17)
+
+!!! warning "Breaking change — 환경변수 이름 통일"
+    Legacy 별칭(`MY_APP`, `MY_SEC`, `KIS_SECRET`, `MY_ACCT_STOCK`, `MY_PROD`,
+    `PROD_URL`, `VPS_URL`, `MY_AGENT`)이 제거되고 `KIS_*` prefix로 통일됐습니다.
+    v1.7.0으로 예정됐다가 출시되지 않은 채 남아있던 변경이라, v1.6.1에서
+    올라오신다면 `.env`를 확인하세요. `.env` 자동 로드도 현재 디렉터리만
+    검색합니다(부모 디렉터리 검색 제거).
+
+### 모의투자 지원 (NEW)
+- **feat(paper)**: `Agent(paper=True)` / `KIS_PAPER=1` — URL과 모의투자 TR_ID를 함께 전환. [가이드](getting-started/paper-trading.md)
+- **fix(paper)**: `base_url`만 모의로 지정하면 모든 호출이 `모의투자 TR 이 아닙니다`로 실패하던 문제 ([#44](https://github.com/unohee/kis-agent/issues/44)). 원인은 URL이 아니라 TR_ID였습니다
+- **feat(paper)**: `PaperTradingNotSupportedError` — KIS는 전체 336개 API 중 43개만 모의로 제공합니다. 미지원 API 호출 시 네트워크 왕복 없이 즉시 알림
+- **feat(ws)**: 모의투자 체결통보(`H0STCNI9`) 및 모의 WebSocket 지원
+
+### 수정
+- **fix(futures)**: 선물옵션 주문이 존재하지 않는 TR_ID(`TTTO1102U`/`TTTO1104U`)를 전송하던 버그 — **실전에서도 실패**하던 문제. 매수/매도는 `TTTO1101U`, 정정/취소는 `TTTO1103U` 하나를 쓰고 구분은 본문 필드로 합니다
+- **fix(ws)**: `SubscriptionType.STOCK_NOTICE_AH`가 "시간외"로 오라벨돼 있던 문제 → `STOCK_NOTICE_PAPER`(기존 이름은 별칭으로 유지)
+- **fix(core)**: `except: pass`로 예외를 삼켜 실패 원인이 추적되지 않던 문제
+- **fix(rate_limiter)**: 공식 KIS 한도 준수, lock-free sleep, 안전한 기본값
+- **perf(ws)**: 구독 속도 최적화, 동기 핸들러 격리, task 누수 수정
+
+### 기능 추가
+- **feat(futures)**: VKOSPI 프록시 계산기
+- **feat(constants)**: `get_ws_url(is_real=...)` 헬퍼
+
+### 내부
+- **fix(ci)**: CI가 존재하지 않는 `pykis/`를 검사하며 lint·LOC·커버리지가 전부 무효였던 문제 수정
+- **refactor(ws)**: `ws_agent.py`(1831줄) 편의 메서드를 `WSSubscriptionMixin`으로 분리 (1130줄)
+
 ## v1.6.1 (2026-04-07)
 
 ### 선물 기능 강화

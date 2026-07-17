@@ -21,14 +21,22 @@ pip install -e .
       "args": ["-m", "pykis_mcp_server"],
       "env": {
         "KIS_APP_KEY": "...",
-        "KIS_SECRET": "...",
+        "KIS_APP_SECRET": "...",
         "KIS_ACCOUNT_NO": "...",
-        "KIS_ACCOUNT_CODE": "01"
+        "KIS_ACCOUNT_CODE": "01",
+        "KIS_PAPER": "1"
       }
     }
   }
 }
 ```
+
+!!! tip "LLM에게는 모의투자를 권합니다"
+    `KIS_PAPER: "1"`이면 모든 호출이 모의투자 서버로 나갑니다. LLM이 주문 도구를
+    쓰는 구성에서는 실전 계좌를 바로 연결하기 전에 모의투자로 검증하세요.
+    실전으로 쓰려면 이 줄을 지우면 됩니다 (기본값이 실전).
+    모의투자 자격증명은 실전과 별도로 발급받아야 합니다 —
+    [모의투자 가이드](../getting-started/paper-trading.md).
 
 ## 통합 도구 (18개)
 

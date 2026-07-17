@@ -19,6 +19,7 @@ keywords: 한국투자증권, KIS OpenAPI, Python, SDK, CLI, kis-agent, 주식 A
 
 - **CLI 도구** — `pip install kis-agent` 하면 `kis` 명령이 바로 설치됩니다
 - **LLM Agent 연동** — JSON 출력 + 스키마 탐색으로 AI 에이전트 도구로 활용
+- **모의투자** — `paper=True` 하나로 URL과 모의투자 TR_ID를 함께 전환
 - **고성능** — 지능형 캐싱으로 API 호출 80-95% 감소
 - **실시간** — WebSocket을 통한 실시간 데이터 스트리밍
 - **국내시장** — KOSPI, KOSDAQ, NXT(넥스트) 시장 지원
