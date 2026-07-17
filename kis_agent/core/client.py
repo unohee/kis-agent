@@ -23,7 +23,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
 # 글로벌 rate limit 변수들 제거됨 - 인스턴스별 관리로 변경
 
 
@@ -540,9 +539,13 @@ class KISClient:
 
         payload = {
             "grant_type": "client_credentials",
-            "appkey": self.config.app_key if self.config else os.getenv("KIS_APP_KEY", ""),
+            "appkey": (
+                self.config.app_key if self.config else os.getenv("KIS_APP_KEY", "")
+            ),
             "secretkey": (
-                self.config.app_secret if self.config else os.getenv("KIS_APP_SECRET", "")
+                self.config.app_secret
+                if self.config
+                else os.getenv("KIS_APP_SECRET", "")
             ),
         }
 

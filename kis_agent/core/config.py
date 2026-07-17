@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from .constants import MOCK_BASE_URL, REAL_BASE_URL, resolve_environment
+from .constants import MOCK_BASE_URL, resolve_environment
 
 
 @dataclass

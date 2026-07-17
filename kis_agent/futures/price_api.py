@@ -310,7 +310,10 @@ class FuturesPriceAPI(BaseAPI):
         )
 
     def inquire_ccnl_bstime(
-        self, code: str, start_time: str = "090000", end_time: str = "153000",
+        self,
+        code: str,
+        start_time: str = "090000",
+        end_time: str = "153000",
         market: str = "F",
     ) -> Optional[Dict]:
         """

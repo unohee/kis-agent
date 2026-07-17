@@ -24,8 +24,6 @@ KRX가 공식 발표하는 VKOSPI는 KOSPI200 OTM 옵션의 베가 가중 내재
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-
 
 # 최소 거래량 필터 — 유동성 없는 OTM 제거
 MIN_VOLUME = 10
@@ -39,7 +37,9 @@ def get_second_thursday(year: int, month: int) -> date:
     return first_thursday + timedelta(days=7)
 
 
-def get_option_expiry_months(today: Optional[date] = None) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+def get_option_expiry_months(
+    today: date | None = None,
+) -> tuple[tuple[int, int], tuple[int, int]]:
     """
     선근월/차근월 (year, month) 쌍 반환.
 
@@ -64,7 +64,7 @@ def get_option_expiry_months(today: Optional[date] = None) -> Tuple[Tuple[int, i
     return near, far
 
 
-def get_days_to_expiry(year: int, month: int, today: Optional[date] = None) -> int:
+def get_days_to_expiry(year: int, month: int, today: date | None = None) -> int:
     """오늘부터 해당 년월 만기일까지 캘린더일 수"""
     if today is None:
         today = date.today()
@@ -72,7 +72,7 @@ def get_days_to_expiry(year: int, month: int, today: Optional[date] = None) -> i
     return max(0, (expiry - today).days)
 
 
-def interpolation_weights(t1: int, t2: int) -> Tuple[float, float]:
+def interpolation_weights(t1: int, t2: int) -> tuple[float, float]:
     """
     30일 잔존만기 기준 선형 보간 가중치.
 
@@ -93,14 +93,14 @@ def interpolation_weights(t1: int, t2: int) -> Tuple[float, float]:
     return w_near, w_far
 
 
-def _add_months(year: int, month: int, n: int) -> Tuple[int, int]:
+def _add_months(year: int, month: int, n: int) -> tuple[int, int]:
     month += n
     year += (month - 1) // 12
     month = (month - 1) % 12 + 1
     return year, month
 
 
-def _parse_float(s: str) -> Optional[float]:
+def _parse_float(s: str) -> float | None:
     """문자열을 float으로 변환. 빈 문자열/'-'/공백은 None."""
     if not s or s.strip() in ("-", ""):
         return None
@@ -111,13 +111,13 @@ def _parse_float(s: str) -> Optional[float]:
         return None
 
 
-def _is_otm(row: Dict) -> bool:
+def _is_otm(row: dict) -> bool:
     """OTM 옵션 여부 — atm_cls_name 필드 기준."""
     cls = row.get("atm_cls_name", "")
     return "OTM" in cls.upper()
 
 
-def _calc_vega_weighted_iv(rows: List[Dict]) -> Optional[float]:
+def _calc_vega_weighted_iv(rows: list[dict]) -> float | None:
     """
     OTM 행들의 베가 가중 평균 IV 계산.
 
@@ -196,10 +196,10 @@ class VKOSPICalculator:
 
     def calculate(
         self,
-        near_response: Dict,
-        far_response: Dict,
-        today: Optional[date] = None,
-    ) -> Optional[VKOSPIResult]:
+        near_response: dict,
+        far_response: dict,
+        today: date | None = None,
+    ) -> VKOSPIResult | None:
         """
         VKOSPI 프록시 계산.
 
@@ -219,8 +219,12 @@ class VKOSPICalculator:
         t1 = get_days_to_expiry(*near_month, today)
         t2 = get_days_to_expiry(*far_month, today)
 
-        near_rows = (near_response.get("output1") or []) + (near_response.get("output2") or [])
-        far_rows = (far_response.get("output1") or []) + (far_response.get("output2") or [])
+        near_rows = (near_response.get("output1") or []) + (
+            near_response.get("output2") or []
+        )
+        far_rows = (far_response.get("output1") or []) + (
+            far_response.get("output2") or []
+        )
 
         near_iv = _calc_vega_weighted_iv(near_rows)
         far_iv = _calc_vega_weighted_iv(far_rows)
@@ -232,13 +236,15 @@ class VKOSPICalculator:
         value = w_near * near_iv + w_far * far_iv
 
         near_sample_count = sum(
-            1 for r in near_rows
+            1
+            for r in near_rows
             if _is_otm(r)
             and (_parse_float(r.get("acml_vol", "")) or 0) >= MIN_VOLUME
             and _parse_float(r.get("hts_ints_vltl", "")) is not None
         )
         far_sample_count = sum(
-            1 for r in far_rows
+            1
+            for r in far_rows
             if _is_otm(r)
             and (_parse_float(r.get("acml_vol", "")) or 0) >= MIN_VOLUME
             and _parse_float(r.get("hts_ints_vltl", "")) is not None
@@ -259,9 +265,9 @@ class VKOSPICalculator:
 
     def calculate_from_single(
         self,
-        response: Dict,
-        today: Optional[date] = None,
-    ) -> Optional[float]:
+        response: dict,
+        today: date | None = None,
+    ) -> float | None:
         """
         단일 만기 응답으로 단순 베가 가중 IV만 반환 (보간 없음).
         선근월 만료까지 30일 이내일 때 빠른 근사에 사용.

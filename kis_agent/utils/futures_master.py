@@ -103,19 +103,21 @@ def _download_index_master() -> List[Dict[str, str]]:
             continue
 
         product_type = parts[0].strip()
-        symbols.append({
-            "code": parts[1].strip(),
-            "std_code": parts[2].strip(),
-            "name": parts[3].strip(),
-            "atm": parts[4].strip(),
-            "strike": parts[5].strip(),
-            "month_type": parts[6].strip(),
-            "underlying_code": parts[7].strip(),
-            "underlying_name": parts[8].strip(),
-            "product_type": product_type,
-            "product_type_name": _IDX_TYPE_MAP.get(product_type, product_type),
-            "market": "index",
-        })
+        symbols.append(
+            {
+                "code": parts[1].strip(),
+                "std_code": parts[2].strip(),
+                "name": parts[3].strip(),
+                "atm": parts[4].strip(),
+                "strike": parts[5].strip(),
+                "month_type": parts[6].strip(),
+                "underlying_code": parts[7].strip(),
+                "underlying_name": parts[8].strip(),
+                "product_type": product_type,
+                "product_type_name": _IDX_TYPE_MAP.get(product_type, product_type),
+                "market": "index",
+            }
+        )
 
     return symbols
 
@@ -151,19 +153,21 @@ def _download_commodity_master() -> List[Dict[str, str]]:
         underlying_code = rest[9:12].strip() if len(rest) > 11 else ""
         underlying_name = rest[12:].strip() if len(rest) > 12 else ""
 
-        symbols.append({
-            "code": code,
-            "std_code": std_code,
-            "name": name,
-            "atm": "",
-            "strike": "",
-            "month_type": month_type,
-            "underlying_code": underlying_code,
-            "underlying_name": underlying_name,
-            "product_type": f"{product_group}{product_type}",
-            "product_type_name": f"상품{product_type}",
-            "market": "commodity",
-        })
+        symbols.append(
+            {
+                "code": code,
+                "std_code": std_code,
+                "name": name,
+                "atm": "",
+                "strike": "",
+                "month_type": month_type,
+                "underlying_code": underlying_code,
+                "underlying_name": underlying_name,
+                "product_type": f"{product_group}{product_type}",
+                "product_type_name": f"상품{product_type}",
+                "market": "commodity",
+            }
+        )
 
     return symbols
 
@@ -173,9 +177,17 @@ def _save_cache(symbols: List[Dict[str, str]]) -> None:
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
     path = _get_cache_path()
     fieldnames = [
-        "code", "std_code", "name", "atm", "strike",
-        "month_type", "underlying_code", "underlying_name",
-        "product_type", "product_type_name", "market",
+        "code",
+        "std_code",
+        "name",
+        "atm",
+        "strike",
+        "month_type",
+        "underlying_code",
+        "underlying_name",
+        "product_type",
+        "product_type_name",
+        "market",
     ]
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -296,8 +308,7 @@ def search(
     if product_types:
         pt_lower = [pt.lower() for pt in product_types]
         symbols = [
-            s for s in symbols
-            if s.get("product_type_name", "").lower() in pt_lower
+            s for s in symbols if s.get("product_type_name", "").lower() in pt_lower
         ]
 
     q = query.strip().upper()
@@ -345,7 +356,8 @@ def get_current_futures(
 
     symbols = load_futures()
     candidates = [
-        s for s in symbols
+        s
+        for s in symbols
         if s.get("product_type_name") == product_type_name
         and s.get("month_type") == "1"  # 최근월물
     ]
@@ -369,7 +381,8 @@ def get_futures_by_month_type(
     """
     symbols = load_futures()
     return [
-        s for s in symbols
+        s
+        for s in symbols
         if s.get("month_type") == month_type
         and s.get("product_type_name") == product_type_name
     ]
