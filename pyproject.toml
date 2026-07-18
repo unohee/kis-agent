@@ -111,7 +111,7 @@ markers = [
     "slow: marks tests that require network access (deselect with '-m \"not slow\"')",
 ]
 python_files = ["test_*.py"]
-addopts = "-v --cov=kis_agent --cov-fail-under=100 --ignore=tests/unit/test_auth.py --ignore=tests/unit/test_client.py"
+addopts = "-v --cov=kis_agent --cov-fail-under=100"
 
 [tool.ruff]
 target-version = "py38"
