@@ -15,6 +15,7 @@ Purpose: 종목코드 자동 생성 로직 검증
 
 import unittest
 from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -80,6 +81,13 @@ class TestFuturesCodeGenerator(unittest.TestCase):
         month = FuturesCodeGenerator.get_current_expiry_month()
         self.assertEqual(month, 3)
 
+    @patch("kis_agent.futures.code_generator.datetime")
+    def test_current_series_and_month_roll_over_after_december(self, mock_datetime):
+        """방어적 연말 롤오버 분기는 3월물을 반환한다."""
+        mock_datetime.now.return_value = SimpleNamespace(month=13)
+        self.assertEqual(FuturesCodeGenerator.get_current_series(), "S")
+        self.assertEqual(FuturesCodeGenerator.get_current_expiry_month(), 3)
+
     def test_generate_futures_code_march(self):
         """3월물 선물 코드 생성"""
         code = FuturesCodeGenerator.generate_futures_code(expiry_month=3)
@@ -123,6 +131,16 @@ class TestFuturesCodeGenerator(unittest.TestCase):
             FuturesCodeGenerator.generate_futures_code(series="S", expiry_month=3)
         self.assertIn("동시에 사용할 수 없습니다", str(context.exception))
 
+    def test_generate_futures_code_rejects_unknown_product_and_auto_selects(self):
+        with self.assertRaisesRegex(ValueError, "KOSPI200"):
+            FuturesCodeGenerator.generate_futures_code(product="UNKNOWN")
+        with patch.object(
+            FuturesCodeGenerator, "get_current_series", return_value="M"
+        ), patch.object(
+            FuturesCodeGenerator, "get_current_expiry_month", return_value=6
+        ):
+            self.assertEqual(FuturesCodeGenerator.generate_futures_code(), "101M06")
+
     def test_generate_option_code_call(self):
         """콜옵션 코드 생성"""
         code = FuturesCodeGenerator.generate_option_code("CALL", 340.0, expiry_month=3)
@@ -148,6 +166,29 @@ class TestFuturesCodeGenerator(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             FuturesCodeGenerator.generate_option_code("INVALID", 340.0)
         self.assertIn("CALL", str(context.exception))
+
+    def test_generate_option_code_rejects_invalid_product_series_and_month(self):
+        with self.assertRaisesRegex(ValueError, "KOSPI200"):
+            FuturesCodeGenerator.generate_option_code(
+                "CALL", 340.0, product="UNKNOWN"
+            )
+        with self.assertRaisesRegex(ValueError, "동시에"):
+            FuturesCodeGenerator.generate_option_code(
+                "CALL", 340.0, series="S", expiry_month=3
+            )
+        with self.assertRaisesRegex(ValueError, "시리즈"):
+            FuturesCodeGenerator.generate_option_code("CALL", 340.0, series="X")
+        with self.assertRaisesRegex(ValueError, "만기월"):
+            FuturesCodeGenerator.generate_option_code(
+                "CALL", 340.0, expiry_month=5
+            )
+        with patch.object(
+            FuturesCodeGenerator, "get_current_series", return_value="U"
+        ):
+            self.assertEqual(
+                FuturesCodeGenerator.generate_option_code("PUT", 340.0),
+                "301UP340",
+            )
 
     def test_generate_atm_option_codes(self):
         """ATM 옵션 코드 생성"""
@@ -240,6 +281,20 @@ class TestConvenienceFunctions(unittest.TestCase):
 
         self.assertEqual(result, "101M06")
         mock_generate.assert_called_once_with(expiry_month=6)
+
+    @patch(
+        "kis_agent.futures.code_generator.FuturesCodeGenerator.get_current_expiry_month",
+        return_value=12,
+    )
+    @patch(
+        "kis_agent.futures.code_generator.FuturesCodeGenerator.generate_futures_code",
+        return_value="101S03",
+    )
+    def test_generate_next_futures_rolls_december_to_march(
+        self, mock_generate, _mock_get_month
+    ):
+        self.assertEqual(generate_next_futures(), "101S03")
+        mock_generate.assert_called_once_with(expiry_month=3)
 
     @patch("kis_agent.futures.code_generator.FuturesCodeGenerator.generate_option_code")
     def test_generate_call_option(self, mock_generate):

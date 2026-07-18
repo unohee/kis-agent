@@ -54,25 +54,13 @@ def get_kospi200_futures_code(today: Optional[datetime] = None) -> str:
     if current_month in expiry_months:
         expiry_date = get_second_thursday(current_year, current_month)
         if today.date() > expiry_date.date():
-            found = False
-            for month in expiry_months:
-                if month > current_month:
-                    expiry_month = month
-                    found = True
-                    break
-            if not found:
-                expiry_month = 3
+            expiry_month = next(
+                (month for month in expiry_months if month > current_month), 3
+            )
         else:
             expiry_month = current_month
     else:
-        found = False
-        for month in expiry_months:
-            if month > current_month:
-                expiry_month = month
-                found = True
-                break
-        if not found:
-            expiry_month = 3
+        expiry_month = next(month for month in expiry_months if month > current_month)
 
     return f"A016{expiry_month:02d}"
 
@@ -114,8 +102,7 @@ class StockAPI(BaseAPI):
         )
 
         logger.warning(
-            "DEPRECATION: pykis.stock.api.StockAPI는 레거시입니다. "
-            "from kis_agent.stock import StockAPI를 사용하세요."
+            "DEPRECATION: pykis.stock.api.StockAPI는 레거시입니다. from kis_agent.stock import StockAPI를 사용하세요."
         )
 
     def __getattr__(self, name: str) -> Any:
@@ -137,8 +124,7 @@ class StockAPI(BaseAPI):
                 return getattr(api, name)
 
         raise AttributeError(
-            f"'{type(self).__name__}' object has no attribute '{name}'. "
-            f"This is a legacy class. Use 'from kis_agent.stock import StockAPI' instead."
+            f"'{type(self).__name__}' object has no attribute '{name}'. This is a legacy class. Use 'from kis_agent.stock import StockAPI' instead."
         )
 
     # ===== 주문 관련 메서드 - AccountAPI로 이동됨 =====
@@ -147,15 +133,13 @@ class StockAPI(BaseAPI):
     def order_cash(self, *args, **kwargs):
         """DEPRECATED: AccountAPI.order_cash를 사용하세요"""
         raise DeprecationWarning(
-            "order_cash는 StockAPI에서 제거되었습니다. "
-            "AccountAPI.order_cash() 또는 agent.order_stock_cash()를 사용하세요."
+            "order_cash는 StockAPI에서 제거되었습니다. AccountAPI.order_cash() 또는 agent.order_stock_cash()를 사용하세요."
         )
 
     def order_credit(self, *args, **kwargs):
         """DEPRECATED: AccountAPI.order_credit를 사용하세요"""
         raise DeprecationWarning(
-            "order_credit는 StockAPI에서 제거되었습니다. "
-            "AccountAPI.order_credit() 또는 agent.order_stock_credit()를 사용하세요."
+            "order_credit는 StockAPI에서 제거되었습니다. AccountAPI.order_credit() 또는 agent.order_stock_credit()를 사용하세요."
         )
 
 

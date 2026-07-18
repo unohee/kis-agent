@@ -17,7 +17,7 @@ jobs:
       # 패키지는 pykis/ 에서 kis_agent/ 로 이름이 바뀌었다. 경로가 낡아 있던 동안
       # lint/bandit/LOC/커버리지가 존재하지 않는 디렉터리를 검사하며 통과했다.
       src-path: 'kis_agent/'
-      test-path: 'tests/unit/'
-      coverage-threshold: 0
+      test-path: 'tests/'
+      coverage-threshold: 100
       max-line-count: 1500
     secrets: inherit

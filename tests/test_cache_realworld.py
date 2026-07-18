@@ -38,21 +38,23 @@ def test_price_data_caching():
         }
     )
 
-    cache.set(cache_key, test_data, ttl=ttl)
+    now = 1_000.0
+    with patch(
+        "kis_agent.core.cache.time.time", side_effect=[now, now, now + 15, now + 31]
+    ):
+        cache.set(cache_key, test_data, ttl=ttl)
 
-    # 즉시 조회 - 캐시 히트
-    cached = cache.get(cache_key)
-    assert cached is not None, "캐시된 데이터를 찾을 수 없습니다"
+        # 즉시 조회 - 캐시 히트
+        cached = cache.get(cache_key)
+        assert cached is not None, "캐시된 데이터를 찾을 수 없습니다"
 
-    # 15초 후 - 아직 유효
-    time.sleep(15)
-    cached = cache.get(cache_key)
-    assert cached is not None, "15초 후에도 캐시가 유효해야 합니다"
+        # 15초 후 - 아직 유효
+        cached = cache.get(cache_key)
+        assert cached is not None, "15초 후에도 캐시가 유효해야 합니다"
 
-    # 31초 후 - 만료됨
-    time.sleep(16)
-    cached = cache.get(cache_key)
-    assert cached is None, "31초 후에는 캐시가 만료되어야 합니다"
+        # 31초 후 - 만료됨
+        cached = cache.get(cache_key)
+        assert cached is None, "31초 후에는 캐시가 만료되어야 합니다"
 
 
 def _get_test_cases():
@@ -114,11 +116,14 @@ def test_different_context_ttls():
     """다양한 컨텍스트별 TTL 동작 테스트"""
     cache = APICache()
     test_cases = _get_test_cases()
-    stored_keys = _store_test_data(cache, test_cases)
 
     # 11초 후 체크 - 10초 TTL만 만료
-    time.sleep(11)
-    _verify_ttl_expiry(cache, stored_keys)
+    now = 1_000.0
+    with patch(
+        "kis_agent.core.cache.time.time", side_effect=[now] * 4 + [now + 11] * 4
+    ):
+        stored_keys = _store_test_data(cache, test_cases)
+        _verify_ttl_expiry(cache, stored_keys)
 
 
 def test_cache_performance():

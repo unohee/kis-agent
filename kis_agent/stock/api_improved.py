@@ -276,7 +276,7 @@ class StockAPI(BaseAPI, ExceptionHandler):
 
         # API 호출
         response = self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_DAILY_TRADE"],
+            endpoint=API_ENDPOINTS["INQUIRE_INVESTOR"],
             tr_id="FHKST01010900",
             params={
                 "fid_cond_mrkt_div_code": "J",
@@ -332,7 +332,7 @@ class StockAPI(BaseAPI, ExceptionHandler):
 
         # DataFrame으로 반환
         return self._make_request_dataframe(
-            endpoint=API_ENDPOINTS["INQUIRE_HOLIDAY"], tr_id="CTCA0903R", params=params
+            endpoint=API_ENDPOINTS["CHK_HOLIDAY"], tr_id="CTCA0903R", params=params
         )
 
 

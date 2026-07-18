@@ -4,18 +4,18 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - "pykis/**/*.py"
+      - "kis_agent/**/*.py"
       - "tests/**/*.py"
   workflow_dispatch:
     inputs:
       target_coverage:
         description: "Target coverage percentage"
         required: false
-        default: "70"
+        default: "100"
 
 env:
   PYTHON_VERSION: "3.12"
-  TARGET_COVERAGE: ${{ github.event.inputs.target_coverage || '70' }}
+  TARGET_COVERAGE: ${{ github.event.inputs.target_coverage || '100' }}
 
 jobs:
   coverage-analysis:
@@ -46,11 +46,14 @@ jobs:
         id: coverage
         run: |
           # Run tests with coverage
-          pytest tests/unit/ \
-            --cov=pykis \
+          pytest tests/ \
+            --cov=kis_agent \
+            --cov-fail-under="${TARGET_COVERAGE}" \
             --cov-report=json:coverage.json \
             --cov-report=term-missing \
-            -q --tb=no || true
+            --timeout=60 \
+            --disable-warnings \
+            -q --tb=no
 
           # Extract overall coverage
           TOTAL_COV=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])" 2>/dev/null || echo "0")
@@ -69,7 +72,7 @@ jobs:
 
               low_coverage = []
               for filepath, info in data.get('files', {}).items():
-                  if filepath.startswith('pykis/'):
+                  if filepath.startswith('kis_agent/'):
                       pct = info['summary']['percent_covered']
                       missing = info['missing_lines']
                       if pct < TARGET and missing:
@@ -175,4 +178,3 @@ jobs:
             coverage.json
             coverage_report.md
             low_coverage_files.txt
-

@@ -53,6 +53,11 @@ class TestDictResponseProcessor(unittest.TestCase):
         self.assertIsNone(result)
 
 
+def test_abstract_processor_contract_raises_when_called_directly():
+    with pytest.raises(NotImplementedError):
+        ResponseProcessor.process(None, {})
+
+
 class TestDataFrameResponseProcessor(unittest.TestCase):
     """DataFrameResponseProcessor 테스트"""
 

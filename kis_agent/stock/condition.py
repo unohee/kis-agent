@@ -208,12 +208,9 @@ def get_condition_stocks_dict(agent) -> Dict[str, List[Dict]]:
             logging.warning("조건검색식 종목 조회 실패")
             return {}
 
-        # condition API에서 직접 리스트를 반환하므로 바로 사용
+        # condition API에서 직접 리스트를 반환하므로 바로 사용한다.
+        # 빈 결과는 위의 `if not stocks`에서 이미 처리됐다.
         stock_list = stocks
-
-        if not stock_list:
-            logging.warning("조건검색식 종목이 없습니다.")
-            return {}
 
         # StockMonitor.py에서 기대하는 형태로 변환
         # {조건검색식명: [종목정보리스트]} 형태

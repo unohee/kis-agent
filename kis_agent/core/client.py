@@ -381,7 +381,9 @@ class KISClient:
             data = None
             try:
                 if self.verbose:
-                    logger.info(f"[API] ({method}) {tr_id} 시도 {attempt+1}/{retries}")
+                    logger.info(
+                        f"[API] ({method}) {tr_id} 시도 {attempt + 1}/{retries}"
+                    )
 
                 response = httpx.request(
                     method.upper(),
@@ -396,7 +398,7 @@ class KISClient:
                     data = response.json()
                 except json.JSONDecodeError:
                     logger.error(
-                        f"[{tr_id}] JSON 디코드 실패 (시도 {attempt+1}/{retries})"
+                        f"[{tr_id}] JSON 디코드 실패 (시도 {attempt + 1}/{retries})"
                     )
                     logger.error(
                         f"[{tr_id}] 원시 응답 텍스트: {response.text[:500]}..."
@@ -430,11 +432,11 @@ class KISClient:
                         self.rate_limiter.report_success()
                     return data
                 else:
-                    if response.status_code == 200 and rt_cd != "0":
+                    if response.status_code == 200:
                         api_msg = data.get("msg1", "")
                         api_code = data.get("rt_cd")
                         logger.warning(
-                            f"[{tr_id}] API 오류 응답 (시도 {attempt+1}/{retries}): {api_msg} (code: {api_code})"
+                            f"[{tr_id}] API 오류 응답 (시도 {attempt + 1}/{retries}): {api_msg} (code: {api_code})"
                         )
 
                         # 유량 제한 에러 체크
@@ -477,7 +479,7 @@ class KISClient:
 
                             if attempt < retries - 1:
                                 logger.warning(
-                                    f"[{tr_id}] API 유량 제한 감지 (code: {api_code}). 0.5초 대기 후 재시도... ({attempt+1}/{retries})"
+                                    f"[{tr_id}] API 유량 제한 감지 (code: {api_code}). 0.5초 대기 후 재시도... ({attempt + 1}/{retries})"
                                 )
                                 time.sleep(
                                     0.5
@@ -495,7 +497,7 @@ class KISClient:
                                 "status_code": response.status_code,
                                 "error_type": "ApiError",
                             }
-                    elif response.status_code != 200:
+                    else:
                         http_error_msg = (
                             data.get("msg1", response.text)
                             if data and isinstance(data, dict)
@@ -506,7 +508,7 @@ class KISClient:
                             if data and isinstance(data, dict)
                             else None
                         )
-                        log_entry = f"[{tr_id}] HTTP 오류 응답 (시도 {attempt+1}/{retries}): Status {response.status_code}, Message: {http_error_msg}"
+                        log_entry = f"[{tr_id}] HTTP 오류 응답 (시도 {attempt + 1}/{retries}): Status {response.status_code}, Message: {http_error_msg}"
                         if http_error_code_from_json:
                             log_entry += (
                                 f" (API Code in JSON: {http_error_code_from_json})"
@@ -530,13 +532,8 @@ class KISClient:
                                     "error_type": "HTTPErrorFinal",
                                 }
                             )
-                    else:
-                        logger.error(
-                            f"[{tr_id}] 로직 오류: 예상치 못한 HTTP/API 상태 (시도 {attempt+1}/{retries}). 응답: {data}. HTTP Status: {response.status_code if response else 'N/A'}"
-                        )
-                        return data
             except (httpx.RequestError, requests.exceptions.RequestException) as e:
-                logger.error(f"[{tr_id}] 요청 실패 (시도 {attempt+1}/{retries}): {e}")
+                logger.error(f"[{tr_id}] 요청 실패 (시도 {attempt + 1}/{retries}): {e}")
                 last_exception = e
                 if attempt < retries - 1:
                     time.sleep(
@@ -552,8 +549,6 @@ class KISClient:
         logger.error(
             f"[{tr_id}] 최종 실패 후 루프 외부 도달: {last_exception if last_exception else '알 수 없는 오류'}"
         )
-        if last_exception:
-            raise last_exception
         raise Exception("Unknown error after retries")
 
     def refresh_token(self) -> None:

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import kis_agent.utils.futures_master as fm
 from kis_agent.utils.futures_master import (
     _IDX_TYPE_MAP,
     _download_index_master,
@@ -228,3 +229,61 @@ class TestDownloadIntegration:
         cur = get_current_futures()
         assert cur is not None
         assert cur["month_type"] == "1"
+
+
+def test_master_parsers_skip_short_records_and_parse_valid_records():
+    index_raw = (
+        "short\n"
+        "1|A01606|STD|F 202606||0|1|2001|KOSPI200"
+    ).encode("cp949")
+    commodity_raw = (
+        "short\n"
+        + "11GC2604  ".ljust(11)
+        + "STD".ljust(12)
+        + "금선물".ljust(32)
+        + " " * 8
+        + "1"
+        + "GC "
+        + "금"
+    ).encode("cp949")
+
+    def archive(raw):
+        zf = MagicMock()
+        zf.__enter__.return_value = zf
+        zf.namelist.return_value = ["master"]
+        zf.read.return_value = raw
+        return zf
+
+    response = MagicMock()
+    response.__enter__.return_value = response
+    response.read.return_value = b"zip"
+    with patch.object(fm.urllib.request, "urlopen", return_value=response), patch.object(
+        fm.zipfile, "ZipFile", return_value=archive(index_raw)
+    ):
+        assert fm._download_index_master()[0]["code"] == "A01606"
+    with patch.object(fm.urllib.request, "urlopen", return_value=response), patch.object(
+        fm.zipfile, "ZipFile", return_value=archive(commodity_raw)
+    ):
+        assert fm._download_commodity_master()[0]["market"] == "commodity"
+
+
+def test_cache_absence_download_fallback_and_empty_search(tmp_path, monkeypatch):
+    monkeypatch.setattr(fm, "_get_cache_path", lambda: tmp_path / "missing.csv")
+    assert fm._load_cache() == []
+    assert not fm._is_cache_fresh()
+
+    monkeypatch.setattr(fm, "_download_index_master", MagicMock(side_effect=OSError("offline")))
+    monkeypatch.setattr(fm, "_load_cache", MagicMock(return_value=SAMPLE_SYMBOLS))
+    assert fm.load_futures(force_refresh=True, markets=["commodity"]) == [SAMPLE_SYMBOLS[-1]]
+
+    fm._futures_cache = []
+    fm._cache_date = None
+    monkeypatch.setattr(fm, "_load_cache", MagicMock(return_value=[]))
+    assert fm.load_futures(force_refresh=True) == []
+    monkeypatch.setattr(fm, "load_futures", MagicMock(return_value=[]))
+    assert fm.search("anything") == []
+
+
+def test_search_exact_name_match():
+    with patch.object(fm, "load_futures", return_value=SAMPLE_SYMBOLS):
+        assert fm.search("F 202606") == [SAMPLE_SYMBOLS[0]]

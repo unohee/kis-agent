@@ -332,26 +332,21 @@ class FuturesHistoricalAPI(BaseAPI):
             }
             bars.append(bar)
 
-        # 다음 페이지 정보 (가장 오래된 데이터 기준)
-        if bars:
-            oldest = bars[-1]
-            next_date = oldest.get("date")
-            next_time = oldest.get("time")
-            # 1분 이전으로 설정
-            if next_time:
-                try:
-                    t = datetime.strptime(f"{next_date}{next_time}", "%Y%m%d%H%M%S")
-                    t -= timedelta(minutes=1)
-                    next_date = t.strftime("%Y%m%d")
-                    next_time = t.strftime("%H%M%S")
-                except ValueError:
-                    # 날짜 파싱 실패 시 기존 값 유지하고 로깅
-                    logger.warning(
-                        f"날짜 파싱 실패: {next_date}{next_time}, 기존 값 유지"
-                    )
-            return bars, next_date, next_time
-
-        return bars, None, None
+        # output2가 비어 있는 경우는 위에서 반환했으므로 bars에는 항상 항목이 있다.
+        oldest = bars[-1]
+        next_date = oldest.get("date")
+        next_time = oldest.get("time")
+        # 1분 이전으로 설정
+        if next_time:
+            try:
+                t = datetime.strptime(f"{next_date}{next_time}", "%Y%m%d%H%M%S")
+                t -= timedelta(minutes=1)
+                next_date = t.strftime("%Y%m%d")
+                next_time = t.strftime("%H%M%S")
+            except ValueError:
+                # 날짜 파싱 실패 시 기존 값 유지하고 로깅
+                logger.warning(f"날짜 파싱 실패: {next_date}{next_time}, 기존 값 유지")
+        return bars, next_date, next_time
 
     def get_contract_history(
         self,

@@ -21,7 +21,7 @@ class ResponseProcessor(ABC):
     @abstractmethod
     def process(self, response: Dict, field_type: Optional[str] = None) -> Any:
         """응답 처리 추상 메서드"""
-        pass
+        raise NotImplementedError
 
 
 class DictResponseProcessor(ResponseProcessor):

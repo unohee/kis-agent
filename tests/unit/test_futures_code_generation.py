@@ -213,6 +213,10 @@ class TestGetKospi200FuturesCode:
         # Assert
         assert code == "A01612", "11월에는 다음 만기월인 A01612 반환"
 
+    def test_non_expiry_month_december_rolls_over_to_march(self):
+        """12월 만기 전이 아닌 비만기 경로의 연말 롤오버도 3월물을 선택한다."""
+        assert get_kospi200_futures_code(datetime(2025, 12, 1)) == "A01612"
+
     def test_edge_case_second_thursday_calculation(self):
         """
         경계 케이스: 두 번째 목요일 계산 검증

@@ -47,7 +47,8 @@ class TestKISClientUnit(unittest.TestCase):
 
     @patch("kis_agent.core.client.auth")
     @patch("kis_agent.core.client.getTREnv")
-    def test_init_with_config(self, mock_get_tr_env, mock_auth):
+    @patch("kis_agent.core.client.read_token", return_value=None)
+    def test_init_with_config(self, mock_read_token, mock_get_tr_env, mock_auth):
         """config로 클라이언트 초기화"""
         mock_auth.return_value = {
             "access_token": "test_token",
