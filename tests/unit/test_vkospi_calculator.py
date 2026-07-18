@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import kis_agent.futures.vkospi as vkospi
 from kis_agent.futures.vkospi import (
     VKOSPICalculator,
     VKOSPIResult,
@@ -18,7 +19,6 @@ from kis_agent.futures.vkospi import (
     get_second_thursday,
     interpolation_weights,
 )
-
 
 # ── 헬퍼 ────────────────────────────────────────────────────────────────────
 
@@ -279,3 +279,18 @@ class TestVKOSPICalculator:
         iv = calc.calculate_from_single(resp)
         assert iv is not None
         assert 18.0 <= iv <= 22.0
+
+
+def test_default_dates_and_result_representation(monkeypatch):
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 6, 5)
+
+    monkeypatch.setattr(vkospi, "date", FixedDate)
+    assert vkospi.get_option_expiry_months()[0] == (2026, 6)
+    assert vkospi.get_days_to_expiry(2026, 6) == 6
+    calc = VKOSPICalculator()
+    response = {"output1": [otm_row("20", vol="100")], "output2": []}
+    result = calc.calculate(response, response)
+    assert "VKOSPIResult(value=" in repr(result)

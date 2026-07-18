@@ -4,6 +4,7 @@ TTL
 """
 
 import time
+from unittest.mock import patch
 
 import pytest
 
@@ -92,17 +93,19 @@ def test_cache_expiry_behavior():
     """ """
     cache = APICache(default_ttl=1)  # 1 TTL
 
-    #
-    cache.set("test_key", {"data": "test_value"}, ttl=1)
+    with patch(
+        "kis_agent.core.cache.time.time", side_effect=[1_000.0, 1_000.0, 1_001.1]
+    ):
+        #
+        cache.set("test_key", {"data": "test_value"}, ttl=1)
 
-    #   -
-    assert cache.get("test_key") is not None
-    assert cache.hits == 1
+        #   -
+        assert cache.get("test_key") is not None
+        assert cache.hits == 1
 
-    # 1.1   -   ()
-    time.sleep(1.1)
-    assert cache.get("test_key") is None
-    assert cache.misses == 1
+        # 1.1   -   ()
+        assert cache.get("test_key") is None
+        assert cache.misses == 1
 
     print("    ")
 
@@ -115,25 +118,27 @@ def test_cache_performance_with_different_ttls():
     # 시세 데이터 (30초 TTL)
     price_endpoint = "/uapi/domestic-stock/v1/quotations/inquire-price"
     cache_key_price = cache._make_key({"endpoint": price_endpoint, "code": "005930"})
-    cache.set(
-        cache_key_price,
-        {"price": 70000},
-        ttl=cache.get_ttl_for_endpoint(price_endpoint),
-    )
-
     # 종목 정보 (3600초 TTL)
     info_endpoint = "/uapi/domestic-stock/v1/quotations/inquire-stock-info"
     cache_key_info = cache._make_key({"endpoint": info_endpoint, "code": "005930"})
-    cache.set(
-        cache_key_info,
-        {"name": "삼성전자"},
-        ttl=cache.get_ttl_for_endpoint(info_endpoint),
-    )
+    with patch(
+        "kis_agent.core.cache.time.time",
+        side_effect=[1_000.0, 1_000.0, 1_031.0, 1_031.0],
+    ):
+        cache.set(
+            cache_key_price,
+            {"price": 70000},
+            ttl=cache.get_ttl_for_endpoint(price_endpoint),
+        )
+        cache.set(
+            cache_key_info,
+            {"name": "삼성전자"},
+            ttl=cache.get_ttl_for_endpoint(info_endpoint),
+        )
 
-    # 31초 후 - 시세는 만료, 종목정보는 유효
-    time.sleep(31)
-    assert cache.get(cache_key_price) is None  # 만료됨
-    assert cache.get(cache_key_info) is not None  # 유효
+        # 31초 후 - 시세는 만료, 종목정보는 유효
+        assert cache.get(cache_key_price) is None  # 만료됨
+        assert cache.get(cache_key_info) is not None  # 유효
 
     print(" TTL    ")
 

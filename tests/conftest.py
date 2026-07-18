@@ -9,15 +9,27 @@ from unittest.mock import patch
 
 import pytest
 
-from kis_agent import Agent
-
-# src 디렉토리를 파이썬 경로에 추가하여 패키지를 임포트합니다.
+# 저장소 체크아웃에서 직접 실행할 때도 패키지를 임포트할 수 있게 루트를 먼저 추가합니다.
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SRC_DIR = os.path.join(ROOT_DIR, "src")
-if SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
+from kis_agent import Agent
 from kis_agent.core.config import KISConfig
+
+
+def pytest_collection_modifyitems(config, items):
+    """자격증명이 없는 로컬 실행에서 실계좌 테스트를 안전하게 제외한다."""
+    required_credentials = ("KIS_APP_KEY", "KIS_APP_SECRET", "KIS_ACCOUNT_NO")
+    if all(os.getenv(name) for name in required_credentials):
+        return
+
+    skip_credentials = pytest.mark.skip(
+        reason="KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO 자격증명이 필요합니다"
+    )
+    for item in items:
+        if item.get_closest_marker("requires_credentials"):
+            item.add_marker(skip_credentials)
 
 
 @pytest.fixture

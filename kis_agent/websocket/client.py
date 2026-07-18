@@ -958,7 +958,7 @@ class KisWebSocket:
                                 f"{ticker}^{trade_time}^{final_price}"
                             )
                     except Exception as e:
-                        logging.error("최종 가격 REST 호출 오류:", e)
+                        logging.error("최종 가격 REST 호출 오류: %s", e)
                 await asyncio.sleep(1)  # 장 종료 시 1초 대기
             else:
                 unsubscribed = False  # 장중이면 해제 플래그 초기화
@@ -1074,14 +1074,14 @@ class KisWebSocket:
             # 디버그 로그
             logging.info(f"\n[EXIT CHECK] {stock_code}")
             logging.info(f"수익률: {profit_ratio:.2f}%")
-            logging.info(
-                f"RSI: {rsi_now:.1f} (이전: {rsi_prev:.1f if rsi_prev else 'N/A'})"
-            )
+            previous_rsi = f"{rsi_prev:.1f}" if rsi_prev is not None else "N/A"
+            logging.info(f"RSI: {rsi_now:.1f} (이전: {previous_rsi})")
             if len(strength_series) >= 3:
                 logging.info(
                     f"체결강도: {recent_strength[-1]:.1f} (3분전: {recent_strength[0]:.1f})"
                 )
-            logging.info(f"ATR: {atr:.2f if atr else 'N/A'}")
+            atr_text = f"{atr:.2f}" if atr is not None else "N/A"
+            logging.info(f"ATR: {atr_text}")
 
             # 모든 조건 만족 시 익절 신호
             if rsi_falling and strength_falling and atr_high:
@@ -1253,8 +1253,12 @@ class KisWebSocket:
             return
         self.update_price_and_indicators()
 
-    async def connect(self):
-        """웹소켓 연결 및 체결/호가 구독."""
+    async def connect(self, stop_event=None):
+        """웹소켓 연결 및 체결/호가 구독.
+
+        ``stop_event``가 전달되면 설정 시점에 현재 수신·재연결 루프를 정상
+        종료한다. 기본값 ``None``은 기존의 자동 재연결 동작을 유지한다.
+        """
         self.get_approval()
         logging.info("\n" + "=" * 50)
         logging.info("[INFO] 실시간 체결 정보 표시 시작")
@@ -1271,7 +1275,7 @@ class KisWebSocket:
         from datetime import datetime
         from datetime import time as dt_time
 
-        while True:  # 자동 재연결을 위한 외부 루프
+        while not (stop_event and stop_event.is_set()):  # 자동 재연결을 위한 외부 루프
             try:
                 async with websockets.connect(
                     self.url,
@@ -1416,7 +1420,7 @@ class KisWebSocket:
                     sys.stdout.flush()
 
                     ping_retry_count = 0  # ping/pong 재시도 카운터 초기화
-                    while True:
+                    while not (stop_event and stop_event.is_set()):
                         # 장 종료 후(15:30)에는 데이터 수신을 일시 중단하고, 다음 거래일 9:00까지 대기
                         now = datetime.now()
                         if now.time() > dt_time(15, 30):
@@ -1424,7 +1428,7 @@ class KisWebSocket:
                                 "[INFO] 장 종료 감지됨. 다음 거래일까지 대기 중..."
                             )
                             sys.stdout.flush()
-                            while True:
+                            while not (stop_event and stop_event.is_set()):
                                 await asyncio.sleep(30)
                                 if datetime.now().time() < dt_time(9, 0):
                                     break

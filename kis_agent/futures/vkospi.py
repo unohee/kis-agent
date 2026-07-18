@@ -140,8 +140,6 @@ def _calc_vega_weighted_iv(rows: list[dict]) -> float | None:
         return None
 
     total_vega = sum(v for _, v in valid)
-    if total_vega == 0:
-        return None
     return sum(iv * v for iv, v in valid) / total_vega
 
 

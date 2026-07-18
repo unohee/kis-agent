@@ -701,11 +701,11 @@ class WSAgent(WSSubscriptionMixin):
             return True
 
         # 일반 구독 성공/실패 로그 (대기 중이 아닌 경우)
+        if "UNSUBSCRIBE" in msg1.upper():
+            logger.info(f"구독 해제: {tr_id} ({tr_key})")
+            return True
         if "SUBSCRIBE SUCCESS" in msg1.upper():
             logger.info(f"구독 성공: {tr_id} ({tr_key})")
-            return True
-        elif "UNSUBSCRIBE" in msg1.upper():
-            logger.info(f"구독 해제: {tr_id} ({tr_key})")
             return True
 
         return False

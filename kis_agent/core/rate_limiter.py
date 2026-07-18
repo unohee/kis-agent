@@ -163,8 +163,9 @@ class RateLimiter:
         # 1초 sliding window 내 N개 제한을 확실히 지키려면 슬롯 간격이 1/RPS보다
         # 조금 커야 함. 그렇지 않으면 윈도우 경계와 슬롯이 우연히 정확히 겹치며
         # N+1개가 1초 안에 들어올 수 있다 (예: 5 RPS에 200ms 간격이면 윈도우
-        # [t-ε, t+1-ε)에 6개). 1ms safety로 이 corner case를 방지.
-        rps_floor = (1.0 / requests_per_second) + 0.001
+        # [t-ε, t+1-ε)에 6개). 실제 sleep의 undershoot와 스레드 재개 편차도
+        # 고려해 20ms safety를 둔다.
+        rps_floor = (1.0 / requests_per_second) + 0.020
         self.min_interval = max(min_interval_ms / 1000.0, rps_floor)
         self.burst_size = burst_size
         self.enable_adaptive = enable_adaptive
@@ -215,8 +216,9 @@ class RateLimiter:
             # 만큼 추가 대기. monotonic 시계와 time.sleep()의 oversleep/undersleep
             # 누적으로 윈도우 경계 직전에 요청이 몰리는 것을 방지.
             # macOS/Linux의 time.sleep은 최대 ~10ms undersleep 발생할 수 있어
-            # 보수적으로 20ms padding (1초 한도의 2% 비용으로 한도 위반 확실히 차단).
-            _SAFETY_PADDING_S = 0.020
+            # CI/macOS의 스레드 스케줄링 편차까지 고려해 50ms를 둔다. 경계에서
+            # 실제 완료 시각이 앞당겨져 sliding-window 한도를 넘는 것을 막는다.
+            _SAFETY_PADDING_S = 0.050
 
             # 2) 초당 한도: 1초 이내 요청이 RPS 이상이면 가장 오래된 요청
             #    + 1초 + padding이 다음 가용 시점. burst는 priority>=1에서만 허용하되,
