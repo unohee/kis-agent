@@ -92,7 +92,10 @@ async def test_connect_sends_enabled_subscriptions_and_stops_on_event(tmp_path, 
         async def __aexit__(self, *_args):
             return False
 
-    monkeypatch.setattr("kis_agent.websocket.client.websockets.connect", lambda *_args, **_kwargs: Connection())
+    monkeypatch.setattr(
+        "kis_agent.websocket.client.websockets.connect",
+        lambda *_args, **_kwargs: Connection(),
+    )
     sleep_calls = 0
 
     async def set_stop(_seconds):
@@ -106,7 +109,14 @@ async def test_connect_sends_enabled_subscriptions_and_stops_on_event(tmp_path, 
     await ws.connect(stop_event=stop_event)
 
     tr_ids = {json.loads(call.args[0])["body"]["input"]["tr_id"] for call in socket.send.await_args_list}
-    assert {"H0IF1000", "H0UPANC0", "H0STCNT0", "H0STASP0", "H0GSCNT0", "H0UNANC0"} <= tr_ids
+    assert {
+        "H0IF1000",
+        "H0UPANC0",
+        "H0STCNT0",
+        "H0STASP0",
+        "H0GSCNT0",
+        "H0UNANC0",
+    } <= tr_ids
 
 
 @pytest.mark.asyncio
@@ -117,8 +127,12 @@ async def test_connect_receives_trade_message_during_market_session(tmp_path, mo
     ws.enable_index = ws.enable_ask_bid = ws.enable_program_trading = False
     ws.enable_expected_index = ws.enable_expected_stock = False
     for method in (
-        "get_approval", "load_historical_data", "fetch_stock_names", "fetch_open_prices",
-        "load_initial_balance", "display_balance_info",
+        "get_approval",
+        "load_historical_data",
+        "fetch_stock_names",
+        "fetch_open_prices",
+        "load_initial_balance",
+        "display_balance_info",
     ):
         monkeypatch.setattr(ws, method, MagicMock())
     ws.handle_message = MagicMock()
@@ -145,7 +159,10 @@ async def test_connect_receives_trade_message_during_market_session(tmp_path, mo
     import datetime as datetime_module
 
     monkeypatch.setattr(datetime_module, "datetime", MarketDateTime)
-    monkeypatch.setattr("kis_agent.websocket.client.websockets.connect", lambda *_args, **_kwargs: Connection())
+    monkeypatch.setattr(
+        "kis_agent.websocket.client.websockets.connect",
+        lambda *_args, **_kwargs: Connection(),
+    )
     monkeypatch.setattr("kis_agent.websocket.client.asyncio.sleep", AsyncMock())
 
     await ws.connect(stop_event=stop_event)
@@ -162,8 +179,12 @@ async def test_connect_pings_after_receive_timeout(tmp_path, monkeypatch):
     ws.enable_index = ws.enable_ask_bid = ws.enable_program_trading = False
     ws.enable_expected_index = ws.enable_expected_stock = False
     for method in (
-        "get_approval", "load_historical_data", "fetch_stock_names", "fetch_open_prices",
-        "load_initial_balance", "display_balance_info",
+        "get_approval",
+        "load_historical_data",
+        "fetch_stock_names",
+        "fetch_open_prices",
+        "load_initial_balance",
+        "display_balance_info",
     ):
         monkeypatch.setattr(ws, method, MagicMock())
     stop_event = asyncio.Event()
@@ -198,7 +219,10 @@ async def test_connect_pings_after_receive_timeout(tmp_path, monkeypatch):
     import datetime as datetime_module
 
     monkeypatch.setattr(datetime_module, "datetime", MarketDateTime)
-    monkeypatch.setattr("kis_agent.websocket.client.websockets.connect", lambda *_args, **_kwargs: Connection())
+    monkeypatch.setattr(
+        "kis_agent.websocket.client.websockets.connect",
+        lambda *_args, **_kwargs: Connection(),
+    )
     await ws.connect(stop_event=stop_event)
     assert stop_event.is_set() and pings == 1
 
@@ -212,8 +236,12 @@ async def test_connect_reconnects_after_connection_error(tmp_path, monkeypatch):
     ws.enable_index = ws.enable_ask_bid = ws.enable_program_trading = False
     ws.enable_expected_index = ws.enable_expected_stock = False
     for method in (
-        "get_approval", "load_historical_data", "fetch_stock_names", "fetch_open_prices",
-        "load_initial_balance", "display_balance_info",
+        "get_approval",
+        "load_historical_data",
+        "fetch_stock_names",
+        "fetch_open_prices",
+        "load_initial_balance",
+        "display_balance_info",
     ):
         monkeypatch.setattr(ws, method, MagicMock())
     stop_event = asyncio.Event()
@@ -228,7 +256,10 @@ async def test_connect_reconnects_after_connection_error(tmp_path, monkeypatch):
         async def __aexit__(self, *_args):
             return False
 
-    monkeypatch.setattr("kis_agent.websocket.client.websockets.connect", lambda *_args, **_kwargs: BrokenConnection())
+    monkeypatch.setattr(
+        "kis_agent.websocket.client.websockets.connect",
+        lambda *_args, **_kwargs: BrokenConnection(),
+    )
     monkeypatch.setattr("kis_agent.websocket.client.asyncio.sleep", stop_sleep)
     await ws.connect(stop_event=stop_event)
     assert stop_event.is_set()
@@ -244,8 +275,12 @@ async def test_connect_reconnects_after_ping_error(tmp_path, monkeypatch):
     ws.enable_index = ws.enable_ask_bid = ws.enable_program_trading = False
     ws.enable_expected_index = ws.enable_expected_stock = False
     for method in (
-        "get_approval", "load_historical_data", "fetch_stock_names", "fetch_open_prices",
-        "load_initial_balance", "display_balance_info",
+        "get_approval",
+        "load_historical_data",
+        "fetch_stock_names",
+        "fetch_open_prices",
+        "load_initial_balance",
+        "display_balance_info",
     ):
         monkeypatch.setattr(ws, method, MagicMock())
     stop_event = asyncio.Event()
@@ -276,7 +311,10 @@ async def test_connect_reconnects_after_ping_error(tmp_path, monkeypatch):
     import datetime as datetime_module
 
     monkeypatch.setattr(datetime_module, "datetime", MarketDateTime)
-    monkeypatch.setattr("kis_agent.websocket.client.websockets.connect", lambda *_args, **_kwargs: Connection())
+    monkeypatch.setattr(
+        "kis_agent.websocket.client.websockets.connect",
+        lambda *_args, **_kwargs: Connection(),
+    )
     monkeypatch.setattr("kis_agent.websocket.client.asyncio.sleep", stop_sleep)
     await ws.connect(stop_event=stop_event)
     assert stop_event.is_set()
@@ -358,8 +396,22 @@ def test_handle_all_realtime_and_json_message_types(tmp_path, monkeypatch):
     assert "000660" in ws.stock_codes
 
     ws.handle_message(json.dumps({"header": {"tr_id": "PINGPONG", "tr_key": "x"}, "body": {}}))
-    ws.handle_message(json.dumps({"header": {"tr_id": "x", "tr_key": "x"}, "body": {"msg1": "SUBSCRIBE SUCCESS"}}))
-    ws.handle_message(json.dumps({"header": {"tr_id": "H0STCNI9", "tr_key": "x"}, "body": {"output": {"key": "key", "iv": "iv"}}}))
+    ws.handle_message(
+        json.dumps(
+            {
+                "header": {"tr_id": "x", "tr_key": "x"},
+                "body": {"msg1": "SUBSCRIBE SUCCESS"},
+            }
+        )
+    )
+    ws.handle_message(
+        json.dumps(
+            {
+                "header": {"tr_id": "H0STCNI9", "tr_key": "x"},
+                "body": {"output": {"key": "key", "iv": "iv"}},
+            }
+        )
+    )
     assert (ws.aes_key, ws.aes_iv) == ("key", "iv")
 
 
@@ -434,7 +486,11 @@ async def test_historical_names_open_prices_and_unsubscribe(tmp_path, monkeypatc
     ws = _ws(tmp_path)
     ws.stock_api = MagicMock()
     ws.stock_api.inquire_daily_price.return_value = pd.DataFrame(
-        {"stck_bsop_date": ["20250101", "bad"], "stck_cntg_hour": ["090000", "090000"], "stck_clpr": ["100", "200"]}
+        {
+            "stck_bsop_date": ["20250101", "bad"],
+            "stck_cntg_hour": ["090000", "090000"],
+            "stck_clpr": ["100", "200"],
+        }
     )
     ws.load_historical_data()
     assert len(ws.trade_history["005930"]) == 1
@@ -487,10 +543,30 @@ async def test_update_holdings_loop_reconciles_subscriptions_once(tmp_path, monk
 def test_update_price_and_balance_display_paths(tmp_path, monkeypatch, capsys):
     ws = _ws(tmp_path)
     ws.account_info = {"account": "123"}
-    ws.balance_info = pd.DataFrame([
-        {"pdno": "005930", "prdt_name": "삼성", "hldg_qty": "1", "pchs_avg_pric": "70000", "prpr": "71000", "evlu_amt": "71000", "evlu_pfls_amt": "1000", "evlu_pfls_rt": "1.4"},
-        {"pdno": "000660", "prdt_name": "SK", "hldg_qty": "0", "pchs_avg_pric": "1", "prpr": "1", "evlu_amt": "0", "evlu_pfls_amt": "0", "evlu_pfls_rt": "0"},
-    ])
+    ws.balance_info = pd.DataFrame(
+        [
+            {
+                "pdno": "005930",
+                "prdt_name": "삼성",
+                "hldg_qty": "1",
+                "pchs_avg_pric": "70000",
+                "prpr": "71000",
+                "evlu_amt": "71000",
+                "evlu_pfls_amt": "1000",
+                "evlu_pfls_rt": "1.4",
+            },
+            {
+                "pdno": "000660",
+                "prdt_name": "SK",
+                "hldg_qty": "0",
+                "pchs_avg_pric": "1",
+                "prpr": "1",
+                "evlu_amt": "0",
+                "evlu_pfls_amt": "0",
+                "evlu_pfls_rt": "0",
+            },
+        ]
+    )
     ws.initial_cash_balance = 500
     ws.last_balance_check = datetime.now()
     ws.compute_RSI_candles = MagicMock(return_value=None)
@@ -531,7 +607,11 @@ async def test_exit_and_monitor_loops_have_controlled_exit_paths(tmp_path, monke
 
     windows_ws = _ws(tmp_path)
     windows_ws.ws = type("Socket", (), {"close": AsyncMock()})()
-    fake_msvcrt = type("Msvcrt", (), {"kbhit": staticmethod(lambda: True), "getch": staticmethod(lambda: b"\x1b")})()
+    fake_msvcrt = type(
+        "Msvcrt",
+        (),
+        {"kbhit": staticmethod(lambda: True), "getch": staticmethod(lambda: b"\x1b")},
+    )()
     monkeypatch.setitem(sys.modules, "msvcrt", fake_msvcrt)
     with pytest.raises(SystemExit):
         await windows_ws.monitor_esc()
@@ -547,7 +627,10 @@ def test_balance_loader_and_active_check(tmp_path, monkeypatch):
             pass
 
         def get_account_balance(self):
-            return {"output1": [{"pdno": "005930"}], "output2": [{"dnca_tot_amt": "1234"}]}
+            return {
+                "output1": [{"pdno": "005930"}],
+                "output2": [{"dnca_tot_amt": "1234"}],
+            }
 
     monkeypatch.setattr("kis_agent.account.api.AccountAPI", AccountAPI)
     assert ws.load_initial_balance()
@@ -562,7 +645,11 @@ def test_single_stock_history_and_open_price_error_paths(tmp_path):
     ws = _ws(tmp_path)
     ws.stock_api = MagicMock()
     ws.stock_api.inquire_daily_price.return_value = pd.DataFrame(
-        {"stck_bsop_date": ["20250101"], "stck_cntg_hour": ["090000"], "stck_clpr": ["100"]}
+        {
+            "stck_bsop_date": ["20250101"],
+            "stck_cntg_hour": ["090000"],
+            "stck_clpr": ["100"],
+        }
     )
     ws.load_historical_data_for_stock("005930")
     assert ws.trade_history["005930"][0][1] == 100.0
@@ -594,9 +681,7 @@ def test_indicator_edge_cases_and_trade_summary_display(tmp_path, capsys):
     ws = _ws(tmp_path)
     start = datetime.now().replace(second=0, microsecond=0) - timedelta(minutes=30)
     for index in range(30):
-        ws.trade_history["005930"].append(
-            (start + timedelta(minutes=index), 130 - index, None)
-        )
+        ws.trade_history["005930"].append((start + timedelta(minutes=index), 130 - index, None))
 
     assert ws.compute_RSI("005930") == 0
     assert ws.compute_MACD_candles("005930", span_long=40) is None
@@ -607,10 +692,7 @@ def test_indicator_edge_cases_and_trade_summary_display(tmp_path, capsys):
 def test_indicator_loss_intervals_and_display_error_paths(tmp_path):
     ws = _ws(tmp_path)
     start = datetime.now().replace(second=0, microsecond=0) - timedelta(minutes=30)
-    ws.trade_history["005930"] = [
-        (start + timedelta(minutes=index), 130 - index, 100 - index)
-        for index in range(30)
-    ]
+    ws.trade_history["005930"] = [(start + timedelta(minutes=index), 130 - index, 100 - index) for index in range(30)]
     assert ws.compute_RSI_candles("005930") == 0
     assert ws.compute_trade_strength_candle("005930", interval_minutes=5)
 
@@ -653,19 +735,34 @@ def test_balance_display_uses_websocket_and_fallback_prices(tmp_path, monkeypatc
     ws.balance_info = pd.DataFrame(
         [
             {
-                "pdno": "005930", "prdt_name": "삼성전자", "hldg_qty": "2",
-                "pchs_avg_pric": "70000", "prpr": "71000", "evlu_amt": "142000",
-                "evlu_pfls_amt": "2000", "evlu_pfls_rt": "1.43",
+                "pdno": "005930",
+                "prdt_name": "삼성전자",
+                "hldg_qty": "2",
+                "pchs_avg_pric": "70000",
+                "prpr": "71000",
+                "evlu_amt": "142000",
+                "evlu_pfls_amt": "2000",
+                "evlu_pfls_rt": "1.43",
             },
             {
-                "pdno": "000660", "prdt_name": "SK하이닉스", "hldg_qty": "1",
-                "pchs_avg_pric": "100000", "prpr": "101000", "evlu_amt": "101000",
-                "evlu_pfls_amt": "1000", "evlu_pfls_rt": "1.0",
+                "pdno": "000660",
+                "prdt_name": "SK하이닉스",
+                "hldg_qty": "1",
+                "pchs_avg_pric": "100000",
+                "prpr": "101000",
+                "evlu_amt": "101000",
+                "evlu_pfls_amt": "1000",
+                "evlu_pfls_rt": "1.0",
             },
             {
-                "pdno": "000000", "prdt_name": "제외", "hldg_qty": "0",
-                "pchs_avg_pric": "1", "prpr": "1", "evlu_amt": "0",
-                "evlu_pfls_amt": "0", "evlu_pfls_rt": "0",
+                "pdno": "000000",
+                "prdt_name": "제외",
+                "hldg_qty": "0",
+                "pchs_avg_pric": "1",
+                "prpr": "1",
+                "evlu_amt": "0",
+                "evlu_pfls_amt": "0",
+                "evlu_pfls_rt": "0",
             },
         ]
     )
@@ -692,9 +789,7 @@ def test_execute_exit_orders_submits_market_order_and_skips_zero_quantity(tmp_pa
         account_api.return_value.order_stock_cash.return_value = {"msg1": "ok"}
         ws.execute_exit_orders()
 
-    account_api.return_value.order_stock_cash.assert_called_once_with(
-        ticker="005930", price="0", quantity="2", order_type="01"
-    )
+    account_api.return_value.order_stock_cash.assert_called_once_with(ticker="005930", price="0", quantity="2", order_type="01")
     ws.purchase_prices["005930"] = (70000, 0)
     with patch("kis_agent.account.api.AccountAPI") as account_api:
         ws.execute_exit_orders()
@@ -753,9 +848,7 @@ def test_malformed_trade_name_fallback_and_null_history_row(tmp_path, monkeypatc
     ws.handle_message("0|H0STCNT0|001|" + "^".join(fields))
     ws.stock_names.clear()
     ws.stock_api = MagicMock()
-    ws.stock_api.get_stock_info.return_value = pd.DataFrame(
-        {"prdt_name": ["삼성전자"]}
-    )
+    ws.stock_api.get_stock_info.return_value = pd.DataFrame({"prdt_name": ["삼성전자"]})
     ws.fetch_stock_names()
     assert ws.stock_names["005930"] == "삼성전자"
 
@@ -773,9 +866,9 @@ def test_aes_decrypt_exit_order_exception_and_empty_balance(tmp_path, monkeypatc
     ws = _ws(tmp_path)
     cipher = MagicMock()
     cipher.decrypt.return_value = b"padded"
-    with patch("kis_agent.websocket.client.AES.new", return_value=cipher), patch(
-        "kis_agent.websocket.client.b64decode", return_value=b"cipher"
-    ), patch("kis_agent.websocket.client.unpad", return_value=b"plain"):
+    with patch("kis_agent.websocket.client.AES.new", return_value=cipher), patch("kis_agent.websocket.client.b64decode", return_value=b"cipher"), patch(
+        "kis_agent.websocket.client.unpad", return_value=b"plain"
+    ):
         assert ws.aes_cbc_base64_dec("key", "iv", "cipher") == "plain"
 
     ws.account_info = {}
@@ -836,9 +929,7 @@ async def test_holding_poll_and_final_price_error_paths(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_poll_final_price_market_session_and_monitor_sleep_paths(
-    tmp_path, monkeypatch
-):
+async def test_poll_final_price_market_session_and_monitor_sleep_paths(tmp_path, monkeypatch):
     ws = _ws(tmp_path)
 
     class MarketDateTime(datetime):
@@ -858,16 +949,16 @@ async def test_poll_final_price_market_session_and_monitor_sleep_paths(
         await ws.poll_final_price()
 
     fake_msvcrt = type(
-        "Msvcrt", (), {"kbhit": staticmethod(lambda: False), "getch": staticmethod(lambda: b"")}
+        "Msvcrt",
+        (),
+        {"kbhit": staticmethod(lambda: False), "getch": staticmethod(lambda: b"")},
     )()
     monkeypatch.setitem(sys.modules, "msvcrt", fake_msvcrt)
     with pytest.raises(asyncio.CancelledError):
         await ws.monitor_esc()
 
     monkeypatch.setitem(sys.modules, "msvcrt", None)
-    monkeypatch.setattr(
-        "kis_agent.websocket.client.select.select", lambda *_args: ([], [], [])
-    )
+    monkeypatch.setattr("kis_agent.websocket.client.select.select", lambda *_args: ([], [], []))
     with pytest.raises(asyncio.CancelledError):
         await ws.monitor_exit()
 
@@ -980,6 +1071,11 @@ async def test_connect_ignores_pingpong_and_subscription_success(tmp_path, monke
     stop_event = asyncio.Event()
     messages = iter(["PINGPONG", "SUBSCRIBE SUCCESS"])
 
+    class MarketDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2025, 1, 6, 10, 0, tzinfo=tz)
+
     async def recv(_self):
         message = next(messages)
         if message == "SUBSCRIBE SUCCESS":
@@ -999,6 +1095,9 @@ async def test_connect_ignores_pingpong_and_subscription_success(tmp_path, monke
         "kis_agent.websocket.client.websockets.connect",
         lambda *_args, **_kwargs: Connection(),
     )
+    import datetime as datetime_module
+
+    monkeypatch.setattr(datetime_module, "datetime", MarketDateTime)
     await ws.connect(stop_event=stop_event)
     assert stop_event.is_set()
 
@@ -1045,9 +1144,7 @@ async def test_connect_waits_after_market_close_until_morning(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ping_error", [asyncio.TimeoutError(), RuntimeError("ping")])
-async def test_connect_retries_ping_failure_below_limit(
-    tmp_path, monkeypatch, ping_error
-):
+async def test_connect_retries_ping_failure_below_limit(tmp_path, monkeypatch, ping_error):
     ws = _ws(tmp_path)
     _prepare_connect_ws(ws, monkeypatch)
     stop_event = asyncio.Event()
@@ -1063,9 +1160,7 @@ async def test_connect_retries_ping_failure_below_limit(
     async def ping(_self):
         raise ping_error
 
-    socket = type(
-        "Socket", (), {"send": AsyncMock(), "recv": recv, "ping": ping}
-    )()
+    socket = type("Socket", (), {"send": AsyncMock(), "recv": recv, "ping": ping})()
 
     class Connection:
         async def __aenter__(self):
@@ -1108,9 +1203,7 @@ async def test_connect_reconnects_after_ping_timeout_limit(tmp_path, monkeypatch
     async def ping(_self):
         return asyncio.get_running_loop().create_future()
 
-    socket = type(
-        "Socket", (), {"send": AsyncMock(), "recv": recv, "ping": ping}
-    )()
+    socket = type("Socket", (), {"send": AsyncMock(), "recv": recv, "ping": ping})()
 
     class Connection:
         async def __aenter__(self):
