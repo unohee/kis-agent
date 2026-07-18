@@ -51,6 +51,8 @@ jobs:
             --cov-fail-under="${TARGET_COVERAGE}" \
             --cov-report=json:coverage.json \
             --cov-report=term-missing \
+            --timeout=60 \
+            --disable-warnings \
             -q --tb=no
 
           # Extract overall coverage
