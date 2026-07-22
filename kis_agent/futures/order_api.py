@@ -313,6 +313,8 @@ class FuturesOrderAPI(BaseAPI):
             "CANO": self._get_account_no(),
             "ACNT_PRDT_CD": self._get_account_code(),
             "ORGN_ODNO": orgn_odno,
+            # KIS requires the amend/cancel distinction in the request body;
+            # TTTO1103U is shared by both actions.
             "RVSE_CNCL_DVSN_CD": action,
             "ORD_QTY": qty,
             "UNIT_PRICE": effective_price,

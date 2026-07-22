@@ -10,8 +10,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 import pytz
 import websockets
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
 from websockets.exceptions import ConnectionClosed
 
 from ..core.constants import WS_MOCK_URL, WS_REAL_URL
@@ -650,6 +648,9 @@ class WSAgent(WSSubscriptionMixin):
 
     def _decrypt_aes(self, key: str, iv: str, cipher_text: str) -> str:
         """AES256 복호화"""
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import unpad
+
         cipher = AES.new(key.encode("utf-8"), AES.MODE_CBC, iv.encode("utf-8"))
         return bytes.decode(
             unpad(cipher.decrypt(b64decode(cipher_text)), AES.block_size)

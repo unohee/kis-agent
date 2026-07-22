@@ -412,13 +412,14 @@ def test_order_buy_and_sell_use_official_body_fields(
     call_kwargs = mock_client.make_request.call_args[1]
     params = call_kwargs["params"]
     assert call_kwargs["tr_id"] == "TTTO1101U"
-    assert not {
+    legacy_keys = {
         "ACNT_NO",
         "ACNT_PDNO",
         "FUOP_ITEM_CODE",
         "ORD_UNPR",
         "ORD_CNDI_DVSN_CD",
-    } & params.keys()
+    }
+    assert legacy_keys.isdisjoint(params), legacy_keys & params.keys()
     assert params == {
         "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03",
         "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": order_type, "ORD_QTY": "1",
@@ -427,13 +428,22 @@ def test_order_buy_and_sell_use_official_body_fields(
     }
 
 
-@pytest.mark.parametrize("action,expected_price,expected_ord_dvsn", [("01", "341.00", "01"), ("02", "0", "02")])
-def test_order_correction_and_cancellation_use_official_body_fields(action, expected_price, expected_ord_dvsn):
+@pytest.mark.parametrize(
+    "action,expected_price,expected_ord_dvsn",
+    [("01", "341.00", "01"), ("02", "0", "02")],
+    ids=["amend", "cancel"],
+)
+def test_order_correction_and_cancellation_use_official_body_fields(
+    action, expected_price, expected_ord_dvsn
+):
     api, mock_client = api_with_capture()
     api.order_rvsecncl("0000123456", "1", action, "341.00")
     call_kwargs = mock_client.make_request.call_args[1]
+    params = call_kwargs["params"]
     assert call_kwargs["tr_id"] == "TTTO1103U"
-    assert call_kwargs["params"] == {
+    assert params["RVSE_CNCL_DVSN_CD"] == action
+    assert {"ACNT_NO", "ACNT_PDNO", "ORD_UNPR"}.isdisjoint(params)
+    assert params == {
         "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456",
         "RVSE_CNCL_DVSN_CD": action, "ORD_QTY": "1",
         "UNIT_PRICE": expected_price, "NMPR_TYPE_CD": "02" if expected_price == "0" else "01",
