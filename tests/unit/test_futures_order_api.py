@@ -387,22 +387,26 @@ def test_order_type_by_price(price, expected_ord_dvsn):
 
 
 def api_with_capture():
-    api = object.__new__(FuturesOrderAPI)
-    api.account = {"account_no": "12345678", "account_code": "03"}
-    captured = {}
-    def capture(**kwargs):
-        captured.update(kwargs)
-        return kwargs
-    api._make_request_dict = capture
-    return api, captured
+    mock_client = Mock()
+    mock_client.make_request.return_value = {"rt_cd": "0", "output": {}}
+    api = FuturesOrderAPI(
+        client=mock_client,
+        account_info={"account_no": "12345678", "account_code": "03"},
+        enable_cache=False,
+    )
+    return api, mock_client
 
 
-@pytest.mark.parametrize("price,nmpr_type,ord_dvsn", [("0", "02", "02"), ("340.50", "01", "01")])
+@pytest.mark.parametrize(
+    "price,nmpr_type,ord_dvsn",
+    [("0", "02", "02"), ("340.50", "01", "01")],
+)
 def test_order_market_and_limit_use_official_body_fields(price, nmpr_type, ord_dvsn):
-    api, captured = api_with_capture()
+    api, mock_client = api_with_capture()
     api.order("101S12", "02", "1", price, "1")
-    assert captured["tr_id"] == "TTTO1101U"
-    assert captured["params"] == {
+    call_kwargs = mock_client.make_request.call_args[1]
+    assert call_kwargs["tr_id"] == "TTTO1101U"
+    assert call_kwargs["params"] == {
         "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03",
         "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": "02", "ORD_QTY": "1",
         "UNIT_PRICE": price, "NMPR_TYPE_CD": nmpr_type,
@@ -412,10 +416,11 @@ def test_order_market_and_limit_use_official_body_fields(price, nmpr_type, ord_d
 
 @pytest.mark.parametrize("action,expected_price,expected_ord_dvsn", [("01", "341.00", "01"), ("02", "0", "02")])
 def test_order_correction_and_cancellation_use_official_body_fields(action, expected_price, expected_ord_dvsn):
-    api, captured = api_with_capture()
+    api, mock_client = api_with_capture()
     api.order_rvsecncl("0000123456", "1", action, "341.00")
-    assert captured["tr_id"] == "TTTO1103U"
-    assert captured["params"] == {
+    call_kwargs = mock_client.make_request.call_args[1]
+    assert call_kwargs["tr_id"] == "TTTO1103U"
+    assert call_kwargs["params"] == {
         "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456",
         "RVSE_CNCL_DVSN_CD": action, "ORD_QTY": "1",
         "UNIT_PRICE": expected_price, "NMPR_TYPE_CD": "02" if expected_price == "0" else "01",
@@ -424,12 +429,19 @@ def test_order_correction_and_cancellation_use_official_body_fields(action, expe
 
 
 def test_official_order_response_shape_through_api_return_path():
-    api, _ = api_with_capture()
+    api, mock_client = api_with_capture()
     fixture = {"rt_cd": "0", "output": {"odno": "123", "ord_tmd": "101530"}}
-    api._make_request_dict = lambda **kwargs: fixture
-    response: FuturesOrderResponse = api.order("101S12", "02", "1", "0")
-    assert response["output"]["odno"] == "123"
-    assert response["output"]["ord_tmd"] == "101530"
+    mock_client.make_request.return_value = fixture
+
+    order_response: FuturesOrderResponse = api.order("101S12", "02", "1", "0")
+    amend_response: FuturesOrderResponse = api.order_rvsecncl(
+        "0000123456", "1", "01", "341.00"
+    )
+
+    for response in (order_response, amend_response):
+        assert response["output"]["odno"] == "123"
+        assert response["output"]["ord_tmd"] == "101530"
+    assert mock_client.make_request.call_count == 2
 
 
 def test_paper_daytime_four_paths_resolve_final_tr_ids(monkeypatch):

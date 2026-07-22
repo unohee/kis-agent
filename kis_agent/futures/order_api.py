@@ -240,21 +240,22 @@ class FuturesOrderAPI(BaseAPI):
             (True, "2"): "13",  # 시장가 FOK
         }[(is_market, order_cond)]
 
+        params = {
+            "ORD_PRCS_DVSN_CD": "02",
+            "CANO": self._get_account_no(),
+            "ACNT_PRDT_CD": self._get_account_code(),
+            "SHTN_PDNO": code,
+            "SLL_BUY_DVSN_CD": order_type,
+            "ORD_QTY": qty,
+            "UNIT_PRICE": price,
+            "NMPR_TYPE_CD": "02" if is_market else "01",
+            "KRX_NMPR_CNDT_CD": krx_condition,
+            "ORD_DVSN_CD": order_division,
+        }
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_ORDER"],
             tr_id="TTTO1101U",  # 매수/매도 공통 (주간)
-            params={
-                "ORD_PRCS_DVSN_CD": "02",
-                "CANO": self._get_account_no(),
-                "ACNT_PRDT_CD": self._get_account_code(),
-                "SHTN_PDNO": code,
-                "SLL_BUY_DVSN_CD": order_type,
-                "ORD_QTY": qty,
-                "UNIT_PRICE": price,
-                "NMPR_TYPE_CD": "02" if is_market else "01",
-                "KRX_NMPR_CNDT_CD": krx_condition,
-                "ORD_DVSN_CD": order_division,
-            },
+            params=params,
         )
 
     def order_rvsecncl(
@@ -307,22 +308,23 @@ class FuturesOrderAPI(BaseAPI):
         effective_price = price if action == "01" else "0"
         is_market = effective_price == "0"
 
+        params = {
+            "ORD_PRCS_DVSN_CD": "02",
+            "CANO": self._get_account_no(),
+            "ACNT_PRDT_CD": self._get_account_code(),
+            "ORGN_ODNO": orgn_odno,
+            "RVSE_CNCL_DVSN_CD": action,
+            "ORD_QTY": qty,
+            "UNIT_PRICE": effective_price,
+            "NMPR_TYPE_CD": "02" if is_market else "01",
+            "KRX_NMPR_CNDT_CD": "0",
+            "RMN_QTY_YN": "Y" if qty == "0" else "N",
+            "ORD_DVSN_CD": "02" if is_market else "01",
+        }
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_ORDER_RVSECNCL"],
             tr_id="TTTO1103U",  # 정정/취소 공통 (주간)
-            params={
-                "ORD_PRCS_DVSN_CD": "02",
-                "CANO": self._get_account_no(),
-                "ACNT_PRDT_CD": self._get_account_code(),
-                "ORGN_ODNO": orgn_odno,
-                "RVSE_CNCL_DVSN_CD": action,
-                "ORD_QTY": qty,
-                "UNIT_PRICE": effective_price,
-                "NMPR_TYPE_CD": "02" if is_market else "01",
-                "KRX_NMPR_CNDT_CD": "0",
-                "RMN_QTY_YN": "Y" if qty == "0" else "N",
-                "ORD_DVSN_CD": "02" if is_market else "01",
-            },
+            params=params,
         )
 
     # Helper methods (private)
