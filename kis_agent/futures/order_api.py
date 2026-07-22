@@ -194,8 +194,8 @@ class FuturesOrderAPI(BaseAPI):
 
         Returns:
             FuturesOrderResponse: 주문 응답
-                - output.odno: 주문번호
-                - output.ord_tmd: 주문시각
+                - output.ODNO: 주문번호
+                - output.ORD_TMD: 주문시각
 
         Example:
             >>> # 시장가 매수
@@ -205,7 +205,7 @@ class FuturesOrderAPI(BaseAPI):
             ...     qty="1",
             ...     price="0"  # 시장가
             ... )
-            >>> print(f"주문번호: {result['output']['odno']}")
+            >>> print(f"주문번호: {result['output']['ODNO']}")
             >>>
             >>> # 지정가 매도
             >>> result = agent.futures.order.order(
@@ -278,8 +278,8 @@ class FuturesOrderAPI(BaseAPI):
 
         Returns:
             정정/취소 응답
-                - output.odno: 주문번호
-                - output.ord_tmd: 주문시각
+                - output.ODNO: 주문번호
+                - output.ORD_TMD: 주문시각
 
         Example:
             >>> # 주문 취소

@@ -220,18 +220,35 @@ class FuturesTimeChartResponse(BaseResponse):
 
 
 class FuturesOrderOutput(TypedDict, total=False):
-    """선물옵션 주문 응답 output"""
+    """KIS 국내 선물옵션 신규 주문 응답 output."""
 
-    odno: str  # 주문번호 (Order Number)
-    ord_tmd: str  # 주문시각 (Order Time)
-    ord_gno_brno: str  # 주문채번지점번호
-    odno_brno: str  # 주문번호지점번호
+    KRX_FWDG_ORD_ORGNO: str  # 한국거래소전송주문조직번호
+    ODNO: str  # 주문번호
+    ORD_TMD: str  # 주문시각
 
 
 class FuturesOrderResponse(BaseResponse):
     """선물옵션 주문 응답"""
 
     output: FuturesOrderOutput
+
+
+class FuturesOrderRvsecnclOutput(TypedDict, total=False):
+    """KIS 국내 선물옵션 정정/취소 응답 output."""
+
+    ACNT_NAME: str  # 계좌명
+    TRAD_DVSN_NAME: str  # 매매구분명
+    ITEM_NAME: str  # 종목명
+    ORD_TMD: str  # 주문시각
+    ORD_GNO_BRNO: str  # 주문채번지점번호
+    ORGN_ODNO: str  # 원주문번호
+    ODNO: str  # 주문번호
+
+
+class FuturesOrderRvsecnclResponse(BaseResponse):
+    """선물옵션 정정/취소 응답"""
+
+    output: FuturesOrderRvsecnclOutput
 
 
 # ============================================================
@@ -382,6 +399,8 @@ __all__ = [
     # 주문/체결
     "FuturesOrderOutput",
     "FuturesOrderResponse",
+    "FuturesOrderRvsecnclOutput",
+    "FuturesOrderRvsecnclResponse",
     "FuturesConclusionRow",
     "FuturesConclusionResponse",
     # 전광판

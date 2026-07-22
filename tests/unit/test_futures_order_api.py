@@ -32,7 +32,21 @@ import pytest
 from kis_agent.core.client import API_ENDPOINTS, KISClient
 from kis_agent.core.config import KISConfig
 from kis_agent.futures.order_api import FuturesOrderAPI
-from kis_agent.responses.futures import FuturesOrderResponse
+from kis_agent.responses.futures import (
+    FuturesOrderOutput,
+    FuturesOrderResponse,
+    FuturesOrderRvsecnclOutput,
+    FuturesOrderRvsecnclResponse,
+)
+
+
+# Independent producer contracts from the official KIS open-trading-api
+# examples' chk_order*.py COLUMN_MAPPING dictionaries.
+OFFICIAL_ORDER_OUTPUT_FIELDS = {"KRX_FWDG_ORD_ORGNO", "ODNO", "ORD_TMD"}
+OFFICIAL_RVSECNCL_OUTPUT_FIELDS = {
+    "ACNT_NAME", "TRAD_DVSN_NAME", "ITEM_NAME", "ORD_TMD",
+    "ORD_GNO_BRNO", "ORGN_ODNO", "ODNO",
+}
 
 
 class TestFuturesOrderAPI(unittest.TestCase):
@@ -453,33 +467,58 @@ def test_order_correction_and_cancellation_use_official_body_fields(
 
 def test_official_order_response_shape_through_api_return_path():
     api, mock_client = api_with_capture()
+    # Producer contract: koreainvestment/open-trading-api
+    # examples_llm/domestic_futureoption/order/chk_order.py COLUMN_MAPPING.
     fixture = {
         "rt_cd": "0",
         "output": {
-            "odno": "123",
-            "ord_tmd": "101530",
-            "ord_gno_brno": "00001",
-            "odno_brno": "00002",
+            "KRX_FWDG_ORD_ORGNO": "00001",
+            "ODNO": "123",
+            "ORD_TMD": "101530",
         },
     }
     mock_client.make_request.return_value = fixture
 
     order_response: FuturesOrderResponse = api.order("101S12", "02", "1", "0")
-    amend_response: FuturesOrderResponse = api.order_rvsecncl(
+    output = order_response["output"]
+    assert set(FuturesOrderOutput.__annotations__) == OFFICIAL_ORDER_OUTPUT_FIELDS
+    assert set(output) == OFFICIAL_ORDER_OUTPUT_FIELDS
+    assert output["KRX_FWDG_ORD_ORGNO"] == "00001"
+    assert output["ODNO"] == "123"
+    assert output["ORD_TMD"] == "101530"
+
+
+def test_official_rvsecncl_response_shape_through_api_return_path():
+    api, mock_client = api_with_capture()
+    # Producer contract: examples_llm/domestic_futureoption/
+    # order_rvsecncl/chk_order_rvsecncl.py COLUMN_MAPPING.
+    expected_output = {
+        "ACNT_NAME": "선물계좌",
+        "TRAD_DVSN_NAME": "정정",
+        "ITEM_NAME": "코스피200 선물",
+        "ORD_TMD": "101531",
+        "ORD_GNO_BRNO": "00001",
+        "ORGN_ODNO": "0000123456",
+        "ODNO": "0000123457",
+    }
+    mock_client.make_request.return_value = {"rt_cd": "0", "output": expected_output}
+
+    response: FuturesOrderRvsecnclResponse = api.order_rvsecncl(
         "0000123456", "1", "01", "341.00"
     )
 
-    for response in (order_response, amend_response):
-        output = response["output"]
-        assert output["odno"] == "123"
-        assert output["ord_tmd"] == "101530"
-        assert output["ord_gno_brno"] == "00001"
-        assert output["odno_brno"] == "00002"
-    assert mock_client.make_request.call_count == 2
+    assert set(FuturesOrderRvsecnclOutput.__annotations__) == OFFICIAL_RVSECNCL_OUTPUT_FIELDS
+    assert set(response["output"]) == OFFICIAL_RVSECNCL_OUTPUT_FIELDS
+    assert response["output"] == expected_output
+    assert "KRX_FWDG_ORD_ORGNO" not in response["output"]
 
 
 def test_paper_daytime_four_paths_resolve_final_tr_ids(monkeypatch):
-    """Credential-safe dry run through KISClient.make_request's TR resolution gate."""
+    """Credential-safe dry run: paper buy/sell/amend/cancel resolve to VTTO TR IDs.
+
+    This records the offline verification procedure for KIS_PAPER=1 and
+    KIS_ACCOUNT_CODE=03.  HTTP is intercepted, so no order is submitted.
+    """
     monkeypatch.setenv("KIS_PAPER", "1")
     monkeypatch.setenv("KIS_ACCOUNT_CODE", "03")
     monkeypatch.setenv("KIS_APP_KEY", "dry-run-app-key")
@@ -529,10 +568,13 @@ def test_paper_daytime_four_paths_resolve_final_tr_ids(monkeypatch):
         "VTTO1103U",
         "VTTO1103U",
     ]
-    assert all(
-        (request["json"] or request["params"])["ACNT_PRDT_CD"] == "03"
-        for request in requests
-    )
+    bodies = [request["json"] or request["params"] for request in requests]
+    assert bodies == [
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": "02", "ORD_QTY": "1", "UNIT_PRICE": "0", "NMPR_TYPE_CD": "02", "KRX_NMPR_CNDT_CD": "0", "ORD_DVSN_CD": "02"},
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": "01", "ORD_QTY": "1", "UNIT_PRICE": "341.00", "NMPR_TYPE_CD": "01", "KRX_NMPR_CNDT_CD": "0", "ORD_DVSN_CD": "01"},
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456", "RVSE_CNCL_DVSN_CD": "01", "ORD_QTY": "1", "UNIT_PRICE": "341.00", "NMPR_TYPE_CD": "01", "KRX_NMPR_CNDT_CD": "0", "RMN_QTY_YN": "N", "ORD_DVSN_CD": "01"},
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456", "RVSE_CNCL_DVSN_CD": "02", "ORD_QTY": "1", "UNIT_PRICE": "0", "NMPR_TYPE_CD": "02", "KRX_NMPR_CNDT_CD": "0", "RMN_QTY_YN": "N", "ORD_DVSN_CD": "02"},
+    ]
 
 
 if __name__ == "__main__":
