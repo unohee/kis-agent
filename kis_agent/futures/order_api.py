@@ -223,26 +223,37 @@ class FuturesOrderAPI(BaseAPI):
         Warning:
             실전 주문 시 반드시 주의하여 사용하세요.
             주문 전 inquire_psbl_order()로 주문 가능 수량을 확인하세요.
-
-            이 메서드의 요청 본문 필드명은 공식 스펙과 일치하지 않는다
-            (스펙: CANO/ACNT_PRDT_CD/SHTN_PDNO/UNIT_PRICE). 실전·모의 양쪽에서
-            실패한다. TR_ID만 먼저 바로잡았고 본문 수정은 별도 작업이다.
         """
         if order_type not in ("01", "02"):
             raise ValueError(f"Invalid order_type: {order_type} (01:매도, 02:매수)")
+        if order_cond not in ("0", "1", "2"):
+            raise ValueError(f"Invalid order_cond: {order_cond} (0:일반, 1:IOC, 2:FOK)")
+
+        is_market = price == "0"
+        krx_condition = {"0": "0", "1": "3", "2": "4"}[order_cond]
+        order_division = {
+            (False, "0"): "01",  # 지정가
+            (True, "0"): "02",  # 시장가
+            (False, "1"): "10",  # 지정가 IOC
+            (False, "2"): "11",  # 지정가 FOK
+            (True, "1"): "12",  # 시장가 IOC
+            (True, "2"): "13",  # 시장가 FOK
+        }[(is_market, order_cond)]
 
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_ORDER"],
             tr_id="TTTO1101U",  # 매수/매도 공통 (주간)
             params={
-                "ACNT_NO": self._get_account_no(),
-                "ACNT_PDNO": self._get_account_code(),
-                "FUOP_ITEM_CODE": code,
+                "ORD_PRCS_DVSN_CD": "02",
+                "CANO": self._get_account_no(),
+                "ACNT_PRDT_CD": self._get_account_code(),
+                "SHTN_PDNO": code,
                 "SLL_BUY_DVSN_CD": order_type,
                 "ORD_QTY": qty,
-                "ORD_UNPR": price,
-                "ORD_DVSN_CD": "01" if price == "0" else "00",  # 01:시장가, 00:지정가
-                "ORD_CNDI_DVSN_CD": order_cond,
+                "UNIT_PRICE": price,
+                "NMPR_TYPE_CD": "02" if is_market else "01",
+                "KRX_NMPR_CNDT_CD": krx_condition,
+                "ORD_DVSN_CD": order_division,
             },
         )
 
@@ -289,25 +300,28 @@ class FuturesOrderAPI(BaseAPI):
             주간 정정·취소는 모두 TTTO1103U 하나를 쓴다 (모의: VTTO1103U).
             정정/취소 구분은 TR_ID가 아니라 본문 필드로 해야 한다.
 
-        Warning:
-            이 메서드의 요청 본문은 공식 스펙과 일치하지 않는다 — 정정/취소
-            구분 필드(RVSE_CNCL_DVSN_CD)를 보내지 않고, 계좌/가격 필드명도
-            스펙(CANO/ACNT_PRDT_CD/UNIT_PRICE)과 다르다. 실전·모의 양쪽에서
-            실패한다. TR_ID만 먼저 바로잡았고 본문 수정은 별도 작업이다.
         """
         if action not in ("01", "02"):
             raise ValueError(f"Invalid action: {action} (01:정정, 02:취소)")
+
+        effective_price = price if action == "01" else "0"
+        is_market = effective_price == "0"
 
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["FUTURES_ORDER_RVSECNCL"],
             tr_id="TTTO1103U",  # 정정/취소 공통 (주간)
             params={
-                "ACNT_NO": self._get_account_no(),
-                "ACNT_PDNO": self._get_account_code(),
+                "ORD_PRCS_DVSN_CD": "02",
+                "CANO": self._get_account_no(),
+                "ACNT_PRDT_CD": self._get_account_code(),
                 "ORGN_ODNO": orgn_odno,
+                "RVSE_CNCL_DVSN_CD": action,
                 "ORD_QTY": qty,
-                "ORD_UNPR": price if action == "01" else "0",  # 정정 시에만 가격 사용
-                "ORD_DVSN_CD": "01" if price == "0" else "00",
+                "UNIT_PRICE": effective_price,
+                "NMPR_TYPE_CD": "02" if is_market else "01",
+                "KRX_NMPR_CNDT_CD": "0",
+                "RMN_QTY_YN": "Y" if qty == "0" else "N",
+                "ORD_DVSN_CD": "02" if is_market else "01",
             },
         )
 
