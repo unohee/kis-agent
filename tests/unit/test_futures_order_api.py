@@ -398,17 +398,30 @@ def api_with_capture():
 
 
 @pytest.mark.parametrize(
-    "price,nmpr_type,ord_dvsn",
-    [("0", "02", "02"), ("340.50", "01", "01")],
+    "order_type,price,nmpr_type,ord_dvsn",
+    [
+        ("01", "340.50", "01", "01"),  # sell limit
+        ("02", "0", "02", "02"),  # buy market
+    ],
 )
-def test_order_market_and_limit_use_official_body_fields(price, nmpr_type, ord_dvsn):
+def test_order_buy_and_sell_use_official_body_fields(
+    order_type, price, nmpr_type, ord_dvsn
+):
     api, mock_client = api_with_capture()
-    api.order("101S12", "02", "1", price, "1")
+    api.order("101S12", order_type, "1", price, "1")
     call_kwargs = mock_client.make_request.call_args[1]
+    params = call_kwargs["params"]
     assert call_kwargs["tr_id"] == "TTTO1101U"
-    assert call_kwargs["params"] == {
+    assert not {
+        "ACNT_NO",
+        "ACNT_PDNO",
+        "FUOP_ITEM_CODE",
+        "ORD_UNPR",
+        "ORD_CNDI_DVSN_CD",
+    } & params.keys()
+    assert params == {
         "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03",
-        "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": "02", "ORD_QTY": "1",
+        "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": order_type, "ORD_QTY": "1",
         "UNIT_PRICE": price, "NMPR_TYPE_CD": nmpr_type,
         "KRX_NMPR_CNDT_CD": "3", "ORD_DVSN_CD": "12" if price == "0" else "10",
     }
@@ -430,7 +443,15 @@ def test_order_correction_and_cancellation_use_official_body_fields(action, expe
 
 def test_official_order_response_shape_through_api_return_path():
     api, mock_client = api_with_capture()
-    fixture = {"rt_cd": "0", "output": {"odno": "123", "ord_tmd": "101530"}}
+    fixture = {
+        "rt_cd": "0",
+        "output": {
+            "odno": "123",
+            "ord_tmd": "101530",
+            "ord_gno_brno": "00001",
+            "odno_brno": "00002",
+        },
+    }
     mock_client.make_request.return_value = fixture
 
     order_response: FuturesOrderResponse = api.order("101S12", "02", "1", "0")
@@ -439,8 +460,11 @@ def test_official_order_response_shape_through_api_return_path():
     )
 
     for response in (order_response, amend_response):
-        assert response["output"]["odno"] == "123"
-        assert response["output"]["ord_tmd"] == "101530"
+        output = response["output"]
+        assert output["odno"] == "123"
+        assert output["ord_tmd"] == "101530"
+        assert output["ord_gno_brno"] == "00001"
+        assert output["odno_brno"] == "00002"
     assert mock_client.make_request.call_count == 2
 
 
