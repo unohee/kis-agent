@@ -202,18 +202,25 @@ class AccountBalanceQueryAPI(BaseAPI):
     ) -> Optional[Dict]:
         """매수가능 조회. ord_psbl_cash/max_buy_qty/ord_psbl_qty 반환."""
         try:
+            is_irp = self.account["ACNT_PRDT_CD"] == "29"
+            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order",
+            tr_id="TTTC8908R" if not is_irp "TTTC0503R",  # 모의투자 변환은 client.make_request가 처리
+            params={
+                "CANO": self.account["CANO"],
+                "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
+                "PDNO": pdno,
+                "ORD_UNPR": str(price),
+                "ORD_DVSN": ord_dvsn,
+                "CMA_EVLU_AMT_ICLD_YN": "Y",
+            }
+            if not is_irp:
+                params["OVRS_JCLD_YN"] = "N"
+            else:
+                params["ACCA_DVSN_CD"] = "00"
             res = self.client.make_request(
-                endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
-                tr_id="TTTC8908R",  # 모의투자 변환은 client.make_request가 처리
-                params={
-                    "CANO": self.account["CANO"],
-                    "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                    "PDNO": pdno,
-                    "ORD_UNPR": str(price),
-                    "ORD_DVSN": ord_dvsn,
-                    "CMA_EVLU_AMT_ICLD_YN": "Y",
-                    "OVRS_ICLD_YN": "N",
-                },
+                endpoint=endpoint,
+                tr_id=tr_id,  # 모의투자 변환은 client.make_request가 처리
+                params=params,
             )
             if res and res.get("rt_cd") == "0":
                 return res.get("output", {})
