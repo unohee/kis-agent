@@ -29,7 +29,7 @@ class AccountBalanceQueryAPI(BaseAPI):
     def get_account_balance(self) -> Optional[Dict]:
         """계좌 잔고 조회. output1=보유종목, output2=요약(예수금/총평가/순자산)."""
         is_irp = self.account["ACNT_PRDT_CD"] == "29"
-        endpoint="/uapi/domestic-stock/v1/trading/inquire-balance" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-balance",
+        endpoint="/uapi/domestic-stock/v1/trading/inquire-balance" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-balance"
         tr_id = "TTTC8434R" if not is_irp else "TTTC2208R"
         params={
             "CANO": self.account["CANO"],
@@ -39,12 +39,12 @@ class AccountBalanceQueryAPI(BaseAPI):
             "CTX_AREA_NK100": "",
         }
         if not is_irp:
-            params["AFHR_FLPR_YN"] = "N",
-            params["OFL_YN"] = "",
-            params["UNPR_DVSN"] = "01",
-            parmas["FUND_STTL_ICLD_YN"] = "N",
-            params["FNCG_AMT_AUTO_RDPT_YN"] = "N",
-            params["PRCS_DVSN"] = "00",
+            params["AFHR_FLPR_YN"] = "N"
+            params["OFL_YN"] = ""
+            params["UNPR_DVSN"] = "01"
+            params["FUND_STTL_ICLD_YN"] = "N"
+            params["FNCG_AMT_AUTO_RDPT_YN"] = "N"
+            params["PRCS_DVSN"] = "00"
         response = self._make_request_dict(
             endpoint=endpoint,
             tr_id=tr_id,
@@ -203,8 +203,8 @@ class AccountBalanceQueryAPI(BaseAPI):
         """매수가능 조회. ord_psbl_cash/max_buy_qty/ord_psbl_qty 반환."""
         try:
             is_irp = self.account["ACNT_PRDT_CD"] == "29"
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order",
-            tr_id="TTTC8908R" if not is_irp "TTTC0503R",  # 모의투자 변환은 client.make_request가 처리
+            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order"
+            tr_id="TTTC8908R" if not is_irp else "TTTC0503R"  # 모의투자 변환은 client.make_request가 처리
             params={
                 "CANO": self.account["CANO"],
                 "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
