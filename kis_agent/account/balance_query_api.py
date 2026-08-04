@@ -47,16 +47,11 @@ class AccountBalanceQueryAPI(BaseAPI):
             params["PRCS_DVSN"] = "00"
         else:
             params["ACCA_DVSN_CD"] = "00"
-        response = self._make_request_dict(
+        return self._make_request_dict(
             endpoint=endpoint,
             tr_id=tr_id,
             params=params,
         )
-        if is_irp:
-            # 일반계좌 `output2`: `[ResponseBodyoutput2]`
-            # IRP계좌 `output2`: `ResponseBodyoutput2`
-            response["output2"] = [response["output2"]]
-        return response
 
     def get_cash_available(
         self, stock_code: str = "005930"
