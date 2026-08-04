@@ -45,11 +45,16 @@ class AccountBalanceQueryAPI(BaseAPI):
             parmas["FUND_STTL_ICLD_YN"] = "N",
             params["FNCG_AMT_AUTO_RDPT_YN"] = "N",
             params["PRCS_DVSN"] = "00",
-        return self._make_request_dict(
+        response = self._make_request_dict(
             endpoint=endpoint,
             tr_id=tr_id,
             params=params,
         )
+        if is_irp:
+            # 일반계좌 `output2`: `[ResponseBodyoutput2]`
+            # IRP계좌 `output2`: `ResponseBodyoutput2`
+            response["output2"] = [response["output2"]]
+        return response
 
     def get_cash_available(
         self, stock_code: str = "005930"
