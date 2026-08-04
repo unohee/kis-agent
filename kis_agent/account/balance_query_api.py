@@ -28,22 +28,27 @@ class AccountBalanceQueryAPI(BaseAPI):
 
     def get_account_balance(self) -> Optional[Dict]:
         """계좌 잔고 조회. output1=보유종목, output2=요약(예수금/총평가/순자산)."""
+        is_irp = self.account["ACNT_PRDT_CD"] == "29"
+        endpoint="/uapi/domestic-stock/v1/trading/inquire-balance" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-balance",
+        tr_id = "TTTC8434R" if not is_irp else "TTTC2208R"
+        params={
+            "CANO": self.account["CANO"],
+            "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
+            "INQR_DVSN": "01" if not is_irp else "00",
+            "CTX_AREA_FK100": "",
+            "CTX_AREA_NK100": "",
+        }
+        if not is_irp:
+            params["AFHR_FLPR_YN"] = "N",
+            params["OFL_YN"] = "",
+            params["UNPR_DVSN"] = "01",
+            parmas["FUND_STTL_ICLD_YN"] = "N",
+            params["FNCG_AMT_AUTO_RDPT_YN"] = "N",
+            params["PRCS_DVSN"] = "00",
         return self._make_request_dict(
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-balance",
-            tr_id="TTTC8434R",
-            params={
-                "CANO": self.account["CANO"],
-                "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                "AFHR_FLPR_YN": "N",
-                "OFL_YN": "",
-                "INQR_DVSN": "01",
-                "UNPR_DVSN": "01",
-                "FUND_STTL_ICLD_YN": "N",
-                "FNCG_AMT_AUTO_RDPT_YN": "N",
-                "PRCS_DVSN": "00",
-                "CTX_AREA_FK100": "",
-                "CTX_AREA_NK100": "",
-            },
+            endpoint=endpoint,
+            tr_id=tr_id,
+            params=params,
         )
 
     def get_cash_available(
