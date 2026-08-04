@@ -45,6 +45,8 @@ class AccountBalanceQueryAPI(BaseAPI):
             params["FUND_STTL_ICLD_YN"] = "N"
             params["FNCG_AMT_AUTO_RDPT_YN"] = "N"
             params["PRCS_DVSN"] = "00"
+        else:
+            params["ACCA_DVSN_CD"] = "00"
         response = self._make_request_dict(
             endpoint=endpoint,
             tr_id=tr_id,
