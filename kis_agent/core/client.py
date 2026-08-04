@@ -301,6 +301,32 @@ class KISClient:
                 self.last_api_call_time = time.monotonic()
                 self.last_request_time = self.last_api_call_time
 
+    def _auth_headers(self) -> Dict[str, str]:
+        """
+        Per-client auth header
+
+        `_TRENV` and `_base_headers` in `auth.py` is in global scope of the module.
+        If there are two or more agents are instantiated, the latter one overwrites former ones.
+        So if headers are read from the global scope, all agents are expected to use the tokens/appkey/appsecret of the last authed agent.
+
+        Returns:
+            Dict[str, str]: auth/appkey/appsecret headers
+        """
+        env = getTREnv()
+        authorization = f"Bearer {self.token}" if self.token else getattr(env, "my_token", "")
+        if self.config is not None:
+            app_key = self.config.APP_KEY
+            app_secret = self.config.APP_SECRET
+        else:
+            app_key = getattr(env, "my_app", "")
+            app_secret = getattr(env, "my_sec", "")
+        return {
+            "authorization": authorization,
+            "appkey": app_key,
+            "appsecret": app_secret,
+        }
+
+
     def _get_base_headers(self, tr_id: str) -> Dict[str, str]:
         """
         기본 HTTP 헤더를 생성합니다.
@@ -311,11 +337,12 @@ class KISClient:
         Returns:
             Dict[str, str]: HTTP 헤더
         """
+        auth_headers = self._auth_headers()
         return {
             "Content-Type": "application/json",
-            "authorization": f"Bearer {self.token}",
-            "appKey": getTREnv().my_app,
-            "appSecret": getTREnv().my_sec,
+            "authorization": auth_headers["authorization"],
+            "appKey": auth_headers["appkey"],
+            "appSecret": auth_headers["appsecret"],
             "tr_id": tr_id,
             "custtype": "P",
         }
@@ -358,13 +385,9 @@ class KISClient:
 
         url = f"{self.base_url}{endpoint}"
 
-        # getTREnv()를 사용하여 올바른 헤더 설정
-        env = getTREnv()
         headers = headers or {}
-        headers["authorization"] = env.my_token
+        headers.update(self._auth_headers())
         headers["content-type"] = "application/json"
-        headers["appkey"] = env.my_app
-        headers["appsecret"] = env.my_sec
         headers["tr_id"] = tr_id
         headers["custtype"] = "P"  # 개인 고객 (필수: 주문 API에서 요구됨)
 
@@ -453,9 +476,7 @@ class KISClient:
                         if is_token_expired:
                             logger.warning(f"[{tr_id}] 토큰 만료 감지. 재발급 시도...")
                             self._initialize_token()
-                            # 헤더 업데이트
-                            env = getTREnv()
-                            headers["authorization"] = env.my_token
+                            headers.update(self._auth_headers())
                             if attempt < retries - 1:
                                 continue  # 토큰 갱신 후 재시도
 
