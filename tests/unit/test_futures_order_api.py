@@ -24,12 +24,29 @@ Futures Order API 모듈 테스트
 """
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
-from kis_agent.core.client import API_ENDPOINTS
+from kis_agent.core.client import API_ENDPOINTS, KISClient
+from kis_agent.core.config import KISConfig
 from kis_agent.futures.order_api import FuturesOrderAPI
+from kis_agent.responses.futures import (
+    FuturesOrderOutput,
+    FuturesOrderResponse,
+    FuturesOrderRvsecnclOutput,
+    FuturesOrderRvsecnclResponse,
+)
+
+
+# Independent producer contracts from the official KIS open-trading-api
+# examples' chk_order*.py COLUMN_MAPPING dictionaries.
+OFFICIAL_ORDER_OUTPUT_FIELDS = {"KRX_FWDG_ORD_ORGNO", "ODNO", "ORD_TMD"}
+OFFICIAL_RVSECNCL_OUTPUT_FIELDS = {
+    "ACNT_NAME", "TRAD_DVSN_NAME", "ITEM_NAME", "ORD_TMD",
+    "ORD_GNO_BRNO", "ORGN_ODNO", "ODNO",
+}
 
 
 class TestFuturesOrderAPI(unittest.TestCase):
@@ -204,7 +221,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
         call_kwargs = self.mock_client.make_request.call_args
         self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
         self.assertEqual(call_kwargs[1]["params"]["SLL_BUY_DVSN_CD"], "02")
-        self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "01")  # 시장가
+        self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "02")  # 시장가
 
     def test_order_buy_limit_success(self):
         """매수 주문 성공 - 지정가"""
@@ -220,7 +237,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
         self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
-        self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "00")  # 지정가
+        self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "01")  # 지정가
 
     def test_order_sell_market_success(self):
         """매도 주문 성공 - 시장가"""
@@ -252,7 +269,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
         self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1101U")  # 매수/매도 공통
-        self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "00")  # 지정가
+        self.assertEqual(call_kwargs[1]["params"]["ORD_DVSN_CD"], "01")  # 지정가
 
     def test_order_invalid_order_type(self):
         """잘못된 주문 구분"""
@@ -276,7 +293,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
-        self.assertEqual(call_kwargs[1]["params"]["ORD_CNDI_DVSN_CD"], "1")
+        self.assertEqual(call_kwargs[1]["params"]["KRX_NMPR_CNDT_CD"], "3")
 
     def test_order_rvsecncl_cancel_success(self):
         """주문 취소 성공"""
@@ -312,7 +329,7 @@ class TestFuturesOrderAPI(unittest.TestCase):
         self.assertEqual(result, expected_response)
         call_kwargs = self.mock_client.make_request.call_args
         self.assertEqual(call_kwargs[1]["tr_id"], "TTTO1103U")  # 정정/취소 공통
-        self.assertEqual(call_kwargs[1]["params"]["ORD_UNPR"], "341.00")
+        self.assertEqual(call_kwargs[1]["params"]["UNIT_PRICE"], "341.00")
 
     def test_order_rvsecncl_invalid_action(self):
         """잘못된 정정/취소 구분"""
@@ -362,9 +379,9 @@ def test_order_tr_id_selection(order_type, expected_tr_id):
 @pytest.mark.parametrize(
     "price,expected_ord_dvsn",
     [
-        ("0", "01"),  # 시장가
-        ("340.50", "00"),  # 지정가
-        ("341.00", "00"),  # 지정가
+        ("0", "02"),  # 시장가
+        ("340.50", "01"),  # 지정가
+        ("341.00", "01"),  # 지정가
     ],
 )
 def test_order_type_by_price(price, expected_ord_dvsn):
@@ -381,6 +398,183 @@ def test_order_type_by_price(price, expected_ord_dvsn):
 
     call_kwargs = mock_client.make_request.call_args
     assert call_kwargs[1]["params"]["ORD_DVSN_CD"] == expected_ord_dvsn
+
+
+def api_with_capture():
+    mock_client = Mock()
+    mock_client.make_request.return_value = {"rt_cd": "0", "output": {}}
+    api = FuturesOrderAPI(
+        client=mock_client,
+        account_info={"account_no": "12345678", "account_code": "03"},
+        enable_cache=False,
+    )
+    return api, mock_client
+
+
+@pytest.mark.parametrize(
+    "order_type,price,nmpr_type,ord_dvsn",
+    [
+        ("01", "340.50", "01", "01"),  # sell limit
+        ("02", "0", "02", "02"),  # buy market
+    ],
+)
+def test_order_buy_and_sell_use_official_body_fields(
+    order_type, price, nmpr_type, ord_dvsn
+):
+    api, mock_client = api_with_capture()
+    api.order("101S12", order_type, "1", price, "1")
+    call_kwargs = mock_client.make_request.call_args[1]
+    params = call_kwargs["params"]
+    assert call_kwargs["tr_id"] == "TTTO1101U"
+    legacy_keys = {
+        "ACNT_NO",
+        "ACNT_PDNO",
+        "FUOP_ITEM_CODE",
+        "ORD_UNPR",
+        "ORD_CNDI_DVSN_CD",
+    }
+    assert legacy_keys.isdisjoint(params), legacy_keys & params.keys()
+    assert params == {
+        "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03",
+        "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": order_type, "ORD_QTY": "1",
+        "UNIT_PRICE": price, "NMPR_TYPE_CD": nmpr_type,
+        "KRX_NMPR_CNDT_CD": "3", "ORD_DVSN_CD": "12" if price == "0" else "10",
+    }
+
+
+@pytest.mark.parametrize(
+    "action,expected_price,expected_ord_dvsn",
+    [("01", "341.00", "01"), ("02", "0", "02")],
+    ids=["amend", "cancel"],
+)
+def test_order_correction_and_cancellation_use_official_body_fields(
+    action, expected_price, expected_ord_dvsn
+):
+    api, mock_client = api_with_capture()
+    api.order_rvsecncl("0000123456", "1", action, "341.00")
+    call_kwargs = mock_client.make_request.call_args[1]
+    params = call_kwargs["params"]
+    assert call_kwargs["tr_id"] == "TTTO1103U"
+    assert params["RVSE_CNCL_DVSN_CD"] == action
+    assert {"ACNT_NO", "ACNT_PDNO", "ORD_UNPR"}.isdisjoint(params)
+    assert params == {
+        "ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456",
+        "RVSE_CNCL_DVSN_CD": action, "ORD_QTY": "1",
+        "UNIT_PRICE": expected_price, "NMPR_TYPE_CD": "02" if expected_price == "0" else "01",
+        "KRX_NMPR_CNDT_CD": "0", "RMN_QTY_YN": "N", "ORD_DVSN_CD": expected_ord_dvsn,
+    }
+
+
+def test_official_order_response_shape_through_api_return_path():
+    api, mock_client = api_with_capture()
+    # Producer contract: koreainvestment/open-trading-api
+    # examples_llm/domestic_futureoption/order/chk_order.py COLUMN_MAPPING.
+    fixture = {
+        "rt_cd": "0",
+        "output": {
+            "KRX_FWDG_ORD_ORGNO": "00001",
+            "ODNO": "123",
+            "ORD_TMD": "101530",
+        },
+    }
+    mock_client.make_request.return_value = fixture
+
+    order_response: FuturesOrderResponse = api.order("101S12", "02", "1", "0")
+    output = order_response["output"]
+    assert set(FuturesOrderOutput.__annotations__) == OFFICIAL_ORDER_OUTPUT_FIELDS
+    assert set(output) == OFFICIAL_ORDER_OUTPUT_FIELDS
+    assert output["KRX_FWDG_ORD_ORGNO"] == "00001"
+    assert output["ODNO"] == "123"
+    assert output["ORD_TMD"] == "101530"
+
+
+def test_official_rvsecncl_response_shape_through_api_return_path():
+    api, mock_client = api_with_capture()
+    # Producer contract: examples_llm/domestic_futureoption/
+    # order_rvsecncl/chk_order_rvsecncl.py COLUMN_MAPPING.
+    expected_output = {
+        "ACNT_NAME": "선물계좌",
+        "TRAD_DVSN_NAME": "정정",
+        "ITEM_NAME": "코스피200 선물",
+        "ORD_TMD": "101531",
+        "ORD_GNO_BRNO": "00001",
+        "ORGN_ODNO": "0000123456",
+        "ODNO": "0000123457",
+    }
+    mock_client.make_request.return_value = {"rt_cd": "0", "output": expected_output}
+
+    response: FuturesOrderRvsecnclResponse = api.order_rvsecncl(
+        "0000123456", "1", "01", "341.00"
+    )
+
+    assert set(FuturesOrderRvsecnclOutput.__annotations__) == OFFICIAL_RVSECNCL_OUTPUT_FIELDS
+    assert set(response["output"]) == OFFICIAL_RVSECNCL_OUTPUT_FIELDS
+    assert response["output"] == expected_output
+    assert "KRX_FWDG_ORD_ORGNO" not in response["output"]
+
+
+def test_paper_daytime_four_paths_resolve_final_tr_ids(monkeypatch):
+    """Credential-safe dry run: paper buy/sell/amend/cancel resolve to VTTO TR IDs.
+
+    This records the offline verification procedure for KIS_PAPER=1 and
+    KIS_ACCOUNT_CODE=03.  HTTP is intercepted, so no order is submitted.
+    """
+    monkeypatch.setenv("KIS_PAPER", "1")
+    monkeypatch.setenv("KIS_ACCOUNT_CODE", "03")
+    monkeypatch.setenv("KIS_APP_KEY", "dry-run-app-key")
+    monkeypatch.setenv("KIS_APP_SECRET", "dry-run-app-secret")
+    monkeypatch.setenv("KIS_ACCOUNT_NO", "12345678")
+    config = KISConfig.from_env()
+    client = KISClient(config=config, enable_rate_limiter=False, _defer_token=True)
+    client.token = "dry-run-token"
+    monkeypatch.setattr(client, "_check_and_refresh_token", lambda: None)
+    monkeypatch.setattr(
+        "kis_agent.core.client.getTREnv",
+        lambda: SimpleNamespace(
+            my_token="dry-run-token", my_app=config.APP_KEY, my_sec=config.APP_SECRET
+        ),
+    )
+    requests = []
+
+    class DryRunResponse:
+        status_code = 200
+        text = '{"rt_cd":"0","output":{}}'
+
+        def json(self):
+            return {"rt_cd": "0", "output": {}}
+
+    def capture_transport(method, url, **kwargs):
+        requests.append(kwargs)
+        return DryRunResponse()
+
+    monkeypatch.setattr("kis_agent.core.client.httpx.request", capture_transport)
+    api = FuturesOrderAPI(
+        client=client,
+        account_info={"account_no": config.ACCOUNT_NO, "account_code": config.ACCOUNT_CODE},
+        enable_cache=False,
+    )
+
+    for invoke in (
+        lambda: api.order("101S12", "02", "1", "0"),
+        lambda: api.order("101S12", "01", "1", "341.00"),
+        lambda: api.order_rvsecncl("0000123456", "1", "01", "341.00"),
+        lambda: api.order_rvsecncl("0000123456", "1", "02", "341.00"),
+    ):
+        invoke()
+
+    assert [request["headers"]["tr_id"] for request in requests] == [
+        "VTTO1101U",
+        "VTTO1101U",
+        "VTTO1103U",
+        "VTTO1103U",
+    ]
+    bodies = [request["json"] or request["params"] for request in requests]
+    assert bodies == [
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": "02", "ORD_QTY": "1", "UNIT_PRICE": "0", "NMPR_TYPE_CD": "02", "KRX_NMPR_CNDT_CD": "0", "ORD_DVSN_CD": "02"},
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "SHTN_PDNO": "101S12", "SLL_BUY_DVSN_CD": "01", "ORD_QTY": "1", "UNIT_PRICE": "341.00", "NMPR_TYPE_CD": "01", "KRX_NMPR_CNDT_CD": "0", "ORD_DVSN_CD": "01"},
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456", "RVSE_CNCL_DVSN_CD": "01", "ORD_QTY": "1", "UNIT_PRICE": "341.00", "NMPR_TYPE_CD": "01", "KRX_NMPR_CNDT_CD": "0", "RMN_QTY_YN": "N", "ORD_DVSN_CD": "01"},
+        {"ORD_PRCS_DVSN_CD": "02", "CANO": "12345678", "ACNT_PRDT_CD": "03", "ORGN_ODNO": "0000123456", "RVSE_CNCL_DVSN_CD": "02", "ORD_QTY": "1", "UNIT_PRICE": "0", "NMPR_TYPE_CD": "02", "KRX_NMPR_CNDT_CD": "0", "RMN_QTY_YN": "N", "ORD_DVSN_CD": "02"},
+    ]
 
 
 if __name__ == "__main__":

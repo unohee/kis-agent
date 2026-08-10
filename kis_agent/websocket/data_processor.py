@@ -11,8 +11,6 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +141,9 @@ class DataProcessor:
         """
         if not key or not iv:
             raise ValueError("AES 키 또는 IV가 없습니다")
+
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import unpad
 
         cipher = AES.new(key, AES.MODE_CBC, iv)
         decrypted = unpad(cipher.decrypt(encrypted_data), AES.block_size)
