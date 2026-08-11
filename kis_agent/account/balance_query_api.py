@@ -29,9 +29,13 @@ class AccountBalanceQueryAPI(BaseAPI):
     def get_account_balance(self) -> Optional[Dict]:
         """계좌 잔고 조회. output1=보유종목, output2=요약(예수금/총평가/순자산)."""
         is_irp = self.account["ACNT_PRDT_CD"] == "29"
-        endpoint="/uapi/domestic-stock/v1/trading/inquire-balance" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-balance"
+        endpoint = (
+            "/uapi/domestic-stock/v1/trading/inquire-balance"
+            if not is_irp
+            else "/uapi/domestic-stock/v1/trading/pension/inquire-balance"
+        )
         tr_id = "TTTC8434R" if not is_irp else "TTTC2208R"
-        params={
+        params = {
             "CANO": self.account["CANO"],
             "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
             "INQR_DVSN": "01" if not is_irp else "00",
@@ -200,9 +204,15 @@ class AccountBalanceQueryAPI(BaseAPI):
         """매수가능 조회. ord_psbl_cash/max_buy_qty/ord_psbl_qty 반환."""
         try:
             is_irp = self.account["ACNT_PRDT_CD"] == "29"
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order" if not is_irp else "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order"
-            tr_id="TTTC8908R" if not is_irp else "TTTC0503R"  # 모의투자 변환은 client.make_request가 처리
-            params={
+            endpoint = (
+                "/uapi/domestic-stock/v1/trading/inquire-psbl-order"
+                if not is_irp
+                else "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order"
+            )
+            tr_id = (
+                "TTTC8908R" if not is_irp else "TTTC0503R"
+            )  # 모의투자 변환은 client.make_request가 처리
+            params = {
                 "CANO": self.account["CANO"],
                 "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
                 "PDNO": pdno,
