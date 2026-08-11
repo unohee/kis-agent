@@ -221,7 +221,7 @@ class AccountBalanceQueryAPI(BaseAPI):
                 "CMA_EVLU_AMT_ICLD_YN": "Y",
             }
             if not is_irp:
-                params["OVRS_JCLD_YN"] = "N"
+                params["OVRS_ICLD_YN"] = "N"
             else:
                 params["ACCA_DVSN_CD"] = "00"
             res = self.client.make_request(
