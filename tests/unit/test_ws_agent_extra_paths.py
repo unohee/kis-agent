@@ -80,9 +80,9 @@ def test_encrypted_parse_and_aes_decryption(agent):
 
     cipher = MagicMock()
     cipher.decrypt.return_value = b"padded"
-    with patch.object(module.AES, "new", return_value=cipher), patch.object(
+    with patch("Crypto.Cipher.AES.new", return_value=cipher), patch.object(
         module, "b64decode", return_value=b"cipher"
-    ), patch.object(module, "unpad", return_value=b"plain"):
+    ), patch("Crypto.Util.Padding.unpad", return_value=b"plain"):
         assert WSAgent._decrypt_aes(agent, "key", "iv", "cipher") == "plain"
 
 

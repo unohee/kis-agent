@@ -866,9 +866,9 @@ def test_aes_decrypt_exit_order_exception_and_empty_balance(tmp_path, monkeypatc
     ws = _ws(tmp_path)
     cipher = MagicMock()
     cipher.decrypt.return_value = b"padded"
-    with patch("kis_agent.websocket.client.AES.new", return_value=cipher), patch("kis_agent.websocket.client.b64decode", return_value=b"cipher"), patch(
-        "kis_agent.websocket.client.unpad", return_value=b"plain"
-    ):
+    with patch("Crypto.Cipher.AES.new", return_value=cipher), patch(
+        "kis_agent.websocket.client.b64decode", return_value=b"cipher"
+    ), patch("Crypto.Util.Padding.unpad", return_value=b"plain"):
         assert ws.aes_cbc_base64_dec("key", "iv", "cipher") == "plain"
 
     ws.account_info = {}

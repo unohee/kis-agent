@@ -69,6 +69,25 @@ def test_cli_bridge_after_market_close_notice(monkeypatch):
     assert "장 마감 후" in bridge._market_status["notice"]
 
 
+def test_cli_bridge_falls_back_to_previous_weekday_when_holiday_api_fails(
+    monkeypatch,
+):
+    tuesday = datetime(2025, 1, 7, 12, 0, 0)
+    monkeypatch.setattr(
+        bridge, "datetime", MagicMock(now=MagicMock(return_value=tuesday))
+    )
+    bridge._market_status.update(
+        {"checked": False, "notice": None, "last_business_day": None}
+    )
+    agent = MagicMock()
+    agent.stock_api.is_holiday.side_effect = [True, RuntimeError("offline")]
+
+    bridge.check_market_status(agent)
+
+    assert bridge._market_status["last_business_day"] == "20250106"
+    assert "공휴일 미확인" in bridge._market_status["notice"]
+
+
 def test_schema_includes_type_level_doc_comment(monkeypatch):
     monkeypatch.setattr(
         schema_module,

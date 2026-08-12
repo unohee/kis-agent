@@ -6,6 +6,8 @@ repo_url: https://github.com/unohee/kis-agent
 repo_name: unohee/kis-agent
 edit_uri: edit/main/docs/
 copyright: Copyright &copy; 2025 unohee — MIT License
+exclude_docs: |
+  README.md
 
 theme:
   name: material

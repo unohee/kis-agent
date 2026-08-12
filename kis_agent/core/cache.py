@@ -38,7 +38,7 @@ class TTLCache:
         """캐시 키 생성"""
         # 모든 인자를 문자열로 변환하여 해시
         key_data = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True)
-        return hashlib.md5(key_data.encode()).hexdigest()
+        return hashlib.sha256(key_data.encode()).hexdigest()
 
     def get(self, key: str) -> Optional[Any]:
         """캐시에서 값 조회"""

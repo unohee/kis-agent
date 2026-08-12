@@ -119,7 +119,7 @@ class KisWebSocket:
 
     @staticmethod
     def clear_console():
-        os.system("cls" if os.name in ("nt", "dos") else "clear")
+        os.system("cls" if os.name in ("nt", "dos") else "clear")  # nosec B605
 
     @staticmethod
     def format_price(price):
@@ -1178,7 +1178,7 @@ class KisWebSocket:
             self.last_balance_check = now
 
         # 화면 클리어
-        os.system("cls" if os.name in ("nt", "dos") else "clear")
+        os.system("cls" if os.name in ("nt", "dos") else "clear")  # nosec B605
 
         print("\n========== [보유 종목 잔고] ==========")
         print(

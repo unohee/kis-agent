@@ -47,7 +47,8 @@ def clearConsole() -> int:
         int: 시스템 호출 반환 코드
     """
     # [변경 이유] E731(lambda 사용 금지) 해결을 위해 함수로 변경
-    return os.system("cls" if os.name in ("nt", "dos") else "clear")
+    # 플랫폼별 고정 리터럴만 사용하며 외부 입력은 셸에 전달하지 않는다.
+    return os.system("cls" if os.name in ("nt", "dos") else "clear")  # nosec B605
 
 
 key_bytes = 32

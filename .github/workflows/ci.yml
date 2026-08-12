@@ -1,23 +1,104 @@
-# PyKIS CI/CD Pipeline
-# Reusable workflow from ci-templates
 name: CI
 
 on:
   push:
-    branches: [main, develop, 'feature/**']
+    branches: [main, develop, "feature/**"]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  COVERAGE_MINIMUM: "100"
+  MAX_SOURCE_LINES: "1500"
+  CI_HELPERS_REVISION: "7ea19e398ca78e69b68c37c3772ced24599557ce"
+
 jobs:
-  ci:
-    uses: unohee/ci-templates/.github/workflows/python-ci.yml@main
-    with:
-      python-version: '3.12'
-      # 패키지는 pykis/ 에서 kis_agent/ 로 이름이 바뀌었다. 경로가 낡아 있던 동안
-      # lint/bandit/LOC/커버리지가 존재하지 않는 디렉터리를 검사하며 통과했다.
-      src-path: 'kis_agent/'
-      test-path: 'tests/'
-      coverage-threshold: 100
-      max-line-count: 1500
-    secrets: inherit
+  canonical:
+    name: Canonical
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned CI helpers
+        # 같은 소유자의 공용 검사기를 고정 SHA로 사용해 main 변경이 CI를 바꾸지 않게 한다.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: unohee/ci-templates
+          ref: ${{ env.CI_HELPERS_REVISION }}
+          path: .ci-templates
+          persist-credentials: false
+
+      - name: Set up Python
+        # actions/setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install project and CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check kis_agent
+
+      - name: Black
+        run: black --check kis_agent
+
+      - name: Bandit
+        # 기존 중·저위험 부채와 pycryptodome B413 오탐은 별도 정리하고,
+        # 새 고위험 보안 진단은 즉시 차단한다.
+        run: bandit -q -r kis_agent -x tests -s B413 -lll
+
+      - name: Fake data and hidden exception gate
+        run: python .ci-templates/scripts/fake_data_detector.py kis_agent --ci
+
+      - name: Source line-count gate
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          limit = int(os.environ["MAX_SOURCE_LINES"])
+          failures = []
+          for path in sorted(Path("kis_agent").rglob("*.py")):
+              line_count = sum(1 for _ in path.open(encoding="utf-8"))
+              if line_count > limit:
+                  failures.append((path, line_count))
+
+          for path, line_count in failures:
+              print(
+                  f"::error file={path}::{line_count} lines exceeds "
+                  f"MAX_SOURCE_LINES={limit}"
+              )
+
+          if failures:
+              raise SystemExit(1)
+          print(f"All source files are at or below {limit} lines.")
+          PY
+
+      - name: Tests and coverage
+        run: |
+          pytest tests \
+            --cov=kis_agent \
+            --cov-fail-under="${COVERAGE_MINIMUM}" \
+            --cov-report=term-missing \
+            --timeout=60 \
+            --disable-warnings \
+            -q

@@ -278,6 +278,19 @@ class TestFuturesOrderAPI(unittest.TestCase):
 
         self.assertIn("Invalid order_type", str(context.exception))
 
+    def test_order_invalid_order_condition(self):
+        """잘못된 주문 조건"""
+        with self.assertRaises(ValueError) as context:
+            self.api.order(
+                code="101S12",
+                order_type="02",
+                qty="1",
+                price="0",
+                order_cond="3",
+            )
+
+        self.assertIn("Invalid order_cond", str(context.exception))
+
     def test_order_with_ioc_condition(self):
         """IOC 조건부 주문"""
         expected_response = {

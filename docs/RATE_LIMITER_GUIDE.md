@@ -159,4 +159,4 @@ agent.client.rate_limiter.set_limits(
 - **캐시 효과**: API 호출 80-95% 감소
 - **권장 설정**: 15 RPS / 800 RPM (Production)
 
-자세한 내용은 [RATE_LIMIT_ANALYSIS.md](../RATE_LIMIT_ANALYSIS.md) 참조
+자세한 내용은 [성능 및 캐싱 가이드](advanced/performance.md)를 참조하세요.
