@@ -155,18 +155,21 @@ def cmd_order_algo(args, algorithm: str):
 
     journal_dir = Path(args.journal_dir).expanduser() if args.journal_dir else None
 
-    # 같은 종목의 미완료 집행이 남아 있으면 먼저 멈춘다. 미완료 원장은
-    # "주문이 이미 나간 채로 프로세스가 죽었다"의 서명이고, 그걸 보지 않고
-    # 같은 부모 주문을 다시 내는 것이 포지션이 조용히 두 배가 되는 경로다.
+    # 같은 종목·같은 방향의 미완료 집행이 남아 있으면 먼저 멈춘다. 미완료
+    # 원장은 "주문이 이미 나간 채로 프로세스가 죽었다"의 서명이고, 그걸 보지
+    # 않고 같은 부모 주문을 다시 내는 것이 포지션이 조용히 두 배가 되는 경로다.
+    # 반대 방향은 막지 않는다 — 크래시 직후 가장 하고 싶은 일이 청산이다.
+    # 토큰을 만들기 전에 검사해 헛된 인증을 피한다.
     if not args.dry_run and not args.ignore_incomplete:
-        incomplete = find_incomplete_runs(code, base_dir=journal_dir)
+        incomplete = find_incomplete_runs(code, base_dir=journal_dir, side=side)
         if incomplete:
             cli_main._out(
                 {
                     "error": (
-                        f"{code}에 완료되지 않은 집행 기록이 "
-                        f"{len(incomplete)}건 있습니다. 이미 나간 주문을 확인한 뒤 "
-                        "진행하세요 (강행하려면 --ignore-incomplete)."
+                        f"{code} {side} 방향에 완료되지 않은 집행 기록이 "
+                        f"{len(incomplete)}건 있습니다. 이미 나간 주문을 "
+                        "확인한 뒤 진행하세요 (kis order list / kis trades로 "
+                        "실제 접수 여부 확인, 강행하려면 --ignore-incomplete)."
                     ),
                     "code": "IncompleteExecutionFound",
                     "data": {

@@ -37,9 +37,12 @@ TWAP/VWAP은 30~120분 블로킹으로 동작합니다. 그 사이 프로세스�
 - 위치는 `--journal-dir` 또는 `KIS_EXECUTION_JOURNAL_DIR`로 변경
 - `result.run_id` / `result.journal_path`, CLI JSON의 `runId` / `journalPath`
 - 진행 출력(stderr)에도 주문번호가 찍힙니다 — 원장이 실패해도 스크롤백에는 남습니다
-- **미완료 집행 가드**: `end` 레코드가 없는 원장(=죽은 실행)이 같은 종목에 있으면
-  새 집행을 거부하고 이미 나간 주문번호를 보여줍니다. CLI는 `--ignore-incomplete`,
-  Python API는 `check_incomplete=False`로 강행합니다 (`IncompleteExecutionError`)
+- **미완료 집행 가드**: `end` 레코드가 없는 원장(=죽은 실행)이 같은 종목·**같은
+  방향**에 있으면 새 집행을 거부하고 이미 나간 주문번호를 보여줍니다. 반대 방향
+  (청산)은 막지 않습니다. CLI는 `--ignore-incomplete`, Python API는
+  `check_incomplete=False`로 강행합니다 (`IncompleteExecutionError`)
+- 가드가 보여주는 주문번호는 적게 나올 수 있습니다 — 재전송을 하지 않으므로 응답이
+  유실된 주문은 접수됐더라도 `failed`로 기록됩니다. `kis order list`가 정본입니다
 - 정상 완료와 Ctrl+C는 원장을 닫으므로 가드에 걸리지 않습니다. 처리되지 않은
   즉사(SIGKILL·OOM·하네스 타임아웃)만 걸립니다
 - dry-run 원장은 거래소에 닿지 않으므로 가드 대상이 아닙니다

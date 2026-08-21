@@ -156,7 +156,9 @@ class TestIncompleteRuns:
 
     def test_describe_names_the_order_numbers(self, tmp_path):
         self._write(tmp_path, code="005930", closed=False, orders=("A1", "A2"))
-        summary = find_incomplete_runs("005930", base_dir=tmp_path, now=NOW)[0].describe()
+        summary = find_incomplete_runs("005930", base_dir=tmp_path, now=NOW)[
+            0
+        ].describe()
         assert "A1" in summary and "A2" in summary
         assert "60/100주" in summary
 
@@ -207,3 +209,37 @@ class TestSurvivesSigkill:
         # 그리고 그 기록이 다음 실행을 막아야 한다.
         found = find_incomplete_runs("005930", base_dir=tmp_path, now=NOW)
         assert found[0].order_numbers == ["LIVE-0001"]
+
+
+class TestSideScoping:
+    """가드는 같은 방향만 막는다 — 크래시한 매수가 청산 매도를 막으면 안 된다."""
+
+    def _crash(self, tmp_path, side):
+        j = ExecutionJournal.create("005930", side, base_dir=tmp_path, now=NOW)
+        j.record_start(
+            {"code": "005930", "side": side, "totalQuantity": 100, "dryRun": False}
+        )
+        j.record_slice(
+            {"index": 0, "quantity": 40, "status": "filled", "orderNo": "X1"}
+        )
+
+    def test_same_side_is_found(self, tmp_path):
+        self._crash(tmp_path, "buy")
+        found = find_incomplete_runs("005930", base_dir=tmp_path, now=NOW, side="buy")
+        assert len(found) == 1
+
+    def test_opposite_side_is_not_found(self, tmp_path):
+        # 크래시한 매수 이후의 청산 매도는 허용돼야 한다.
+        self._crash(tmp_path, "buy")
+        found = find_incomplete_runs("005930", base_dir=tmp_path, now=NOW, side="sell")
+        assert found == []
+
+    def test_no_side_matches_every_direction(self, tmp_path):
+        self._crash(tmp_path, "buy")
+        self._crash(tmp_path, "sell")
+        assert len(find_incomplete_runs("005930", base_dir=tmp_path, now=NOW)) == 2
+
+    def test_side_comparison_is_case_insensitive(self, tmp_path):
+        self._crash(tmp_path, "BUY")
+        found = find_incomplete_runs("005930", base_dir=tmp_path, now=NOW, side="buy")
+        assert len(found) == 1

@@ -214,19 +214,26 @@ def _resolve_start(start: Optional[datetime], now: Optional[datetime]) -> dateti
 
 
 def _guard_incomplete_runs(
-    code: str, journal_dir: Optional[Path], enabled: bool, dry_run: bool
+    code: str,
+    side: str,
+    journal_dir: Optional[Path],
+    enabled: bool,
+    dry_run: bool,
 ) -> None:
-    """Refuse to start when a previous run for ``code`` never closed.
+    """Refuse to start when a previous run in the same direction never closed.
 
-    Skipped for dry runs — they never reached the exchange, so there is nothing
-    to reconcile.
+    Scoped to ``side`` on purpose. Duplication is a same-side hazard, and the
+    first thing an operator wants after a crashed buy is the sell that unwinds
+    it — a guard that blocks the remedy is worse than no guard.
+
+    Skipped for dry runs, which never reached the exchange.
 
     Raises:
-        IncompleteExecutionError: If an unclosed journal exists for ``code``.
+        IncompleteExecutionError: If an unclosed same-side journal exists.
     """
     if not enabled or dry_run:
         return
-    runs = find_incomplete_runs(code, base_dir=journal_dir)
+    runs = find_incomplete_runs(code, base_dir=journal_dir, side=side)
     if runs:
         raise IncompleteExecutionError(runs)
 
@@ -355,9 +362,11 @@ def run_twap(
         journal_enabled: Write a durable record of every child order. Leave it
             on unless you have another audit trail — without it, a process that
             dies mid-run takes its order numbers with it.
-        check_incomplete: Refuse to start when a previous run for this ticker
-            died without closing its journal. Turn it off only after you have
-            reconciled the orders that run left on the exchange.
+        check_incomplete: Refuse to start when a previous run **in the same
+            direction** for this ticker died without closing its journal. The
+            opposite direction is never blocked, so an unwind is always
+            possible. Turn it off only after reconciling the orders that run
+            left on the exchange.
 
     Returns:
         The aggregate execution result.
@@ -375,7 +384,7 @@ def run_twap(
     if slices <= 0:
         raise ValueError(f"slices must be positive, got {slices}")
     funding = _validate_funding(funding)
-    _guard_incomplete_runs(code, journal_dir, check_incomplete, dry_run)
+    _guard_incomplete_runs(code, side, journal_dir, check_incomplete, dry_run)
 
     runner = executor or _build_executor(agent)
     begin = _resolve_start(start, None)
@@ -501,9 +510,11 @@ def run_vwap(
         journal_enabled: Write a durable record of every child order. Leave it
             on unless you have another audit trail — without it, a process that
             dies mid-run takes its order numbers with it.
-        check_incomplete: Refuse to start when a previous run for this ticker
-            died without closing its journal. Turn it off only after you have
-            reconciled the orders that run left on the exchange.
+        check_incomplete: Refuse to start when a previous run **in the same
+            direction** for this ticker died without closing its journal. The
+            opposite direction is never blocked, so an unwind is always
+            possible. Turn it off only after reconciling the orders that run
+            left on the exchange.
         profile: Pre-built volume profile, mainly for tests. When omitted the
             profile is fetched from the agent.
 
@@ -522,7 +533,7 @@ def run_vwap(
     if slices <= 0:
         raise ValueError(f"slices must be positive, got {slices}")
     funding = _validate_funding(funding)
-    _guard_incomplete_runs(code, journal_dir, check_incomplete, dry_run)
+    _guard_incomplete_runs(code, side, journal_dir, check_incomplete, dry_run)
 
     runner = executor or _build_executor(agent)
     begin = _resolve_start(start, None)

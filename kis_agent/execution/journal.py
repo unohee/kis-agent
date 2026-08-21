@@ -237,6 +237,7 @@ def find_incomplete_runs(
     code: str,
     base_dir: Optional[Path] = None,
     now: Optional[datetime] = None,
+    side: Optional[str] = None,
 ) -> List[IncompleteRun]:
     """Find today's journals for ``code`` that never recorded an ``end``.
 
@@ -257,9 +258,20 @@ def find_incomplete_runs(
         code: Ticker to check.
         base_dir: Journal root. Defaults to :func:`default_journal_dir`.
         now: Clock override for tests.
+        side: Restrict to runs in this direction. Pass the side you are about
+            to work: a crashed buy must not stand between an operator and the
+            sell that unwinds it, and duplication is a same-side hazard anyway.
+            ``None`` matches every direction.
 
     Returns:
         Incomplete runs, oldest first. Empty when the directory is missing.
+
+    Note:
+        ``order_numbers`` can undercount. Orders are never resent, so a request
+        whose response was lost is recorded as ``failed`` even though the
+        exchange may have accepted it. Treat the list as a starting point for
+        reconciliation, not a complete inventory — ``kis order list`` and
+        ``kis trades`` are authoritative.
     """
     moment = now or datetime.now()
     directory = (base_dir or default_journal_dir()) / moment.strftime("%Y%m%d")
@@ -276,6 +288,8 @@ def find_incomplete_runs(
 
         start = next((e for e in events if e.get("event") == EVENT_START), {})
         if start.get("code") != code:
+            continue
+        if side is not None and str(start.get("side", "")).lower() != side.lower():
             continue
         if start.get("dryRun"):
             # A dry run never reached the exchange, so an unfinished one leaves

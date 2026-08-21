@@ -802,3 +802,28 @@ class TestIncompleteRunGuard:
         )
         assert len(agent.account_api.orders) == 1
         assert code is None
+
+    def test_crashed_buy_does_not_block_a_sell_via_cli(self, tmp_path, capsys):
+        self._crash_a_run(tmp_path)  # buy 방향으로 죽은 실행
+        _, agent, code = run_cli(
+            [
+                "order",
+                "twap",
+                "005930",
+                "--side",
+                "sell",
+                "--qty",
+                "60",
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--journal-dir",
+                str(tmp_path),
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        # 청산 매도는 막히면 안 된다.
+        assert len(agent.account_api.orders) == 2
+        assert code is None
