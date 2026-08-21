@@ -338,7 +338,8 @@ class KISClient:
             tr_id (str): API 트랜잭션 ID
             params (Dict[str, Any]): API 요청 파라미터
             method (str): HTTP 메서드 (기본값: 'GET')
-            retries (int): 재시도 횟수 (기본값: 5)
+            retries (int): 재시도 횟수 (기본값: 2). GET이 아닌 요청은
+                중복 주문을 막기 위해 값과 무관하게 1회로 강제된다.
             headers (Dict[str, str], optional): 추가 HTTP 헤더
 
         Returns:
@@ -372,6 +373,25 @@ class KISClient:
             logger.debug(f"요청 URL: {url}")
             logger.debug(f"요청 헤더: {headers}")
             logger.debug(f"요청 파라미터: {params}")
+
+        # 상태를 바꾸는 요청은 절대 재전송하지 않는다 (STO-1729).
+        #
+        # 타임아웃은 *응답*에 걸린 것이지 *동작*에 걸린 것이 아니다. 거래소에
+        # 도달해 접수된 주문의 응답만 유실됐는데 같은 본문을 다시 보내면 중복
+        # 주문이 된다. KIS 주문 API는 클라이언트 주문 ID(멱등키)를 받지 않으므로
+        # 거래소가 중복을 걸러줄 방법도 없다.
+        #
+        # 이 저장소의 POST는 전부 주문 계열(`*/order_api.py` 16곳)이고, 토큰
+        # 발급은 `core.auth`가 requests.post를 직접 써서 이 경로를 타지 않는다.
+        # 따라서 메서드 하나로 판정해도 조회 성능에는 영향이 없다.
+        # 정확히 1회다. `> 1`만 걸러내면 retries=0이 그대로 통과해 루프가 아예
+        # 돌지 않고, 주문이 전송되지 않은 채 "Unknown error after retries"로
+        # 끝난다 — 호출자는 그것을 전송 실패와 구분할 수 없다.
+        if method.upper() != "GET" and retries != 1:
+            logger.debug(
+                f"[{tr_id}] 상태 변경 요청({method})이므로 전송을 1회로 고정합니다."
+            )
+            retries = 1
 
         last_exception = None
 

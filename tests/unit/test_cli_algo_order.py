@@ -4,6 +4,7 @@
 """
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +12,16 @@ import pytest
 from kis_agent.cli.main import build_parser, cmd_order
 from kis_agent.execution import executor as executor_mod
 from kis_agent.execution import runner as runner_mod
+
+
+@pytest.fixture(autouse=True)
+def isolated_journal_dir(tmp_path, monkeypatch):
+    """집행 원장을 임시 디렉터리로 격리한다.
+
+    이게 없으면 테스트가 사용자의 ~/.kis-agent/executions 에 실제 파일을 쓴다
+    (실측으로 65개를 흘린 뒤 추가했다).
+    """
+    monkeypatch.setenv("KIS_EXECUTION_JOURNAL_DIR", str(tmp_path / "journal"))
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +55,11 @@ class FakeAccountAPI:
                 "exchange": exchange,
             }
         )
-        return {"rt_cd": "0", "msg1": "정상", "output": {"ODNO": f"A{len(self.orders)}"}}
+        return {
+            "rt_cd": "0",
+            "msg1": "정상",
+            "output": {"ODNO": f"A{len(self.orders)}"},
+        }
 
 
 class FakeStockAPI:
@@ -201,8 +216,19 @@ class TestConfirmation:
         agent = FakeAgent()
         args = parse(
             [
-                "order", "vwap", "005930", "--side", "buy", "--qty", "60",
-                "--duration", "1", "--slices", "2", "--profile-days", "20",
+                "order",
+                "vwap",
+                "005930",
+                "--side",
+                "buy",
+                "--qty",
+                "60",
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--profile-days",
+                "20",
                 "--dry-run",
             ]
         )
@@ -223,8 +249,13 @@ class TestGuards:
         payload, agent, code = run_cli(
             BASE
             + [
-                "--duration", "1", "--slices", "2",
-                "--limit-price", "70000", "--yes",
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--limit-price",
+                "70000",
+                "--yes",
             ],
             agent=agent,
             capsys=capsys,
@@ -240,8 +271,13 @@ class TestGuards:
         _, _, code = run_cli(
             BASE
             + [
-                "--duration", "1", "--slices", "2",
-                "--limit-price", "70000", "--yes",
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--limit-price",
+                "70000",
+                "--yes",
             ],
             agent=agent,
             capsys=capsys,
@@ -252,8 +288,17 @@ class TestGuards:
     def test_market_order_type_forces_price_zero(self, capsys):
         _, agent, _ = run_cli(
             BASE
-            + ["--duration", "1", "--slices", "1", "--type", "market",
-               "--price", "70000", "--yes"],
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--type",
+                "market",
+                "--price",
+                "70000",
+                "--yes",
+            ],
             capsys=capsys,
         )
         assert agent.account_api.orders[0]["price"] == 0
@@ -262,8 +307,17 @@ class TestGuards:
     def test_limit_order_type_keeps_the_price(self, capsys):
         _, agent, _ = run_cli(
             BASE
-            + ["--duration", "1", "--slices", "1", "--type", "limit",
-               "--price", "70000", "--yes"],
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--type",
+                "limit",
+                "--price",
+                "70000",
+                "--yes",
+            ],
             capsys=capsys,
         )
         assert agent.account_api.orders[0]["price"] == 70000
@@ -271,8 +325,18 @@ class TestGuards:
 
     def test_invalid_quantity_reports_an_error(self, capsys):
         payload, _, code = run_cli(
-            ["order", "twap", "005930", "--side", "buy", "--qty", "0",
-             "--duration", "1", "--yes"],
+            [
+                "order",
+                "twap",
+                "005930",
+                "--side",
+                "buy",
+                "--qty",
+                "0",
+                "--duration",
+                "1",
+                "--yes",
+            ],
             capsys=capsys,
         )
         assert code == 1
@@ -282,8 +346,7 @@ class TestGuards:
 class TestLiveExecution:
     def test_orders_are_placed_when_the_session_guard_is_off(self, capsys):
         payload, agent, code = run_cli(
-            BASE
-            + ["--duration", "1", "--slices", "3", "--yes"],
+            BASE + ["--duration", "1", "--slices", "3", "--yes"],
             capsys=capsys,
         )
         assert [o["qty"] for o in agent.account_api.orders] == [20, 20, 20]
@@ -293,16 +356,27 @@ class TestLiveExecution:
 
     def test_sell_side_is_routed_through(self, capsys):
         _, agent, _ = run_cli(
-            ["order", "twap", "005930", "--side", "sell", "--qty", "30",
-             "--duration", "1", "--slices", "1", "--yes"],
+            [
+                "order",
+                "twap",
+                "005930",
+                "--side",
+                "sell",
+                "--qty",
+                "30",
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--yes",
+            ],
             capsys=capsys,
         )
         assert agent.account_api.orders[0]["buy_sell"] == "SELL"
 
     def test_exchange_is_routed_through(self, capsys):
         _, agent, _ = run_cli(
-            BASE
-            + ["--duration", "1", "--slices", "1", "--exchange", "nxt", "--yes"],
+            BASE + ["--duration", "1", "--slices", "1", "--exchange", "nxt", "--yes"],
             capsys=capsys,
         )
         assert agent.account_api.orders[0]["exchange"] == "NXT"
@@ -332,8 +406,7 @@ class TestSessionGuardWiring:
     def test_no_session_guard_flag_bypasses_the_check(self, monkeypatch, capsys):
         monkeypatch.setattr(runner_mod, "krx_regular_session", lambda moment: False)
         _, agent, code = run_cli(
-            BASE
-            + ["--duration", "1", "--slices", "2", "--no-session-guard", "--yes"],
+            BASE + ["--duration", "1", "--slices", "2", "--no-session-guard", "--yes"],
             capsys=capsys,
         )
         assert len(agent.account_api.orders) == 2
@@ -353,12 +426,23 @@ class FakeCreditAccountAPI(FakeAccountAPI):
         return {"rt_cd": "1", "msg1": "신용융자 매수 불가"}
 
     def order_credit_buy(
-        self, pdno, qty, price, order_type="00", credit_type="21",
-        exchange="KRX", loan_dt="",
+        self,
+        pdno,
+        qty,
+        price,
+        order_type="00",
+        credit_type="21",
+        exchange="KRX",
+        loan_dt="",
     ):
         self.credit_buys.append(
-            {"qty": qty, "credit_type": credit_type, "loan_dt": loan_dt,
-             "order_type": order_type, "exchange": exchange}
+            {
+                "qty": qty,
+                "credit_type": credit_type,
+                "loan_dt": loan_dt,
+                "order_type": order_type,
+                "exchange": exchange,
+            }
         )
         return self._resp(self.credit_buys)
 
@@ -398,8 +482,19 @@ class TestCreditCli:
         agent = credit_cli_agent()
         _, agent, _ = run_cli(
             BASE
-            + ["--duration", "1", "--slices", "1", "--funding", "credit",
-               "--credit-type", "22", "--loan-date", "20260821", "--yes"],
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--funding",
+                "credit",
+                "--credit-type",
+                "22",
+                "--loan-date",
+                "20260821",
+                "--yes",
+            ],
             agent=agent,
             capsys=capsys,
         )
@@ -410,8 +505,22 @@ class TestCreditCli:
     def test_credit_sell_uses_the_repayment_endpoint(self, capsys):
         agent = credit_cli_agent()
         _, agent, _ = run_cli(
-            ["order", "twap", "005930", "--side", "sell", "--qty", "30",
-             "--duration", "1", "--slices", "1", "--funding", "credit", "--yes"],
+            [
+                "order",
+                "twap",
+                "005930",
+                "--side",
+                "sell",
+                "--qty",
+                "30",
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--funding",
+                "credit",
+                "--yes",
+            ],
             agent=agent,
             capsys=capsys,
         )
@@ -422,8 +531,16 @@ class TestCreditCli:
         agent = credit_cli_agent(credit_accepts=False)
         payload, agent, code = run_cli(
             BASE
-            + ["--duration", "1", "--slices", "2", "--funding", "credit",
-               "--credit-fallback", "--yes"],
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--funding",
+                "credit",
+                "--credit-fallback",
+                "--yes",
+            ],
             agent=agent,
             capsys=capsys,
         )
@@ -438,8 +555,17 @@ class TestCreditCli:
         agent = credit_cli_agent(credit_accepts=False)
         payload, agent, code = run_cli(
             BASE
-            + ["--duration", "1", "--slices", "2", "--funding", "credit",
-               "--max-failures", "5", "--yes"],
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--funding",
+                "credit",
+                "--max-failures",
+                "5",
+                "--yes",
+            ],
             agent=agent,
             capsys=capsys,
         )
@@ -451,8 +577,17 @@ class TestCreditCli:
         agent = credit_cli_agent()
         args = parse(
             BASE
-            + ["--duration", "1", "--slices", "2", "--funding", "credit",
-               "--credit-type", "21", "--credit-fallback"]
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--funding",
+                "credit",
+                "--credit-type",
+                "21",
+                "--credit-fallback",
+            ]
         )
         captured = {}
         with patch("kis_agent.cli.main._create_agent", return_value=agent), patch(
@@ -484,8 +619,22 @@ class TestVwapCliExecution:
     def test_vwap_runs_end_to_end_and_reports_the_fallback(self, capsys):
         # FakeStockAPI가 분봉을 비워 돌려주므로 균등 분할 폴백 경로를 탄다.
         payload, agent, code = run_cli(
-            ["order", "vwap", "005930", "--side", "buy", "--qty", "60",
-             "--duration", "1", "--slices", "3", "--profile-days", "1", "--yes"],
+            [
+                "order",
+                "vwap",
+                "005930",
+                "--side",
+                "buy",
+                "--qty",
+                "60",
+                "--duration",
+                "1",
+                "--slices",
+                "3",
+                "--profile-days",
+                "1",
+                "--yes",
+            ],
             capsys=capsys,
         )
         assert [o["qty"] for o in agent.account_api.orders] == [20, 20, 20]
@@ -519,3 +668,162 @@ class TestUnexpectedFailure:
         assert exc.value.code == 1
         assert payload["code"] == "ConnectionError"
         assert "upstream gone" in payload["error"]
+
+
+class TestJournalCli:
+    def test_result_reports_the_journal_location(self, capsys):
+        payload, _, _ = run_cli(
+            BASE + ["--duration", "1", "--slices", "2", "--yes"], capsys=capsys
+        )
+        algo = payload["data"]["algoOrder"]
+        assert algo["runId"]
+        assert algo["journalPath"].endswith(".jsonl")
+        assert Path(algo["journalPath"]).exists()
+
+    def test_progress_line_carries_the_order_number(self, capsys):
+        run_cli(BASE + ["--duration", "1", "--slices", "2", "--yes"])
+        err = capsys.readouterr().err
+        # 원장이 실패해도 스크롤백에는 남아야 한다.
+        assert "주문번호 A1" in err
+
+    def test_no_journal_flag_disables_recording(self, capsys):
+        payload, _, _ = run_cli(
+            BASE + ["--duration", "1", "--slices", "2", "--no-journal", "--yes"],
+            capsys=capsys,
+        )
+        assert payload["data"]["algoOrder"]["journalPath"] == ""
+
+    def test_journal_dir_override(self, tmp_path, capsys):
+        payload, _, _ = run_cli(
+            BASE
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--journal-dir",
+                str(tmp_path / "custom"),
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        assert str(tmp_path / "custom") in payload["data"]["algoOrder"]["journalPath"]
+
+
+class TestIncompleteRunGuard:
+    def _crash_a_run(self, journal_dir, code="005930"):
+        """주문을 낸 뒤 죽은 실행을 흉내낸다 (end 레코드 없음)."""
+        from kis_agent.execution.journal import ExecutionJournal
+
+        j = ExecutionJournal.create(code, "buy", base_dir=Path(journal_dir))
+        j.record_start(
+            {"code": code, "side": "buy", "totalQuantity": 100, "dryRun": False}
+        )
+        j.record_slice(
+            {"index": 0, "quantity": 30, "status": "filled", "orderNo": "LIVE-1"}
+        )
+        return j
+
+    def test_incomplete_run_blocks_a_new_execution(self, tmp_path, capsys):
+        self._crash_a_run(tmp_path)
+        payload, agent, code = run_cli(
+            BASE
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--journal-dir",
+                str(tmp_path),
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        assert agent.account_api.orders == []  # 중복 집행을 막았다
+        assert code == 1
+        assert payload["code"] == "IncompleteExecutionFound"
+        runs = payload["data"]["incompleteRuns"]
+        assert runs[0]["orderNumbers"] == ["LIVE-1"]
+        assert runs[0]["submittedQuantity"] == 30
+
+    def test_override_flag_allows_proceeding(self, tmp_path, capsys):
+        self._crash_a_run(tmp_path)
+        _, agent, code = run_cli(
+            BASE
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--journal-dir",
+                str(tmp_path),
+                "--ignore-incomplete",
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        assert len(agent.account_api.orders) == 2
+        assert code is None
+
+    def test_dry_run_is_not_blocked(self, tmp_path, capsys):
+        self._crash_a_run(tmp_path)
+        payload, _, code = run_cli(
+            BASE
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--journal-dir",
+                str(tmp_path),
+                "--dry-run",
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        # 모의 실행은 거래소에 닿지 않으므로 막을 이유가 없다.
+        assert payload["data"]["algoOrder"]["dryRun"] is True
+        assert code is None
+
+    def test_a_different_ticker_is_not_blocked(self, tmp_path, capsys):
+        self._crash_a_run(tmp_path, code="000660")
+        _, agent, code = run_cli(
+            BASE
+            + [
+                "--duration",
+                "1",
+                "--slices",
+                "1",
+                "--journal-dir",
+                str(tmp_path),
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        assert len(agent.account_api.orders) == 1
+        assert code is None
+
+    def test_crashed_buy_does_not_block_a_sell_via_cli(self, tmp_path, capsys):
+        self._crash_a_run(tmp_path)  # buy 방향으로 죽은 실행
+        _, agent, code = run_cli(
+            [
+                "order",
+                "twap",
+                "005930",
+                "--side",
+                "sell",
+                "--qty",
+                "60",
+                "--duration",
+                "1",
+                "--slices",
+                "2",
+                "--journal-dir",
+                str(tmp_path),
+                "--yes",
+            ],
+            capsys=capsys,
+        )
+        # 청산 매도는 막히면 안 된다.
+        assert len(agent.account_api.orders) == 2
+        assert code is None

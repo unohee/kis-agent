@@ -1,6 +1,7 @@
 """Unit tests for the agent-facing TWAP/VWAP entry points."""
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +9,16 @@ from kis_agent.execution.runner import krx_regular_session, run_twap, run_vwap
 from kis_agent.execution.volume_profile import VolumeProfile, build_profile_from_bars
 
 START = datetime(2026, 8, 21, 10, 0)  # Friday, inside the KRX session
+
+
+@pytest.fixture(autouse=True)
+def isolated_journal_dir(tmp_path, monkeypatch):
+    """집행 원장을 임시 디렉터리로 격리한다.
+
+    이게 없으면 테스트가 사용자의 ~/.kis-agent/executions 에 실제 파일을 쓴다
+    (실측으로 65개를 흘린 뒤 추가했다).
+    """
+    monkeypatch.setenv("KIS_EXECUTION_JOURNAL_DIR", str(tmp_path / "journal"))
 
 
 class FakeAccountAPI:
@@ -687,3 +698,412 @@ class TestSessionBoundary:
         assert krx_regular_session(datetime(2026, 8, 21, 9, 0, 0)) is True
         assert krx_regular_session(datetime(2026, 8, 21, 15, 29, 59)) is True
         assert krx_regular_session(datetime(2026, 8, 21, 15, 30, 0)) is False
+
+
+class TestJournalIntegration:
+    def test_every_placed_order_is_journalled_with_its_order_number(self, tmp_path):
+        from kis_agent.execution.journal import read_journal
+
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=100,
+            duration_minutes=20,
+            slices=4,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+
+        assert result.run_id
+        assert result.journal_path
+        events = read_journal(Path(result.journal_path))
+        slices = [e for e in events if e["event"] == "slice"]
+        assert [s["quantity"] for s in slices] == [25, 25, 25, 25]
+        assert [s["orderNo"] for s in slices] == ["A1", "A2", "A3", "A4"]
+
+    def test_plan_is_recorded_before_the_first_order(self, tmp_path):
+        from kis_agent.execution.journal import read_journal
+
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=100,
+            duration_minutes=20,
+            slices=4,
+            funding="credit",
+            limit_price=70000,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        events = read_journal(Path(result.journal_path))
+        start_event = events[0]
+        assert start_event["event"] == "start"
+        assert start_event["funding"] == "credit"
+        assert start_event["limitPrice"] == 70000
+        assert len(start_event["schedule"]) == 4
+
+    def test_end_record_closes_the_run(self, tmp_path):
+        from kis_agent.execution.journal import find_incomplete_runs, read_journal
+
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=40,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        events = read_journal(Path(result.journal_path))
+        assert events[-1]["event"] == "end"
+        assert events[-1]["submittedQuantity"] == 40
+        assert find_incomplete_runs("005930", base_dir=tmp_path) == []
+
+    def test_vwap_notes_land_in_the_end_record(self, tmp_path):
+        from kis_agent.execution.journal import read_journal
+
+        agent = FakeAgent()
+        result = run_vwap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=40,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            profile=VolumeProfile(fallback_reason="분봉 없음"),
+            executor=instant_executor(agent),
+        )
+        events = read_journal(Path(result.journal_path))
+        assert any("균등 분할" in n for n in events[-1]["notes"])
+
+    def test_journal_can_be_disabled(self, tmp_path):
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            journal_enabled=False,
+            executor=instant_executor(agent),
+        )
+        assert result.run_id == ""
+        assert result.journal_path == ""
+        assert list(tmp_path.rglob("*.jsonl")) == []
+
+    def test_unopenable_journal_does_not_stop_the_order(self, tmp_path, monkeypatch):
+        from kis_agent.execution import runner as runner_mod
+
+        def explode(*a, **kw):
+            raise OSError("read-only filesystem")
+
+        monkeypatch.setattr(runner_mod.ExecutionJournal, "create", explode)
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        # 원장을 못 열어도 주문은 나가야 한다 — 관측성 저하이지 정지 사유가 아니다.
+        assert len(agent.account_api.orders) == 2
+        assert result.status == "completed"
+        assert result.journal_path == ""
+
+    def test_dry_run_journal_is_marked_and_never_blocks_the_next_run(self, tmp_path):
+        from kis_agent.execution.journal import find_incomplete_runs, read_journal
+
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            dry_run=True,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        events = read_journal(Path(result.journal_path))
+        assert events[0]["dryRun"] is True
+        assert find_incomplete_runs("005930", base_dir=tmp_path) == []
+
+
+class TestIncompleteGuardInRunner:
+    """CLI뿐 아니라 Python API 호출자도 보호받아야 한다."""
+
+    def _crash(self, base, code="005930"):
+        from kis_agent.execution.journal import ExecutionJournal
+
+        j = ExecutionJournal.create(code, "buy", base_dir=base)
+        j.record_start(
+            {"code": code, "side": "buy", "totalQuantity": 100, "dryRun": False}
+        )
+        j.record_slice(
+            {"index": 0, "quantity": 40, "status": "filled", "orderNo": "LIVE-9"}
+        )
+
+    def test_run_twap_refuses_after_a_crashed_run(self, tmp_path):
+        from kis_agent.execution import IncompleteExecutionError
+
+        self._crash(tmp_path)
+        agent = FakeAgent()
+        with pytest.raises(IncompleteExecutionError) as exc:
+            run_twap(
+                agent,
+                code="005930",
+                side="buy",
+                quantity=100,
+                duration_minutes=10,
+                slices=2,
+                start=START,
+                journal_dir=tmp_path,
+                executor=instant_executor(agent),
+            )
+        assert agent.account_api.orders == []
+        assert exc.value.runs[0].order_numbers == ["LIVE-9"]
+        assert "LIVE-9" in str(exc.value)
+
+    def test_run_vwap_refuses_too(self, tmp_path):
+        from kis_agent.execution import IncompleteExecutionError
+
+        self._crash(tmp_path)
+        agent = FakeAgent()
+        with pytest.raises(IncompleteExecutionError):
+            run_vwap(
+                agent,
+                code="005930",
+                side="buy",
+                quantity=100,
+                duration_minutes=10,
+                slices=2,
+                start=START,
+                journal_dir=tmp_path,
+                profile=VolumeProfile(fallback_reason="none"),
+                executor=instant_executor(agent),
+            )
+
+    def test_dry_run_is_never_refused(self, tmp_path):
+        self._crash(tmp_path)
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            dry_run=True,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        assert result.status == "completed"
+
+    def test_opt_out_allows_proceeding(self, tmp_path):
+        self._crash(tmp_path)
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            check_incomplete=False,
+            executor=instant_executor(agent),
+        )
+        assert len(agent.account_api.orders) == 2
+        assert result.status == "completed"
+
+    def test_a_different_ticker_is_unaffected(self, tmp_path):
+        self._crash(tmp_path, code="000660")
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        assert result.status == "completed"
+
+
+class TestJournalClosesOnEveryNormalExit:
+    """문서가 "정상 종료와 Ctrl+C는 원장을 닫는다"고 주장한다 — 실제로 그런지 고정한다.
+
+    이 성질이 깨지면 의도적으로 멈춘 운영자가 다음 집행에서 가드에 걸린다.
+    """
+
+    def _journal_is_closed(self, result):
+        from kis_agent.execution.journal import read_journal
+
+        events = read_journal(Path(result.journal_path))
+        return any(e["event"] == "end" for e in events)
+
+    def test_ctrl_c_closes_the_journal(self, tmp_path):
+        calls = {"n": 0}
+
+        def interrupting(code, quantity, side, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                raise KeyboardInterrupt
+            return {"rt_cd": "0", "output": {"ODNO": "A1"}}
+
+        agent = FakeAgent()
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=40,
+            duration_minutes=10,
+            slices=4,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent, order_func=interrupting),
+        )
+        assert result.status == "cancelled"
+        assert self._journal_is_closed(result)
+        # 의도적 중단은 다음 집행을 막지 않는다.
+        from kis_agent.execution.journal import find_incomplete_runs
+
+        assert find_incomplete_runs("005930", base_dir=tmp_path, side="buy") == []
+
+    def test_aborted_run_closes_the_journal(self, tmp_path):
+        agent = FakeAgent()
+        agent.account_api.order_cash = lambda **kw: {"rt_cd": "1", "msg1": "거부"}
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=50,
+            duration_minutes=10,
+            slices=5,
+            max_consecutive_failures=2,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        assert result.status == "aborted"
+        assert self._journal_is_closed(result)
+
+    def test_partial_run_closes_the_journal(self, tmp_path):
+        agent = FakeAgent(price=71000)
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            limit_price=70000,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        assert result.status == "partial"
+        assert self._journal_is_closed(result)
+
+    def test_skipped_slices_are_journaled_for_audit(self, tmp_path):
+        from kis_agent.execution.journal import read_journal
+
+        agent = FakeAgent(price=71000)
+        result = run_twap(
+            agent,
+            code="005930",
+            side="buy",
+            quantity=20,
+            duration_minutes=10,
+            slices=2,
+            limit_price=70000,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        slices = [
+            e for e in read_journal(Path(result.journal_path)) if e["event"] == "slice"
+        ]
+        assert [s["status"] for s in slices] == ["skipped", "skipped"]
+        assert all(s["reason"] == "price_limit" for s in slices)
+
+
+class TestGuardDoesNotBlockUnwinding:
+    def test_crashed_buy_does_not_block_a_sell(self, tmp_path):
+        from kis_agent.execution.journal import ExecutionJournal
+
+        j = ExecutionJournal.create("005930", "buy", base_dir=tmp_path)
+        j.record_start(
+            {"code": "005930", "side": "buy", "totalQuantity": 100, "dryRun": False}
+        )
+        j.record_slice(
+            {"index": 0, "quantity": 40, "status": "filled", "orderNo": "LIVE-9"}
+        )
+
+        agent = FakeAgent()
+        # 크래시한 매수 이후 청산 매도는 통과해야 한다.
+        result = run_twap(
+            agent,
+            code="005930",
+            side="sell",
+            quantity=40,
+            duration_minutes=10,
+            slices=2,
+            start=START,
+            journal_dir=tmp_path,
+            executor=instant_executor(agent),
+        )
+        assert result.status == "completed"
+        assert len(agent.account_api.orders) == 2
+
+    def test_crashed_buy_still_blocks_another_buy(self, tmp_path):
+        from kis_agent.execution import IncompleteExecutionError
+        from kis_agent.execution.journal import ExecutionJournal
+
+        j = ExecutionJournal.create("005930", "buy", base_dir=tmp_path)
+        j.record_start(
+            {"code": "005930", "side": "buy", "totalQuantity": 100, "dryRun": False}
+        )
+        j.record_slice(
+            {"index": 0, "quantity": 40, "status": "filled", "orderNo": "LIVE-9"}
+        )
+
+        agent = FakeAgent()
+        with pytest.raises(IncompleteExecutionError):
+            run_twap(
+                agent,
+                code="005930",
+                side="buy",
+                quantity=40,
+                duration_minutes=10,
+                slices=2,
+                start=START,
+                journal_dir=tmp_path,
+                executor=instant_executor(agent),
+            )

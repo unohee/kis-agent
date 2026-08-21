@@ -32,6 +32,8 @@ from .rate_limiter_mixin import RateLimiterControlMixin
 from .technical_analysis import TechnicalAnalysisMixin
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle guard for type checkers
+    from pathlib import Path
+
     from ..execution import AlgoExecutionResult
 
 
@@ -819,6 +821,9 @@ class Agent(
         dry_run: bool = False,
         restrict_to_session: bool = True,
         progress: Optional[Callable[[Any], None]] = None,
+        journal_dir: Optional["Path"] = None,
+        journal_enabled: bool = True,
+        check_incomplete: bool = True,
     ) -> "AlgoExecutionResult":
         """TWAP 주문 - 대량 주문을 지정 시간 동안 균등 분할 집행
 
@@ -852,6 +857,13 @@ class Agent(
             dry_run: True면 주문을 전송하지 않고 스케줄만 시뮬레이션
             restrict_to_session: 정규장(09:00-15:30) 밖 슬라이스 스킵
             progress: 슬라이스 완료마다 호출되는 콜백
+            journal_dir: 집행 원장 디렉터리
+                (기본 ~/.kis-agent/executions, KIS_EXECUTION_JOURNAL_DIR로 재정의)
+            journal_enabled: 자식 주문을 즉시 디스크에 기록. 끄지 말 것 —
+                프로세스가 죽으면 나간 주문번호를 복구할 방법이 없어진다
+            check_incomplete: 같은 종목의 이전 집행이 원장을 닫지 못하고
+                죽었으면 시작을 거부한다 (IncompleteExecutionError).
+                그 실행이 남긴 주문을 대사한 뒤에만 끈다
 
         Returns:
             AlgoExecutionResult: 집행 결과. status는 completed/partial/
@@ -859,6 +871,8 @@ class Agent(
 
         Raises:
             ValueError: 수량·시간·가드 인자가 유효 범위를 벗어난 경우
+            IncompleteExecutionError: 같은 종목에 완료되지 않은 집행 기록이
+                남아 있는 경우 (check_incomplete=True일 때)
 
         Examples:
             >>> agent = Agent(app_key="...", app_secret="...", account_no="...")
@@ -889,6 +903,8 @@ class Agent(
             - 미체결 정정/취소는 하지 않는다. 최유리지정가(03)가 기본인 이유
             - 스킵된 수량은 뒤 슬라이스로 이월되지 않는다
               (``unfilled_quantity``로 보고)
+            - 자식 주문은 접수 즉시 원장에 기록된다. 프로세스가 죽어도
+              ``result.journal_path``의 파일에서 나간 주문을 복구할 수 있다
         """
         from ..execution import run_twap
 
@@ -912,6 +928,9 @@ class Agent(
             dry_run=dry_run,
             restrict_to_session=restrict_to_session,
             progress=progress,
+            journal_dir=journal_dir,
+            journal_enabled=journal_enabled,
+            check_incomplete=check_incomplete,
         )
 
     def vwap_order(
@@ -935,6 +954,9 @@ class Agent(
         dry_run: bool = False,
         restrict_to_session: bool = True,
         progress: Optional[Callable[[Any], None]] = None,
+        journal_dir: Optional["Path"] = None,
+        journal_enabled: bool = True,
+        check_incomplete: bool = True,
     ) -> "AlgoExecutionResult":
         """VWAP 주문 - 과거 거래량 프로파일에 비례해 분할 집행
 
@@ -966,6 +988,13 @@ class Agent(
             dry_run: True면 주문을 전송하지 않고 스케줄만 시뮬레이션
             restrict_to_session: 정규장 밖 슬라이스 스킵
             progress: 슬라이스 완료마다 호출되는 콜백
+            journal_dir: 집행 원장 디렉터리
+                (기본 ~/.kis-agent/executions, KIS_EXECUTION_JOURNAL_DIR로 재정의)
+            journal_enabled: 자식 주문을 즉시 디스크에 기록. 끄지 말 것 —
+                프로세스가 죽으면 나간 주문번호를 복구할 방법이 없어진다
+            check_incomplete: 같은 종목의 이전 집행이 원장을 닫지 못하고
+                죽었으면 시작을 거부한다 (IncompleteExecutionError).
+                그 실행이 남긴 주문을 대사한 뒤에만 끈다
 
         Returns:
             AlgoExecutionResult: 집행 결과. ``notes``에 프로파일 출처
@@ -973,6 +1002,8 @@ class Agent(
 
         Raises:
             ValueError: 수량·시간·버킷 수가 유효 범위를 벗어난 경우
+            IncompleteExecutionError: 같은 종목에 완료되지 않은 집행 기록이
+                남아 있는 경우 (check_incomplete=True일 때)
 
         Examples:
             >>> agent = Agent(app_key="...", app_secret="...", account_no="...")
@@ -1016,6 +1047,9 @@ class Agent(
             dry_run=dry_run,
             restrict_to_session=restrict_to_session,
             progress=progress,
+            journal_dir=journal_dir,
+            journal_enabled=journal_enabled,
+            check_incomplete=check_incomplete,
         )
 
     # ============================================================================

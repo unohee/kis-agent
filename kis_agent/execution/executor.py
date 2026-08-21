@@ -113,6 +113,8 @@ class AlgoExecutionResult:
     finished_at: Optional[datetime] = None
     dry_run: bool = False
     notes: List[str] = field(default_factory=list)
+    run_id: str = ""
+    journal_path: str = ""
 
     @property
     def submitted_quantity(self) -> int:
@@ -136,6 +138,8 @@ class AlgoExecutionResult:
             "side": self.side,
             "status": self.status,
             "dryRun": self.dry_run,
+            "runId": self.run_id,
+            "journalPath": self.journal_path,
             "totalQuantity": self.total_quantity,
             "submittedQuantity": self.submitted_quantity,
             "unfilledQuantity": self.unfilled_quantity,
@@ -205,6 +209,7 @@ class AlgoExecutor:
         session_guard: Optional[Callable[[datetime], bool]] = None,
         progress: Optional[Callable[[SliceExecution], None]] = None,
         order_kwargs: Optional[Dict[str, Any]] = None,
+        journal: Optional[Any] = None,
     ) -> AlgoExecutionResult:
         """Execute ``schedule``, waiting between slices and applying guards.
 
@@ -227,6 +232,11 @@ class AlgoExecutor:
             progress: Invoked with each :class:`SliceExecution` as it completes.
             order_kwargs: Extra keyword arguments forwarded to ``order_func``
                 (order division, exchange, price, ...).
+            journal: Optional object exposing ``record_slice(dict)``. Each child
+                order is written to it **before** the progress callback fires,
+                so a process killed mid-run still leaves the order number on
+                disk. Journal failures are swallowed by the journal itself —
+                a full disk must not abandon a half-worked parent order.
 
         Returns:
             The aggregate result. Guard rejections and API failures are recorded
@@ -309,6 +319,10 @@ class AlgoExecutor:
                 return result
 
             result.slices.append(execution)
+            # Durability before display: if the process dies between these two
+            # lines, the order number is already on disk.
+            if journal is not None:
+                journal.record_slice(execution.to_dict())
             if progress:
                 progress(execution)
 

@@ -109,6 +109,91 @@ result = agent.twap_order(
 바꾸는 것은 하면 안 되는 종류의 일이다. 폴백이 실제로 일어나면 해당 슬라이스
 `message`에 신용 거부 사유와 함께 기록된다.
 
+## 집행 원장 — 죽어도 남는 기록
+
+자식 주문은 거래소가 접수를 확인한 **즉시** JSONL 원장에 기록되고 fsync됩니다.
+프로세스가 어떻게 죽든(SIGKILL·절전·OOM·에이전트 타임아웃) 이미 나간 주문은
+파일에 남습니다.
+
+```python
+result = agent.twap_order("005930", "buy", 1000)
+print(result.run_id)        # 20260821-133000-005930-buy-3f9a2c
+print(result.journal_path)  # ~/.kis-agent/executions/20260821/....jsonl
+```
+
+```bash
+$ cat ~/.kis-agent/executions/20260821/20260821-133000-005930-buy-3f9a2c.jsonl
+{"ts": "...", "runId": "...", "event": "start", "code": "005930", "totalQuantity": 1000, ...}
+{"ts": "...", "runId": "...", "event": "slice", "index": 0, "quantity": 167, "status": "filled", "orderNo": "0000123456"}
+{"ts": "...", "runId": "...", "event": "slice", "index": 1, "quantity": 167, "status": "filled", "orderNo": "0000123457"}
+...
+{"ts": "...", "runId": "...", "event": "end", "status": "completed", "submittedQuantity": 1000, ...}
+```
+
+| 인자 | 기본값 | 설명 |
+|:---|:---|:---|
+| `journal_dir` | `~/.kis-agent/executions` | 원장 위치. `KIS_EXECUTION_JOURNAL_DIR`로도 지정 |
+| `journal_enabled` | `True` | 끄지 말 것 — 죽으면 주문번호 복구 경로가 사라진다 |
+
+### 미완료 집행 가드
+
+`end` 레코드가 없는 원장은 **주문이 이미 나간 채로 프로세스가 죽었다**는 서명입니다.
+같은 종목에 그런 기록이 있으면 CLI는 새 집행을 거부합니다:
+
+```bash
+$ kis order twap 005930 --side buy --qty 1000 --yes
+{
+  "error": "005930에 완료되지 않은 집행 기록이 1건 있습니다. 이미 나간 주문을 확인한 뒤 진행하세요 (강행하려면 --ignore-incomplete).",
+  "code": "IncompleteExecutionFound",
+  "data": {"incompleteRuns": [{"runId": "...", "orderNumbers": ["0000123456"], "submittedQuantity": 167, "totalQuantity": 1000, ...}]}
+}
+```
+
+이걸 보지 않고 같은 부모 주문을 다시 내는 것이 포지션이 조용히 두 배가 되는 경로입니다.
+확인 후 강행하려면 `--ignore-incomplete`. dry-run은 거래소에 닿지 않으므로 가드 대상이 아닙니다.
+
+Python API도 같은 보호를 받습니다 — CLI만 막고 문서화된 API를 열어두면 의미가 없습니다:
+
+```python
+from kis_agent.execution import IncompleteExecutionError, find_incomplete_runs
+
+try:
+    agent.twap_order("005930", "buy", 1000)
+except IncompleteExecutionError as e:
+    for run in e.runs:
+        print(run.describe())   # 20260821-...: 005930 buy 167/1000주 접수 (주문번호 0000123456)
+    # 대사한 뒤에만 끈다
+    agent.twap_order("005930", "buy", 833, check_incomplete=False)
+```
+
+`find_incomplete_runs(code)`로 직접 조회할 수도 있습니다.
+
+가드는 **같은 방향**만 막습니다. 크래시한 매수가 청산 매도까지 막으면, 사고 직후
+가장 하고 싶은 일을 도구가 방해하는 셈입니다. 중복 위험은 어차피 같은 방향에서 생깁니다.
+
+`order_numbers`는 **적게 나올 수 있습니다.** 주문은 재전송되지 않으므로 응답이 유실된
+요청은 거래소가 접수했더라도 `failed`로 기록됩니다. 이 목록은 대사의 출발점이지 완전한
+목록이 아닙니다 — `kis order list` / `kis trades`가 정본입니다.
+
+가드는 **당일** 원장만 봅니다. 정상 완료와 Ctrl+C는 원장을 닫으므로 걸리지 않고,
+처리되지 않은 즉사만 걸립니다. 어제 죽은 실행은 오늘을 막지 않는데, KRX 당일 주문은
+장 마감을 넘기지 못하는 데다 한 번의 크래시가 그 종목을 영구히 막으면 안 되기
+때문입니다. 다만 **부분 체결된 포지션은 남으므로**, 크래시 이후에는 잔고를 확인하고
+다음 주문 수량을 조정하세요.
+
+원장 기록 실패는 주문을 중단시키지 않습니다 — 디스크가 찼다고 절반 집행된 부모 주문을
+버리는 것이 더 나쁩니다. 그래서 진행 출력(stderr)에도 주문번호를 함께 싣습니다.
+
+## 주문은 재전송되지 않는다
+
+`KISClient`는 GET이 아닌 요청을 **절대 재시도하지 않습니다**. 타임아웃은 *응답*에
+걸린 것이지 *동작*에 걸린 것이 아니라, 접수된 주문의 응답만 유실됐는데 같은 본문을
+다시 보내면 중복 주문이 되기 때문입니다.
+
+응답이 유실되면 슬라이스는 `failed` / `order_rejected`로 기록됩니다. **접수됐는데
+실패로 보일 수 있다**는 뜻이므로, 그런 슬라이스가 있으면 `kis order list`나
+`kis trades`로 실제 접수 여부를 확인하세요. 조회 API의 재시도는 그대로입니다.
+
 ## 결과 읽기
 
 ```python

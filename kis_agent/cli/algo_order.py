@@ -6,6 +6,7 @@ modules do not import each other at load time.
 """
 
 import sys
+from pathlib import Path
 
 __all__ = ["add_algo_parsers", "cmd_order_algo"]
 
@@ -100,6 +101,24 @@ def add_algo_parsers(order_sub) -> None:
             dest="dry_run",
             help="주문을 전송하지 않고 스케줄만 시뮬레이션",
         )
+        oa.add_argument(
+            "--journal-dir",
+            default="",
+            dest="journal_dir",
+            help="집행 원장 디렉터리 (기본 ~/.kis-agent/executions)",
+        )
+        oa.add_argument(
+            "--no-journal",
+            action="store_true",
+            dest="no_journal",
+            help="집행 원장 기록 비활성화 (권장하지 않음 — 죽으면 주문번호가 사라진다)",
+        )
+        oa.add_argument(
+            "--ignore-incomplete",
+            action="store_true",
+            dest="ignore_incomplete",
+            help="같은 종목의 미완료 집행 기록이 있어도 강행",
+        )
         if algo == "vwap":
             oa.add_argument(
                 "--profile-days",
@@ -123,6 +142,7 @@ def cmd_order_algo(args, algorithm: str):
     # 시점에 일어나므로 테스트의 ``kis_agent.cli.main.*`` 패치도 그대로 먹는다.
     from kis_agent.cli import main as cli_main
     from kis_agent.execution import run_twap, run_vwap
+    from kis_agent.execution.journal import find_incomplete_runs
 
     code = cli_main._resolve(args.code)
     side = args.side.lower()
@@ -132,6 +152,44 @@ def cmd_order_algo(args, algorithm: str):
     # 시장가/최유리 계열은 가격을 실어 보내지 않는다 (order buy/sell과 동일 규칙)
     if order_type in ("01", "03", "05", "06"):
         price = 0
+
+    journal_dir = Path(args.journal_dir).expanduser() if args.journal_dir else None
+
+    # 같은 종목·같은 방향의 미완료 집행이 남아 있으면 먼저 멈춘다. 미완료
+    # 원장은 "주문이 이미 나간 채로 프로세스가 죽었다"의 서명이고, 그걸 보지
+    # 않고 같은 부모 주문을 다시 내는 것이 포지션이 조용히 두 배가 되는 경로다.
+    # 반대 방향은 막지 않는다 — 크래시 직후 가장 하고 싶은 일이 청산이다.
+    # 토큰을 만들기 전에 검사해 헛된 인증을 피한다.
+    if not args.dry_run and not args.ignore_incomplete:
+        incomplete = find_incomplete_runs(code, base_dir=journal_dir, side=side)
+        if incomplete:
+            cli_main._out(
+                {
+                    "error": (
+                        f"{code} {side} 방향에 완료되지 않은 집행 기록이 "
+                        f"{len(incomplete)}건 있습니다. 이미 나간 주문을 "
+                        "확인한 뒤 진행하세요 (kis order list / kis trades로 "
+                        "실제 접수 여부 확인, 강행하려면 --ignore-incomplete)."
+                    ),
+                    "code": "IncompleteExecutionFound",
+                    "data": {
+                        "incompleteRuns": [
+                            {
+                                "runId": r.run_id,
+                                "journalPath": str(r.path),
+                                "side": r.side,
+                                "submittedQuantity": r.submitted_quantity,
+                                "totalQuantity": r.total_quantity,
+                                "orderNumbers": r.order_numbers,
+                                "startedAt": r.started_at,
+                                "summary": r.describe(),
+                            }
+                            for r in incomplete
+                        ]
+                    },
+                }
+            )
+            sys.exit(1)
 
     agent = cli_main._create_agent()
     name = cli_main._get_name(agent, code)
@@ -179,9 +237,14 @@ def cmd_order_algo(args, algorithm: str):
     # 집행은 duration 만큼 블로킹된다. stdout은 최종 JSON 전용으로 두고,
     # 진행 상황은 stderr로 흘려보내 LLM 파싱 계약을 깨지 않는다.
     def _progress(slice_result):
+        # 주문번호를 여기 싣는 이유: 원장이 어떤 이유로든 실패해도 터미널
+        # 스크롤백에는 남아야 한다. 죽은 집행을 대사할 때 이게 유일한 단서일 수 있다.
+        order_ref = (
+            f" 주문번호 {slice_result.order_no}" if slice_result.order_no else ""
+        )
         sys.stderr.write(
             f"  [{algo_label}] 슬라이스 {slice_result.index + 1} "
-            f"{slice_result.quantity:,}주 → {slice_result.status}"
+            f"{slice_result.quantity:,}주 → {slice_result.status}{order_ref}"
             f"{' (' + slice_result.message + ')' if slice_result.message else ''}\n"
         )
         sys.stderr.flush()
@@ -205,7 +268,18 @@ def cmd_order_algo(args, algorithm: str):
         "dry_run": args.dry_run,
         "restrict_to_session": not args.no_session_guard,
         "progress": _progress,
+        "journal_dir": journal_dir,
+        "journal_enabled": not args.no_journal,
+        # CLI는 토큰을 만들기 전에 이미 선검사했다 (--ignore-incomplete도 거기서 처리).
+        "check_incomplete": False,
     }
+
+    if not args.no_journal:
+        sys.stderr.write(
+            f"  [{algo_label}] 집행 원장: "
+            f"{journal_dir or '~/.kis-agent/executions'} 아래에 기록됩니다\n"
+        )
+        sys.stderr.flush()
 
     try:
         if algorithm == "twap":
