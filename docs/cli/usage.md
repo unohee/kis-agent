@@ -175,6 +175,114 @@ kis order buy 005930 --qty 10 --type market --yes
 | `moc` | 시장 마감시 시장가 (매도만) |
 | `loc` | 시장 마감시 지정가 |
 
+#### TWAP / VWAP 분할주문
+
+대량 주문을 한 번에 던지면 호가를 밀어 올려 체결가가 나빠진다. `twap`·`vwap`은
+주문을 시간에 걸쳐 잘게 쪼개 집행한다.
+
+```bash
+# TWAP — 1,000주를 30분 동안 6회 균등 분할 매수
+kis order twap 005930 --side buy --qty 1000 --duration 30 --slices 6
+
+# VWAP — 1,000주를 2시간 동안 과거 거래량 곡선에 비례해 매수
+kis order vwap 005930 --side buy --qty 1000 --duration 120 --slices 12
+
+# 지정가 가드 — 70,000원을 넘는 구간은 건너뛴다
+kis order twap 005930 --side buy --qty 1000 --limit-price 70000
+
+# 지정가를 벗어나면 아예 중단
+kis order twap 005930 --side buy --qty 1000 --limit-price 70000 --on-breach abort
+
+# 신용융자로 분할 매수 (거부되면 현금주문으로 폴백)
+kis order twap 005930 --side buy --qty 1000 --funding credit --credit-fallback
+
+# 실제 주문 없이 스케줄만 확인
+kis order twap 005930 --side buy --qty 1000 --dry-run --pretty
+```
+
+**TWAP vs VWAP**
+
+| | TWAP | VWAP |
+|:---|:---|:---|
+| 분할 기준 | 시간 균등 | 과거 거래량 비례 |
+| 슬라이스 크기 | 모두 같음 | 거래 많은 시간대에 더 많이 |
+| 데이터 조회 | 없음 | 과거 N영업일 분봉 |
+| 기본 집행시간 | 30분 | 60분 |
+
+VWAP은 과거 **완료된** 영업일 분봉만 쓴다. 당일 부분 데이터는 아직 오지 않은
+구간을 설명하지 못해 제외한다. 프로파일을 못 만들면 균등 분할로 내려가고, 그
+사실을 응답 `notes`에 남긴다 — 조용히 바뀌지 않는다.
+
+**옵션**
+
+| 옵션 | 설명 |
+|:---|:---|
+| `--side` | `buy` / `sell` (필수) |
+| `--qty` | 총 주문수량 (필수) |
+| `--duration` | 집행 시간(분). TWAP 기본 30, VWAP 기본 60 |
+| `--slices` | 분할 횟수 (기본 6) |
+| `--type` | 주문유형 (기본 `best` 최유리지정가) |
+| `--price` | 주문가격 (0=시장가) |
+| `--exchange` | 거래소 (KRX, NXT, SOR) |
+| `--funding` | `cash` 현금주문(기본) / `credit` 신용주문 |
+| `--credit-type` | 신용유형. 매수 기본 `21`(신용융자), 매도 기본 `11`(융자상환매도) |
+| `--loan-date` | 대출일자 YYYYMMDD (자기융자 `22` 매수용) |
+| `--credit-fallback` | 신용 거부 시 현금주문으로 재시도 |
+| `--limit-price` | 지정가 가드. 매수는 초과 시, 매도는 미만 시 스킵 |
+| `--on-breach` | 지정가 이탈 시 `skip`(기본) / `abort` |
+| `--max-failures` | 연속 주문 실패 허용 횟수 (기본 3) |
+| `--no-session-guard` | 정규장(09:00-15:30) 제한 해제 |
+| `--profile-days` | 거래량 프로파일 영업일 수 (VWAP 전용, 기본 5) |
+| `--dry-run` | 주문을 전송하지 않고 스케줄만 시뮬레이션 |
+
+**동작 규칙**
+
+- 명령은 `--duration` 만큼 **블로킹**된다. Ctrl+C로 중단하면 그때까지 집행된
+  수량을 보고하고 정상 종료한다.
+- 진행 상황은 stderr로, 최종 결과 JSON은 stdout으로 나간다. LLM 파싱 계약이
+  깨지지 않는다.
+- 스킵된 수량은 뒤 슬라이스로 이월하지 않는다. `unfilledQuantity`로 보고한다.
+- 종료코드: 전량 집행 `0`, 부분 집행/중단 `2`, 인자 오류/예외 `1`.
+
+**응답 예시**
+
+```json
+{
+  "data": {
+    "algoOrder": {
+      "algorithm": "twap",
+      "code": "005930",
+      "side": "buy",
+      "status": "completed",
+      "dryRun": false,
+      "totalQuantity": 100,
+      "submittedQuantity": 100,
+      "unfilledQuantity": 0,
+      "sliceCount": 3,
+      "notes": [],
+      "slices": [
+        {
+          "index": 0,
+          "scheduledAt": "2026-08-21T11:35:35",
+          "submittedAt": "2026-08-21T11:35:35",
+          "quantity": 34,
+          "status": "filled",
+          "reason": "",
+          "orderNo": "0000123456",
+          "referencePrice": null,
+          "message": "정상처리 되었습니다"
+        }
+      ]
+    }
+  }
+}
+```
+
+`status`는 `completed`(전량) / `partial`(일부 스킵·실패) / `aborted`(가드로
+중단) / `cancelled`(Ctrl+C), 슬라이스 `reason`은 `price_limit`,
+`outside_session`, `price_unavailable`, `order_rejected`, `interrupted`,
+`upstream_abort` 중 하나다.
+
 #### 주문 취소
 
 ```bash

@@ -4,6 +4,38 @@
 
 ## [Unreleased]
 
+### 📈 알고리즘 주문 — TWAP / VWAP (NEW)
+
+대량 주문을 한 번에 던지면 호가를 밀어 올려 체결가가 나빠집니다. 부모 주문을
+시간에 걸쳐 잘게 쪼개 집행하는 모듈을 추가합니다.
+
+```python
+result = agent.twap_order("005930", "buy", quantity=1000, duration_minutes=30)
+result = agent.vwap_order("005930", "buy", quantity=1000, duration_minutes=120)
+```
+
+```bash
+kis order twap 005930 --side buy --qty 1000 --duration 30 --slices 6
+kis order vwap 005930 --side buy --qty 1000 --duration 120 --profile-days 5
+kis order twap 005930 --side buy --qty 1000 --dry-run --pretty
+```
+
+- `kis_agent.execution` — 스케줄링(`schedule.py`), 거래량 프로파일
+  (`volume_profile.py`), 집행 루프(`executor.py`), 진입점(`runner.py`)
+- `Agent.twap_order()` / `Agent.vwap_order()` 파사드
+- CLI `kis order twap` / `kis order vwap`
+- **현금/신용 선택**: `funding="credit"`, `credit_type`, `loan_dt`. 신용 거부 시
+  현금 폴백은 `credit_fallback_to_cash=True`로 **명시적 opt-in**이며, 폴백이
+  일어나면 슬라이스 message에 기록됩니다.
+- **가드**: 지정가 상/하한(`limit_price`, 매수는 초과·매도는 미만 시 스킵),
+  정규장 시간, 연속 실패 중단, `dry_run`
+- **타이밍**: 모노토닉 시계 오프셋 기준 대기 — NTP 보정이나 주문 지연이 남은
+  슬라이스 간격을 왜곡하지 않습니다
+- Ctrl+C 중단 시 예외 대신 부분 집행 결과를 반환합니다
+- VWAP 프로파일은 완료된 과거 세션만 사용하며, 만들지 못하면 균등 분할로
+  내려가되 그 사유를 `result.notes`에 남깁니다 (조용한 강등 없음)
+
+
 ### ⚡ 비동기 인증 (NEW)
 
 `Agent(...)`/`KISClient(...)`는 생성자에서 동기 HTTP로 토큰을 발급해 asyncio 앱의

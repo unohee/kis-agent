@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -30,6 +30,9 @@ from .method_discovery import MethodDiscoveryMixin
 from .rate_limiter import RateLimiter, get_global_rate_limiter
 from .rate_limiter_mixin import RateLimiterControlMixin
 from .technical_analysis import TechnicalAnalysisMixin
+
+if TYPE_CHECKING:  # pragma: no cover - import cycle guard for type checkers
+    from ..execution import AlgoExecutionResult
 
 
 class Agent(
@@ -791,6 +794,229 @@ class Agent(
                 order_type=ord_dvsn,
                 credit_type=crdt_type,
             )
+
+    # ============================================================================
+    # 알고리즘 주문 (TWAP / VWAP)
+    # ============================================================================
+
+    def twap_order(
+        self,
+        code: str,
+        side: str,
+        quantity: int,
+        duration_minutes: int = 30,
+        slices: int = 6,
+        order_type: str = "03",
+        price: int = 0,
+        exchange: str = "KRX",
+        funding: str = "cash",
+        credit_type: Optional[str] = None,
+        loan_dt: str = "",
+        credit_fallback_to_cash: bool = False,
+        limit_price: Optional[float] = None,
+        on_price_breach: str = "skip",
+        max_consecutive_failures: int = 3,
+        dry_run: bool = False,
+        restrict_to_session: bool = True,
+        progress: Optional[Callable[[Any], None]] = None,
+    ) -> "AlgoExecutionResult":
+        """TWAP 주문 - 대량 주문을 지정 시간 동안 균등 분할 집행
+
+        Splits a parent order into equal child orders spaced evenly across the
+        requested window, so the average fill tracks the time-weighted price
+        instead of paying the spread on one large print.
+
+        This call **blocks** for ``duration_minutes``. Ctrl+C stops it and
+        returns the partial result rather than raising.
+
+        Args:
+            code: 종목코드 6자리 (Stock code, 6 digits)
+            side: "buy" 매수 / "sell" 매도
+            quantity: 총 주문수량 (Parent order size in shares), > 0
+            duration_minutes: 분할 집행 시간(분) (Execution window), > 0
+            slices: 분할 횟수 (Child order count). quantity보다 클 수 없다
+            order_type: 주문구분 (Order division). 기본 "03" 최유리지정가
+            price: 주문단가. 시장가/최유리 계열은 0
+            exchange: 거래소 ("KRX", "NXT", "SOR")
+            funding: "cash" 현금주문 / "credit" 신용주문
+            credit_type: 신용유형 코드. 매수 기본 "21"(신용융자),
+                매도 기본 "11"(융자상환매도)
+            loan_dt: 대출일자 (YYYYMMDD). 자기융자("22") 매수에만 의미 있음
+            credit_fallback_to_cash: 신용 거부 시 현금주문으로 재시도.
+                기본 False — 자금 조달 방식을 말없이 바꾸지 않는다.
+                폴백이 일어나면 슬라이스 message에 기록된다
+            limit_price: 지정가 가드 (Worst acceptable market price).
+                매수는 현재가가 이 값을 초과하면, 매도는 미만이면 스킵
+            on_price_breach: "skip" 해당 슬라이스만 건너뜀 / "abort" 전체 중단
+            max_consecutive_failures: 연속 실패 허용 횟수 (>= 1)
+            dry_run: True면 주문을 전송하지 않고 스케줄만 시뮬레이션
+            restrict_to_session: 정규장(09:00-15:30) 밖 슬라이스 스킵
+            progress: 슬라이스 완료마다 호출되는 콜백
+
+        Returns:
+            AlgoExecutionResult: 집행 결과. status는 completed/partial/
+            aborted/cancelled. ``submitted_quantity``로 실제 집행 수량 확인
+
+        Raises:
+            ValueError: 수량·시간·가드 인자가 유효 범위를 벗어난 경우
+
+        Examples:
+            >>> agent = Agent(app_key="...", app_secret="...", account_no="...")
+            >>>
+            >>> # 예시 1: 1,000주를 30분간 6회 분할 매수
+            >>> result = agent.twap_order("005930", "buy", 1000, duration_minutes=30)
+            >>> print(result.status, result.submitted_quantity)
+            completed 1000
+            >>>
+            >>> # 예시 2: 70,000원 넘으면 그 슬라이스는 건너뛰기
+            >>> result = agent.twap_order(
+            ...     "005930", "buy", 1000, limit_price=70000
+            ... )
+            >>> print(result.unfilled_quantity)
+            0
+            >>>
+            >>> # 예시 3: 실제 주문 없이 스케줄만 확인
+            >>> result = agent.twap_order("005930", "buy", 100, dry_run=True)
+            >>>
+            >>> # 예시 4: 신용융자로 분할 매수 (거부되면 현금으로 폴백)
+            >>> result = agent.twap_order(
+            ...     "005930", "buy", 1000,
+            ...     funding="credit", credit_fallback_to_cash=True,
+            ... )
+
+        Note:
+            - Rate Limiting: 슬라이스마다 1회 주문 API 호출
+            - 미체결 정정/취소는 하지 않는다. 최유리지정가(03)가 기본인 이유
+            - 스킵된 수량은 뒤 슬라이스로 이월되지 않는다
+              (``unfilled_quantity``로 보고)
+        """
+        from ..execution import run_twap
+
+        return run_twap(
+            self,
+            code=code,
+            side=side,
+            quantity=quantity,
+            duration_minutes=duration_minutes,
+            slices=slices,
+            order_type=order_type,
+            price=price,
+            exchange=exchange,
+            funding=funding,
+            credit_type=credit_type,
+            loan_dt=loan_dt,
+            credit_fallback_to_cash=credit_fallback_to_cash,
+            limit_price=limit_price,
+            on_price_breach=on_price_breach,
+            max_consecutive_failures=max_consecutive_failures,
+            dry_run=dry_run,
+            restrict_to_session=restrict_to_session,
+            progress=progress,
+        )
+
+    def vwap_order(
+        self,
+        code: str,
+        side: str,
+        quantity: int,
+        duration_minutes: int = 60,
+        slices: int = 6,
+        profile_days: int = 5,
+        order_type: str = "03",
+        price: int = 0,
+        exchange: str = "KRX",
+        funding: str = "cash",
+        credit_type: Optional[str] = None,
+        loan_dt: str = "",
+        credit_fallback_to_cash: bool = False,
+        limit_price: Optional[float] = None,
+        on_price_breach: str = "skip",
+        max_consecutive_failures: int = 3,
+        dry_run: bool = False,
+        restrict_to_session: bool = True,
+        progress: Optional[Callable[[Any], None]] = None,
+    ) -> "AlgoExecutionResult":
+        """VWAP 주문 - 과거 거래량 프로파일에 비례해 분할 집행
+
+        Sizes each child order from the ticker's historical intraday volume
+        curve, so more shares are worked when the market usually trades most.
+        When no profile can be built the run degrades to an even TWAP split and
+        records the reason in ``result.notes`` — it never fails silently.
+
+        This call **blocks** for ``duration_minutes``. Ctrl+C stops it and
+        returns the partial result rather than raising.
+
+        Args:
+            code: 종목코드 6자리 (Stock code, 6 digits)
+            side: "buy" 매수 / "sell" 매도
+            quantity: 총 주문수량 (Parent order size in shares), > 0
+            duration_minutes: 분할 집행 시간(분) (Execution window), > 0
+            slices: 거래량 버킷 수 (Volume bucket count)
+            profile_days: 프로파일 산출에 쓸 과거 영업일 수
+            order_type: 주문구분. 기본 "03" 최유리지정가
+            price: 주문단가. 시장가/최유리 계열은 0
+            exchange: 거래소 ("KRX", "NXT", "SOR")
+            funding: "cash" 현금주문 / "credit" 신용주문
+            credit_type: 신용유형 코드 (매수 기본 "21", 매도 기본 "11")
+            loan_dt: 대출일자 (YYYYMMDD)
+            credit_fallback_to_cash: 신용 거부 시 현금주문 재시도 (기본 False)
+            limit_price: 지정가 가드
+            on_price_breach: "skip" / "abort"
+            max_consecutive_failures: 연속 실패 허용 횟수 (>= 1)
+            dry_run: True면 주문을 전송하지 않고 스케줄만 시뮬레이션
+            restrict_to_session: 정규장 밖 슬라이스 스킵
+            progress: 슬라이스 완료마다 호출되는 콜백
+
+        Returns:
+            AlgoExecutionResult: 집행 결과. ``notes``에 프로파일 출처
+            (몇 개 영업일 평균인지) 또는 균등 분할 폴백 사유가 담긴다
+
+        Raises:
+            ValueError: 수량·시간·버킷 수가 유효 범위를 벗어난 경우
+
+        Examples:
+            >>> agent = Agent(app_key="...", app_secret="...", account_no="...")
+            >>>
+            >>> # 예시 1: 1,000주를 2시간 동안 거래량 비례 매수
+            >>> result = agent.vwap_order(
+            ...     "005930", "buy", 1000, duration_minutes=120, slices=12
+            ... )
+            >>> print(result.notes[0])
+            거래량 프로파일: 5개 영업일 평균 (20260814~20260820)
+            >>>
+            >>> # 예시 2: 프로파일 산출 기간을 20영업일로 확대
+            >>> result = agent.vwap_order("005930", "buy", 1000, profile_days=20)
+
+        Note:
+            - 프로파일은 **완료된 과거 세션**만 사용한다. 당일 부분 체결
+              데이터는 아직 오지 않은 구간을 설명하지 못해 제외
+            - 프로파일 조회에 영업일당 4회의 분봉 API 호출이 발생한다
+            - 거래량이 없던 구간의 버킷은 스케줄에서 제외된다
+        """
+        from ..execution import run_vwap
+
+        return run_vwap(
+            self,
+            code=code,
+            side=side,
+            quantity=quantity,
+            duration_minutes=duration_minutes,
+            slices=slices,
+            profile_days=profile_days,
+            order_type=order_type,
+            price=price,
+            exchange=exchange,
+            funding=funding,
+            credit_type=credit_type,
+            loan_dt=loan_dt,
+            credit_fallback_to_cash=credit_fallback_to_cash,
+            limit_price=limit_price,
+            on_price_breach=on_price_breach,
+            max_consecutive_failures=max_consecutive_failures,
+            dry_run=dry_run,
+            restrict_to_session=restrict_to_session,
+            progress=progress,
+        )
 
     # ============================================================================
     # Rate Limiter 관리 메서드 (kis_agent.core.rate_limiter_mixin.RateLimiterControlMixin 상속)
