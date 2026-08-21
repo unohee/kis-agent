@@ -212,8 +212,11 @@ class TestRunTwap:
         assert len(agent.account_api.orders) == 2
         assert result.status == "completed"
 
-    @pytest.mark.parametrize("qty,duration", [(0, 30), (-5, 30), (10, 0), (10, -1)])
-    def test_rejects_out_of_range_arguments(self, qty, duration):
+    @pytest.mark.parametrize(
+        "qty,duration,slices",
+        [(0, 30, 6), (-5, 30, 6), (10, 0, 6), (10, -1, 6), (10, 30, 0), (10, 30, -2)],
+    )
+    def test_rejects_out_of_range_arguments(self, qty, duration, slices):
         agent = FakeAgent()
         with pytest.raises(ValueError):
             run_twap(
@@ -222,6 +225,21 @@ class TestRunTwap:
                 side="buy",
                 quantity=qty,
                 duration_minutes=duration,
+                slices=slices,
+                executor=instant_executor(agent),
+            )
+
+    def test_zero_slices_error_names_the_slices_argument(self):
+        # run_vwap와 같은 메시지를 내야 한다 — 깊은 계층의 "parts"가 아니라.
+        agent = FakeAgent()
+        with pytest.raises(ValueError, match="slices must be positive"):
+            run_twap(
+                agent,
+                code="005930",
+                side="buy",
+                quantity=10,
+                duration_minutes=30,
+                slices=0,
                 executor=instant_executor(agent),
             )
 

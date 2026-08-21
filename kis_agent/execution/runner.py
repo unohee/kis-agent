@@ -282,6 +282,10 @@ def run_twap(
         raise ValueError(f"quantity must be positive, got {quantity}")
     if duration_minutes <= 0:
         raise ValueError(f"duration_minutes must be positive, got {duration_minutes}")
+    # Checked here as well as downstream so the error names the argument the
+    # caller actually passed, matching run_vwap.
+    if slices <= 0:
+        raise ValueError(f"slices must be positive, got {slices}")
     funding = _validate_funding(funding)
 
     runner = executor or _build_executor(agent)
