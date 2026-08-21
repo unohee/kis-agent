@@ -29,6 +29,13 @@ from .executor import (
     AlgoExecutor,
     SliceExecution,
 )
+from .journal import (
+    ExecutionJournal,
+    IncompleteExecutionError,
+    IncompleteRun,
+    find_incomplete_runs,
+    read_journal,
+)
 from .runner import (
     DEFAULT_CREDIT_TYPE_BUY,
     DEFAULT_CREDIT_TYPE_SELL,
@@ -76,6 +83,12 @@ __all__ = [
     "REASON_INTERRUPTED",
     "REASON_UPSTREAM_ABORT",
     "NOTE_KEY",
+    # journal
+    "ExecutionJournal",
+    "IncompleteExecutionError",
+    "IncompleteRun",
+    "find_incomplete_runs",
+    "read_journal",
     # runner
     "run_twap",
     "run_vwap",

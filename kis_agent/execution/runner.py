@@ -10,9 +10,11 @@ testable.
 import logging
 from datetime import datetime, timedelta
 from datetime import time as dt_time
-from typing import Any, Callable, Dict, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Sequence
 
 from .executor import NOTE_KEY, AlgoExecutionResult, AlgoExecutor, SliceExecution
+from .journal import ExecutionJournal, IncompleteExecutionError, find_incomplete_runs
 from .schedule import build_twap_schedule, build_vwap_schedule
 from .volume_profile import VolumeProfile, fetch_volume_profile
 
@@ -211,6 +213,80 @@ def _resolve_start(start: Optional[datetime], now: Optional[datetime]) -> dateti
     return start or now or datetime.now()
 
 
+def _guard_incomplete_runs(
+    code: str, journal_dir: Optional[Path], enabled: bool, dry_run: bool
+) -> None:
+    """Refuse to start when a previous run for ``code`` never closed.
+
+    Skipped for dry runs — they never reached the exchange, so there is nothing
+    to reconcile.
+
+    Raises:
+        IncompleteExecutionError: If an unclosed journal exists for ``code``.
+    """
+    if not enabled or dry_run:
+        return
+    runs = find_incomplete_runs(code, base_dir=journal_dir)
+    if runs:
+        raise IncompleteExecutionError(runs)
+
+
+def _open_journal(
+    code: str,
+    side: str,
+    algorithm: str,
+    quantity: int,
+    slices: Sequence[Any],
+    plan: Dict[str, Any],
+    journal_dir: Optional[Path],
+    enabled: bool,
+) -> Optional[ExecutionJournal]:
+    """Open a journal and write the plan before the first order goes out.
+
+    Returns ``None`` when journaling is disabled or the journal cannot be
+    opened. A missing journal degrades observability, not correctness, so it
+    must never stop an execution — but the caller surfaces the reason.
+    """
+    if not enabled:
+        return None
+    try:
+        journal = ExecutionJournal.create(code, side, base_dir=journal_dir)
+    except OSError as e:  # noqa: BLE001 - degrade, never block the order
+        logger.warning("집행 원장을 열지 못했습니다: %s", e)
+        return None
+
+    journal.record_start(
+        {
+            "algorithm": algorithm,
+            "code": code,
+            "side": side,
+            "totalQuantity": quantity,
+            "sliceCount": len(slices),
+            "schedule": [
+                {
+                    "index": s.index,
+                    "scheduledAt": s.scheduled_at.isoformat(),
+                    "quantity": s.quantity,
+                }
+                for s in slices
+            ],
+            **plan,
+        }
+    )
+    return journal
+
+
+def _close_journal(
+    journal: Optional[ExecutionJournal], result: AlgoExecutionResult
+) -> None:
+    """Stamp the result onto the run and close the journal."""
+    if journal is None:
+        return
+    result.run_id = journal.run_id
+    result.journal_path = str(journal.path)
+    journal.record_end(result.to_dict())
+
+
 def run_twap(
     agent: Any,
     code: str,
@@ -233,6 +309,9 @@ def run_twap(
     start: Optional[datetime] = None,
     progress: Optional[Callable[[SliceExecution], None]] = None,
     executor: Optional[AlgoExecutor] = None,
+    journal_dir: Optional[Path] = None,
+    journal_enabled: bool = True,
+    check_incomplete: bool = True,
 ) -> AlgoExecutionResult:
     """Work a parent order evenly across ``duration_minutes`` (TWAP).
 
@@ -270,6 +349,15 @@ def run_twap(
         progress: Called with each slice result as it completes.
         executor: Pre-built executor, mainly for tests. Routing arguments are
             still forwarded to its order callable.
+        journal_dir: Where to write the execution journal. Defaults to
+            ``~/.kis-agent/executions`` (override with
+            ``KIS_EXECUTION_JOURNAL_DIR``).
+        journal_enabled: Write a durable record of every child order. Leave it
+            on unless you have another audit trail — without it, a process that
+            dies mid-run takes its order numbers with it.
+        check_incomplete: Refuse to start when a previous run for this ticker
+            died without closing its journal. Turn it off only after you have
+            reconciled the orders that run left on the exchange.
 
     Returns:
         The aggregate execution result.
@@ -287,6 +375,7 @@ def run_twap(
     if slices <= 0:
         raise ValueError(f"slices must be positive, got {slices}")
     funding = _validate_funding(funding)
+    _guard_incomplete_runs(code, journal_dir, check_incomplete, dry_run)
 
     runner = executor or _build_executor(agent)
     begin = _resolve_start(start, None)
@@ -297,7 +386,24 @@ def run_twap(
         duration=timedelta(minutes=duration_minutes),
     )
 
-    return runner.run(
+    plan = {
+        "orderType": order_type,
+        "price": price,
+        "exchange": exchange,
+        "funding": funding,
+        "creditType": credit_type,
+        "creditFallbackToCash": credit_fallback_to_cash,
+        "limitPrice": limit_price,
+        "onPriceBreach": on_price_breach,
+        "dryRun": dry_run,
+        "restrictToSession": restrict_to_session,
+        "durationMinutes": duration_minutes,
+    }
+    journal = _open_journal(
+        code, side, "twap", quantity, schedule, plan, journal_dir, journal_enabled
+    )
+
+    result = runner.run(
         schedule=schedule,
         code=code,
         side=side,
@@ -317,7 +423,10 @@ def run_twap(
             loan_dt,
             credit_fallback_to_cash,
         ),
+        journal=journal,
     )
+    _close_journal(journal, result)
+    return result
 
 
 def run_vwap(
@@ -343,6 +452,9 @@ def run_vwap(
     start: Optional[datetime] = None,
     progress: Optional[Callable[[SliceExecution], None]] = None,
     executor: Optional[AlgoExecutor] = None,
+    journal_dir: Optional[Path] = None,
+    journal_enabled: bool = True,
+    check_incomplete: bool = True,
     profile: Optional[VolumeProfile] = None,
 ) -> AlgoExecutionResult:
     """Work a parent order along the historical intraday volume curve (VWAP).
@@ -383,6 +495,15 @@ def run_vwap(
         progress: Called with each slice result as it completes.
         executor: Pre-built executor, mainly for tests. Routing arguments are
             still forwarded to its order callable.
+        journal_dir: Where to write the execution journal. Defaults to
+            ``~/.kis-agent/executions`` (override with
+            ``KIS_EXECUTION_JOURNAL_DIR``).
+        journal_enabled: Write a durable record of every child order. Leave it
+            on unless you have another audit trail — without it, a process that
+            dies mid-run takes its order numbers with it.
+        check_incomplete: Refuse to start when a previous run for this ticker
+            died without closing its journal. Turn it off only after you have
+            reconciled the orders that run left on the exchange.
         profile: Pre-built volume profile, mainly for tests. When omitted the
             profile is fetched from the agent.
 
@@ -401,6 +522,7 @@ def run_vwap(
     if slices <= 0:
         raise ValueError(f"slices must be positive, got {slices}")
     funding = _validate_funding(funding)
+    _guard_incomplete_runs(code, journal_dir, check_incomplete, dry_run)
 
     runner = executor or _build_executor(agent)
     begin = _resolve_start(start, None)
@@ -426,6 +548,24 @@ def run_vwap(
         weights=weights,
     )
 
+    plan = {
+        "orderType": order_type,
+        "price": price,
+        "exchange": exchange,
+        "funding": funding,
+        "creditType": credit_type,
+        "creditFallbackToCash": credit_fallback_to_cash,
+        "limitPrice": limit_price,
+        "onPriceBreach": on_price_breach,
+        "dryRun": dry_run,
+        "restrictToSession": restrict_to_session,
+        "durationMinutes": duration_minutes,
+        "profileDays": profile_days,
+    }
+    journal = _open_journal(
+        code, side, "vwap", quantity, schedule, plan, journal_dir, journal_enabled
+    )
+
     result = runner.run(
         schedule=schedule,
         code=code,
@@ -446,6 +586,7 @@ def run_vwap(
             loan_dt,
             credit_fallback_to_cash,
         ),
+        journal=journal,
     )
 
     if fallback_note:
@@ -455,4 +596,6 @@ def run_vwap(
             f"거래량 프로파일: {len(profile.source_dates)}개 영업일 평균 "
             f"({profile.source_dates[0]}~{profile.source_dates[-1]})"
         )
+    # notes가 확정된 뒤에 닫아야 원장의 end 레코드에 함께 남는다.
+    _close_journal(journal, result)
     return result
