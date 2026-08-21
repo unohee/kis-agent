@@ -29,6 +29,10 @@ kis balance --holdings              # 계좌 잔고 + 보유종목
 kis orderbook 005930                # 호가 10호가
 kis futures 101S03                  # 선물 시세
 
+kis order twap 005930 --side buy --qty 1000 --duration 30   # 30분 균등 분할 매수
+kis order vwap 005930 --side buy --qty 1000 --duration 120  # 거래량 비례 분할 매수
+kis order twap 005930 --side buy --qty 1000 --dry-run       # 스케줄만 확인
+
 kis trades                          # 당일 체결내역
 kis trades --from 7d --pretty       # 최근 7일 (사람 읽기용)
 kis trades --from 30d --sell        # 최근 30일 매도만
@@ -52,6 +56,7 @@ kis schema Stock                    # 타입 스키마 (LLM introspection)
 - **국내시장**: KOSPI, KOSDAQ, NXT(넥스트) 시장 지원
 - **해외시장**: 미국, 일본, 중국, 홍콩, 베트남 9개 거래소 지원
 - **선물옵션**: 국내/해외 선물옵션 거래 지원
+- **알고리즘 주문**: TWAP/VWAP 분할 집행 — 지정가·정규장 가드, 현금/신용 선택, dry-run
 - **타입 안정성**: 96개 TypedDict 응답 모델, 100% 타입힌팅
 
 ## 설치

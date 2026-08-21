@@ -379,6 +379,105 @@ type PendingOrder {
   remainQty: String
 }
 
+# === 알고리즘 분할주문 (TWAP / VWAP) ===
+# kis order twap 005930 --side buy --qty 1000 --duration 30 --slices 6
+# kis order vwap 005930 --side buy --qty 1000 --duration 120 --profile-days 5
+# kis order twap 005930 --side buy --qty 1000 --limit-price 70000  지정가 가드
+# kis order twap 005930 --side buy --qty 1000 --funding credit     신용 분할매수
+# kis order twap 005930 --side buy --qty 1000 --dry-run            스케줄만 확인
+# 명령은 --duration 만큼 블로킹된다. 종료코드: 0 전량, 2 부분/중단, 1 오류.
+
+enum AlgoOrderStatus {
+  """모든 슬라이스 집행(또는 시뮬레이션) 완료"""
+  completed
+  """일부 슬라이스가 스킵되거나 실패"""
+  partial
+  """가드에 걸려 스케줄 도중 중단"""
+  aborted
+  """Ctrl+C로 중단"""
+  cancelled
+}
+
+enum AlgoSliceStatus {
+  """주문 접수됨"""
+  filled
+  """dry-run 시뮬레이션 (주문 미전송)"""
+  simulated
+  """가드로 건너뜀"""
+  skipped
+  """주문 거부 또는 예외"""
+  failed
+  """선행 문제로 미실행"""
+  cancelled
+}
+
+enum AlgoSliceReason {
+  """지정가 가드 위반"""
+  price_limit
+  """정규장 시간 밖"""
+  outside_session
+  """가드 확인용 현재가 조회 실패"""
+  price_unavailable
+  """주문 API 거부 또는 예외"""
+  order_rejected
+  """Ctrl+C"""
+  interrupted
+  """선행 슬라이스 문제로 미실행"""
+  upstream_abort
+}
+
+type AlgoOrderSlice {
+  """스케줄 내 순번 (0부터)"""
+  index: Int!
+  """예정 제출 시각 (ISO 8601)"""
+  scheduledAt: String!
+  """실제 제출 시각. 가드로 스킵되면 null"""
+  submittedAt: String
+  """이 슬라이스의 주문수량"""
+  quantity: Int!
+  """슬라이스 상태"""
+  status: AlgoSliceStatus!
+  """filled/simulated가 아닐 때의 기계 판독용 사유"""
+  reason: AlgoSliceReason
+  """주문번호"""
+  orderNo: String
+  """가드 확인 시점의 현재가. 지정가 가드를 쓸 때만 채워진다"""
+  referencePrice: Float
+  """응답 메시지. 신용→현금 폴백 같은 특이사항이 [대괄호]로 덧붙는다"""
+  message: String
+}
+
+type AlgoOrderResult {
+  """알고리즘 (twap | vwap)"""
+  algorithm: String!
+  """종목코드"""
+  code: String!
+  """종목명"""
+  name: String
+  """매수/매도 (buy | sell)"""
+  side: String!
+  """집행 결과"""
+  status: AlgoOrderStatus!
+  """dry-run 여부. true면 주문이 한 건도 전송되지 않았다"""
+  dryRun: Boolean!
+  """요청한 총 주문수량"""
+  totalQuantity: Int!
+  """실제 집행된 수량"""
+  submittedQuantity: Int!
+  """스킵·실패로 집행되지 못한 수량 (뒤 슬라이스로 이월되지 않는다)"""
+  unfilledQuantity: Int!
+  """집행 시작 시각 (ISO 8601)"""
+  startedAt: String
+  """집행 종료 시각 (ISO 8601)"""
+  finishedAt: String
+  """슬라이스 개수"""
+  sliceCount: Int!
+  """거래량 프로파일 출처, 중단 사유 등 부가 설명"""
+  notes: [String!]!
+  """슬라이스별 결과"""
+  slices: [AlgoOrderSlice!]!
+}
+
 # === 거래내역 ===
 # kis trades                          당일 체결내역
 # kis trades --from -7d               최근 7일

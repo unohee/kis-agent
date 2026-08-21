@@ -20,6 +20,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 
+from kis_agent.cli.algo_order import add_algo_parsers, cmd_order_algo
 from kis_agent.cli.field_map import (
     ACCOUNT_BALANCE,
     DAILY_PRICE,
@@ -751,9 +752,16 @@ def cmd_order(args):
         return _cmd_order_cancel(args)
     elif action == "modify":
         return _cmd_order_modify(args)
+    elif action in ("twap", "vwap"):
+        return cmd_order_algo(args, action)
     else:
         _out(
-            {"error": f"Unknown action: {action}. Use: buy, sell, cancel, modify, list"}
+            {
+                "error": (
+                    f"Unknown action: {action}. "
+                    "Use: buy, sell, twap, vwap, cancel, modify, list"
+                )
+            }
         )
         sys.exit(1)
 
@@ -1271,7 +1279,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
 
     # order (주문)
-    p = sub.add_parser("order", help="주문 실행 (매수/매도/취소/정정/미체결)")
+    p = sub.add_parser("order", help="주문 실행 (매수/매도/TWAP/VWAP/취소/정정/미체결)")
     order_sub = p.add_subparsers(dest="action", help="주문 액션")
 
     # order buy
@@ -1325,6 +1333,8 @@ def build_parser() -> argparse.ArgumentParser:
     om.add_argument("--overseas", default="", help="해외거래소")
     om.add_argument("--yes", action="store_true", help="확인 없이 즉시 실행")
     om.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")
+
+    add_algo_parsers(order_sub)
 
     # order list
     ol = order_sub.add_parser("list", help="미체결 주문 조회")
