@@ -380,7 +380,8 @@ class TestDryRun:
 
         assert order.calls == []
         assert result.dry_run is True
-        assert result.status == "completed"
+        # STO-1731: a dry run must not read as "completed" execution
+        assert result.status == "simulated"
         assert all(s.status == SLICE_SIMULATED for s in result.slices)
         assert result.submitted_quantity == 40
 

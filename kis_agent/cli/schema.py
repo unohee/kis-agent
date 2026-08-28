@@ -388,8 +388,10 @@ type PendingOrder {
 # 명령은 --duration 만큼 블로킹된다. 종료코드: 0 전량, 2 부분/중단, 1 오류.
 
 enum AlgoOrderStatus {
-  """모든 슬라이스 집행(또는 시뮬레이션) 완료"""
+  """모든 슬라이스 접수 완료 (실주문)"""
   completed
+  """dry-run 전체 완료 — 주문이 한 건도 전송되지 않았다"""
+  simulated
   """일부 슬라이스가 스킵되거나 실패"""
   partial
   """가드에 걸려 스케줄 도중 중단"""
@@ -399,8 +401,8 @@ enum AlgoOrderStatus {
 }
 
 enum AlgoSliceStatus {
-  """주문 접수됨"""
-  filled
+  """주문 접수됨 (체결 아님 — KIS rt_cd=0은 접수). 구버전 값: filled"""
+  accepted
   """dry-run 시뮬레이션 (주문 미전송)"""
   simulated
   """가드로 건너뜀"""
@@ -437,7 +439,7 @@ type AlgoOrderSlice {
   quantity: Int!
   """슬라이스 상태"""
   status: AlgoSliceStatus!
-  """filled/simulated가 아닐 때의 기계 판독용 사유"""
+  """accepted/simulated가 아닐 때의 기계 판독용 사유"""
   reason: AlgoSliceReason
   """주문번호"""
   orderNo: String
@@ -462,7 +464,7 @@ type AlgoOrderResult {
   dryRun: Boolean!
   """요청한 총 주문수량"""
   totalQuantity: Int!
-  """실제 집행된 수량"""
+  """주문이 접수된 수량 (체결 아님 — 지정가 미체결분 포함. 체결수량은 별도 조회)"""
   submittedQuantity: Int!
   """스킵·실패로 집행되지 못한 수량 (뒤 슬라이스로 이월되지 않는다)"""
   unfilledQuantity: Int!

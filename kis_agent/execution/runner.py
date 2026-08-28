@@ -11,11 +11,11 @@ import logging
 from datetime import datetime, timedelta
 from datetime import time as dt_time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from .executor import NOTE_KEY, AlgoExecutionResult, AlgoExecutor, SliceExecution
 from .journal import ExecutionJournal, IncompleteExecutionError, find_incomplete_runs
-from .schedule import build_twap_schedule, build_vwap_schedule
+from .schedule import OrderSlice, build_twap_schedule, build_vwap_schedule
 from .volume_profile import VolumeProfile, fetch_volume_profile
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,31 @@ _FUNDING_CHOICES = (FUNDING_CASH, FUNDING_CREDIT)
 # a sell closes one.
 DEFAULT_CREDIT_TYPE_BUY = "21"  # 신용융자
 DEFAULT_CREDIT_TYPE_SELL = "11"  # 융자상환매도
+
+
+
+
+def _session_overflow_note(
+    schedule: List[OrderSlice], restrict_to_session: bool
+) -> Optional[str]:
+    """STO-1731: count slices the session guard will skip, BEFORE running.
+
+    A schedule that starts late in the afternoon silently loses its tail to
+    the session guard (measured: 15:10 + 30min TWAP lost 33% of the order).
+    The operator must see that number before approving, and it must survive
+    into ``result.notes`` for the ``--yes`` path.
+    """
+    if not restrict_to_session:
+        return None
+    outside = [s for s in schedule if not krx_regular_session(s.scheduled_at)]
+    if not outside:
+        return None
+    qty = sum(s.quantity for s in outside)
+    return (
+        f"경고: 스케줄 중 {len(outside)}개 슬라이스({qty:,}주)가 정규장"
+        "(09:00-15:30)을 벗어나 실행되지 않습니다 — 마감 전에 완료할 수 "
+        "없는 스케줄입니다. duration을 줄이거나 시작 시간을 앞당기세요"
+    )
 
 
 def _accepted(response: Optional[Dict[str, Any]]) -> bool:
@@ -394,6 +419,7 @@ def run_twap(
         start=begin,
         duration=timedelta(minutes=duration_minutes),
     )
+    overflow_note = _session_overflow_note(schedule, restrict_to_session)
 
     plan = {
         "orderType": order_type,
@@ -434,6 +460,8 @@ def run_twap(
         ),
         journal=journal,
     )
+    if overflow_note:
+        result.notes.insert(0, overflow_note)
     _close_journal(journal, result)
     return result
 
@@ -558,6 +586,7 @@ def run_vwap(
         duration=duration,
         weights=weights,
     )
+    overflow_note = _session_overflow_note(schedule, restrict_to_session)
 
     plan = {
         "orderType": order_type,
@@ -600,6 +629,8 @@ def run_vwap(
         journal=journal,
     )
 
+    if overflow_note:
+        result.notes.insert(0, overflow_note)
     if fallback_note:
         result.notes.insert(0, fallback_note)
     elif profile.source_dates:

@@ -919,7 +919,7 @@ class TestIncompleteGuardInRunner:
             journal_dir=tmp_path,
             executor=instant_executor(agent),
         )
-        assert result.status == "completed"
+        assert result.status == "simulated"  # STO-1731: dry-run is not "completed"
 
     def test_opt_out_allows_proceeding(self, tmp_path):
         self._crash(tmp_path)

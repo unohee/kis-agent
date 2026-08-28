@@ -38,7 +38,12 @@ __all__ = [
     "NOTE_KEY",
 ]
 
-SLICE_FILLED = "filled"
+# STO-1731: KIS rt_cd == "0" means the order was ACCEPTED, not filled.
+# The old value "filled" read as 체결완료 and misled callers on unfilled
+# limit orders. New output uses "accepted"; the old name stays as an
+# alias so existing imports keep working.
+SLICE_ACCEPTED = "accepted"
+SLICE_FILLED = SLICE_ACCEPTED  # deprecated alias — use SLICE_ACCEPTED
 SLICE_SIMULATED = "simulated"
 SLICE_SKIPPED = "skipped"
 SLICE_FAILED = "failed"
@@ -118,7 +123,11 @@ class AlgoExecutionResult:
 
     @property
     def submitted_quantity(self) -> int:
-        """Shares actually sent to (or simulated against) the exchange."""
+        """Shares whose orders were ACCEPTED by the exchange (rt_cd == "0").
+
+        This is an acceptance count, NOT a fill count — a resting limit
+        order is accepted with zero shares traded. 체결수량은 별도 조회.
+        """
         return sum(
             s.quantity
             for s in self.slices
@@ -360,10 +369,15 @@ class AlgoExecutor:
                 result.finished_at = self._now()
                 return result
 
-        worked = {SLICE_FILLED, SLICE_SIMULATED}
+        worked = {SLICE_ACCEPTED, SLICE_SIMULATED}
         result.status = (
             "completed" if all(s.status in worked for s in result.slices) else "partial"
         )
+        if result.dry_run and result.status == "completed":
+            # STO-1731: a dry run must not read as "completed" execution at
+            # the top level — the first three fields otherwise all say
+            # "1,000 shares done" while zero orders were sent.
+            result.status = "simulated"
         result.finished_at = self._now()
         return result
 
