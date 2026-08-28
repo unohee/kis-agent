@@ -297,7 +297,10 @@ def find_incomplete_runs(
             continue
 
         slices = [e for e in events if e.get("event") == EVENT_SLICE]
-        worked = [s for s in slices if s.get("status") in ("filled", "simulated")]
+        # "filled" is the pre-STO-1731 legacy value; new journals write "accepted"
+        worked = [
+            s for s in slices if s.get("status") in ("accepted", "filled", "simulated")
+        ]
         incomplete.append(
             IncompleteRun(
                 run_id=start.get("runId") or path.stem,

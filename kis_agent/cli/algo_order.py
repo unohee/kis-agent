@@ -143,6 +143,13 @@ def cmd_order_algo(args, algorithm: str):
     from kis_agent.cli import main as cli_main
     from kis_agent.execution import run_twap, run_vwap
     from kis_agent.execution.journal import find_incomplete_runs
+    from datetime import datetime
+
+    from kis_agent.execution.runner import krx_regular_session
+    from kis_agent.execution.schedule import (
+        build_twap_schedule,
+        build_vwap_schedule,
+    )
 
     code = cli_main._resolve(args.code)
     side = args.side.lower()
@@ -228,6 +235,42 @@ def cmd_order_algo(args, algorithm: str):
     if algorithm == "vwap":
         details["거래량 프로파일"] = f"과거 {args.profile_days}영업일"
 
+    # STO-1731: a schedule that runs past the close loses its tail slices to
+    # the session guard. The prompt used to show 집행시간 and 정규장 제한 as
+    # two unrelated strings — multiply them and the operator would have
+    # approved a 33% shortfall. Compute the real number before asking.
+    if not args.no_session_guard:
+        try:
+            from datetime import timedelta as _td
+
+            begin = datetime.now()  # the runner defaults start to now
+            if algorithm == "twap":
+                preview = build_twap_schedule(
+                    total_quantity=args.qty,
+                    slices=args.slices,
+                    start=begin,
+                    duration=_td(minutes=args.duration),
+                )
+            else:
+                preview = build_vwap_schedule(
+                    total_quantity=args.qty,
+                    slices=args.slices,
+                    start=begin,
+                    duration=_td(minutes=args.duration),
+                    weights=None,
+                )
+            outside = [sl for sl in preview if not krx_regular_session(sl.scheduled_at)]
+            if outside:
+                lost = sum(sl.quantity for sl in outside)
+                details["⚠ 마감 초과"] = (
+                    f"슬라이스 {len(outside)}개({lost:,}주)가 정규장 밖 — "
+                    f"집행되지 않고 유실됩니다"
+                )
+        except ValueError:
+            # invalid qty/slices/duration — the runner's own validation
+            # reports it properly; the preview must not mask that error
+            pass
+
     if not args.yes and not cli_main._confirm_order(
         f"{algo_label} {side_label}", details
     ):
@@ -298,5 +341,7 @@ def cmd_order_algo(args, algorithm: str):
     cli_main._out({"data": {"algoOrder": payload}}, args.pretty)
 
     # 부분 집행/중단은 종료코드로도 알린다 — 스크립트가 성공으로 오독하면 안 된다.
-    if result.status not in ("completed",):
+    # simulated(dry-run 전체 완료)도 성공이다 — STO-1731 이전에는 completed로
+    # 위장해 있었을 뿐이다.
+    if result.status not in ("completed", "simulated"):
         sys.exit(2)
