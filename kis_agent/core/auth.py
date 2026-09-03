@@ -364,6 +364,10 @@ def changeTREnv(
         svr == "prod" and product == "03" or svr == "prod" and product == "08"
     ):  # 실전투자 선물옵션(파생)
         cfg["my_acct"] = _cfg.get("my_acct_future", "")
+    elif svr == "prod" and product == "22":  # 연금계좌
+        cfg["my_acct"] = _cfg.get("my_acct_stock", "")
+    elif svr == "prod" and product == "29":  # IRP. 주문 불가. 계좌조회/시세조회만 가능
+        cfg["my_acct"] = _cfg.get("my_acct_stock", "")
     elif svr == "vps" and product == "01":  # 모의투자 주식투자, 위탁계좌, 투자계좌
         cfg["my_acct"] = _cfg.get("my_paper_stock", "")
     elif svr == "vps" and product == "03":  # 모의투자 선물옵션(파생)
