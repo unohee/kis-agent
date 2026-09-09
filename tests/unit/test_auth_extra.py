@@ -18,10 +18,24 @@ def test_read_token_hash_prefix_and_missing_file(tmp_path):
     app_key = "abcdefgh123"
     path = auth._get_token_path_for_app_key(app_key, str(hashed))
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"token": "x", "valid-date": "2099-01-01T00:00:00", "app_key_hash": "wrong"}, handle)
+        json.dump(
+            {
+                "token": "x",
+                "valid-date": "2099-01-01T00:00:00",
+                "app_key_hash": "wrong",
+            },
+            handle,
+        )
     assert auth.read_token(str(hashed), app_key) is None
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"token": "x", "valid-date": "2099-01-01T00:00:00", "app_key_prefix": "wrong"}, handle)
+        json.dump(
+            {
+                "token": "x",
+                "valid-date": "2099-01-01T00:00:00",
+                "app_key_prefix": "wrong",
+            },
+            handle,
+        )
     assert auth.read_token(str(hashed), app_key) is None
     with patch("builtins.open", side_effect=FileNotFoundError("gone")):
         assert auth.read_token(str(tmp_path / "missing.json")) is None
@@ -31,18 +45,44 @@ def test_environment_branches_and_auth_failure(monkeypatch):
     original = auth._cfg.copy()
     original_paper, original_env = auth._isPaper, auth._TRENV
     try:
-        auth._cfg.update({"my_acct_future": "F", "my_paper_stock": "P", "my_paper_future": "PF", "paper_app": "paper", "paper_sec": "secret"})
+        auth._cfg.update(
+            {
+                "my_acct_stock": "S",
+                "my_acct_future": "F",
+                "my_paper_stock": "P",
+                "my_paper_future": "PF",
+                "paper_app": "paper",
+                "paper_sec": "secret",
+            }
+        )
         auth.changeTREnv("token", "prod", "03")
         assert auth.getTREnv().my_acct == "F"
+        auth.changeTREnv("token", "prod", "22")
+        assert auth.getTREnv().my_acct == "S"
+        assert auth.getTREnv().my_prod == "22"
+        auth.changeTREnv("token", "prod", "29")
+        assert auth.getTREnv().my_acct == "S"
+        assert auth.getTREnv().my_prod == "29"
         auth.changeTREnv("token", "vps", "01")
         assert auth.isPaperTrading() and auth.getTREnv().my_acct == "P"
         auth.changeTREnv("token", "vps", "03")
         assert auth.getTREnv().my_acct == "PF"
         monkeypatch.setattr(auth, "read_token", lambda **kwargs: None)
-        monkeypatch.setattr(auth.requests, "post", lambda *args, **kwargs: SimpleNamespace(status_code=500, text="bad"))
+        monkeypatch.setattr(
+            auth.requests,
+            "post",
+            lambda *args, **kwargs: SimpleNamespace(status_code=500, text="bad"),
+        )
         with __import__("pytest").raises(RuntimeError):
             auth.auth(svr="vps", product="01")
-        monkeypatch.setattr(auth, "read_token", lambda **kwargs: {"access_token": "cached", "access_token_token_expired": "2099-01-01 00:00:00"})
+        monkeypatch.setattr(
+            auth,
+            "read_token",
+            lambda **kwargs: {
+                "access_token": "cached",
+                "access_token_token_expired": "2099-01-01 00:00:00",
+            },
+        )
         assert auth.reAuth(svr="vps")["access_token"] == "cached"
     finally:
         auth._cfg.clear()
@@ -70,7 +110,8 @@ def test_read_token_caches_valid_app_specific_file(tmp_path):
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(
             {
-                "token": "cached-token", "valid-date": "2099-01-01T00:00:00",
+                "token": "cached-token",
+                "valid-date": "2099-01-01T00:00:00",
                 "app_key_hash": hashlib.sha256(app_key.encode()).hexdigest()[:16],
             },
             handle,
@@ -88,7 +129,9 @@ def test_module_initialization_loads_dotenv_and_creates_token_file(
     token_path = tmp_path / "new-token.json"
     monkeypatch.setenv("KIS_TOKEN_PATH", str(token_path))
     with patch("dotenv.load_dotenv") as load:
-        runpy.run_module("kis_agent.core.auth", run_name="kis_agent.core._auth_coverage")
+        runpy.run_module(
+            "kis_agent.core.auth", run_name="kis_agent.core._auth_coverage"
+        )
     load.assert_called_once_with(dotenv_path=str(tmp_path / ".env"), override=False)
     assert json.loads(token_path.read_text(encoding="utf-8")) == {}
 

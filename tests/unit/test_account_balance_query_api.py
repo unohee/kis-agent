@@ -67,6 +67,68 @@ class TestAccountBalanceQueryAPI:
         assert call_args[1]["tr_id"] == "TTTC8434R"
         assert call_args[1]["params"]["CANO"] == "12345678"
 
+    def test_get_account_balance_stock_vs_irp_routing(self, mock_client):
+        """일반계좌와 IRP(29)는 endpoint/TR ID/params가 섞이지 않아야 한다."""
+        from kis_agent.account.balance_query_api import AccountBalanceQueryAPI
+
+        stock_api = AccountBalanceQueryAPI(
+            client=mock_client,
+            account_info={"CANO": "12345678", "ACNT_PRDT_CD": "01"},
+            enable_cache=False,
+            _from_agent=True,
+        )
+        irp_api = AccountBalanceQueryAPI(
+            client=mock_client,
+            account_info={"CANO": "87654321", "ACNT_PRDT_CD": "29"},
+            enable_cache=False,
+            _from_agent=True,
+        )
+        mock_client.make_request.return_value = {
+            "rt_cd": "0",
+            "output1": [],
+            "output2": {},
+        }
+
+        stock_api.get_account_balance()
+        stock_kwargs = mock_client.make_request.call_args.kwargs
+        assert (
+            stock_kwargs["endpoint"]
+            == "/uapi/domestic-stock/v1/trading/inquire-balance"
+        )
+        assert stock_kwargs["tr_id"] == "TTTC8434R"
+        assert stock_kwargs["params"] == {
+            "CANO": "12345678",
+            "ACNT_PRDT_CD": "01",
+            "INQR_DVSN": "01",
+            "CTX_AREA_FK100": "",
+            "CTX_AREA_NK100": "",
+            "AFHR_FLPR_YN": "N",
+            "OFL_YN": "",
+            "UNPR_DVSN": "01",
+            "FUND_STTL_ICLD_YN": "N",
+            "FNCG_AMT_AUTO_RDPT_YN": "N",
+            "PRCS_DVSN": "00",
+        }
+        assert "ACCA_DVSN_CD" not in stock_kwargs["params"]
+
+        irp_api.get_account_balance()
+        irp_kwargs = mock_client.make_request.call_args.kwargs
+        assert (
+            irp_kwargs["endpoint"]
+            == "/uapi/domestic-stock/v1/trading/pension/inquire-balance"
+        )
+        assert irp_kwargs["tr_id"] == "TTTC2208R"
+        assert irp_kwargs["params"] == {
+            "CANO": "87654321",
+            "ACNT_PRDT_CD": "29",
+            "INQR_DVSN": "00",
+            "CTX_AREA_FK100": "",
+            "CTX_AREA_NK100": "",
+            "ACCA_DVSN_CD": "00",
+        }
+        assert "OVRS_ICLD_YN" not in irp_kwargs["params"]
+        assert "AFHR_FLPR_YN" not in irp_kwargs["params"]
+
     # ===== get_cash_available 테스트 =====
 
     def test_get_cash_available_success(self, balance_api, mock_client):
@@ -308,6 +370,51 @@ class TestAccountBalanceQueryAPI:
         # Assert
         assert result is not None
         assert result["ord_psbl_cash"] == "5000000"
+
+    def test_inquire_psbl_order_stock_vs_irp_routing(self, mock_client):
+        """일반계좌 OVRS_ICLD_YN과 IRP ACCA_DVSN_CD/endpoint/TR ID를 고정한다."""
+        from kis_agent.account.balance_query_api import AccountBalanceQueryAPI
+
+        stock_api = AccountBalanceQueryAPI(
+            client=mock_client,
+            account_info={"CANO": "12345678", "ACNT_PRDT_CD": "01"},
+            enable_cache=False,
+            _from_agent=True,
+        )
+        irp_api = AccountBalanceQueryAPI(
+            client=mock_client,
+            account_info={"CANO": "87654321", "ACNT_PRDT_CD": "29"},
+            enable_cache=False,
+            _from_agent=True,
+        )
+        mock_client.make_request.return_value = {
+            "rt_cd": "0",
+            "output": {"ord_psbl_qty": "1"},
+        }
+
+        assert stock_api.inquire_psbl_order(price=70000, pdno="005930") == {
+            "ord_psbl_qty": "1"
+        }
+        stock_kwargs = mock_client.make_request.call_args.kwargs
+        assert (
+            stock_kwargs["endpoint"]
+            == "/uapi/domestic-stock/v1/trading/inquire-psbl-order"
+        )
+        assert stock_kwargs["tr_id"] == "TTTC8908R"
+        assert stock_kwargs["params"]["OVRS_ICLD_YN"] == "N"
+        assert "ACCA_DVSN_CD" not in stock_kwargs["params"]
+
+        assert irp_api.inquire_psbl_order(price=70000, pdno="005930") == {
+            "ord_psbl_qty": "1"
+        }
+        irp_kwargs = mock_client.make_request.call_args.kwargs
+        assert (
+            irp_kwargs["endpoint"]
+            == "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order"
+        )
+        assert irp_kwargs["tr_id"] == "TTTC0503R"
+        assert irp_kwargs["params"]["ACCA_DVSN_CD"] == "00"
+        assert "OVRS_ICLD_YN" not in irp_kwargs["params"]
 
     def test_inquire_psbl_order_passes_real_tr_id(self, balance_api, mock_client):
         """API 계층은 항상 실전 TR_ID를 넘긴다.
