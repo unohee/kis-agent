@@ -378,7 +378,7 @@ class TestVolumeSurgeRanking(unittest.TestCase):
         self.api.volume_surge_ranking("NAS", mixn="0")
 
         call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["params"]["MIXN"], "0")
+        self.assertEqual(call_args.kwargs["params"]["MINX"], "0")
         self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76270000")
 
     def test_volume_surge_ranking_5min(self):
@@ -388,7 +388,7 @@ class TestVolumeSurgeRanking(unittest.TestCase):
         self.api.volume_surge_ranking("NAS", mixn="3")
 
         call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["params"]["MIXN"], "3")
+        self.assertEqual(call_args.kwargs["params"]["MINX"], "3")
 
     def test_volume_surge_ranking_exception(self):
         """거래량급증 조회 - 예외 발생 시 None 반환"""

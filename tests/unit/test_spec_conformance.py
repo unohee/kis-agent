@@ -152,6 +152,12 @@ class TestParseSample:
         ws_samples = official.load_ws_samples(str(tmp_path))
         assert ws_samples["H0STCNT0"]["columns"] == ["a"]
         assert official.find_workbook(str(tmp_path)) is None
+        assert samples["/uapi/overseas-stock/v1/trading/order"][0].updated == ""
+
+    def test_dates(self, tmp_path):
+        assert official.workbook_date("한국투자증권_오픈API_전체문서_20251212_030000.xlsx") == "20251212"
+        assert official.workbook_date("other.xlsx") == ""
+        assert official.sample_commit_dates(str(tmp_path / "missing")) == {}
 
 
 # ---------------------------------------------------------------------------
@@ -373,6 +379,21 @@ class TestCheckRest:
         api = _api("/u", real={"T0000002R"}, required={"A"})
         api.old_trs = {"T0000001R"}
         assert _rules(check.check_rest([_site()], {"/u": api}, {})) == ["deprecated-tr"]
+
+    def test_sample_newer_than_workbook_overrides_key_names(self):
+        spec = {"/u": _api("/u", real={"T0000001R"}, required={"A", "MIXN"})}
+        site = _site(keys={"A", "MINX"}, key_literal={"A": True, "MINX": True})
+        newer = official.SampleApi("f", "/u", {"T0000001R"}, False, {"A", "MINX"}, updated="20260316")
+        older = official.SampleApi("f", "/u", {"T0000001R"}, False, {"A", "MINX"}, updated="20250101")
+        assert check.check_rest([site], spec, {"/u": [newer]}, "20251212") == []
+        assert _rules(check.check_rest([site], spec, {"/u": [older]}, "20251212")) == [
+            "missing-required",
+            "unknown-key",
+        ]
+        assert _rules(check.check_rest([site], spec, {"/u": [newer]})) == [
+            "missing-required",
+            "unknown-key",
+        ]
 
     def test_tr_selection(self):
         spec = {

@@ -79,6 +79,25 @@
 - 모의투자 미지원 API를 부르는 계좌 조회 메서드가 `PaperTradingNotSupportedError`를
   삼키지 않고 다시 던진다 (이전: 에러 로그 후 `None`).
 
+### 🔧 해외주식 조회
+
+- `get_order_history`: 필수 필드(종목·기간·매매구분·체결구분 등)를 보낸다. 기간 기본값은
+  서울과 뉴욕 현지일을 모두 포함하고(KST 오전에 미국 당일 주문이 빠지지 않도록), 실전은
+  "전체"를 `%`로, 모의는 빈 값으로 보낸다.
+- `get_reserve_order_list`: 기간·조회구분·상품유형을 보내고(기본 최근 7일), 아시아
+  거래소는 TR_ID `TTTS3014R`, 미국은 `TTTT3039R`를 쓴다.
+- `get_minute_price`(`NEXT`), `get_ccnl`(`KEYB`/`TDAY`), 순위 `trade_volume_ranking`/
+  `trade_amount_ranking`(`PRC1`/`PRC2`), `new_high_low_ranking`(`GUBN2`)에 필수 필드 추가.
+- `get_news_title`, `get_industry_theme`: 공식 파라미터 세트로 재작성 (**응답 키도
+  문서대로**: 뉴스는 `outblock1`). 옛 인자는 경고와 함께 새 필드로 넘기거나 무시한다.
+- `get_foreign_margin`: 명세에 없는 `CRCY_CD`를 보내지 않는다. 응답 타입을 문서대로 정정.
+- `price_fluctuation_ranking`/`volume_surge_ranking`: N분전 필드를 `MINX`로 보낸다
+  (2025-12 문서의 `MIXN`은 오탈자로, KIS가 2026-03-16 샘플에서 정정). `nday`는
+  `minx`의 옛 이름으로 처리한다. `price_fluctuation_ranking`의 `gubn` 설명을 문서대로
+  바로잡았다 (0=급락, 1=급등).
+- 손댄 순위 메서드는 `PaperTradingNotSupportedError`를 삼키지 않는다.
+- `pytz`를 직접 의존성으로 선언했다 (이미 `ws_agent`가 쓰고 있었다).
+
 ### 🗑️ 폐기 (`NotImplementedError` + `DeprecationWarning`, 다음 메이저에서 제거)
 
 - `profit_asset_index`, `save_condition`, `delete_condition`: KIS에 대응 API가 없다.

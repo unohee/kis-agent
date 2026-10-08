@@ -1,6 +1,7 @@
 # 핵심 의존성 (PyPI 배포용)
 requests>=2.31.0,<3.0.0
 pandas>=1.5.0,<3.0.0
+pytz>=2020.1
 python-dotenv>=0.21.0,<2.0.0
 pycryptodome>=3.23.0,<4.0.0
 

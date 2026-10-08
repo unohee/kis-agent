@@ -599,7 +599,8 @@ class OverseasRankingAPI(BaseAPI):
 
         Args:
             excd (str): 거래소 코드
-            mixn (str): N분전 콤보값
+            mixn (str): N분전 콤보값. 전송 필드명은 ``MINX``다 (2025-12-12 문서의 ``MIXN``은
+                오탈자로, KIS가 공식 샘플을 2026-03-16에 ``MINX``로 정정했다)
                 - "0": 1분전 (기본값)
                 - "1": 2분전
                 - "2": 3분전
@@ -627,7 +628,7 @@ class OverseasRankingAPI(BaseAPI):
         try:
             params = {
                 "EXCD": excd.upper(),
-                "MIXN": mixn,
+                "MINX": mixn,  # 공식 샘플 2026-03-16 정정 (문서의 MIXN은 오탈자)
                 "VOL_RANG": vol_rang,
                 "AUTH": "",
                 "KEYB": "",

@@ -197,6 +197,8 @@ class SampleApi:
     keys: Set[str]
     # request key -> set of argument values the sample branches on to pick a TR_ID
     tr_branch_keys: Set[str] = field(default_factory=set)
+    # YYYYMMDD of the sample file's last commit ("" when unknown)
+    updated: str = ""
 
 
 def _docstring_ids(func: ast.AST) -> Set[int]:
@@ -292,9 +294,39 @@ def parse_sample_source(source: str, rel: str, func_name: str) -> Optional[Sampl
     return SampleApi(rel, url, trs, post, keys, branch_keys)
 
 
+def workbook_date(path: str) -> str:
+    """YYYYMMDD encoded in the workbook file name (한국투자증권_오픈API_전체문서_YYYYMMDD_...)."""
+    m = re.search(r"_(\d{8})_", os.path.basename(path))
+    return m.group(1) if m else ""
+
+
+def sample_commit_dates(clone: str) -> Dict[str, str]:
+    """Map examples_llm file path (relative to the clone) to its last commit date YYYYMMDD."""
+    import subprocess  # nosec B404 - fixed argv, no shell
+
+    try:
+        log = subprocess.run(  # nosec B603 B607
+            ["git", "-C", clone, "log", "--name-only", "--format=@%cs", "--", "examples_llm"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return {}
+    dates: Dict[str, str] = {}
+    current = ""
+    for line in log.splitlines():
+        if line.startswith("@"):
+            current = line[1:].replace("-", "")
+        elif line.strip() and line not in dates:
+            dates[line] = current
+    return dates
+
+
 def load_samples(clone: str) -> Dict[str, List[SampleApi]]:
     """Load every examples_llm REST sample, keyed by URL."""
     out: Dict[str, List[SampleApi]] = {}
+    dates = sample_commit_dates(clone)
     for path in sorted(
         glob.glob(os.path.join(clone, "examples_llm", "*", "*", "*.py"))
     ):
@@ -310,6 +342,7 @@ def load_samples(clone: str) -> Dict[str, List[SampleApi]]:
         except SyntaxError:
             continue
         if sample:
+            sample.updated = dates.get(sample.file, "")
             out.setdefault(sample.url, []).append(sample)
     return out
 

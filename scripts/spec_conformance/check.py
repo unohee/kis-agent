@@ -142,7 +142,15 @@ def check_rest(
     sites: List["ours.CallSite"],
     spec: Dict[str, "official.SpecApi"],
     samples: Dict[str, List["official.SampleApi"]],
+    workbook_date: str = "",
 ) -> List[Finding]:
+    """Compare call sites with the spec.
+
+    Request keys come from the workbook, except where an official sample was
+    changed *after* the workbook was published: KIS fixes typos in samples
+    first (e.g. MIXN -> MINX, 2026-03), so such a sample's keys are accepted and
+    workbook-required keys it no longer sends are not demanded.
+    """
     findings: List[Finding] = []
     for s in sites:
         if not s.resolvable or ours.UNRESOLVED in s.tr_ids:
@@ -232,18 +240,22 @@ def check_rest(
                 continue
             if api.required is None:
                 continue
+            newer = [
+                smp
+                for smp in samples.get(url, [])
+                if workbook_date and smp.updated and smp.updated > workbook_date
+            ]
+            newer_keys = set().union(*(smp.keys for smp in newer)) if newer else set()
+            required = {
+                k for k in api.required if not newer or any(k in smp.keys for smp in newer)
+            }
+            known = api.all_fields | newer_keys
             sent = {k for k in s.keys if k not in HEADERISH_KEYS}
             sent_lower = {k.lower() for k in sent}
-            spec_lower = _lower_map(api.all_fields)
-            missing = sorted(k for k in api.required if k.lower() not in sent_lower)
-            unknown = sorted(
-                k
-                for k in sent
-                if k not in api.all_fields and k.lower() not in spec_lower
-            )
-            case_only = sorted(
-                k for k in sent if k not in api.all_fields and k.lower() in spec_lower
-            )
+            spec_lower = _lower_map(known)
+            missing = sorted(k for k in required if k.lower() not in sent_lower)
+            unknown = sorted(k for k in sent if k not in known and k.lower() not in spec_lower)
+            case_only = sorted(k for k in sent if k not in known and k.lower() in spec_lower)
             if missing:
                 findings.append(
                     Finding(
@@ -421,7 +433,7 @@ def run(
     allow = Allowlist.load(allowlist_path)
 
     findings = (
-        check_rest(sites, spec, samples)
+        check_rest(sites, spec, samples, official.workbook_date(workbook))
         + check_ws(our_ws, official_ws)
         + check_spec_consistency(spec, samples)
     )
