@@ -103,6 +103,13 @@
 - `profit_asset_index`, `save_condition`, `delete_condition`: KIS에 대응 API가 없다.
 - 어디서도 쓰이지 않던 `kis_agent/stock/api_improved.py` 삭제.
 
+### ✨ 인증
+
+- `KISClient.revoke_token()`: 접근토큰폐기(P) `/oauth2/revokeP`. 성공하면 메모리·파일
+  캐시에서도 토큰을 지워 다음 요청이 새 토큰을 발급받는다.
+- `KISClient.get_kospi200_index()`: 문서에 없는 선물 기초자산 경로 대신 국내업종
+  현재지수(FHPUP02100000, 업종코드 2001)를 조회한다. `futures_month`는 쓰지 않는다.
+
 ### 🔧 기타
 
 - 연속조회 공용 지원: 응답 헤더 `tr_cont`를 `_tr_cont`로 노출하고

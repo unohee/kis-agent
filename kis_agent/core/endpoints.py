@@ -149,7 +149,8 @@ API_ENDPOINTS = {
     "FUTUREOPTION_INQUIRE_PRICE": "/uapi/domestic-futureoption/v1/quotations/inquire-price",  # → FUTURES_INQUIRE_PRICE
     "FUTUREOPTION_INQUIRE_ASKING_PRICE": "/uapi/domestic-futureoption/v1/quotations/inquire-asking-price",  # → FUTURES_INQUIRE_ASKING_PRICE
     "FUTUREOPTION_INQUIRE_BALANCE": "/uapi/domestic-futureoption/v1/trading/inquire-balance",  # → FUTURES_INQUIRE_BALANCE
-    "INQUIRE_INDEX_PRICE": "/uapi/domestic-futureoption/v1/quotations/underlying-price",  # KOSPI 200 지수 (TR: FHMIF10100000)
+    "INQUIRE_INDEX_PRICE": "/uapi/domestic-stock/v1/quotations/inquire-index-price",  # 국내업종 현재지수 (TR: FHPUP02100000)
+    "REVOKE_TOKEN": "/oauth2/revokeP",  # 접근토큰폐기(P)
     "INQUIRE_FUTURES_PRICE": "/uapi/domestic-futureoption/v1/quotations/inquire-price",  # → FUTURES_INQUIRE_PRICE
     # === ETF/ETN ===
     "ETF_INQUIRE_PRICE": "/uapi/etfetn/v1/quotations/inquire-price",  # ETF/ETN현재가 (TR: FHPST02400000)

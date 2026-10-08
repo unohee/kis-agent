@@ -826,7 +826,14 @@ class TestGetKospi200Index:
                     assert result["rt_cd"] == "0"
                     # 올바른 파라미터 확인
                     call_kwargs = mock_request.call_args
-                    assert "10109000" in str(call_kwargs)  # 09 from 202409
+                    assert call_kwargs.args[1].endswith(
+                        "/uapi/domestic-stock/v1/quotations/inquire-index-price"
+                    )
+                    assert call_kwargs.kwargs["params"] == {
+                        "FID_COND_MRKT_DIV_CODE": "U",
+                        "FID_INPUT_ISCD": "2001",
+                    }
+                    assert call_kwargs.kwargs["headers"]["tr_id"] == "FHPUP02100000"
 
 
 class TestGetWsApprovalKey:

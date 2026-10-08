@@ -1,7 +1,6 @@
 {
  "_comment": "Known deviations still to be fixed. --check fails only on findings not listed here. Shrink this file as fixes land; never add to it to silence a new finding.",
  "known": [
-  "coverage-rest|-||/oauth2/revokeP",
   "coverage-rest|-||/uapi/domestic-bond/v1/quotations/avg-unit",
   "coverage-rest|-||/uapi/domestic-bond/v1/quotations/inquire-asking-price",
   "coverage-rest|-||/uapi/domestic-bond/v1/quotations/inquire-ccnl",
@@ -47,7 +46,6 @@
   "coverage-rest|-||/uapi/domestic-stock/v1/quotations/exp-price-trend",
   "coverage-rest|-||/uapi/domestic-stock/v1/quotations/exp-total-index",
   "coverage-rest|-||/uapi/domestic-stock/v1/quotations/inquire-daily-trade-volume",
-  "coverage-rest|-||/uapi/domestic-stock/v1/quotations/inquire-index-price",
   "coverage-rest|-||/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market",
   "coverage-rest|-||/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
   "coverage-rest|-||/uapi/domestic-stock/v1/quotations/inquire-time-overtimeconclusion",

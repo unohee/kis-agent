@@ -14,6 +14,7 @@ from .auth import (
     apply_token_env,
     auth,
     auth_async,
+    forget_token,
     getTREnv,
     read_token,
 )
@@ -636,24 +637,70 @@ class KISClient:
                 logger.error(f"토큰 갱신 실패: {e}")
                 raise
 
+    def revoke_token(self) -> Dict[str, Any]:
+        """접근토큰폐기(P) [인증-002] — 이 클라이언트의 접근토큰을 폐기한다.
+
+        폐기에 성공하면 메모리·파일 캐시에서도 토큰을 지워, 다음 요청이 폐기된
+        토큰을 재사용하지 않고 새로 발급받게 한다. 재시도하지 않는다.
+
+        Returns:
+            Dict[str, Any]: KIS 응답 (``code``, ``message``)
+
+        Raises:
+            ValueError: 앱키/시크릿 설정이나 폐기할 토큰이 없는 경우
+            Exception: KIS가 200이 아닌 응답을 준 경우
+        """
+        if not self.config or not self.config.APP_KEY or not self.config.APP_SECRET:
+            raise ValueError(
+                "revoke_token에는 KISConfig의 APP_KEY/APP_SECRET이 필요합니다"
+            )
+        if not self.token:
+            raise ValueError("폐기할 접근토큰이 없습니다")
+        with self.token_refresh_lock:
+            response = requests.post(
+                f"{self.base_url}{API_ENDPOINTS['REVOKE_TOKEN']}",
+                json={
+                    "appkey": self.config.APP_KEY,
+                    "appsecret": self.config.APP_SECRET,
+                    "token": self.token,
+                },
+                headers={"content-type": "application/json"},
+                timeout=10,
+            )
+            try:
+                data = response.json()
+            except ValueError:
+                data = {}
+            if response.status_code != 200:
+                raise Exception(
+                    f"토큰 폐기 실패: HTTP {response.status_code} {data.get('message', '')}"
+                )
+            forget_token(self.config.APP_KEY)
+            self.token = None
+            self.token_expired = None
+            logger.info("접근토큰 폐기 완료")
+            return data
+
     def get_kospi200_index(
         self, futures_month: str = "202409"
     ) -> Optional[Dict[str, Any]]:
         """
-        KOSPI200 지수 조회
+        KOSPI200 지수 조회 — 국내업종 현재지수(FHPUP02100000, 업종코드 2001)
+
+        이전 버전은 국내선물 기초자산 시세 경로(KIS 문서에 없음)를 선물 월물
+        코드로 호출했다. 지수 자체는 업종 현재지수 API가 제공한다.
 
         Args:
-            futures_month (str): 선물 만료월 (YYYYMM 형식)
+            futures_month (str): 사용하지 않음 (하위 호환용)
 
         Returns:
-            Dict[str, Any]: KOSPI200 지수 정보
+            Dict[str, Any]: KOSPI200 지수 정보 (output.bstp_nmix_prpr: 현재지수)
         """
-        endpoint = API_ENDPOINTS["INQUIRE_INDEX_PRICE"]
-        params = {
-            "FID_COND_MRKT_DIV_CODE": "U",
-            "FID_INPUT_ISCD": f"101{futures_month[-2:]}000",
-        }
-        return self.make_request(endpoint, "FHMIF10100000", params)
+        return self.make_request(
+            API_ENDPOINTS["INQUIRE_INDEX_PRICE"],
+            "FHPUP02100000",
+            {"FID_COND_MRKT_DIV_CODE": "U", "FID_INPUT_ISCD": "2001"},
+        )
 
     def get_ws_approval_key(self) -> Optional[str]:
         """

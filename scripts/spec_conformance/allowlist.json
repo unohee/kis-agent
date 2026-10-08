@@ -69,6 +69,11 @@
       "url": "/uapi/hashkey",
       "needle": "/uapi/hashkey",
       "reason": "Optional hashkey: core/auth.set_order_hash_key."
+    },
+    {
+      "url": "/oauth2/revokeP",
+      "needle": "/oauth2/revokeP",
+      "reason": "Token revocation: KISClient.revoke_token posts directly (no TR_ID, not a make_request call)."
     }
   ],
   "findings": [

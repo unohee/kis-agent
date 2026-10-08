@@ -165,6 +165,27 @@ def save_token(
         _logger.debug(f"토큰 캐시 저장: {key_hash} (만료: {my_expired})")
 
 
+def forget_token(app_key: str, path: str = token_tmp) -> None:
+    """APP_KEY의 캐시된 토큰을 메모리와 파일에서 모두 지운다 (토큰 폐기 후 호출).
+
+    파일은 지우지 않고 빈 JSON으로 덮어쓴다 — ``read_token``은 빈 파일을 "토큰
+    없음"으로 읽으므로 다음 요청에서 새로 발급받는다.
+
+    Args:
+        app_key: 애플리케이션 키
+        path: 기본 토큰 파일 경로
+    """
+    import hashlib
+
+    if not app_key:
+        return
+    _token_cache.pop(hashlib.sha256(app_key.encode()).hexdigest()[:16], None)
+    token_path = _get_token_path_for_app_key(app_key, path)
+    if os.path.exists(token_path):
+        with open(token_path, "w", encoding="utf-8") as f:
+            json.dump({}, f)
+
+
 # 토큰 확인 (토큰값, 토큰 유효시간_1일, 6시간 이내 발급신청시는 기존 토큰값과 동일, 발급시 알림톡 발송)
 def read_token(path: str = token_tmp, app_key: str = None) -> Optional[Dict[str, Any]]:
     """APP_KEY별로 분리된 토큰 파일에서 토큰 읽기 (메모리 캐시 우선)
