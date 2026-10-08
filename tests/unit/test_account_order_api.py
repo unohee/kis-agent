@@ -420,14 +420,58 @@ class TestAccountOrderAPI:
 
         # Act
         result = order_api.order_resv_rvsecncl(
-            seq=1, qty=5, price=71000, order_type="00"
+            seq=1,
+            qty=5,
+            price=71000,
+            order_type="00",
+            pdno="005930",
+            sll_buy_dvsn_cd="01",
+            rsvn_ord_orgno="00001",
+            rsvn_ord_ord_dt="20261008",
+            rsvn_ord_end_dt="20261010",
         )
 
         # Assert
         assert result is not None
         call_args = mock_client.make_request.call_args
         assert call_args[1]["tr_id"] == "CTSC0013U"
-        assert call_args[1]["params"]["RSVN_ORD_SEQ"] == "1"
+        assert call_args[1]["method"] == "POST"
+        assert call_args[1]["params"] == {
+            "CANO": order_api.account["CANO"],
+            "ACNT_PRDT_CD": order_api.account["ACNT_PRDT_CD"],
+            "RSVN_ORD_SEQ": "1",
+            "RSVN_ORD_ORGNO": "00001",
+            "RSVN_ORD_ORD_DT": "20261008",
+            "PDNO": "005930",
+            "ORD_QTY": "5",
+            "ORD_UNPR": "71000",
+            "SLL_BUY_DVSN_CD": "01",
+            "ORD_DVSN_CD": "00",
+            "ORD_OBJT_CBLC_DVSN_CD": "10",
+            "RSVN_ORD_END_DT": "20261010",
+        }
+
+    def test_order_resv_rvsecncl_cancel_uses_cancel_tr(self, order_api, mock_client):
+        """예약 주문 취소는 CTSC0009U로 순번만 보낸다"""
+        mock_client.make_request.return_value = {"rt_cd": "0", "output": {}}
+
+        order_api.order_resv_rvsecncl(seq=7, action="cancel")
+
+        call_args = mock_client.make_request.call_args
+        assert call_args[1]["tr_id"] == "CTSC0009U"
+        assert call_args[1]["params"] == {
+            "CANO": order_api.account["CANO"],
+            "ACNT_PRDT_CD": order_api.account["ACNT_PRDT_CD"],
+            "RSVN_ORD_SEQ": "7",
+        }
+
+    def test_order_resv_rvsecncl_validates_before_sending(self, order_api, mock_client):
+        """정정에 종목/매매구분이 없거나 action이 틀리면 전송하지 않는다"""
+        with pytest.raises(ValueError, match="pdno"):
+            order_api.order_resv_rvsecncl(seq=1, qty=5, price=71000)
+        with pytest.raises(ValueError, match="action"):
+            order_api.order_resv_rvsecncl(seq=1, action="delete")
+        mock_client.make_request.assert_not_called()
 
     def test_order_resv_rvsecncl_exception_handling(self, order_api, mock_client):
         """예약 주문 정정/취소 예외 처리 테스트"""
@@ -435,9 +479,7 @@ class TestAccountOrderAPI:
         mock_client.make_request.side_effect = Exception("예약 정정 실패")
 
         # Act
-        result = order_api.order_resv_rvsecncl(
-            seq=1, qty=5, price=71000, order_type="00"
-        )
+        result = order_api.order_resv_rvsecncl(seq=1, action="cancel")
 
         # Assert
         assert result is None

@@ -5,6 +5,7 @@ OverseasOrderAPI는 해외주식 매수, 매도, 정정, 취소, 예약주문을
 """
 
 import logging
+import warnings
 from typing import Any, Dict, Optional
 
 from ..core.base_api import BaseAPI
@@ -76,6 +77,60 @@ class OverseasOrderAPI(BaseAPI):
         "HASE": "HASE",
     }
 
+    _US_EXCHANGES = ("NASD", "NYSE", "AMEX")
+
+    # 거래소별 주문 TR_ID (공식 샘플 examples_llm/overseas_stock/order, KIS 문서 v1_해외주식-001).
+    _BUY_TR = {
+        "NASD": "TTTT1002U",
+        "NYSE": "TTTT1002U",
+        "AMEX": "TTTT1002U",
+        "SEHK": "TTTS1002U",
+        "SHAA": "TTTS0202U",
+        "SZAA": "TTTS0305U",
+        "TKSE": "TTTS0308U",
+        "HASE": "TTTS0311U",
+        "VNSE": "TTTS0311U",
+    }
+    _SELL_TR = {
+        "NASD": "TTTT1006U",
+        "NYSE": "TTTT1006U",
+        "AMEX": "TTTT1006U",
+        "SEHK": "TTTS1001U",
+        "SHAA": "TTTS1005U",
+        "SZAA": "TTTS0304U",
+        "TKSE": "TTTS0307U",
+        "HASE": "TTTS0310U",
+        "VNSE": "TTTS0310U",
+    }
+    # 정정취소 TR_ID (KIS 문서 v1_해외주식-003). 상해·심천·베트남은 취소만 가능.
+    _CANCEL_TR = {
+        "NASD": "TTTT1004U",
+        "NYSE": "TTTT1004U",
+        "AMEX": "TTTT1004U",
+        "SEHK": "TTTS1003U",
+        "TKSE": "TTTS0309U",
+        "SHAA": "TTTS0302U",
+        "SZAA": "TTTS0306U",
+        "HASE": "TTTS0312U",
+        "VNSE": "TTTS0312U",
+    }
+    _MODIFY_TR = {
+        "NASD": "TTTT1004U",
+        "NYSE": "TTTT1004U",
+        "AMEX": "TTTT1004U",
+        "SEHK": "TTTS1003U",
+        "TKSE": "TTTS0309U",
+    }
+    # 예약주문 상품유형코드 (TTTS3013U 전용, KIS 문서 v1_해외주식-002)
+    _RESV_PRDT_TYPE = {
+        "TKSE": "515",
+        "SEHK": "501",
+        "HASE": "507",
+        "VNSE": "508",
+        "SHAA": "551",
+        "SZAA": "552",
+    }
+
     def __init__(
         self,
         client: KISClient,
@@ -114,6 +169,13 @@ class OverseasOrderAPI(BaseAPI):
             raise ValueError(f"지원하지 않는 거래소 코드입니다: {excd}")
         return normalized
 
+    def _tr_for(self, table: Dict[str, str], exchange: str, action: str) -> str:
+        """거래소별 TR_ID를 고른다. 지원하지 않는 조합이면 ValueError."""
+        tr_id = table.get(exchange)
+        if not tr_id:
+            raise ValueError(f"{exchange} 거래소는 {action}을(를) 지원하지 않습니다")
+        return tr_id
+
     def buy_order(
         self,
         ovrs_excg_cd: str,
@@ -124,13 +186,16 @@ class OverseasOrderAPI(BaseAPI):
         ord_svr_dvsn_cd: str = "0",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 매수주문
+        해외주식 매수주문 [v1_해외주식-001]
+
+        TR_ID는 거래소별로 다르다 (미국 TTTT1002U, 홍콩 TTTS1002U, 상해 TTTS0202U,
+        심천 TTTS0305U, 도쿄 TTTS0308U, 베트남 TTTS0311U).
 
         Args:
             ovrs_excg_cd (str): 거래소 코드 (NAS/NASD, NYS/NYSE, AMS/AMEX, HKS/SEHK 등)
             pdno (str): 종목코드 (예: AAPL, TSLA, NVDA)
             qty (int): 주문수량
-            price (float): 주문단가 (USD 기준, 소수점 허용)
+            price (float): 주문단가 (해당 시장 통화 기준, 소수점 허용)
             ord_dvsn (str): 주문구분 (미국 매수는 MOO/MOC 불가!)
                 - "00": 지정가 (기본값)
                 - "32": LOO (Limit On Open, 장개시지정가)
@@ -142,21 +207,14 @@ class OverseasOrderAPI(BaseAPI):
                 - output.odno: 주문번호
                 - output.ord_tmd: 주문시각
 
-        Note:
-            미국 매수주문은 MOO(31), MOC(33) 사용 불가.
-            MOO/MOC는 매도주문(sell_order)에서만 지원됩니다.
-
         Example:
-            >>> # AAPL 10주 지정가 $185 매수
             >>> result = agent.overseas.buy_order("NASD", "AAPL", 10, 185.00)
-            >>> print(f"주문번호: {result['output']['odno']}")
-            >>>
-            >>> # TSLA 5주 LOO 주문 (장개시지정가)
-            >>> result = agent.overseas.buy_order("NASD", "TSLA", 5, 250.00, ord_dvsn="32")
+            >>> result = agent.overseas.buy_order("SEHK", "00700", 100, 300.0)
         """
         try:
             account_params = self._get_account_params()
             exchange = self._normalize_exchange(ovrs_excg_cd)
+            tr_id = self._tr_for(self._BUY_TR, exchange, "매수")
 
             params = {
                 **account_params,
@@ -170,7 +228,7 @@ class OverseasOrderAPI(BaseAPI):
 
             return self._make_request_dict(
                 endpoint="/uapi/overseas-stock/v1/trading/order",
-                tr_id="TTTT1002U",
+                tr_id=tr_id,
                 params=params,
                 method="POST",
                 use_cache=False,
@@ -189,14 +247,17 @@ class OverseasOrderAPI(BaseAPI):
         ord_svr_dvsn_cd: str = "0",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 매도주문
+        해외주식 매도주문 [v1_해외주식-001]
+
+        TR_ID는 거래소별로 다르다 (미국 TTTT1006U, 홍콩 TTTS1001U, 상해 TTTS1005U,
+        심천 TTTS0304U, 도쿄 TTTS0307U, 베트남 TTTS0310U).
 
         Args:
             ovrs_excg_cd (str): 거래소 코드
             pdno (str): 종목코드
             qty (int): 주문수량
-            price (float): 주문단가
-            ord_dvsn (str): 주문구분 (매도는 MOO/MOC 포함 5가지 지원)
+            price (float): 주문단가 (시장가 계열 MOO/MOC는 0)
+            ord_dvsn (str): 주문구분
                 - "00": 지정가 (기본값)
                 - "31": MOO (Market On Open, 장개시시장가)
                 - "32": LOO (Limit On Open, 장개시지정가)
@@ -209,20 +270,14 @@ class OverseasOrderAPI(BaseAPI):
                 - output.odno: 주문번호
                 - output.ord_tmd: 주문시각
 
-        Note:
-            미국 매도주문은 MOO(31), MOC(33) 포함 모든 주문유형 지원.
-            시장가 주문(MOO, MOC) 시 price=0 설정.
-
         Example:
-            >>> # AAPL 5주 지정가 $190 매도
             >>> result = agent.overseas.sell_order("NASD", "AAPL", 5, 190.00)
-            >>>
-            >>> # TSLA 10주 MOC (장마감시장가) 매도
             >>> result = agent.overseas.sell_order("NASD", "TSLA", 10, 0, ord_dvsn="33")
         """
         try:
             account_params = self._get_account_params()
             exchange = self._normalize_exchange(ovrs_excg_cd)
+            tr_id = self._tr_for(self._SELL_TR, exchange, "매도")
 
             params = {
                 **account_params,
@@ -230,13 +285,14 @@ class OverseasOrderAPI(BaseAPI):
                 "PDNO": pdno.upper(),
                 "ORD_QTY": str(qty),
                 "OVRS_ORD_UNPR": str(price),
+                "SLL_TYPE": "00",  # 판매유형: 매도 주문은 "00"
                 "ORD_DVSN": ord_dvsn,
                 "ORD_SVR_DVSN_CD": ord_svr_dvsn_cd,
             }
 
             return self._make_request_dict(
                 endpoint="/uapi/overseas-stock/v1/trading/order",
-                tr_id="TTTT1006U",
+                tr_id=tr_id,
                 params=params,
                 method="POST",
                 use_cache=False,
@@ -244,6 +300,15 @@ class OverseasOrderAPI(BaseAPI):
         except Exception as e:
             logging.error(f"해외주식 매도주문 실패: {e}")
             raise
+
+    @staticmethod
+    def _warn_ignored_ord_dvsn(ord_dvsn: str, method: str) -> None:
+        if ord_dvsn != "00":
+            warnings.warn(
+                f"{method}의 ord_dvsn은 KIS 정정취소 API에 해당 필드가 없어 무시됩니다",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
     def modify_order(
         self,
@@ -255,9 +320,11 @@ class OverseasOrderAPI(BaseAPI):
         ord_dvsn: str = "00",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 정정주문
+        해외주식 정정주문 [v1_해외주식-003]
 
-        미체결 주문의 가격이나 수량을 정정합니다.
+        미체결 주문의 가격이나 수량을 정정합니다. TR_ID는 거래소별로 다르다
+        (미국 TTTT1004U, 홍콩 TTTS1003U, 도쿄 TTTS0309U). 상해·심천·베트남은
+        KIS가 정정을 제공하지 않으므로 취소 후 재주문해야 한다.
 
         Args:
             ovrs_excg_cd (str): 거래소 코드
@@ -265,20 +332,27 @@ class OverseasOrderAPI(BaseAPI):
             orgn_odno (str): 원주문번호 (정정할 주문번호)
             qty (int): 정정 후 주문수량
             price (float): 정정 후 주문단가
-            ord_dvsn (str): 주문구분 ("00": 지정가)
+            ord_dvsn (str): 사용하지 않음 (정정취소 API에 주문구분 필드가 없다).
+                하위 호환을 위해 남겨 두며, 기본값이 아니면 DeprecationWarning.
 
         Returns:
             Optional[Dict]: 정정 결과
                 - output.odno: 신규 주문번호
                 - output.ord_tmd: 정정시각
 
+        Raises:
+            ValueError: 정정을 지원하지 않는 거래소(상해·심천·베트남)
+
         Example:
-            >>> # 주문번호 "0001234" 주문을 $190으로 정정
             >>> result = agent.overseas.modify_order("NASD", "AAPL", "0001234", 10, 190.00)
         """
         try:
+            self._warn_ignored_ord_dvsn(ord_dvsn, "modify_order")
             account_params = self._get_account_params()
             exchange = self._normalize_exchange(ovrs_excg_cd)
+            tr_id = self._tr_for(
+                self._MODIFY_TR, exchange, "정정 (취소 후 재주문 필요)"
+            )
 
             params = {
                 **account_params,
@@ -288,12 +362,12 @@ class OverseasOrderAPI(BaseAPI):
                 "RVSE_CNCL_DVSN_CD": "01",  # 01: 정정
                 "ORD_QTY": str(qty),
                 "OVRS_ORD_UNPR": str(price),
-                "ORD_DVSN": ord_dvsn,
+                "ORD_SVR_DVSN_CD": "0",
             }
 
             return self._make_request_dict(
                 endpoint="/uapi/overseas-stock/v1/trading/order-rvsecncl",
-                tr_id="TTTT1004U",
+                tr_id=tr_id,
                 params=params,
                 method="POST",
                 use_cache=False,
@@ -311,16 +385,18 @@ class OverseasOrderAPI(BaseAPI):
         ord_dvsn: str = "00",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 취소주문
+        해외주식 취소주문 [v1_해외주식-003]
 
-        미체결 주문을 취소합니다.
+        미체결 주문을 취소합니다. TR_ID는 거래소별로 다르다 (미국 TTTT1004U,
+        홍콩 TTTS1003U, 도쿄 TTTS0309U, 상해 TTTS0302U, 심천 TTTS0306U,
+        베트남 TTTS0312U). 정정과 취소는 ``RVSE_CNCL_DVSN_CD``로 구분한다.
 
         Args:
             ovrs_excg_cd (str): 거래소 코드
             pdno (str): 종목코드
             orgn_odno (str): 원주문번호 (취소할 주문번호)
             qty (int): 취소수량
-            ord_dvsn (str): 주문구분 ("00": 지정가)
+            ord_dvsn (str): 사용하지 않음 (하위 호환용, 기본값이 아니면 DeprecationWarning)
 
         Returns:
             Optional[Dict]: 취소 결과
@@ -328,12 +404,13 @@ class OverseasOrderAPI(BaseAPI):
                 - output.ord_tmd: 취소시각
 
         Example:
-            >>> # 주문번호 "0001234" 전량 취소
             >>> result = agent.overseas.cancel_order("NASD", "AAPL", "0001234", 10)
         """
         try:
+            self._warn_ignored_ord_dvsn(ord_dvsn, "cancel_order")
             account_params = self._get_account_params()
             exchange = self._normalize_exchange(ovrs_excg_cd)
+            tr_id = self._tr_for(self._CANCEL_TR, exchange, "취소")
 
             params = {
                 **account_params,
@@ -342,13 +419,13 @@ class OverseasOrderAPI(BaseAPI):
                 "ORGN_ODNO": orgn_odno,
                 "RVSE_CNCL_DVSN_CD": "02",  # 02: 취소
                 "ORD_QTY": str(qty),
-                "OVRS_ORD_UNPR": "0",  # 취소 시 가격 불필요
-                "ORD_DVSN": ord_dvsn,
+                "OVRS_ORD_UNPR": "0",  # 취소 시 "0"
+                "ORD_SVR_DVSN_CD": "0",
             }
 
             return self._make_request_dict(
                 endpoint="/uapi/overseas-stock/v1/trading/order-rvsecncl",
-                tr_id="TTTT1003U",
+                tr_id=tr_id,
                 params=params,
                 method="POST",
                 use_cache=False,
@@ -368,9 +445,13 @@ class OverseasOrderAPI(BaseAPI):
         rsvn_ord_end_dt: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 예약주문
+        해외주식 예약주문접수 [v1_해외주식-002]
 
-        지정된 날짜에 주문을 자동으로 실행하는 예약주문을 등록합니다.
+        다음 영업일 장 시작 시 접수될 예약주문을 등록합니다.
+
+        - 미국: 매수 TTTT3014U, 매도 TTTT3016U. ``ord_dvsn``으로 지정가(00),
+          MOO(31, 매도만), TWAP(35), VWAP(36)을 고른다.
+        - 홍콩·중국·일본·베트남: TTTS3013U. 상품유형코드는 거래소에서 정해진다.
 
         Args:
             ovrs_excg_cd (str): 거래소 코드
@@ -378,37 +459,58 @@ class OverseasOrderAPI(BaseAPI):
             sll_buy_dvsn_cd (str): 매도매수구분 ("01": 매도, "02": 매수)
             qty (int): 주문수량
             price (float): 주문단가
-            ord_dvsn (str): 주문구분 ("00": 지정가)
-            rsvn_ord_end_dt (str): 예약종료일자 (YYYYMMDD, 공백 시 당일)
+            ord_dvsn (str): 주문구분 (미국만 사용, 기본 "00" 지정가)
+            rsvn_ord_end_dt (str): 사용하지 않음. KIS 예약주문접수 API에 종료일자
+                필드가 없다. 값을 주면 DeprecationWarning.
 
         Returns:
             Optional[Dict]: 예약주문 결과
-                - output.rsvn_ord_seq: 예약주문순번
+                - output.odno: 예약주문번호 (취소 시 ``ovrs_rsvn_odno``로 사용)
+                - output.rsvn_ord_rcit_dt: 예약주문접수일자 (아시아만)
+                - output.ovrs_rsvn_odno: 해외예약주문번호 (아시아만)
+
+        Raises:
+            ValueError: ``sll_buy_dvsn_cd``가 "01"/"02"가 아닌 경우
 
         Example:
-            >>> # AAPL 10주 예약매수 (지정가 $180)
-            >>> result = agent.overseas.reserve_order(
-            ...     "NASD", "AAPL", "02", 10, 180.00
-            ... )
+            >>> result = agent.overseas.reserve_order("NASD", "AAPL", "02", 10, 180.00)
         """
         try:
+            if sll_buy_dvsn_cd not in ("01", "02"):
+                raise ValueError(
+                    f"sll_buy_dvsn_cd는 '01'(매도) 또는 '02'(매수)여야 합니다: {sll_buy_dvsn_cd}"
+                )
+            if rsvn_ord_end_dt:
+                warnings.warn(
+                    "reserve_order의 rsvn_ord_end_dt는 KIS 예약주문접수 API에 없는 필드라 무시됩니다",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             account_params = self._get_account_params()
             exchange = self._normalize_exchange(ovrs_excg_cd)
+            is_us = exchange in self._US_EXCHANGES
+            is_buy = sll_buy_dvsn_cd == "02"
 
             params = {
                 **account_params,
-                "OVRS_EXCG_CD": exchange,
                 "PDNO": pdno.upper(),
-                "SLL_BUY_DVSN_CD": sll_buy_dvsn_cd,
-                "RSVN_ORD_QTY": str(qty),
-                "RSVN_ORD_UNPR": str(price),
-                "ORD_DVSN": ord_dvsn,
-                "RSVN_ORD_END_DT": rsvn_ord_end_dt,
+                "OVRS_EXCG_CD": exchange,
+                "FT_ORD_QTY": str(qty),
+                "FT_ORD_UNPR3": str(price),
+                "ORD_SVR_DVSN_CD": "0",
             }
+            if is_us:
+                params["ORD_DVSN"] = ord_dvsn
+            else:
+                params["SLL_BUY_DVSN_CD"] = sll_buy_dvsn_cd
+                params["RVSE_CNCL_DVSN_CD"] = "00"  # 매수/매도 주문
+                params["PRDT_TYPE_CD"] = self._RESV_PRDT_TYPE[exchange]
 
             return self._make_request_dict(
                 endpoint="/uapi/overseas-stock/v1/trading/order-resv",
-                tr_id="TTTS6036U",
+                tr_id=(
+                    ("TTTT3014U" if is_buy else "TTTT3016U") if is_us else "TTTS3013U"
+                ),
                 params=params,
                 method="POST",
                 use_cache=False,
@@ -425,76 +527,95 @@ class OverseasOrderAPI(BaseAPI):
         ord_dvsn: str = "00",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 예약주문 정정
+        해외주식 예약주문 정정 — 지원하지 않음.
 
-        등록된 예약주문의 수량이나 가격을 정정합니다.
+        .. deprecated:: 2.0.0
+            KIS는 해외주식 예약주문 *정정* API를 제공하지 않는다. 이전 버전이
+            호출하던 ``order-resv-rvsecncl``(TTTS6037U)은 공식 문서에 없는 경로이고,
+            TTTS6037U는 미국 주간주문용 TR이다. ``cancel_reserve_order``로 취소한 뒤
+            ``reserve_order``로 다시 등록하라. 다음 메이저 버전에서 제거된다.
 
-        Args:
-            rsvn_ord_seq (str): 예약주문순번 (정정할 예약주문)
-            qty (int): 정정 후 주문수량
-            price (float): 정정 후 주문단가
-            ord_dvsn (str): 주문구분 ("00": 지정가)
-
-        Returns:
-            Optional[Dict]: 정정 결과
-
-        Example:
-            >>> # 예약주문 "001" 정정
-            >>> result = agent.overseas.modify_reserve_order("001", 15, 175.00)
+        Raises:
+            NotImplementedError: 항상
         """
-        try:
-            account_params = self._get_account_params()
-
-            params = {
-                **account_params,
-                "RSVN_ORD_SEQ": rsvn_ord_seq,
-                "RSVN_ORD_QTY": str(qty),
-                "RSVN_ORD_UNPR": str(price),
-                "ORD_DVSN": ord_dvsn,
-            }
-
-            return self._make_request_dict(
-                endpoint="/uapi/overseas-stock/v1/trading/order-resv-rvsecncl",
-                tr_id="TTTS6037U",
-                params=params,
-                method="POST",
-                use_cache=False,
-            )
-        except Exception as e:
-            logging.error(f"해외주식 예약주문 정정 실패: {e}")
-            raise
+        warnings.warn(
+            "modify_reserve_order는 KIS에 대응 API가 없어 폐기되었습니다",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise NotImplementedError(
+            "KIS는 해외주식 예약주문 정정 API를 제공하지 않습니다. "
+            "cancel_reserve_order로 취소한 뒤 reserve_order로 다시 등록하세요."
+        )
 
     def cancel_reserve_order(
         self,
-        rsvn_ord_seq: str,
+        ovrs_rsvn_odno: str,
+        rsvn_ord_rcit_dt: str,
+        ovrs_excg_cd: str = "NASD",
+        pdno: str = "",
+        qty: int = 0,
+        price: float = 0,
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 예약주문 취소
+        해외주식 예약주문 취소 [v1_해외주식-004, v1_해외주식-002]
 
-        등록된 예약주문을 취소합니다.
+        - 미국: 예약주문접수취소 API (TTTT3017U)
+        - 홍콩·중국·일본·베트남: 예약주문접수 API에 취소구분 "02"로 보낸다
+          (TTTS3013U). KIS 문서상 원 주문의 종목·수량·단가가 필요하다.
 
         Args:
-            rsvn_ord_seq (str): 예약주문순번 (취소할 예약주문)
+            ovrs_rsvn_odno (str): 해외예약주문번호 (예약주문 결과 ``odno`` /
+                ``ovrs_rsvn_odno``, 예약주문조회 결과 참고)
+            rsvn_ord_rcit_dt (str): 예약주문접수일자 (YYYYMMDD)
+            ovrs_excg_cd (str): 거래소 코드 (기본 NASD)
+            pdno (str): 종목코드 (아시아 필수)
+            qty (int): 원 주문수량 (아시아 필수)
+            price (float): 원 주문단가 (아시아 필수)
 
         Returns:
             Optional[Dict]: 취소 결과
 
+        Raises:
+            ValueError: 아시아 예약주문 취소에 종목코드·수량이 없는 경우
+
         Example:
-            >>> # 예약주문 "001" 취소
-            >>> result = agent.overseas.cancel_reserve_order("001")
+            >>> agent.overseas.cancel_reserve_order("0030008244", "20260108")
         """
         try:
             account_params = self._get_account_params()
-
-            params = {
-                **account_params,
-                "RSVN_ORD_SEQ": rsvn_ord_seq,
-            }
-
+            exchange = self._normalize_exchange(ovrs_excg_cd)
+            if exchange in self._US_EXCHANGES:
+                return self._make_request_dict(
+                    endpoint="/uapi/overseas-stock/v1/trading/order-resv-ccnl",
+                    tr_id="TTTT3017U",
+                    params={
+                        **account_params,
+                        "RSVN_ORD_RCIT_DT": rsvn_ord_rcit_dt,
+                        "OVRS_RSVN_ODNO": ovrs_rsvn_odno,
+                    },
+                    method="POST",
+                    use_cache=False,
+                )
+            if not pdno or qty <= 0:
+                raise ValueError(
+                    f"{exchange} 예약주문 취소에는 종목코드(pdno)와 원 주문수량(qty)이 필요합니다"
+                )
             return self._make_request_dict(
-                endpoint="/uapi/overseas-stock/v1/trading/order-resv-ccnl",
-                tr_id="TTTS6038U",
-                params=params,
+                endpoint="/uapi/overseas-stock/v1/trading/order-resv",
+                tr_id="TTTS3013U",
+                params={
+                    **account_params,
+                    "PDNO": pdno.upper(),
+                    "OVRS_EXCG_CD": exchange,
+                    "FT_ORD_QTY": str(qty),
+                    "FT_ORD_UNPR3": str(price),
+                    "RVSE_CNCL_DVSN_CD": "02",  # 취소
+                    "PRDT_TYPE_CD": self._RESV_PRDT_TYPE[exchange],
+                    "RSVN_ORD_RCIT_DT": rsvn_ord_rcit_dt,
+                    "OVRS_RSVN_ODNO": ovrs_rsvn_odno,
+                    "ORD_SVR_DVSN_CD": "0",
+                },
                 method="POST",
                 use_cache=False,
             )

@@ -568,9 +568,9 @@ class OverseasStockAPI(BaseAPI):
         price: float,
         ord_dvsn: str = "00",
     ) -> Optional[Dict[str, Any]]:
-        """해외주식 예약주문 정정
+        """해외주식 예약주문 정정 — 지원하지 않음 (NotImplementedError).
 
-        등록된 예약주문의 수량이나 가격을 정정합니다.
+        KIS에 대응 API가 없다. 취소 후 다시 등록하라.
 
         Args:
             rsvn_ord_seq: 예약주문순번 (정정할 예약주문)
@@ -585,19 +585,32 @@ class OverseasStockAPI(BaseAPI):
 
     def cancel_reserve_order(
         self,
-        rsvn_ord_seq: str,
+        ovrs_rsvn_odno: str,
+        rsvn_ord_rcit_dt: str,
+        ovrs_excg_cd: str = "NASD",
+        pdno: str = "",
+        qty: int = 0,
+        price: float = 0,
     ) -> Optional[Dict[str, Any]]:
         """해외주식 예약주문 취소
 
-        등록된 예약주문을 취소합니다.
+        미국은 예약주문접수취소(TTTT3017U), 아시아는 예약주문접수에 취소구분
+        "02"(TTTS3013U)로 보낸다. 아시아는 원 주문의 종목·수량·단가가 필요하다.
 
         Args:
-            rsvn_ord_seq: 예약주문순번 (취소할 예약주문)
+            ovrs_rsvn_odno: 해외예약주문번호
+            rsvn_ord_rcit_dt: 예약주문접수일자 (YYYYMMDD)
+            ovrs_excg_cd: 거래소 코드 (기본 NASD)
+            pdno: 종목코드 (아시아 필수)
+            qty: 원 주문수량 (아시아 필수)
+            price: 원 주문단가 (아시아)
 
         Returns:
             취소 결과 Dict
         """
-        return self.order_api.cancel_reserve_order(rsvn_ord_seq)
+        return self.order_api.cancel_reserve_order(
+            ovrs_rsvn_odno, rsvn_ord_rcit_dt, ovrs_excg_cd, pdno, qty, price
+        )
 
     # =========================================================================
     # 순위 조회 메서드 (OverseasRankingAPI 위임)

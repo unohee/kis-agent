@@ -47,7 +47,9 @@ class TestNewAccountAPI(unittest.TestCase):
     def test_order_resv_rvsecncl(self):
         """예약 주문 정정/취소 테스트"""
         self.client.make_request.return_value = {"rt_cd": "0"}
-        result = self.api.order_resv_rvsecncl(12345, 10, 60000, "00")
+        result = self.api.order_resv_rvsecncl(
+            12345, 10, 60000, "00", pdno=self.test_code, sll_buy_dvsn_cd="02"
+        )
         self.assertIsNotNone(result)
         self.assertEqual(result["rt_cd"], "0")
 

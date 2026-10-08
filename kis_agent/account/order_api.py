@@ -256,25 +256,78 @@ class AccountOrderAPI(BaseAPI):
             return None
 
     def order_resv_rvsecncl(
-        self, seq: int, qty: int, price: int, order_type: str
+        self,
+        seq: int,
+        qty: int = 0,
+        price: int = 0,
+        order_type: str = "00",
+        action: str = "modify",
+        pdno: str = "",
+        sll_buy_dvsn_cd: str = "",
+        rsvn_ord_orgno: str = "",
+        rsvn_ord_ord_dt: str = "",
+        ord_objt_cblc_dvsn_cd: str = "10",
+        rsvn_ord_end_dt: str = "",
     ) -> Optional[Dict]:
-        """예약주문 정정/취소. seq=예약주문 일련번호."""
+        """주식예약주문정정취소 [국내주식-018]
+
+        ``action``으로 정정(CTSC0013U)과 취소(CTSC0009U)를 고른다. 이전 버전은
+        항상 정정 TR을 보내 취소가 불가능했고, 매수 구분("02")을 하드코딩해
+        매도 예약을 정정하면 매수로 바뀌었다.
+
+        Args:
+            seq: 예약주문순번 (예약주문조회 ``rsvn_ord_seq``)
+            qty: 정정 주문수량 (정정 시)
+            price: 정정 주문단가 (정정 시)
+            order_type: 주문구분코드 (00 지정가, 01 시장가 ...; 정정 시)
+            action: "modify"(정정) 또는 "cancel"(취소)
+            pdno: 종목코드 (정정 시 필수)
+            sll_buy_dvsn_cd: "01" 매도 / "02" 매수 (정정 시 필수)
+            rsvn_ord_orgno: 예약주문조직번호 (예약주문조회 결과, 있으면 전송)
+            rsvn_ord_ord_dt: 예약주문주문일자 YYYYMMDD (예약주문조회 결과, 있으면 전송)
+            ord_objt_cblc_dvsn_cd: 주문대상잔고구분코드 (기본 "10" 현금)
+            rsvn_ord_end_dt: 예약주문종료일자 (기간예약주문 정정 시)
+
+        Returns:
+            응답 Dict, 실패 시 None
+
+        Raises:
+            ValueError: action이 잘못됐거나, 정정에 종목·매매구분이 없는 경우
+        """
+        if action not in ("modify", "cancel"):
+            raise ValueError(
+                f"action은 'modify' 또는 'cancel'이어야 합니다: {action!r}"
+            )
+        is_modify = action == "modify"
+        if is_modify and (not pdno or sll_buy_dvsn_cd not in ("01", "02")):
+            raise ValueError(
+                "예약주문 정정에는 pdno와 sll_buy_dvsn_cd('01' 매도/'02' 매수)가 필요합니다"
+            )
+        params = {
+            "CANO": self.account["CANO"],
+            "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
+            "RSVN_ORD_SEQ": str(seq),
+        }
+        if rsvn_ord_orgno:
+            params["RSVN_ORD_ORGNO"] = rsvn_ord_orgno
+        if rsvn_ord_ord_dt:
+            params["RSVN_ORD_ORD_DT"] = rsvn_ord_ord_dt
+        if is_modify:
+            params["PDNO"] = pdno
+            params["ORD_QTY"] = str(qty)
+            params["ORD_UNPR"] = str(price)
+            params["SLL_BUY_DVSN_CD"] = sll_buy_dvsn_cd
+            params["ORD_DVSN_CD"] = order_type
+            params["ORD_OBJT_CBLC_DVSN_CD"] = ord_objt_cblc_dvsn_cd
+        if is_modify and rsvn_ord_end_dt:
+            params["RSVN_ORD_END_DT"] = rsvn_ord_end_dt
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
-                tr_id="CTSC0013U",
-                params={
-                    "CANO": self.account["CANO"],
-                    "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                    "PDNO": "",
-                    "ORD_QTY": str(qty),
-                    "ORD_UNPR": str(price),
-                    "SLL_BUY_DVSN_CD": "02",
-                    "ORD_DVSN_CD": order_type,
-                    "ORD_OBJT_CBLC_DVSN_CD": "10",
-                    "RSVN_ORD_SEQ": str(seq),
-                },
+                tr_id="CTSC0013U" if is_modify else "CTSC0009U",
+                params=params,
                 method="POST",
+                use_cache=False,
             )
         except Exception as e:
             logging.error(f"예약 주문 정정/취소 실패: {e}")

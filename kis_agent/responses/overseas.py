@@ -633,7 +633,7 @@ class OverseasModifyOrderResponse(BaseResponse, total=False):
 
 
 # ============================================================
-# cancel_order() - 해외주식 취소주문 (TTTT1003U)
+# cancel_order() - 해외주식 취소주문 (미국 TTTT1004U, 그 외 거래소별 TR)
 # ============================================================
 
 
@@ -651,14 +651,16 @@ class OverseasCancelOrderResponse(BaseResponse, total=False):
 
 
 # ============================================================
-# reserve_order() - 해외주식 예약주문 (TTTS6036U)
+# reserve_order() - 해외주식 예약주문접수 (미국 TTTT3014U/TTTT3016U, 아시아 TTTS3013U)
 # ============================================================
 
 
 class OverseasReserveOrderCreateOutput(TypedDict, total=False):
-    """해외주식 예약주문 등록 output 필드"""
+    """해외주식 예약주문 등록 output 필드 (KIS 문서 v1_해외주식-002)"""
 
-    rsvn_ord_seq: str  # 예약주문순번 (Reserve Order Sequence)
+    odno: str  # 한국거래소전송주문조직번호/예약주문번호 (취소 시 ovrs_rsvn_odno로 사용)
+    rsvn_ord_rcit_dt: str  # 예약주문접수일자 (아시아만)
+    ovrs_rsvn_odno: str  # 해외예약주문번호 (아시아만)
 
 
 class OverseasReserveOrderCreateResponse(BaseResponse, total=False):
@@ -668,7 +670,7 @@ class OverseasReserveOrderCreateResponse(BaseResponse, total=False):
 
 
 # ============================================================
-# modify_reserve_order() - 해외주식 예약주문 정정 (TTTS6037U)
+# modify_reserve_order() - 폐기: KIS에 대응 API 없음 (하위 호환용 타입)
 # ============================================================
 
 
@@ -685,14 +687,14 @@ class OverseasReserveOrderModifyResponse(BaseResponse, total=False):
 
 
 # ============================================================
-# cancel_reserve_order() - 해외주식 예약주문 취소 (TTTS6038U)
+# cancel_reserve_order() - 해외주식 예약주문 취소 (미국 TTTT3017U, 아시아 TTTS3013U)
 # ============================================================
 
 
 class OverseasReserveOrderCancelOutput(TypedDict, total=False):
-    """해외주식 예약주문 취소 output 필드"""
+    """해외주식 예약주문 취소 output 필드 (KIS 문서 v1_해외주식-004)"""
 
-    rsvn_ord_seq: str  # 취소된 예약주문순번 (Cancelled Reserve Order Sequence)
+    ovrs_rsvn_odno: str  # 취소된 해외예약주문번호
 
 
 class OverseasReserveOrderCancelResponse(BaseResponse, total=False):

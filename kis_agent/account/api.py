@@ -214,10 +214,10 @@ class AccountAPI(BaseAPI):
         return self._order_api.order_resv(code, qty, price, order_type)
 
     def order_resv_rvsecncl(
-        self, seq: int, qty: int, price: int, order_type: str
+        self, seq: int, *args: Any, **kwargs: Any
     ) -> Optional[Dict]:
-        """예약주문 정정/취소."""
-        return self._order_api.order_resv_rvsecncl(seq, qty, price, order_type)
+        """예약주문 정정/취소. 인자는 ``AccountOrderAPI.order_resv_rvsecncl`` 참고."""
+        return self._order_api.order_resv_rvsecncl(seq, *args, **kwargs)
 
     def order_resv_ccnl(self) -> Optional[Dict]:
         """예약주문 내역 조회."""

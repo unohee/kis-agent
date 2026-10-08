@@ -245,7 +245,7 @@ class TestOverseasOrderAPICancelOrder(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
         call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["tr_id"], "TTTT1003U")
+        self.assertEqual(call_args.kwargs["tr_id"], "TTTT1004U")
         self.assertEqual(call_args.kwargs["params"]["ORGN_ODNO"], "0001234")
         self.assertEqual(call_args.kwargs["params"]["RVSE_CNCL_DVSN_CD"], "02")  # 취소
         self.assertEqual(
@@ -253,98 +253,8 @@ class TestOverseasOrderAPICancelOrder(unittest.TestCase):
         )  # 취소 시 가격 0
 
 
-class TestOverseasOrderAPIReserveOrder(unittest.TestCase):
-    """OverseasOrderAPI 예약주문 테스트"""
-
-    def setUp(self):
-        self.mock_client = Mock(spec=KISClient)
-        self.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
-        self.api = OverseasOrderAPI(
-            client=self.mock_client,
-            account_info=self.account_info,
-            _from_agent=True,
-        )
-
-    def test_reserve_order_buy(self):
-        """예약 매수주문"""
-        expected_result = {
-            "rt_cd": "0",
-            "output": {"rsvn_ord_seq": "001"},
-        }
-        self.api._make_request_dict = Mock(return_value=expected_result)
-
-        result = self.api.reserve_order("NASD", "AAPL", "02", 10, 180.00)
-
-        self.assertEqual(result, expected_result)
-        call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["tr_id"], "TTTS6036U")
-        self.assertEqual(call_args.kwargs["params"]["SLL_BUY_DVSN_CD"], "02")  # 매수
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_QTY"], "10")
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_UNPR"], "180.0")
-
-    def test_reserve_order_sell(self):
-        """예약 매도주문"""
-        self.api._make_request_dict = Mock(return_value={"rt_cd": "0"})
-
-        self.api.reserve_order(
-            "NASD", "AAPL", "01", 5, 200.00, rsvn_ord_end_dt="20250131"
-        )
-
-        call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["params"]["SLL_BUY_DVSN_CD"], "01")  # 매도
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_END_DT"], "20250131")
-
-
-class TestOverseasOrderAPIModifyReserveOrder(unittest.TestCase):
-    """OverseasOrderAPI 예약주문 정정 테스트"""
-
-    def setUp(self):
-        self.mock_client = Mock(spec=KISClient)
-        self.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
-        self.api = OverseasOrderAPI(
-            client=self.mock_client,
-            account_info=self.account_info,
-            _from_agent=True,
-        )
-
-    def test_modify_reserve_order(self):
-        """예약주문 정정"""
-        expected_result = {"rt_cd": "0", "output": {"rsvn_ord_seq": "001"}}
-        self.api._make_request_dict = Mock(return_value=expected_result)
-
-        result = self.api.modify_reserve_order("001", 15, 175.00)
-
-        self.assertEqual(result, expected_result)
-        call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["tr_id"], "TTTS6037U")
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_SEQ"], "001")
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_QTY"], "15")
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_UNPR"], "175.0")
-
-
-class TestOverseasOrderAPICancelReserveOrder(unittest.TestCase):
-    """OverseasOrderAPI 예약주문 취소 테스트"""
-
-    def setUp(self):
-        self.mock_client = Mock(spec=KISClient)
-        self.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
-        self.api = OverseasOrderAPI(
-            client=self.mock_client,
-            account_info=self.account_info,
-            _from_agent=True,
-        )
-
-    def test_cancel_reserve_order(self):
-        """예약주문 취소"""
-        expected_result = {"rt_cd": "0", "output": {"rsvn_ord_seq": "001"}}
-        self.api._make_request_dict = Mock(return_value=expected_result)
-
-        result = self.api.cancel_reserve_order("001")
-
-        self.assertEqual(result, expected_result)
-        call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["tr_id"], "TTTS6038U")
-        self.assertEqual(call_args.kwargs["params"]["RSVN_ORD_SEQ"], "001")
+# Reservation order tests live in tests/unit/test_overseas_order_spec.py
+# (they assert the full request against the official KIS contract).
 
 
 class TestOverseasOrderAPINoAccount(unittest.TestCase):

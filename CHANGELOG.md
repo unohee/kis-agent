@@ -2,6 +2,47 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
+## [Unreleased]
+
+공식 KIS 스펙(워크북 + `open-trading-api` 샘플) 대조로 찾은 결함 수정. 대조 도구는
+`scripts/spec_conformance/check.py`.
+
+### 🛡️ 해외주식 주문 — **호출자 영향 확인 필수**
+
+- **취소주문이 존재하지 않는 TR_ID(`TTTT1003U`)를 보내던 문제 수정.** 정정·취소는
+  거래소별 TR_ID를 쓴다 (미국 `TTTT1004U`, 홍콩 `TTTS1003U`, 도쿄 `TTTS0309U`,
+  상해 `TTTS0302U`, 심천 `TTTS0306U`, 베트남 `TTTS0312U`).
+- **매수·매도가 모든 거래소에 미국 TR_ID를 보내던 문제 수정.** 홍콩·상해·심천·도쿄·
+  베트남 주문은 각 시장의 TR_ID로 나간다. 매도에는 `SLL_TYPE="00"`을 보낸다.
+- 상해·심천·베트남은 KIS가 정정을 제공하지 않으므로 `modify_order`가 `ValueError`를
+  낸다 (취소 후 재주문).
+- `modify_order`/`cancel_order`의 `ord_dvsn`은 정정취소 API에 없는 필드라 더 이상
+  보내지 않는다. 기본값이 아니면 `DeprecationWarning`.
+- **예약주문(`reserve_order`)을 공식 본문으로 재작성.** 미국 매수 `TTTT3014U`, 미국 매도
+  `TTTT3016U`, 아시아 `TTTS3013U`(상품유형코드 자동). 이전 TR_ID(`TTTS6036U`)는
+  미국 *주간*주문용이었다. `rsvn_ord_end_dt`는 API에 없는 필드라 무시하고 경고한다.
+- **`cancel_reserve_order` 시그니처 변경 (breaking):**
+  `cancel_reserve_order(ovrs_rsvn_odno, rsvn_ord_rcit_dt, ovrs_excg_cd="NASD", pdno="", qty=0, price=0)`.
+  미국은 `TTTT3017U`, 아시아는 예약주문접수에 취소구분 "02". 이전 호출은 KIS에 없는
+  필드(`RSVN_ORD_SEQ`)를 보내 동작하지 않았다.
+- **`modify_reserve_order` 폐기:** KIS에 해외 예약주문 정정 API가 없다
+  (`order-resv-rvsecncl`은 문서에 없는 경로). 이제 `NotImplementedError`를 낸다.
+
+### 🛡️ 국내주식 예약주문 정정/취소 — **호출자 영향 확인 필수**
+
+- `order_resv_rvsecncl`이 항상 정정 TR(`CTSC0013U`)을 보내 **취소가 불가능**했고,
+  매수 구분 `"02"`를 하드코딩해 매도 예약을 정정하면 매수로 바뀌었다.
+- 새 인자 `action="modify"|"cancel"` (취소는 `CTSC0009U`). 정정에는 `pdno`와
+  `sll_buy_dvsn_cd`가 필수다. 예약주문조회 결과의 `rsvn_ord_orgno`/`rsvn_ord_ord_dt`를
+  넘기면 함께 보낸다.
+
+### 🔧 기타
+
+- 연속조회 공용 지원: 응답 헤더 `tr_cont`를 `_tr_cont`로 노출하고
+  `BaseAPI._paginate()`를 추가했다.
+- VWAP 거래량 프로파일을 실행 시작 시각 기준으로 조회한다 (지정한 `start`가 있으면
+  그 이전 거래일).
+
 ## [1.10.0] - 2026-08-28
 
 ### 📢 집행 결과 계약 정직화 (STO-1731) — **호출자(LLM 포함) 영향 확인 필수**

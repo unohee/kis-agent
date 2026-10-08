@@ -28,7 +28,7 @@ def test_remaining_account_order_and_ranking_delegations():
     api.cancel_order("NAS", "AAPL", "1", 1)
     api.reserve_order("NAS", "AAPL", "02", 1, 1.0)
     api.modify_reserve_order("1", 1, 1.0)
-    api.cancel_reserve_order("1")
+    api.cancel_reserve_order("1", "20260108")
     api.trade_volume_ranking("NAS")
     api.trade_amount_ranking("NAS")
     api.trade_growth_ranking("NAS")
