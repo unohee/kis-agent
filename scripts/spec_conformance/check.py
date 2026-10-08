@@ -43,6 +43,7 @@ BASELINE = os.path.join(HERE, "baseline.json")
 SEVERITY = {
     "method-mismatch": "error",
     "tr-mismatch": "error",
+    "deprecated-tr": "error",
     "tr-selection": "error",
     "url-not-in-spec": "error",
     "missing-required": "error",
@@ -170,7 +171,19 @@ def check_rest(
             allowed_trs = api.real_trs | api.paper_trs
             for sample in samples.get(url, []):
                 allowed_trs |= sample.tr_ids
-            bad = sorted(t for t in s.tr_ids if t not in allowed_trs)
+            retired = sorted(t for t in s.tr_ids if t in api.old_trs)
+            if retired:
+                findings.append(
+                    Finding(
+                        "deprecated-tr",
+                        s.where,
+                        url,
+                        f"func={s.func} ours={retired} is marked (구) in the spec; use {sorted(api.real_trs)}",
+                        order,
+                    )
+                )
+            allowed_trs -= api.old_trs
+            bad = sorted(t for t in s.tr_ids if t not in allowed_trs and t not in api.old_trs)
             if bad:
                 findings.append(
                     Finding(
@@ -523,7 +536,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--workbook")
     p.add_argument("--clone")
     p.add_argument("--repo", default=REPO)
+    p.add_argument("--describe", metavar="URL", help="print the workbook field table for one URL and exit")
+    p.add_argument("--with-response", action="store_true", help="with --describe: include response fields")
     args = p.parse_args(argv)
+    if args.describe:
+        workbook = args.workbook or official.find_workbook(args.repo)
+        print("\n".join(official.describe_api(workbook, args.describe, args.with_response)))
+        return 0
     result = run(
         args.repo,
         args.workbook,

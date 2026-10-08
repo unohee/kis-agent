@@ -36,6 +36,8 @@ CLONE_DIRNAME = "open-trading-api"
 # A TR_ID is one uppercase alphanumeric token that starts with a letter and
 # contains at least one digit, e.g. TTTC0011U, FHKST01010100, HHPSTH60100C1, H0STCNT0.
 _TOKEN = re.compile(r"[A-Z0-9]+")
+# "(구)TTTC8036R → (신)TTTC0084R": the workbook names retired TR_IDs this way.
+_OLD_TR = re.compile(r"\(구\)\s*([A-Z0-9]+)")
 # Sample-side TR_ID literals (REST and WebSocket).
 TR_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{6,12}$")
 
@@ -73,6 +75,7 @@ class SpecApi:
     paper_trs: Set[str] = field(default_factory=set)
     paper_supported: bool = False
     methods: Set[str] = field(default_factory=set)
+    old_trs: Set[str] = field(default_factory=set)  # retired: "(구)XXXX → (신)YYYY"
     required: Optional[Set[str]] = None
     optional: Set[str] = field(default_factory=set)
 
@@ -99,6 +102,7 @@ def parse_api_sheet(rows: List[tuple]) -> Dict[str, object]:
     opt: Set[str] = set()
     tr_real: Set[str] = set()
     tr_paper: Set[str] = set()
+    tr_old: Set[str] = set()
     for raw in rows:
         r = list(raw) + [None] * 8
         if r[0] == "URL 명":
@@ -109,7 +113,10 @@ def parse_api_sheet(rows: List[tuple]) -> Dict[str, object]:
         if r[1] == "tr_id" and section and "Header" in section and r[6]:
             # Per-market TR_IDs live only in this description, e.g.
             # "[실전투자] TTTT1004U : 미국 ... [모의투자] VTTT1004U : ..."
-            real_part, _, paper_part = str(r[6]).partition("[모의투자]")
+            text = str(r[6])
+            tr_old.update(_OLD_TR.findall(text))
+            text = _OLD_TR.sub(" ", text)
+            real_part, _, paper_part = text.partition("[모의투자]")
             tr_real.update(t for t in tr_tokens(real_part) if t.isupper())
             tr_paper.update(tr_tokens(paper_part))
         if not section or not section.startswith("Request") or "Header" in section:
@@ -117,7 +124,14 @@ def parse_api_sheet(rows: List[tuple]) -> Dict[str, object]:
         element, required = r[1], r[4]
         if element and required in ("Y", "N") and r[0] != "구분":
             (req if required == "Y" else opt).add(str(element).strip())
-    return {"url": url, "required": req, "optional": opt, "tr_real": tr_real, "tr_paper": tr_paper}
+    return {
+        "url": url,
+        "required": req,
+        "optional": opt,
+        "tr_real": tr_real,
+        "tr_paper": tr_paper,
+        "tr_old": tr_old,
+    }
 
 
 def load_workbook_apis(path: str) -> Dict[str, SpecApi]:
@@ -161,6 +175,9 @@ def load_workbook_apis(path: str) -> Dict[str, SpecApi]:
             _merge_fields(apis[url], parsed["required"], parsed["optional"])
             apis[url].real_trs.update(parsed["tr_real"])
             apis[url].paper_trs.update(parsed["tr_paper"])
+            apis[url].old_trs.update(parsed["tr_old"])
+            apis[url].real_trs -= apis[url].old_trs
+            apis[url].paper_trs -= apis[url].old_trs
     return apis
 
 
@@ -350,3 +367,35 @@ def load_ws_samples(
         for tr, cols in found.items():
             out[tr] = {"file": os.path.relpath(path, clone), "columns": cols}
     return out
+
+
+def describe_api(path: str, url: str, include_response: bool = False) -> List[str]:
+    """Human-readable field table for one URL, straight from the workbook sheets."""
+    import warnings
+
+    import openpyxl
+
+    warnings.filterwarnings("ignore", module="openpyxl")
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out: List[str] = []
+    for name in wb.sheetnames[1:]:
+        rows = list(wb[name].iter_rows(values_only=True))
+        if not any(r and r[0] == "URL 명" and str(r[1]).strip() == url for r in rows):
+            continue
+        out.append(f"### {name} {url}")
+        section = None
+        for raw in rows:
+            r = list(raw) + [None] * 8
+            if r[0] in ("실전 TR_ID", "모의 TR_ID", "HTTP Method"):
+                out.append(f"  {r[0]}: {r[1]}")
+            if r[0] and str(r[0]).startswith(("Request", "Response")):
+                section = str(r[0])
+            if not section or (section.startswith("Response") and not include_response):
+                continue
+            if section.startswith("Request Header") and r[1] != "tr_id":
+                continue
+            if r[1] and r[4] in ("Y", "N") and r[0] != "구분":
+                desc = " | ".join(str(r[6] or "").replace("\r", "").split("\n"))
+                out.append(f"  [{section.split()[-1][:4]}] {r[1]} ({r[2]}) {r[4]}: {desc[:300]}")
+    return out
+

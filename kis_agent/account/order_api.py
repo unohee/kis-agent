@@ -217,7 +217,7 @@ class AccountOrderAPI(BaseAPI):
         try:
             return self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",
-                tr_id="TTTC8036R",
+                tr_id="TTTC0084R",
                 params={
                     "CANO": self.account["CANO"],
                     "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],

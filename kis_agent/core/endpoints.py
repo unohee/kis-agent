@@ -44,9 +44,9 @@ API_ENDPOINTS = {
     "PROFIT_ASSET_INDEX": "/uapi/domestic-stock/v1/quotations/profit-asset-index",  # 국내주식 자산/수익지수 (TR: FHKUP03500400)
     "INTSTOCK_MULTPRICE": "/uapi/domestic-stock/v1/quotations/intstock-multprice",  # 국내주식 복수종목 현재가 (TR: FHKST662300C0)
     # === 프로그램매매 ===
-    "PROGRAM_TRADE_BY_STOCK_DAILY": "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily",  # 종목별 프로그램매매추이(일별) (TR: FHPPG04650200)
+    "PROGRAM_TRADE_BY_STOCK_DAILY": "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily",  # 종목별 프로그램매매추이(일별) (TR: FHPPG04650201)
     "PROGRAM_TRADE_BY_STOCK": "/uapi/domestic-stock/v1/quotations/program-trade-by-stock",  # 종목별프로그램매매추이(체결) (TR: FHPPG04650101)
-    "COMP_PROGRAM_TRADE_DAILY": "/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",  # 프로그램매매 종합현황(일별) (TR: FHPPG04600000)
+    "COMP_PROGRAM_TRADE_DAILY": "/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",  # 프로그램매매 종합현황(일별) (TR: FHPPG04600001)
     "COMP_PROGRAM_TRADE_TODAY": "/uapi/domestic-stock/v1/quotations/comp-program-trade-today",  # 프로그램매매 종합현황(시간) (TR: FHPPG04600100)
     "INVESTOR_PROGRAM_TRADE_TODAY": "/uapi/domestic-stock/v1/quotations/investor-program-trade-today",  # 프로그램매매 투자자매매동향(당일) (TR: HHPPG046600C0)
     # === 투자자별 ===
@@ -71,7 +71,7 @@ API_ENDPOINTS = {
     "ORDER_CASH": "/uapi/domestic-stock/v1/trading/order-cash",  # 주식주문(현금) (TR: 매수-TTTC0012U/매도-TTTC0011U, Mock: VTTC0012U/VTTC0011U)
     "ORDER_CREDIT": "/uapi/domestic-stock/v1/trading/order-credit",  # 주식주문(신용) (TR: 매수-TTTC0052U/매도-TTTC0051U, 실전만)
     "INQUIRE_CREDIT_PSAMOUNT": "/uapi/domestic-stock/v1/trading/inquire-credit-psamount",  # 신용매수가능조회 (TR: TTTC8909R)
-    "INQUIRE_PSBL_RVSECNCL": "/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",  # 주식정정취소가능주문조회 (TR: TTTC8036R)
+    "INQUIRE_PSBL_RVSECNCL": "/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",  # 주식정정취소가능주문조회 (TR: TTTC0084R)
     "ORDER_RESV_CCNL": "/uapi/domestic-stock/v1/trading/order-resv-ccnl",  # 주식예약주문조회 (TR: CTSC0004R)
     # === 시장정보/순위 ===
     "VOLUME_RANK": "/uapi/domestic-stock/v1/quotations/volume-rank",  # 거래량순위 (TR: FHPST01710000)

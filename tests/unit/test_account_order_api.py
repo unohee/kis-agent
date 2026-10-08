@@ -362,7 +362,7 @@ class TestAccountOrderAPI:
         # Assert
         assert result is not None
         call_args = mock_client.make_request.call_args
-        assert call_args[1]["tr_id"] == "TTTC8036R"
+        assert call_args[1]["tr_id"] == "TTTC0084R"
         assert call_args[1]["params"]["INQR_DVSN_1"] == "1"
 
     def test_inquire_psbl_rvsecncl_exception_handling(self, order_api, mock_client):

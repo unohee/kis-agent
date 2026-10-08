@@ -11,7 +11,7 @@ program_trade_api.py - 프로그램 매매 정보 조회 전용 모듈
 
 이 모듈은 한국투자증권 OpenAPI를 통해 프로그램 매매 관련 정보를 조회합니다:
 - 시간별 프로그램 매매 추이 (실시간 델타 등) - 종목별프로그램매매추이(체결) / FHPPG04650101
-- 일별 프로그램 매매 집계 (당일 총 매수/매도량 등) - 종목별 프로그램매매추이(일별) / FHPPG04650200
+- 일별 프로그램 매매 집계 (당일 총 매수/매도량 등) - 종목별 프로그램매매추이(일별) / FHPPG04650201
 - 기간별 프로그램 매매 상세 (차익/비차익 매매 내역)
 
  의존:
@@ -138,7 +138,7 @@ class ProgramTradeAPI(BaseAPI):
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["PROGRAM_TRADE_BY_STOCK_DAILY"],
-            tr_id="FHPPG04650200",  # 종목별 프로그램매매추이(일별)
+            tr_id="FHPPG04650201",  # 종목별 프로그램매매추이(일별), 구TR FHPPG04650200
             params={
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": code,
@@ -166,7 +166,7 @@ class ProgramTradeAPI(BaseAPI):
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",
-            tr_id="FHPPG04600000",  # 프로그램매매종합현황(일별)
+            tr_id="FHPPG04600001",  # 프로그램매매종합현황(일별), 구TR FHPPG04600000
             params={
                 "FID_MRKT_CLS_CODE": "",  # 시장 분류 코드 (전체는 공백)
                 "FID_INPUT_DATE_1": start_date,

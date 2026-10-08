@@ -124,7 +124,7 @@ class TestProgramTradeAPI:
         assert result == expected_result
         mock_client.make_request.assert_called_once()
         call_args = mock_client.make_request.call_args
-        assert call_args.kwargs["tr_id"] == "FHPPG04650200"
+        assert call_args.kwargs["tr_id"] == "FHPPG04650201"
         assert call_args.kwargs["params"]["FID_INPUT_ISCD"] == "005930"
         assert call_args.kwargs["params"]["FID_INPUT_DATE_1"] == "20241227"
 
@@ -144,7 +144,7 @@ class TestProgramTradeAPI:
         assert result == expected_result
         mock_client.make_request.assert_called_once()
         call_args = mock_client.make_request.call_args
-        assert call_args.kwargs["tr_id"] == "FHPPG04600000"
+        assert call_args.kwargs["tr_id"] == "FHPPG04600001"
         assert call_args.kwargs["params"]["FID_INPUT_DATE_1"] == "20241201"
         assert call_args.kwargs["params"]["FID_INPUT_DATE_2"] == "20241227"
 

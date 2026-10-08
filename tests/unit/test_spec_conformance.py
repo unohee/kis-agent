@@ -70,7 +70,8 @@ class TestParseApiSheet:
                 "string",
                 "Y",
                 "13",
-                "[실전투자]\nTTTT1004U : 미국\nTTTS1003U : 홍콩\n[모의투자]\nVTTT1004U : 미국",
+                "[실전투자]\nTTTT1004U : 미국\nTTTS1003U : 홍콩\n(구)TTTT1003U → (신)TTTT1004U\n"
+                "[모의투자]\nVTTT1004U : 미국",
             ),
             ("Request Body", "CANO", "", "string", "Y"),
             (None, "EXCG_ID_DVSN_CD", "", "string", "N"),
@@ -83,6 +84,7 @@ class TestParseApiSheet:
             "optional": {"EXCG_ID_DVSN_CD"},
             "tr_real": {"TTTT1004U", "TTTS1003U"},
             "tr_paper": {"VTTT1004U"},
+            "tr_old": {"TTTT1003U"},
         }
 
     def test_merge_intersects_required(self):
@@ -352,6 +354,11 @@ class TestCheckRest:
         sample = official.SampleApi("f", "/u", {"T0000009R"}, False, set())
         site = _site(tr_ids={"V0000001R", "T0000009R"})
         assert check.check_rest([site], spec, {"/u": [sample]}) == []
+
+    def test_retired_tr_is_its_own_rule(self):
+        api = _api("/u", real={"T0000002R"}, required={"A"})
+        api.old_trs = {"T0000001R"}
+        assert _rules(check.check_rest([_site()], {"/u": api}, {})) == ["deprecated-tr"]
 
     def test_tr_selection(self):
         spec = {
