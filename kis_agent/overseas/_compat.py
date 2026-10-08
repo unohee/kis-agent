@@ -5,6 +5,9 @@
 """
 
 import warnings
+from datetime import datetime, timedelta
+
+import pytz
 
 
 def warn_ignored(method: str, arg: str, hint: str = "") -> None:
@@ -39,3 +42,19 @@ def warn_renamed(method: str, old: str, new: str) -> None:
         DeprecationWarning,
         stacklevel=3,
     )
+
+
+_KST = pytz.timezone("Asia/Seoul")
+
+
+def _utc_now() -> datetime:
+    """현재 시각(UTC). 테스트에서 고정값으로 바꿀 수 있도록 분리했다."""
+    return datetime.now(pytz.utc)
+
+
+def kst_date(days: int = 0) -> str:
+    """서울 기준 오늘(+``days``일)을 YYYYMMDD로 반환한다.
+
+    조회 API의 날짜 기본값(오늘, N일 전/후)을 호출 시점에 계산하는 데 쓴다.
+    """
+    return (_utc_now().astimezone(_KST) + timedelta(days=days)).strftime("%Y%m%d")

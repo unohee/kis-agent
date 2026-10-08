@@ -622,3 +622,268 @@ class OverseasOrderAPI(BaseAPI):
         except Exception as e:
             logging.error(f"해외주식 예약주문 취소 실패: {e}")
             raise
+
+    # ------------------------------------------------------------------
+    # 미국 주간거래 (daytime) 주문. 지정가만 가능하고 모의투자는 지원하지 않는다.
+    # ------------------------------------------------------------------
+
+    def _daytime_exchange(self, ovrs_excg_cd: str) -> str:
+        """주간거래 거래소를 검증한다. 미국(NASD/NYSE/AMEX)만 가능."""
+        exchange = self._normalize_exchange(ovrs_excg_cd)
+        if exchange not in self._US_EXCHANGES:
+            raise ValueError(
+                f"미국 주간거래는 미국 거래소(NASD/NYSE/AMEX)만 지원합니다: {ovrs_excg_cd}"
+            )
+        return exchange
+
+    @staticmethod
+    def _daytime_qty(qty: int) -> str:
+        if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
+            raise ValueError(f"qty는 1 이상의 정수여야 합니다: {qty!r}")
+        return str(qty)
+
+    @staticmethod
+    def _daytime_price(price: float) -> str:
+        if isinstance(price, bool) or not isinstance(price, (int, float)):
+            raise ValueError(f"price는 숫자여야 합니다: {price!r}")
+        if price <= 0:
+            raise ValueError(
+                f"미국 주간거래는 지정가만 가능합니다. price는 0보다 커야 합니다: {price}"
+            )
+        return str(price)
+
+    @staticmethod
+    def _daytime_orgn_odno(orgn_odno: str) -> str:
+        if not orgn_odno:
+            raise ValueError("orgn_odno(원주문번호)는 필수입니다")
+        return orgn_odno
+
+    def daytime_buy_order(
+        self,
+        ovrs_excg_cd: str,
+        pdno: str,
+        qty: int,
+        price: float,
+        ctac_tlno: str = "",
+        mgco_aptm_odno: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 미국주간 매수주문 [v1_해외주식-026]
+
+        미국 주간거래 시간에 지정가 매수 주문을 냅니다 (TR_ID TTTS6036U).
+        주간거래는 지정가만 가능하며 모의투자는 지원하지 않습니다
+        (``PaperTradingNotSupportedError``).
+
+        Args:
+            ovrs_excg_cd (str): 거래소 코드 (NASD/NYSE/AMEX 또는 NAS/NYS/AMS)
+            pdno (str): 종목코드
+            qty (int): 주문수량 (1 이상)
+            price (float): 주문단가 (0보다 커야 함, 지정가)
+            ctac_tlno (str): 연락전화번호 (선택)
+            mgco_aptm_odno (str): 운용사지정주문번호 (선택)
+
+        Returns:
+            Optional[Dict]: 주문 결과
+                - output.KRX_FWDG_ORD_ORGNO: 한국거래소전송주문조직번호
+                - output.ODNO: 주문번호
+                - output.ORD_TMD: 주문시각
+
+        Raises:
+            ValueError: 미국 외 거래소, 수량/단가 오류. 요청은 전송되지 않는다.
+
+        Example:
+            >>> agent.overseas.daytime_buy_order("NASD", "AAPL", 10, 185.00)
+        """
+        account_params = self._get_account_params()
+        exchange = self._daytime_exchange(ovrs_excg_cd)
+        order_qty = self._daytime_qty(qty)
+        order_price = self._daytime_price(price)
+
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-stock/v1/trading/daytime-order",
+            tr_id="TTTS6036U",
+            params={
+                **account_params,
+                "OVRS_EXCG_CD": exchange,
+                "PDNO": pdno.upper(),
+                "ORD_QTY": order_qty,
+                "OVRS_ORD_UNPR": order_price,
+                "CTAC_TLNO": ctac_tlno,
+                "MGCO_APTM_ODNO": mgco_aptm_odno,
+                "ORD_SVR_DVSN_CD": "0",
+                "ORD_DVSN": "00",
+            },
+            method="POST",
+            use_cache=False,
+        )
+
+    def daytime_sell_order(
+        self,
+        ovrs_excg_cd: str,
+        pdno: str,
+        qty: int,
+        price: float,
+        ctac_tlno: str = "",
+        mgco_aptm_odno: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 미국주간 매도주문 [v1_해외주식-026]
+
+        미국 주간거래 시간에 지정가 매도 주문을 냅니다 (TR_ID TTTS6037U).
+        주간거래는 지정가만 가능하며 모의투자는 지원하지 않습니다
+        (``PaperTradingNotSupportedError``).
+
+        Args:
+            ovrs_excg_cd (str): 거래소 코드 (NASD/NYSE/AMEX 또는 NAS/NYS/AMS)
+            pdno (str): 종목코드
+            qty (int): 주문수량 (1 이상)
+            price (float): 주문단가 (0보다 커야 함, 지정가)
+            ctac_tlno (str): 연락전화번호 (선택)
+            mgco_aptm_odno (str): 운용사지정주문번호 (선택)
+
+        Returns:
+            Optional[Dict]: 주문 결과 (output.ODNO, output.ORD_TMD 등)
+
+        Raises:
+            ValueError: 미국 외 거래소, 수량/단가 오류. 요청은 전송되지 않는다.
+
+        Example:
+            >>> agent.overseas.daytime_sell_order("NASD", "AAPL", 5, 190.00)
+        """
+        account_params = self._get_account_params()
+        exchange = self._daytime_exchange(ovrs_excg_cd)
+        order_qty = self._daytime_qty(qty)
+        order_price = self._daytime_price(price)
+
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-stock/v1/trading/daytime-order",
+            tr_id="TTTS6037U",
+            params={
+                **account_params,
+                "OVRS_EXCG_CD": exchange,
+                "PDNO": pdno.upper(),
+                "ORD_QTY": order_qty,
+                "OVRS_ORD_UNPR": order_price,
+                "CTAC_TLNO": ctac_tlno,
+                "MGCO_APTM_ODNO": mgco_aptm_odno,
+                "ORD_SVR_DVSN_CD": "0",
+                "ORD_DVSN": "00",
+            },
+            method="POST",
+            use_cache=False,
+        )
+
+    def daytime_modify_order(
+        self,
+        ovrs_excg_cd: str,
+        pdno: str,
+        orgn_odno: str,
+        qty: int,
+        price: float,
+        ctac_tlno: str = "",
+        mgco_aptm_odno: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 미국주간 정정주문 [v1_해외주식-027]
+
+        미국 주간거래 미체결 주문의 수량·가격을 정정합니다 (TR_ID TTTS6038U,
+        RVSE_CNCL_DVSN_CD 01). 모의투자는 지원하지 않습니다.
+
+        Args:
+            ovrs_excg_cd (str): 거래소 코드 (미국만)
+            pdno (str): 종목코드
+            orgn_odno (str): 원주문번호 (정정할 주문번호)
+            qty (int): 정정 후 주문수량 (1 이상)
+            price (float): 정정 후 주문단가 (0보다 커야 함)
+            ctac_tlno (str): 연락전화번호 (선택)
+            mgco_aptm_odno (str): 운용사지정주문번호 (선택)
+
+        Returns:
+            Optional[Dict]: 정정 결과 (output.ODNO, output.ORD_TMD 등)
+
+        Raises:
+            ValueError: 미국 외 거래소, 원주문번호/수량/단가 오류. 요청은 전송되지 않는다.
+
+        Example:
+            >>> agent.overseas.daytime_modify_order("NASD", "AAPL", "0001234", 10, 190.00)
+        """
+        account_params = self._get_account_params()
+        exchange = self._daytime_exchange(ovrs_excg_cd)
+        original = self._daytime_orgn_odno(orgn_odno)
+        order_qty = self._daytime_qty(qty)
+        order_price = self._daytime_price(price)
+
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-stock/v1/trading/daytime-order-rvsecncl",
+            tr_id="TTTS6038U",
+            params={
+                **account_params,
+                "OVRS_EXCG_CD": exchange,
+                "PDNO": pdno.upper(),
+                "ORGN_ODNO": original,
+                "RVSE_CNCL_DVSN_CD": "01",
+                "ORD_QTY": order_qty,
+                "OVRS_ORD_UNPR": order_price,
+                "CTAC_TLNO": ctac_tlno,
+                "MGCO_APTM_ODNO": mgco_aptm_odno,
+                "ORD_SVR_DVSN_CD": "0",
+            },
+            method="POST",
+            use_cache=False,
+        )
+
+    def daytime_cancel_order(
+        self,
+        ovrs_excg_cd: str,
+        pdno: str,
+        orgn_odno: str,
+        qty: int,
+        ctac_tlno: str = "",
+        mgco_aptm_odno: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 미국주간 취소주문 [v1_해외주식-027]
+
+        미국 주간거래 미체결 주문을 취소합니다 (TR_ID TTTS6038U,
+        RVSE_CNCL_DVSN_CD 02, 단가 "0"). 모의투자는 지원하지 않습니다.
+
+        Args:
+            ovrs_excg_cd (str): 거래소 코드 (미국만)
+            pdno (str): 종목코드
+            orgn_odno (str): 원주문번호 (취소할 주문번호)
+            qty (int): 취소수량 (1 이상)
+            ctac_tlno (str): 연락전화번호 (선택)
+            mgco_aptm_odno (str): 운용사지정주문번호 (선택)
+
+        Returns:
+            Optional[Dict]: 취소 결과 (output.ODNO, output.ORD_TMD 등)
+
+        Raises:
+            ValueError: 미국 외 거래소, 원주문번호/수량 오류. 요청은 전송되지 않는다.
+
+        Example:
+            >>> agent.overseas.daytime_cancel_order("NASD", "AAPL", "0001234", 10)
+        """
+        account_params = self._get_account_params()
+        exchange = self._daytime_exchange(ovrs_excg_cd)
+        original = self._daytime_orgn_odno(orgn_odno)
+        order_qty = self._daytime_qty(qty)
+
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-stock/v1/trading/daytime-order-rvsecncl",
+            tr_id="TTTS6038U",
+            params={
+                **account_params,
+                "OVRS_EXCG_CD": exchange,
+                "PDNO": pdno.upper(),
+                "ORGN_ODNO": original,
+                "RVSE_CNCL_DVSN_CD": "02",
+                "ORD_QTY": order_qty,
+                "OVRS_ORD_UNPR": "0",
+                "CTAC_TLNO": ctac_tlno,
+                "MGCO_APTM_ODNO": mgco_aptm_odno,
+                "ORD_SVR_DVSN_CD": "0",
+            },
+            method="POST",
+            use_cache=False,
+        )

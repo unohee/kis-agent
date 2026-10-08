@@ -10,11 +10,20 @@ OverseasPriceAPI는 해외주식의 시세, 호가, 차트 데이터를 조회�
 - HSX: 호치민, HNX: 하노이 (베트남)
 """
 
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
-from ._compat import warn_ignored, warn_renamed
+from ._compat import kst_date, warn_ignored, warn_renamed
+
+
+def _range_condition(bounds: Optional[Tuple[Any, Any]]) -> Tuple[str, str, str]:
+    """조건검색 범위를 (선택조건, 시작, 끝)으로 바꾼다. 미사용이면 모두 공백."""
+    if bounds is None:
+        return "", "", ""
+    start, end = bounds
+    return "1", str(start), str(end)
 
 
 class OverseasPriceAPI(BaseAPI):
@@ -719,3 +728,392 @@ class OverseasPriceAPI(BaseAPI):
         if result and result.get("rt_cd") == "0":
             return [result.get("output", {})]
         return None
+
+    def get_inquire_search(
+        self,
+        excd: str,
+        price: Optional[Tuple[Any, Any]] = None,
+        rate: Optional[Tuple[Any, Any]] = None,
+        market_cap: Optional[Tuple[Any, Any]] = None,
+        shares: Optional[Tuple[Any, Any]] = None,
+        volume: Optional[Tuple[Any, Any]] = None,
+        amount: Optional[Tuple[Any, Any]] = None,
+        eps: Optional[Tuple[Any, Any]] = None,
+        per: Optional[Tuple[Any, Any]] = None,
+        keyb: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식조건검색 [해외주식-015]
+
+        현재가, 등락율, 시가총액 등 조건에 맞는 해외주식을 검색합니다. 각 조건은
+        ``(시작, 끝)`` 튜플로 주며, 주지 않은 조건은 사용하지 않습니다(선택조건 공백).
+        모의투자도 지원합니다.
+
+        Args:
+            excd (str): 거래소 코드 (NYS, NAS, AMS, HKS, SHS, SZS, HSX, HNX, TSE)
+            price (tuple): 현재가 범위 (각국 통화 단위)
+            rate (tuple): 등락율 범위 (%)
+            market_cap (tuple): 시가총액 범위 (단위: 천)
+            shares (tuple): 발행주식수 범위 (단위: 천)
+            volume (tuple): 거래량 범위 (단위: 주)
+            amount (tuple): 거래대금 범위 (단위: 천)
+            eps (tuple): EPS 범위
+            per (tuple): PER 범위
+            keyb (str): NEXT KEY BUFF (처음 조회는 공백)
+
+        Returns:
+            Optional[Dict]: 검색 결과
+                - output1: 요약 (zdiv, stat, crec, trec, nrec)
+                - output2: 종목 리스트 (symb, name, last, rate, tvol, valx, eps, per, rank)
+
+        Example:
+            >>> agent.overseas.get_inquire_search("NAS", price=(10, 50), rate=(3, 20))
+        """
+        self._validate_exchange(excd)
+        yn_price, st_price, en_price = _range_condition(price)
+        yn_rate, st_rate, en_rate = _range_condition(rate)
+        yn_valx, st_valx, en_valx = _range_condition(market_cap)
+        yn_shar, st_shar, en_shar = _range_condition(shares)
+        yn_volume, st_volume, en_volume = _range_condition(volume)
+        yn_amt, st_amt, en_amt = _range_condition(amount)
+        yn_eps, st_eps, en_eps = _range_condition(eps)
+        yn_per, st_per, en_per = _range_condition(per)
+
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-price/v1/quotations/inquire-search",
+            tr_id="HHDFS76410000",
+            params={
+                "AUTH": "",
+                "EXCD": excd.upper(),
+                "CO_YN_PRICECUR": yn_price,
+                "CO_ST_PRICECUR": st_price,
+                "CO_EN_PRICECUR": en_price,
+                "CO_YN_RATE": yn_rate,
+                "CO_ST_RATE": st_rate,
+                "CO_EN_RATE": en_rate,
+                "CO_YN_VALX": yn_valx,
+                "CO_ST_VALX": st_valx,
+                "CO_EN_VALX": en_valx,
+                "CO_YN_SHAR": yn_shar,
+                "CO_ST_SHAR": st_shar,
+                "CO_EN_SHAR": en_shar,
+                "CO_YN_VOLUME": yn_volume,
+                "CO_ST_VOLUME": st_volume,
+                "CO_EN_VOLUME": en_volume,
+                "CO_YN_AMT": yn_amt,
+                "CO_ST_AMT": st_amt,
+                "CO_EN_AMT": en_amt,
+                "CO_YN_EPS": yn_eps,
+                "CO_ST_EPS": st_eps,
+                "CO_EN_EPS": en_eps,
+                "CO_YN_PER": yn_per,
+                "CO_ST_PER": st_per,
+                "CO_EN_PER": en_per,
+                "KEYB": keyb,
+            },
+            use_cache=True,
+            cache_ttl=30,
+        )
+
+    def get_inquire_time_indexchartprice(
+        self,
+        code: str,
+        market: str = "N",
+        hour_cls_code: str = "0",
+        past_data: str = "Y",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외지수분봉조회 [해외주식-031]
+
+        해외지수·환율의 분봉을 조회합니다. 모의투자는 지원하지 않습니다.
+
+        Args:
+            code: 종목코드 (지수 예: SPX, 환율 코드)
+            market: 조건 시장 분류 코드 (N: 해외지수, X: 환율, KX: 원화환율)
+            hour_cls_code: 시간 구분 코드 (0: 정규장, 1: 시간외)
+            past_data: 과거 데이터 포함 여부 (Y/N)
+
+        Returns:
+            Optional[Dict]: 분봉 데이터
+                - output1: 기본 정보 (hts_kor_isnm, ovrs_nmix_prpr, prdy_ctrt, acml_vol)
+                - output2: 분봉 리스트 (stck_bsop_date, stck_cntg_hour, optn_prpr,
+                  optn_oprc, optn_hgpr, optn_lwpr, cntg_vol)
+
+        Example:
+            >>> agent.overseas.get_inquire_time_indexchartprice("SPX")
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-price/v1/quotations/inquire-time-indexchartprice",
+            tr_id="FHKST03030200",
+            params={
+                "FID_COND_MRKT_DIV_CODE": market,
+                "FID_INPUT_ISCD": code,
+                "FID_HOUR_CLS_CODE": hour_cls_code,
+                "FID_PW_DATA_INCU_YN": past_data,
+            },
+            use_cache=True,
+            cache_ttl=30,
+        )
+
+    def get_industry_price(self, excd: str) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 업종별코드조회 [해외주식-049]
+
+        거래소의 업종코드와 업종명을 조회합니다. 여기서 얻은 ``icod``를
+        ``get_industry_theme``에 넘깁니다. 모의투자는 지원하지 않습니다.
+
+        Args:
+            excd: 거래소 코드 (NYS, NAS, AMS, HKS, SHS, SZS, HSX, HNX, TSE)
+
+        Returns:
+            Optional[Dict]:
+                - output1: nrec (레코드 수)
+                - output2: 업종 리스트 (icod: 업종코드, name: 업종명)
+
+        Example:
+            >>> agent.overseas.get_industry_price("NAS")
+        """
+        self._validate_exchange(excd)
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-price/v1/quotations/industry-price",
+            tr_id="HHDFS76370100",
+            params={"AUTH": "", "EXCD": excd.upper()},
+            use_cache=True,
+            cache_ttl=3600,
+        )
+
+    def get_inquire_daily_chartprice(
+        self,
+        code: str,
+        start_date: str = "",
+        end_date: str = "",
+        market: str = "N",
+        period: str = "D",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 종목/지수/환율기간별시세(일/주/월/년) [해외주식-012]
+
+        해외지수·환율·국채·금선물과 일부 미국 종목(다우30, 나스닥100, S&P500)의
+        기간별 시세를 조회합니다. 그 외 종목은 ``get_daily_price``를 쓰세요.
+        모의투자도 지원합니다.
+
+        Args:
+            code: 종목코드 (해외주식 마스터 코드 참조, 예: .DJI)
+            start_date: 시작일자 YYYYMMDD (공백: 종료일자 30일 전)
+            end_date: 종료일자 YYYYMMDD (공백: 오늘, 서울 기준)
+            market: 조건 시장 분류 코드 (N: 해외지수, X: 환율, I: 국채, S: 금선물)
+            period: 기간 분류 코드 (D: 일, W: 주, M: 월, Y: 년)
+
+        Returns:
+            Optional[Dict]:
+                - output1: 기본 정보 (hts_kor_isnm, ovrs_nmix_prpr, prdy_ctrt, acml_vol)
+                - output2: 기간별 리스트 (stck_bsop_date, ovrs_nmix_prpr, ovrs_nmix_oprc,
+                  ovrs_nmix_hgpr, ovrs_nmix_lwpr, acml_vol)
+
+        Example:
+            >>> agent.overseas.get_inquire_daily_chartprice(".DJI", "20240101", "20240331")
+        """
+        end_date = end_date or kst_date()
+        if not start_date:
+            end_day = datetime.strptime(end_date, "%Y%m%d")
+            start_date = (end_day - timedelta(days=30)).strftime("%Y%m%d")
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-price/v1/quotations/inquire-daily-chartprice",
+            tr_id="FHKST03030100",
+            params={
+                "FID_COND_MRKT_DIV_CODE": market,
+                "FID_INPUT_ISCD": code,
+                "FID_INPUT_DATE_1": start_date,
+                "FID_INPUT_DATE_2": end_date,
+                "FID_PERIOD_DIV_CODE": period,
+            },
+            use_cache=True,
+            cache_ttl=60,
+        )
+
+    def get_period_rights(
+        self,
+        rght_type_cd: str = "%%",
+        inqr_dvsn_cd: str = "02",
+        inqr_strt_dt: str = "",
+        inqr_end_dt: str = "",
+        pdno: str = "",
+        prdt_type_cd: str = "",
+        max_pages: int = 10,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 기간별권리조회 [해외주식-052]
+
+        기간 내 권리(배당, 유무상증자, 분할 등) 일정을 조회합니다. 연속조회는 끝까지
+        (최대 ``max_pages``) 이어 받아 합칩니다. 모의투자는 지원하지 않습니다.
+
+        Args:
+            rght_type_cd: 권리유형코드 (%%: 전체, 01: 유상, 02: 무상, 03: 배당,
+                11: 합병, 14: 액면분할, 15: 액면병합, 17: 감자, 54: WR청구,
+                61: 원리금상환, 71: WR소멸, 74: 배당옵션, 75: 특별배당,
+                76: ISINCODE변경, 77: 실권주청약)
+            inqr_dvsn_cd: 조회구분코드 (02: 현지기준일, 03: 청약시작일, 04: 청약종료일)
+            inqr_strt_dt: 조회시작일자 YYYYMMDD (공백: 오늘, 서울 기준)
+            inqr_end_dt: 조회종료일자 YYYYMMDD (공백: 시작일 이후 30일)
+            pdno: 상품번호 (공백: 전체)
+            prdt_type_cd: 상품유형코드 (공백: 전체)
+            max_pages: 최대 페이지 수
+
+        Returns:
+            Optional[Dict]: output 리스트 (bass_dt, rght_type_cd, pdno, prdt_name,
+                acpl_bass_dt, sbsc_strt_dt, sbsc_end_dt, cash_alct_rt, stck_alct_rt, crcy_cd)
+
+        Example:
+            >>> agent.overseas.get_period_rights(inqr_strt_dt="20240417", inqr_end_dt="20240517")
+        """
+        inqr_strt_dt = inqr_strt_dt or kst_date()
+        inqr_end_dt = inqr_end_dt or kst_date(30)
+        return self._paginate(
+            endpoint="/uapi/overseas-price/v1/quotations/period-rights",
+            tr_id="CTRGT011R",
+            params={
+                "RGHT_TYPE_CD": rght_type_cd,
+                "INQR_DVSN_CD": inqr_dvsn_cd,
+                "INQR_STRT_DT": inqr_strt_dt,
+                "INQR_END_DT": inqr_end_dt,
+                "PDNO": pdno,
+                "PRDT_TYPE_CD": prdt_type_cd,
+                "CTX_AREA_NK50": "",
+                "CTX_AREA_FK50": "",
+            },
+            cursor=[
+                ("CTX_AREA_FK50", "ctx_area_fk50"),
+                ("CTX_AREA_NK50", "ctx_area_nk50"),
+            ],
+            output_keys=("output",),
+            max_pages=max_pages,
+        )
+
+    def get_colable_by_company(
+        self,
+        pdno: str,
+        natn_cd: str = "840",
+        inqr_sqn_dvsn: str = "01",
+        max_pages: int = 10,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        당사 해외주식담보대출 가능 종목 [해외주식-051]
+
+        당사에서 담보대출이 가능한 해외주식과 담보비율을 조회합니다.
+        모의투자는 지원하지 않습니다.
+
+        Args:
+            pdno: 상품번호 (종목코드, 예: AMD)
+            natn_cd: 국가코드 (840: 미국, 344: 홍콩, 156: 중국)
+            inqr_sqn_dvsn: 조회순서구분 (01: 이름순, 02: 코드순)
+            max_pages: 최대 페이지 수
+
+        Returns:
+            Optional[Dict]:
+                - output1: 종목 리스트 (pdno, ovrs_item_name, loan_rt, mgge_mntn_rt,
+                  mgge_ensu_rt, loan_exec_psbl_yn, crcy_cd, ovrs_excg_cd)
+                - output2: loan_psbl_item_num (대출가능종목수)
+
+        Example:
+            >>> agent.overseas.get_colable_by_company("AMD")
+        """
+        return self._paginate(
+            endpoint="/uapi/overseas-price/v1/quotations/colable-by-company",
+            tr_id="CTLN4050R",
+            params={
+                "PDNO": pdno,
+                "PRDT_TYPE_CD": "",
+                "INQR_STRT_DT": "",
+                "INQR_END_DT": "",
+                "INQR_DVSN": "",
+                "NATN_CD": natn_cd,
+                "INQR_SQN_DVSN": inqr_sqn_dvsn,
+                "RT_DVSN_CD": "",
+                "RT": "",
+                "LOAN_PSBL_YN": "",
+                "CTX_AREA_FK100": "",
+                "CTX_AREA_NK100": "",
+            },
+            cursor=[
+                ("CTX_AREA_FK100", "ctx_area_fk100"),
+                ("CTX_AREA_NK100", "ctx_area_nk100"),
+            ],
+            output_keys=("output1",),
+            max_pages=max_pages,
+        )
+
+    def get_brknews_title(
+        self, news_ofer_entp_code: str = "0"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외속보(제목) [해외주식-055]
+
+        해외 속보 뉴스 제목을 조회합니다. 나머지 조건은 공식 문서상 공백입니다.
+        모의투자는 지원하지 않습니다.
+
+        Args:
+            news_ofer_entp_code: 뉴스제공업체코드 (0: 전체조회)
+
+        Returns:
+            Optional[Dict]: output 리스트 (cntt_usiq_srno, news_ofer_entp_code,
+                data_dt, data_tm, hts_pbnt_titl_cntt, dorg, iscd1~10, kor_isnm1~10)
+
+        Example:
+            >>> agent.overseas.get_brknews_title()
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-price/v1/quotations/brknews-title",
+            tr_id="FHKST01011801",
+            params={
+                "FID_NEWS_OFER_ENTP_CODE": news_ofer_entp_code,
+                "FID_COND_MRKT_CLS_CODE": "",
+                "FID_INPUT_ISCD": "",
+                "FID_TITL_CNTT": "",
+                "FID_INPUT_DATE_1": "",
+                "FID_INPUT_HOUR_1": "",
+                "FID_RANK_SORT_CLS_CODE": "",
+                "FID_INPUT_SRNO": "",
+                "FID_COND_SCR_DIV_CODE": "11801",
+            },
+            use_cache=True,
+            cache_ttl=60,
+        )
+
+    def get_rights_by_ice(
+        self,
+        ncod: str,
+        symb: str,
+        st_ymd: str = "",
+        ed_ymd: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 권리종합 [해외주식-050]
+
+        ICE 공시 기준 종목의 권리(배당락, 지급일, 기준일, 상환 등) 일정을 조회합니다.
+        모의투자는 지원하지 않습니다.
+
+        Args:
+            ncod: 국가코드 (CN: 중국, HK: 홍콩, US: 미국, JP: 일본, VN: 베트남)
+            symb: 종목코드
+            st_ymd: 일자 시작일 YYYYMMDD (공백: 오늘 - 3개월)
+            ed_ymd: 일자 종료일 YYYYMMDD (공백: 오늘 + 3개월)
+
+        Returns:
+            Optional[Dict]: output1 리스트 (anno_dt, ca_title, div_lock_dt, pay_dt,
+                record_dt, validity_dt, lock_dt, delist_dt, redempt_dt, effective_dt)
+
+        Example:
+            >>> agent.overseas.get_rights_by_ice("US", "NVDL")
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-price/v1/quotations/rights-by-ice",
+            tr_id="HHDFS78330900",
+            params={
+                "NCOD": ncod.upper(),
+                "SYMB": symb.upper(),
+                "ST_YMD": st_ymd,
+                "ED_YMD": ed_ymd,
+            },
+            use_cache=True,
+            cache_ttl=300,
+        )
