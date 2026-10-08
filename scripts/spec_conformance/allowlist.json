@@ -1,0 +1,27 @@
+{
+  "_comment": "Intended deviations from the official KIS contract. Every entry needs a reason.",
+  "urls": [
+    {"glob": "/uapi/domestic-futureoption/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."},
+    {"glob": "/uapi/overseas-futureoption/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."}
+  ],
+  "paths": [
+    {"glob": "kis_agent/futures/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."},
+    {"glob": "kis_agent/overseas_futures/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."}
+  ],
+  "ws_trs": [
+    {"glob": "H0IF*", "reason": "Index futures realtime, out of scope."},
+    {"glob": "H0IO*", "reason": "Index options realtime, out of scope."},
+    {"glob": "H0CF*", "reason": "Commodity futures realtime, out of scope."},
+    {"glob": "H0ZF*", "reason": "Stock futures realtime, out of scope."},
+    {"glob": "H0ZO*", "reason": "Stock options realtime, out of scope."},
+    {"glob": "H0MF*", "reason": "Night futures realtime, out of scope."},
+    {"glob": "H0EU*", "reason": "Night options realtime, out of scope."},
+    {"glob": "HDFF*", "reason": "Overseas futures realtime, out of scope."}
+  ],
+  "implemented_outside_make_request": [
+    {"url": "/oauth2/tokenP", "needle": "/oauth2/tokenP", "reason": "Token issuance lives in core/auth.py and bypasses make_request."},
+    {"url": "/oauth2/Approval", "needle": "/oauth2/Approval", "reason": "WS approval key: KISClient.get_ws_approval_key."},
+    {"url": "/uapi/hashkey", "needle": "/uapi/hashkey", "reason": "Optional hashkey: core/auth.set_order_hash_key."}
+  ],
+  "findings": []
+}
