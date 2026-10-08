@@ -346,3 +346,137 @@ class StockIndexAPI(BaseAPI):
                 "FID_INPUT_ISCD": code,
             },
         )
+
+    def get_exp_index_trend(
+        self,
+        index_code: str = "0001",
+        session: str = "1",
+        interval: str = "600",
+        market: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """국내주식 예상체결지수 추이 [국내주식-121]
+
+        국내주식 예상체결지수 추이 (``/uapi/domestic-stock/v1/quotations/exp-index-trend``, TR FHPST01840000). 모의투자 미지원.
+
+        Args:
+            index_code: 입력 종목코드 (0000: 전체, 0001: 코스피, 1001: 코스닥, 2001: 코스피200, 4001: KRX100)
+            session: 장운영 구분 (1: 장시작전, 2: 장마감)
+            interval: 조회 간격 (10: 10초, 30: 30초, 60: 1분, 600: 10분)
+            market: 시장구분 (U: 업종)
+
+        Returns:
+            output[]: stck_cntg_hour(시간), bstp_nmix_prpr(예상 지수), bstp_nmix_prdy_vrss(전일대비),
+            prdy_ctrt(전일대비율), acml_vol(누적 거래량), acml_tr_pbmn(누적 거래대금)
+
+        Example:
+            >>> agent.get_exp_index_trend("0001", session="1", interval="60")
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/domestic-stock/v1/quotations/exp-index-trend",
+            tr_id="FHPST01840000",
+            params={
+                "FID_MKOP_CLS_CODE": session,
+                "FID_INPUT_HOUR_1": interval,
+                "FID_INPUT_ISCD": index_code,
+                "FID_COND_MRKT_DIV_CODE": market,
+            },
+        )
+
+    def get_exp_total_index(
+        self,
+        market_cls: str = "0",
+        index_code: str = "0000",
+        session: str = "1",
+        market: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """국내주식 예상체결 전체지수 [국내주식-122]
+
+        국내주식 예상체결 전체지수 (``/uapi/domestic-stock/v1/quotations/exp-total-index``, TR FHKUP11750000). 모의투자 미지원.
+
+        Args:
+            market_cls: 시장 구분 (0: 전체, K: 거래소, Q: 코스닥)
+            index_code: 입력 종목코드 (0000: 전체, 0001: 거래소, 1001: 코스닥, 2001: 코스피200, 4001: KRX100)
+            session: 장운영 구분 (1: 장시작전, 2: 장마감)
+            market: 시장구분 (U: 업종)
+
+        Returns:
+            output1: bstp_nmix_prpr(예상 지수), prdy_ctrt(전일대비율), ascn_issu_cnt/down_issu_cnt(상승/하락 종목수),
+            output2[]: hts_kor_isnm(업종명), bstp_nmix_prpr(예상 지수), bstp_nmix_prdy_ctrt(전일대비율)
+
+        Example:
+            >>> agent.get_exp_total_index(market_cls="K", index_code="0001")
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/domestic-stock/v1/quotations/exp-total-index",
+            tr_id="FHKUP11750000",
+            params={
+                "fid_mrkt_cls_code": market_cls,
+                "fid_cond_mrkt_div_code": market,
+                "fid_cond_scr_div_code": "11175",
+                "fid_input_iscd": index_code,
+                "fid_mkop_cls_code": session,
+            },
+        )
+
+    def get_index_price(
+        self,
+        index_code: str = "0001",
+        market: str = "U",
+    ) -> Optional[Dict[str, Any]]:
+        """국내업종 현재지수 [v1_국내주식-063]
+
+        국내업종 현재지수 (``/uapi/domestic-stock/v1/quotations/inquire-index-price``, TR FHPUP02100000). 모의투자 미지원.
+
+        Note:
+            ``inquire_index_price`` (deprecated, 분봉 시세로 리다이렉트)와 달리 공식 현재지수 API 를 직접 호출한다.
+
+        Args:
+            index_code: 업종코드 (0001: 코스피, 1001: 코스닥, 2001: 코스피200)
+            market: 시장구분 (U: 업종)
+
+        Returns:
+            output: bstp_nmix_prpr(현재지수), bstp_nmix_prdy_vrss(전일대비), bstp_nmix_prdy_ctrt(전일대비율),
+            acml_vol(누적 거래량), ascn_issu_cnt/down_issu_cnt(상승/하락 종목수)
+
+        Example:
+            >>> agent.get_index_price("0001")
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/domestic-stock/v1/quotations/inquire-index-price",
+            tr_id="FHPUP02100000",
+            params={
+                "FID_COND_MRKT_DIV_CODE": market,
+                "FID_INPUT_ISCD": index_code,
+            },
+        )
+
+    def get_comp_interest(
+        self,
+        div_cls: str = "1",
+        div_cls1: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """금리 종합(국내채권/금리) [국내주식-155]
+
+        금리 종합(국내채권/금리) (``/uapi/domestic-stock/v1/quotations/comp-interest``, TR FHPST07020000). 모의투자 미지원.
+
+        Args:
+            div_cls: 분류 구분 (1: 해외금리지표)
+            div_cls1: 분류 구분 1 (공백: 전체)
+
+        Returns:
+            output1[]: hts_kor_isnm(채권/금리명), bond_mnrt_prpr(현재 금리), bond_mnrt_prdy_vrss(전일대비),
+            prdy_ctrt(전일대비율), stck_bsop_date(기준일), output2[]: 같은 형식의 해외금리지표
+
+        Example:
+            >>> agent.get_comp_interest()
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/domestic-stock/v1/quotations/comp-interest",
+            tr_id="FHPST07020000",
+            params={
+                "FID_COND_MRKT_DIV_CODE": "I",
+                "FID_COND_SCR_DIV_CODE": "20702",
+                "FID_DIV_CLS_CODE": div_cls,
+                "FID_DIV_CLS_CODE1": div_cls1,
+            },
+        )
