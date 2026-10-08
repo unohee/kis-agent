@@ -11,7 +11,7 @@ import pytz
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
-from ._compat import warn_ignored
+from ._compat import kst_date, warn_ignored
 
 # 거래소 현지 기준일을 맞추기 위한 시간대 (미국 현지일은 KST보다 하루 늦다).
 _KST = pytz.timezone("Asia/Seoul")
@@ -624,4 +624,211 @@ class OverseasAccountAPI(BaseAPI):
             params=params,
             use_cache=True,
             cache_ttl=10,
+        )
+
+    def get_algo_ordno(
+        self,
+        trad_dt: str = "",
+        max_pages: int = 10,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 지정가주문번호조회 [해외주식-071]
+
+        해외주식 지정가(알고리즘) 주문의 주문번호를 조회합니다. 여기서 얻은
+        ``odno``를 ``get_inquire_algo_ccnl``에 넘겨 체결내역을 조회합니다.
+        모의투자는 지원하지 않습니다.
+
+        Args:
+            trad_dt (str): 거래일자 YYYYMMDD (공백: 오늘, 서울 기준)
+            max_pages (int): 최대 페이지 수
+
+        Returns:
+            Optional[Dict]: output 리스트 (odno, trad_dvsn_name, pdno, item_name,
+                ft_ord_qty, ft_ord_unpr3, splt_buy_attr_name, ft_ccld_qty)
+
+        Note:
+            공식 문서(2025-12-12 xlsx)는 계좌상품코드 키를 ``ACNO_PRDT_CD``로 적었지만
+            공식 샘플은 ``ACNT_PRDT_CD``를 보낸다(샘플은 문서 이후 변경 없음). 문서를
+            따라 ``ACNO_PRDT_CD``를 보낸다. 서버가 거부하면 이 키가 원인일 수 있다.
+
+        Example:
+            >>> agent.overseas.get_algo_ordno("20250619")
+        """
+        account = self._get_account_params()
+        return self._paginate(
+            endpoint="/uapi/overseas-stock/v1/trading/algo-ordno",
+            tr_id="TTTS6058R",
+            params={
+                "CANO": account["CANO"],
+                "ACNO_PRDT_CD": account["ACNT_PRDT_CD"],
+                "TRAD_DT": trad_dt or kst_date(),
+                "CTX_AREA_NK200": "",
+                "CTX_AREA_FK200": "",
+            },
+            cursor=[
+                ("CTX_AREA_FK200", "ctx_area_fk200"),
+                ("CTX_AREA_NK200", "ctx_area_nk200"),
+            ],
+            output_keys=("output",),
+            max_pages=max_pages,
+        )
+
+    def get_inquire_algo_ccnl(
+        self,
+        odno: str,
+        ord_dt: str = "",
+        ord_gno_brno: str = "",
+        ttlz_icld_yn: str = "",
+        max_pages: int = 10,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 지정가체결내역조회 [해외주식-070]
+
+        지정가(알고리즘) 주문번호별 체결내역을 조회합니다. 모의투자는 지원하지 않습니다.
+
+        Args:
+            odno (str): 지정가주문번호 (``get_algo_ordno``에서 조회한 주문번호)
+            ord_dt (str): 주문일자 YYYYMMDD (공백: 오늘, 서울 기준)
+            ord_gno_brno (str): 주문채번지점번호 (공백)
+            ttlz_icld_yn (str): 집계포함여부 (공백)
+            max_pages (int): 최대 페이지 수
+
+        Returns:
+            Optional[Dict]:
+                - output: 체결 리스트 (ccld_seq, ccld_btwn, pdno, item_name,
+                  ft_ccld_qty, ft_ccld_unpr3, ft_ccld_amt3)
+                - output3: 주문 요약 (odno, trad_dvsn_name, ft_ord_qty, ft_ord_unpr3,
+                  ccld_cnt 등)
+
+        Raises:
+            ValueError: ``odno``가 비어 있는 경우
+
+        Example:
+            >>> agent.overseas.get_inquire_algo_ccnl("0030012345")
+        """
+        if not odno:
+            raise ValueError(
+                "odno는 필수입니다 (get_algo_ordno로 조회한 지정가주문번호)"
+            )
+        account = self._get_account_params()
+        return self._paginate(
+            endpoint="/uapi/overseas-stock/v1/trading/inquire-algo-ccnl",
+            tr_id="TTTS6059R",
+            params={
+                **account,
+                "ORD_DT": ord_dt or kst_date(),
+                "ORD_GNO_BRNO": ord_gno_brno,
+                "ODNO": odno,
+                "TTLZ_ICLD_YN": ttlz_icld_yn,
+                "CTX_AREA_NK200": "",
+                "CTX_AREA_FK200": "",
+            },
+            cursor=[
+                ("CTX_AREA_FK200", "ctx_area_fk200"),
+                ("CTX_AREA_NK200", "ctx_area_nk200"),
+            ],
+            output_keys=("output", "output3"),
+            max_pages=max_pages,
+        )
+
+    def get_inquire_paymt_stdr_balance(
+        self,
+        bass_dt: str = "",
+        wcrc_frcr_dvsn_cd: str = "02",
+        inqr_dvsn_cd: str = "00",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 결제기준잔고 [해외주식-064]
+
+        기준일자의 결제기준 해외주식 잔고를 조회합니다. 모의투자는 지원하지 않습니다.
+
+        Args:
+            bass_dt (str): 기준일자 YYYYMMDD (공백: 오늘, 서울 기준)
+            wcrc_frcr_dvsn_cd (str): 원화외화구분코드 (01: 원화기준, 02: 외화기준)
+            inqr_dvsn_cd (str): 조회구분코드 (00: 전체, 01: 일반, 02: 미니스탁)
+
+        Returns:
+            Optional[Dict]:
+                - output1: 보유종목 (pdno, prdt_name, cblc_qty13, ord_psbl_qty1,
+                  avg_unpr3, ovrs_now_pric1, frcr_evlu_amt2, evlu_pfls_amt2)
+                - output2: 통화별 (crcy_cd, frcr_dncl_amt_2, frst_bltn_exrt)
+                - output3: 합계 (pchs_amt_smtl_amt, tot_evlu_pfls_amt, tot_asst_amt2)
+
+        Example:
+            >>> agent.overseas.get_inquire_paymt_stdr_balance("20230630")
+        """
+        account = self._get_account_params()
+        return self._make_request_dict(
+            endpoint="/uapi/overseas-stock/v1/trading/inquire-paymt-stdr-balance",
+            tr_id="CTRP6010R",
+            params={
+                **account,
+                "BASS_DT": bass_dt or kst_date(),
+                "WCRC_FRCR_DVSN_CD": wcrc_frcr_dvsn_cd,
+                "INQR_DVSN_CD": inqr_dvsn_cd,
+            },
+            use_cache=False,
+        )
+
+    def get_inquire_period_trans(
+        self,
+        erlm_strt_dt: str = "",
+        erlm_end_dt: str = "",
+        ovrs_excg_cd: str = "",
+        pdno: str = "",
+        sll_buy_dvsn_cd: str = "00",
+        loan_dvsn_cd: str = "",
+        max_pages: int = 10,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        해외주식 일별거래내역 [해외주식-063]
+
+        기간 내 해외주식 일별 거래(체결·정산) 내역을 조회합니다. 모의투자는 지원하지
+        않습니다.
+
+        Args:
+            erlm_strt_dt (str): 등록시작일자 YYYYMMDD (공백: 종료일 30일 전)
+            erlm_end_dt (str): 등록종료일자 YYYYMMDD (공백: 오늘, 서울 기준)
+            ovrs_excg_cd (str): 해외거래소코드 (공백: 전체)
+            pdno (str): 상품번호 (공백: 전체, 개별종목은 종목코드)
+            sll_buy_dvsn_cd (str): 매도매수구분코드 (00: 전체, 01: 매도, 02: 매수)
+            loan_dvsn_cd (str): 대출구분코드 (공백)
+            max_pages (int): 최대 페이지 수
+
+        Returns:
+            Optional[Dict]:
+                - output1: 거래 리스트 (trad_dt, sttl_dt, sll_buy_dvsn_name, pdno,
+                  ovrs_item_name, ccld_qty, ft_ccld_unpr2, tr_frcr_amt2, frcr_excc_amt_1,
+                  wcrc_excc_amt, frcr_fee1, crcy_cd)
+                - output2: 합계 (frcr_buy_amt_smtl, frcr_sll_amt_smtl, dmst_fee_smtl,
+                  ovrs_fee_smtl)
+
+        Example:
+            >>> agent.overseas.get_inquire_period_trans("20240420", "20240520")
+        """
+        account = self._get_account_params()
+        erlm_end_dt = erlm_end_dt or kst_date()
+        if not erlm_strt_dt:
+            end_day = datetime.strptime(erlm_end_dt, "%Y%m%d")
+            erlm_strt_dt = (end_day - timedelta(days=30)).strftime("%Y%m%d")
+        return self._paginate(
+            endpoint="/uapi/overseas-stock/v1/trading/inquire-period-trans",
+            tr_id="CTOS4001R",
+            params={
+                **account,
+                "ERLM_STRT_DT": erlm_strt_dt,
+                "ERLM_END_DT": erlm_end_dt,
+                "OVRS_EXCG_CD": ovrs_excg_cd,
+                "PDNO": pdno.upper(),
+                "SLL_BUY_DVSN_CD": sll_buy_dvsn_cd,
+                "LOAN_DVSN_CD": loan_dvsn_cd,
+                "CTX_AREA_FK100": "",
+                "CTX_AREA_NK100": "",
+            },
+            cursor=[
+                ("CTX_AREA_FK100", "ctx_area_fk100"),
+                ("CTX_AREA_NK100", "ctx_area_nk100"),
+            ],
+            output_keys=("output1",),
+            max_pages=max_pages,
         )
