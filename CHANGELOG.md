@@ -160,6 +160,8 @@
   - 서버 PINGPONG을 원문 그대로 pong으로 회신한다 (공식 샘플과 동일).
   - 첫 컬럼이 종목코드가 아닌 통합 장운영정보(H0UNMKO0)는 TR 기준으로 구독을 찾는다.
   - 구독은 접속키당 최대 41건 (`MAX_SUBSCRIPTIONS`). 42번째 `subscribe()`는 `ValueError`.
+  - `WSAgent(..., auto_reconnect=False).connect()`가 연결을 아예 시도하지 않던 결함
+    (v1.4.0부터, 루프 조건이 `while self.auto_reconnect`). 이제 한 번 연결하고 재연결만 하지 않는다.
 - 필드 레이아웃을 공식 문서 기준 `kis_agent/websocket/ws_fields.py`로 일원화했다
   (선물·옵션 제외). **다음 피드의 파싱 결과 키가 바뀐다** — 이전 목록이 0번 컬럼부터
   어긋나 있었다: 지수(H0UPCNT0)·지수 예상체결(H0UPANC0) 30컬럼, 회원사

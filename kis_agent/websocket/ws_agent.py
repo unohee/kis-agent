@@ -987,7 +987,9 @@ class WSAgent(WSSubscriptionMixin):
         consecutive_failures = 0  # 연결 성공 없이 연속 실패 횟수
         should_reconnect = True  # 이번 루프에서 재연결 시도할지 여부
 
-        while self.auto_reconnect:
+        # 최소 한 번은 연결한다. 재연결 여부는 루프 끝에서 auto_reconnect로 판단한다
+        # (이전: while self.auto_reconnect — auto_reconnect=False면 연결 자체를 안 했다).
+        while True:
             receive_task = None
             should_reconnect = True
             try:

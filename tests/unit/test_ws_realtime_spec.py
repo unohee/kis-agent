@@ -364,3 +364,33 @@ async def test_undecryptable_frame_reaches_no_handler(agent):
     agent.set_default_handler(lambda d, m: seen.append(d))
     await agent._handle_message("1|H0STCNI0|001|cipher")
     assert seen == [] and agent.stats["errors"] == 0
+
+
+@pytest.mark.asyncio
+async def test_connect_without_auto_reconnect_still_connects_once(monkeypatch):
+    """auto_reconnect=False used to skip the connection loop entirely."""
+    import kis_agent.websocket.ws_agent as module
+
+    agent = WSAgent("approval", url="ws://example", auto_reconnect=False)
+    attempts = []
+
+    class Connection:
+        async def __aenter__(self):
+            attempts.append(1)
+            return AsyncMock()
+
+        async def __aexit__(self, *_args):
+            return False
+
+    async def receive_loop(_websocket):
+        return "connection_closed"
+
+    monkeypatch.setattr(module, "_is_after_market_close", lambda **_kwargs: False)
+    monkeypatch.setattr(module.websockets, "connect", lambda *_a, **_k: Connection())
+    agent._receive_loop = receive_loop
+    agent._subscribe_all = AsyncMock(return_value={})
+
+    await agent.connect()
+
+    assert attempts == [1]  # one attempt, no reconnect
+    agent._subscribe_all.assert_awaited_once()
