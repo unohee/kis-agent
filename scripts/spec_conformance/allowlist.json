@@ -102,6 +102,18 @@
       "reason": "Cancel (CTSC0009U) sends only the reservation identifiers; the official sample adds order fields only when given.",
       "where_contains": "[is_modify=False]",
       "where": "kis_agent/account/order_api.py"
+    },
+    {
+      "rule": "missing-required",
+      "url": "/uapi/overseas-stock/v1/trading/algo-ordno",
+      "detail_contains": "ACNO_PRDT_CD",
+      "reason": "Workbook typo: only this API (of 73) spells the account product code ACNO_PRDT_CD; the official sample and every other API use ACNT_PRDT_CD."
+    },
+    {
+      "rule": "unknown-key",
+      "url": "/uapi/overseas-stock/v1/trading/algo-ordno",
+      "detail_contains": "ACNT_PRDT_CD",
+      "reason": "Workbook typo: only this API (of 73) spells the account product code ACNO_PRDT_CD; the official sample and every other API use ACNT_PRDT_CD."
     }
   ]
 }

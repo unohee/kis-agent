@@ -5,6 +5,7 @@ OverseasOrderAPI는 해외주식 매수, 매도, 정정, 취소, 예약주문을
 """
 
 import logging
+import math
 import warnings
 from typing import Any, Dict, Optional
 
@@ -646,11 +647,20 @@ class OverseasOrderAPI(BaseAPI):
     def _daytime_price(price: float) -> str:
         if isinstance(price, bool) or not isinstance(price, (int, float)):
             raise ValueError(f"price는 숫자여야 합니다: {price!r}")
-        if price <= 0:
+        if not math.isfinite(price) or price <= 0:
             raise ValueError(
-                f"미국 주간거래는 지정가만 가능합니다. price는 0보다 커야 합니다: {price}"
+                f"미국 주간거래는 지정가만 가능합니다. price는 0보다 큰 유한한 수여야 합니다: {price}"
             )
         return str(price)
+
+    @staticmethod
+    def _daytime_pdno(pdno: str) -> str:
+        code = pdno.strip().upper() if isinstance(pdno, str) else ""
+        if not code:
+            raise ValueError(
+                f"pdno(종목코드)는 비어 있지 않은 문자열이어야 합니다: {pdno!r}"
+            )
+        return code
 
     @staticmethod
     def _daytime_orgn_odno(orgn_odno: str) -> str:
@@ -705,7 +715,7 @@ class OverseasOrderAPI(BaseAPI):
             params={
                 **account_params,
                 "OVRS_EXCG_CD": exchange,
-                "PDNO": pdno.upper(),
+                "PDNO": self._daytime_pdno(pdno),
                 "ORD_QTY": order_qty,
                 "OVRS_ORD_UNPR": order_price,
                 "CTAC_TLNO": ctac_tlno,
@@ -761,7 +771,7 @@ class OverseasOrderAPI(BaseAPI):
             params={
                 **account_params,
                 "OVRS_EXCG_CD": exchange,
-                "PDNO": pdno.upper(),
+                "PDNO": self._daytime_pdno(pdno),
                 "ORD_QTY": order_qty,
                 "OVRS_ORD_UNPR": order_price,
                 "CTAC_TLNO": ctac_tlno,
@@ -819,7 +829,7 @@ class OverseasOrderAPI(BaseAPI):
             params={
                 **account_params,
                 "OVRS_EXCG_CD": exchange,
-                "PDNO": pdno.upper(),
+                "PDNO": self._daytime_pdno(pdno),
                 "ORGN_ODNO": original,
                 "RVSE_CNCL_DVSN_CD": "01",
                 "ORD_QTY": order_qty,
@@ -875,7 +885,7 @@ class OverseasOrderAPI(BaseAPI):
             params={
                 **account_params,
                 "OVRS_EXCG_CD": exchange,
-                "PDNO": pdno.upper(),
+                "PDNO": self._daytime_pdno(pdno),
                 "ORGN_ODNO": original,
                 "RVSE_CNCL_DVSN_CD": "02",
                 "ORD_QTY": order_qty,

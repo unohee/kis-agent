@@ -647,9 +647,9 @@ class OverseasAccountAPI(BaseAPI):
                 ft_ord_qty, ft_ord_unpr3, splt_buy_attr_name, ft_ccld_qty)
 
         Note:
-            공식 문서(2025-12-12 xlsx)는 계좌상품코드 키를 ``ACNO_PRDT_CD``로 적었지만
-            공식 샘플은 ``ACNT_PRDT_CD``를 보낸다(샘플은 문서 이후 변경 없음). 문서를
-            따라 ``ACNO_PRDT_CD``를 보낸다. 서버가 거부하면 이 키가 원인일 수 있다.
+            공식 문서(2025-12-12 xlsx)는 이 API만 계좌상품코드 키를 ``ACNO_PRDT_CD``로
+            적었다. 나머지 72개 API와 공식 샘플은 모두 ``ACNT_PRDT_CD``라 문서 오타로 보고
+            ``ACNT_PRDT_CD``를 보낸다.
 
         Example:
             >>> agent.overseas.get_algo_ordno("20250619")
@@ -660,7 +660,7 @@ class OverseasAccountAPI(BaseAPI):
             tr_id="TTTS6058R",
             params={
                 "CANO": account["CANO"],
-                "ACNO_PRDT_CD": account["ACNT_PRDT_CD"],
+                "ACNT_PRDT_CD": account["ACNT_PRDT_CD"],
                 "TRAD_DT": trad_dt or kst_date(),
                 "CTX_AREA_NK200": "",
                 "CTX_AREA_FK200": "",

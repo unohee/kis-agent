@@ -439,7 +439,7 @@ def test_colable_by_company_arguments():
 def test_algo_ordno_default_and_cursor():
     base = {
         "CANO": "12345678",
-        "ACNO_PRDT_CD": "01",
+        "ACNT_PRDT_CD": "01",
         "TRAD_DT": TODAY,
     }
     _two_pages(
@@ -461,7 +461,7 @@ def test_algo_ordno_explicit_date():
     api.get_algo_ordno("20250619", max_pages=1)
     assert client.make_request.call_args.kwargs["params"] == {
         "CANO": "12345678",
-        "ACNO_PRDT_CD": "01",
+        "ACNT_PRDT_CD": "01",
         "TRAD_DT": "20250619",
         "CTX_AREA_NK200": "",
         "CTX_AREA_FK200": "",
@@ -773,6 +773,14 @@ ORDER_CALLS = [
         ("daytime_modify_order", ORDER_CALLS[2][1], 4, 0, "지정가"),
         ("daytime_buy_order", ORDER_CALLS[0][1], 3, "1.0", "price"),
         ("daytime_buy_order", ORDER_CALLS[0][1], 3, True, "price"),
+        ("daytime_buy_order", ORDER_CALLS[0][1], 3, float("nan"), "지정가"),
+        ("daytime_sell_order", ORDER_CALLS[1][1], 3, float("inf"), "지정가"),
+        ("daytime_modify_order", ORDER_CALLS[2][1], 4, float("nan"), "지정가"),
+        # product code
+        ("daytime_buy_order", ORDER_CALLS[0][1], 1, "", "pdno"),
+        ("daytime_sell_order", ORDER_CALLS[1][1], 1, "  ", "pdno"),
+        ("daytime_modify_order", ORDER_CALLS[2][1], 1, None, "pdno"),
+        ("daytime_cancel_order", ORDER_CALLS[3][1], 1, "", "pdno"),
         # original order number
         ("daytime_modify_order", ORDER_CALLS[2][1], 2, "", "orgn_odno"),
         ("daytime_cancel_order", ORDER_CALLS[3][1], 2, "", "orgn_odno"),
