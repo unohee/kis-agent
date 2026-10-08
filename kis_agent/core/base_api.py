@@ -13,7 +13,7 @@
 import logging
 import traceback
 import warnings
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import pandas as pd
 
@@ -362,6 +362,7 @@ class BaseAPI(ExceptionHandler):
         use_cache: bool = True,
         cache_ttl: Optional[int] = None,
         method: str = "GET",
+        headers: Optional[Dict[str, str]] = None,
     ) -> Optional[Dict]:
         """
         API 요청 후 rt_cd 메타데이터를 포함한 Dict 반환
@@ -373,10 +374,16 @@ class BaseAPI(ExceptionHandler):
             use_cache: 캐시 사용 여부 (기본: True)
             cache_ttl: 캐시 TTL (초), None인 경우 엔드포인트별 기본값 사용
             method: HTTP 메서드 (기본: GET, 주문 API는 POST 사용)
+            headers: 추가 요청 헤더 (예: 연속조회 ``{"tr_cont": "N"}``)
 
         Returns:
             rt_cd 메타데이터가 포함된 Dict 응답
         """
+        # 헤더가 붙은 요청(연속조회 등)은 캐시하지 않는다: 같은 본문이라도
+        # tr_cont에 따라 다른 페이지가 돌아온다.
+        if headers:
+            use_cache = False
+
         # 캐시 사용 여부 확인
         if use_cache and self.cache:
             # 캐시 키 생성
@@ -391,9 +398,18 @@ class BaseAPI(ExceptionHandler):
                 cached_value["_cached"] = True
                 return cached_value
 
-        response = self.client.make_request(
-            endpoint=endpoint, tr_id=tr_id, params=params, method=method
-        )
+        if headers:
+            response = self.client.make_request(
+                endpoint=endpoint,
+                tr_id=tr_id,
+                params=params,
+                method=method,
+                headers=dict(headers),
+            )
+        else:
+            response = self.client.make_request(
+                endpoint=endpoint, tr_id=tr_id, params=params, method=method
+            )
 
         if not response:
             return None
@@ -413,6 +429,105 @@ class BaseAPI(ExceptionHandler):
 
         # Dict 응답에 rt_cd 메타데이터가 이미 포함되어 있음
         return response
+
+    # KIS response header `tr_cont`: M/F = more pages follow, D/E = last page.
+    _MORE_PAGES = ("M", "F")
+
+    def _paginate(
+        self,
+        endpoint: str,
+        tr_id: str,
+        params: Dict[str, Any],
+        cursor: Sequence[Tuple[str, str]],
+        output_keys: Sequence[str] = ("output", "output1"),
+        max_pages: int = 20,
+        page_callback: Optional[Callable[[int, Dict[str, Any]], None]] = None,
+        method: str = "GET",
+    ) -> Optional[Dict[str, Any]]:
+        """연속조회 API를 끝까지(또는 ``max_pages``까지) 조회해 한 응답으로 합친다.
+
+        Args:
+            endpoint: API 엔드포인트
+            tr_id: 거래 ID
+            params: 첫 페이지 요청 파라미터. 커서 키는 빈 값으로 넣어 둔다.
+            cursor: ``(요청 키, 응답 키)`` 쌍. 예: ``[("CTX_AREA_FK100", "ctx_area_fk100"),
+                ("CTX_AREA_NK100", "ctx_area_nk100")]``, ``[("CTS", "cts")]``.
+            output_keys: 페이지마다 이어 붙일 리스트 출력 키. 리스트가 아닌 출력
+                (예: 요약 ``output2``)은 마지막 페이지 값을 쓴다.
+            max_pages: 최대 페이지 수 (무한 루프 방지)
+            page_callback: ``(page_no, response)``를 받는 콜백 (진행 표시용)
+            method: HTTP 메서드
+
+        Returns:
+            첫 페이지 응답에 이어 붙인 출력과 ``_pagination`` 메타데이터
+            (``pages``, ``truncated``, ``error``)를 담은 Dict. 첫 페이지가
+            실패하면 그 응답을 그대로 돌려준다.
+
+        Note:
+            다음 페이지 여부는 응답 헤더 ``tr_cont``(M/F = 계속)로 판정한다.
+            헤더를 얻지 못하면 커서 값이 비어 있지 않고 바뀌었을 때만 계속한다.
+        """
+        if max_pages < 1:
+            raise ValueError(f"max_pages must be at least 1, got {max_pages}")
+        request = dict(params)
+        merged: Optional[Dict[str, Any]] = None
+        previous_cursor: Optional[Tuple[str, ...]] = None
+        pages = 0
+        truncated = False
+        error = None
+
+        while pages < max_pages:
+            headers = {"tr_cont": "N"} if pages else None
+            res = self._make_request_dict(
+                endpoint=endpoint,
+                tr_id=tr_id,
+                params=request,
+                use_cache=False,
+                method=method,
+                headers=headers,
+            )
+            if not res or res.get("rt_cd") != "0":
+                if merged is None:
+                    return res
+                truncated = True
+                error = (res or {}).get("msg1", "no response")
+                break
+
+            pages += 1
+            if merged is None:
+                merged = dict(res)
+                for key in output_keys:
+                    if isinstance(merged.get(key), list):
+                        merged[key] = list(merged[key])
+            else:
+                for key, value in res.items():
+                    if key in output_keys and isinstance(value, list):
+                        merged.setdefault(key, [])
+                        merged[key].extend(value)
+                    elif key not in ("rt_cd", "msg_cd", "msg1", "_tr_cont"):
+                        merged[key] = value
+            if page_callback:
+                page_callback(pages, res)
+
+            current = tuple(
+                str(res.get(resp_key, "")).strip() for _, resp_key in cursor
+            )
+            more = res.get("_tr_cont")
+            if more is not None:
+                has_more = more in self._MORE_PAGES
+            else:
+                has_more = any(current) and current != previous_cursor
+            if not has_more:
+                break
+            previous_cursor = current
+            for (req_key, _), value in zip(cursor, current):
+                request[req_key] = value
+        else:
+            truncated = True
+
+        merged.pop("_tr_cont", None)
+        merged["_pagination"] = {"pages": pages, "truncated": truncated, "error": error}
+        return merged
 
     @api_method("API 요청 (DataFrame)", reraise=True)
     def _make_request_dataframe(

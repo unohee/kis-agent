@@ -470,6 +470,13 @@ class KISClient:
                     }
 
                 if response.status_code == 200 and rt_cd == "0":
+                    # KIS signals continuation in the *response header* `tr_cont`
+                    # ("M"/"F": more pages, "D"/"E": last page). Surface it so
+                    # paginating callers do not have to guess from the body.
+                    response_headers = getattr(response, "headers", None) or {}
+                    tr_cont = response_headers.get("tr_cont")
+                    if isinstance(tr_cont, str) and tr_cont:
+                        data["_tr_cont"] = tr_cont
                     if self.verbose and tr_id != "TTTC8434R":
                         logger.info(f"[API] 응답: {data}")
                     # 성공 시 Rate Limiter에 보고
