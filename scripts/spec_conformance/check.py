@@ -427,7 +427,12 @@ def run(
         raise FileNotFoundError("spec workbook or open-trading-api clone not found")
     spec = official.load_workbook_apis(workbook)
     samples = official.load_samples(clone)
-    official_ws = official.load_ws_samples(clone)
+    official_ws = official.merge_ws_columns(
+        official.load_workbook_ws(workbook),
+        official.load_ws_samples(clone),
+        official.workbook_date(workbook),
+        official.sample_commit_dates(clone),
+    )
     sites = ours.load_call_sites(repo)
     our_ws = ours.load_ws(repo)
     allow = Allowlist.load(allowlist_path)

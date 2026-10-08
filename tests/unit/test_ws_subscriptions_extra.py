@@ -25,7 +25,7 @@ def test_all_market_convenience_subscriptions_and_unsubscribe():
     assert len(host.subscribe_stocks(["000660", "035420"], with_orderbook=True)) == 4
     assert len(host.subscribe_stock_nxt("005930", with_orderbook=True, with_expected=True, with_program=True, with_member=True)) == 5
     assert len(host.subscribe_stocks_nxt(["000660", "035420"], with_orderbook=True)) == 4
-    host.subscribe_market_operation_nxt()
+    host.subscribe_market_operation_nxt("005930")
     assert len(host.subscribe_program_trading_nxt(["005930", "000660"])) == 2
     assert len(host.subscribe_member_trading_nxt(["005930", "000660"])) == 2
     assert len(host.subscribe_index(with_expected=True)) == 6

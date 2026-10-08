@@ -323,6 +323,60 @@ class TestWsDefinitions:
 # ---------------------------------------------------------------------------
 
 
+class TestWorkbookRealtime:
+    def test_parse_ws_sheet_trusts_the_tryitout_url(self):
+        rows = [
+            ("API 통신방식", "REST"),  # mislabelled in the workbook
+            ("실전 TR_ID", "H0BJCNT0"),  # wrong TR on the H0BJASP0 sheet
+            ("모의 TR_ID", "모의투자 미지원"),
+            ("URL 명", "/tryitout/H0BJASP0"),
+            ("Response Header", None),
+            ("Response Body", "STND_ISCD"),
+            (None, "ASKP1"),
+            ("Example", None),
+            (None, "IGNORED"),
+        ]
+        assert official.parse_ws_sheet(rows) == {
+            "websocket": True,
+            "real": ["H0BJASP0"],
+            "paper": [],
+            "columns": ["stnd_iscd", "askp1"],
+        }
+        rest = official.parse_ws_sheet([("URL 명", "/uapi/x"), ("Response Body", "A")])
+        assert rest["websocket"] is False
+
+    def test_merge_prefers_workbook_unless_a_newer_sample_extends_it(self):
+        wb = {
+            "T1": {"file": "workbook:a", "columns": ["a", "b"]},
+            "T2": {"file": "workbook:b", "columns": ["rsym", "symb"]},
+            "T3": {"file": "workbook:c", "columns": ["a"]},
+        }
+        samples = {
+            "T1": {"file": "s1.py", "columns": ["a", "b", "market_cls_code"]},
+            "T2": {"file": "s2.py", "columns": ["symb", "zdiv"]},
+            "T3": {"file": "s3.py", "columns": ["a", "extra"]},
+            "T4": {"file": "s4.py", "columns": ["only_sample"]},
+        }
+        dates = {"s1.py": "20260928", "s2.py": "20260101", "s3.py": "20250917"}
+        merged = official.merge_ws_columns(wb, samples, "20251212", dates)
+        assert merged["T1"]["columns"] == ["a", "b", "market_cls_code"]
+        assert merged["T2"]["columns"] == ["rsym", "symb"]  # sample is not an extension
+        assert merged["T3"]["columns"] == ["a"]  # sample older than the workbook
+        assert merged["T4"]["columns"] == ["only_sample"]
+
+    def test_load_ws_layouts_reads_the_generated_module(self):
+        src = textwrap.dedent(
+            """
+            from typing import Dict
+            _LAYOUTS: Dict[str, str] = {
+                "H0STCNT0": ("MKSC_SHRN_ISCD " "stck_prpr"),
+            }
+            OTHER = {"X": "a b"}
+            """
+        )
+        assert ours.load_ws_layouts(src) == {"H0STCNT0": ["mksc_shrn_iscd", "stck_prpr"]}
+
+
 def _site(**kw):
     base = {
         "where": "kis_agent/x.py:1",

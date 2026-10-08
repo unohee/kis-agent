@@ -10,6 +10,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
 
+# 첫 컬럼이 구독 키(종목코드)가 아닌 피드. 프레임만으로는 어느 구독인지 알 수
+# 없으므로 WSAgent가 TR_ID로 구독을 찾는다 (같은 TR 구독이 하나일 때만 특정).
+KEYLESS_TR_IDS = frozenset(
+    {
+        "H0UNMKO0",  # 국내주식 장운영정보 (통합): TRHT_YN부터 시작
+    }
+)
+
 
 class SubscriptionType(Enum):
     """실시간 구독 타입: KRX(STOCK_*), NXT(*_NXT), 지수(INDEX*), 선물옵션, 해외"""
@@ -25,6 +33,25 @@ class SubscriptionType(Enum):
     # Deprecated: 시간외가 아니라 모의투자용이다 (오라벨). Enum 별칭이므로
     # 기존 코드는 계속 동작한다. STOCK_NOTICE_PAPER를 사용할 것.
     STOCK_NOTICE_AH = "H0STCNI9"
+
+    # 국내주식 실시간 (KRX 단독 / 통합)
+    STOCK_EXPECTED_KRX = "H0STANC0"  # 국내주식 실시간예상체결 (KRX)
+    MARKET_OPERATION = "H0STMKO0"  # 국내주식 장운영정보 (KRX)
+    STOCK_TRADE_TOTAL = "H0UNCNT0"  # 국내주식 실시간체결가 (통합)
+    STOCK_ASK_BID_TOTAL = "H0UNASP0"  # 국내주식 실시간호가 (통합)
+    PROGRAM_TRADE_TOTAL = "H0UNPGM0"  # 국내주식 실시간프로그램매매 (통합)
+    MEMBER_TRADE_TOTAL = "H0UNMBC0"  # 국내주식 실시간회원사 (통합)
+    # 첫 컬럼이 종목코드가 아니다 (TRHT_YN부터 시작) — WSAgent가 TR 기준으로 라우팅
+    MARKET_OPERATION_TOTAL = "H0UNMKO0"  # 국내주식 장운영정보 (통합)
+
+    # ELW / ETF / 장내채권 (실전 전용)
+    ELW_TRADE = "H0EWCNT0"  # ELW 실시간체결가
+    ELW_ASK_BID = "H0EWASP0"  # ELW 실시간호가
+    ELW_EXPECTED = "H0EWANC0"  # ELW 실시간예상체결
+    ETF_NAV = "H0STNAV0"  # 국내ETF NAV추이
+    BOND_TRADE = "H0BJCNT0"  # 일반채권 실시간체결가
+    BOND_ASK_BID = "H0BJASP0"  # 일반채권 실시간호가
+    BOND_INDEX = "H0BICNT0"  # 채권지수 실시간체결가
 
     # 국내주식 시간외 (KRX)
     OVERTIME_ASK_BID = "H0STOAA0"  # 시간외 단일가 호가
@@ -42,6 +69,7 @@ class SubscriptionType(Enum):
     # 지수 실시간
     INDEX = "H0UPCNT0"  # 국내지수 실시간 체결 (수정: H0IF1000 → H0UPCNT0)
     INDEX_EXPECTED = "H0UPANC0"  # 지수 실시간 예상체결
+    INDEX_PROGRAM_TRADE = "H0UPPGM0"  # 국내지수 실시간프로그램매매
 
     # 프로그램매매/회원사 (KRX)
     PROGRAM_TRADE = "H0STPGM0"  # 프로그램매매 실시간 (KRX)

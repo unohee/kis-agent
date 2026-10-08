@@ -13,218 +13,24 @@ Purpose: LOC gate 준수를 위해 ws_agent.py에서 분리
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .ws_types import SubscriptionType
+from .ws_fields import FIELDS
+from .ws_types import KEYLESS_TR_IDS, SubscriptionType
 
 
 class RealtimeDataParser:
     """실시간 데이터 파싱 헬퍼 - 웹소켓 수신 데이터를 딕셔너리로 변환"""
 
-    # 국내주식 체결 데이터 필드 (H0STCNT0)
-    STOCK_TRADE_FIELDS = [
-        "mksc_shrn_iscd",
-        "stck_cntg_hour",
-        "stck_prpr",
-        "prdy_vrss_sign",
-        "prdy_vrss",
-        "prdy_ctrt",
-        "wghn_avrg_stck_prc",
-        "stck_oprc",
-        "stck_hgpr",
-        "stck_lwpr",
-        "askp1",
-        "bidp1",
-        "cntg_vol",
-        "acml_vol",
-        "acml_tr_pbmn",
-        "seln_cntg_csnu",
-        "shnu_cntg_csnu",
-        "ntby_cntg_csnu",
-        "cttr",
-        "seln_cntg_smtn",
-        "shnu_cntg_smtn",
-        "ccld_dvsn",
-        "shnu_rate",
-        "prdy_vol_vrss_acml_vol_rate",
-        "oprc_hour",
-        "oprc_vrss_prpr_sign",
-        "oprc_vrss_prpr",
-        "hgpr_hour",
-        "hgpr_vrss_prpr_sign",
-        "hgpr_vrss_prpr",
-        "lwpr_hour",
-        "lwpr_vrss_prpr_sign",
-        "lwpr_vrss_prpr",
-        "bsop_date",
-        "new_mkop_cls_code",
-        "trht_yn",
-        "askp_rsqn1",
-        "bidp_rsqn1",
-        "total_askp_rsqn",
-        "total_bidp_rsqn",
-        "vol_tnrt",
-        "prdy_smns_hour_acml_vol",
-        "prdy_smns_hour_acml_vol_rate",
-        "hour_cls_code",
-        "mrkt_trtm_cls_code",
-        "vi_stnd_prc",
-    ]
-
-    # 국내주식 호가 데이터 필드 (H0STASP0)
-    STOCK_ORDERBOOK_FIELDS = [
-        "mksc_shrn_iscd",
-        "bsop_hour",
-        "hour_cls_code",
-        "askp1",
-        "askp2",
-        "askp3",
-        "askp4",
-        "askp5",
-        "askp6",
-        "askp7",
-        "askp8",
-        "askp9",
-        "askp10",
-        "bidp1",
-        "bidp2",
-        "bidp3",
-        "bidp4",
-        "bidp5",
-        "bidp6",
-        "bidp7",
-        "bidp8",
-        "bidp9",
-        "bidp10",
-        "askp_rsqn1",
-        "askp_rsqn2",
-        "askp_rsqn3",
-        "askp_rsqn4",
-        "askp_rsqn5",
-        "askp_rsqn6",
-        "askp_rsqn7",
-        "askp_rsqn8",
-        "askp_rsqn9",
-        "askp_rsqn10",
-        "bidp_rsqn1",
-        "bidp_rsqn2",
-        "bidp_rsqn3",
-        "bidp_rsqn4",
-        "bidp_rsqn5",
-        "bidp_rsqn6",
-        "bidp_rsqn7",
-        "bidp_rsqn8",
-        "bidp_rsqn9",
-        "bidp_rsqn10",
-        "total_askp_rsqn",
-        "total_bidp_rsqn",
-        "ovtm_total_askp_rsqn",
-        "ovtm_total_bidp_rsqn",
-        "antc_cnpr",
-        "antc_cnqn",
-        "antc_vol",
-        "antc_cntg_vrss",
-        "antc_cntg_vrss_sign",
-        "antc_cntg_prdy_ctrt",
-        "acml_vol",
-        "total_askp_rsqn_icdc",
-        "total_bidp_rsqn_icdc",
-        "ovtm_total_askp_icdc",
-        "ovtm_total_bidp_icdc",
-        "stck_deal_cls_code",
-    ]
-
-    # 지수 데이터 필드 (H0IF1000)
-    INDEX_FIELDS = [
-        "bsop_hour",
-        "bstp_nmix_prpr",
-        "bstp_nmix_prdy_vrss",
-        "prdy_vrss_sign",
-        "bstp_nmix_prdy_ctrt",
-        "acml_vol",
-        "acml_tr_pbmn",
-        "bstp_nmix_oprc",
-        "bstp_nmix_hgpr",
-        "bstp_nmix_lwpr",
-        "ascn_issu_cnt",
-        "uplm_issu_cnt",
-        "stnr_issu_cnt",
-        "down_issu_cnt",
-        "lslm_issu_cnt",
-    ]
-
-    # 프로그램매매 데이터 필드 (H0GSCNT0)
-    PROGRAM_TRADE_FIELDS = [
-        "mksc_shrn_iscd",
-        "bsop_hour",
-        "seln_cntg_qty",
-        "seln_cntg_amt",
-        "shnu_cntg_qty",
-        "shnu_cntg_amt",
-        "ntby_cntg_qty",
-        "ntby_cntg_amt",
-        "seln_hoka_rsqn",
-        "shnu_hoka_rsqn",
-        "ntby_hoka_rsqn",
-    ]
-
-    # 회원사별 매매동향 필드 (H0MBCNT0)
-    MEMBER_TRADE_FIELDS = [
-        "mksc_shrn_iscd",
-        "bsop_hour",
-        "glob_ntby_qty",
-        "glob_ntby_tr_pbmn",
-        "glob_seln_qty",
-        "glob_shnu_qty",
-        "sscr_ntby_qty",
-        "sscr_ntby_tr_pbmn",
-        "sscr_seln_qty",
-        "sscr_shnu_qty",
-        "frgn_ntby_qty",
-        "frgn_ntby_tr_pbmn",
-        "frgn_seln_qty",
-        "frgn_shnu_qty",
-        "orgn_ntby_qty",
-        "orgn_ntby_tr_pbmn",
-        "orgn_seln_qty",
-        "orgn_shnu_qty",
-    ]
-
-    # 지수 예상체결 필드 (H0UPANC0)
-    INDEX_EXPECTED_FIELDS = [
-        "bsop_hour",
-        "bstp_nmix_sdpr",
-        "bstp_nmix_antc_cnpr",
-        "bstp_nmix_antc_cntg_vrss",
-        "antc_cntg_vrss_sign",
-        "bstp_nmix_antc_cntg_ctrt",
-        "antc_vol",
-    ]
-
-    # 종목 예상체결 필드 (H0UNANC0)
-    STOCK_EXPECTED_FIELDS = [
-        "mksc_shrn_iscd",
-        "bsop_hour",
-        "antc_cnpr",
-        "antc_cntg_vrss",
-        "antc_cntg_vrss_sign",
-        "antc_cntg_prdy_ctrt",
-        "antc_vol",
-        "stck_sdpr",
-    ]
-
-    # NXT 장운영정보 필드 (H0NXMKO0)
-    MARKET_OPERATION_NXT_FIELDS = [
-        "mksc_shrn_iscd",
-        "trht_yn",
-        "tr_susp_reas_cntt",
-        "mkop_cls_code",
-        "antc_mkop_cls_code",
-        "mrkt_trtm_cls_code",
-        "divi_app_cls_code",
-        "iscd_stat_cls_code",
-        "vi_cls_code",
-        "ovtm_vi_cls_code",
-        "exch_cls_code",
-    ]
+    # 선물·옵션을 제외한 피드의 컬럼은 공식 문서 기준 ``ws_fields.FIELDS``가 정본이다.
+    # 아래 이름들은 하위 호환용 별칭 (KRX 기준 레이아웃).
+    STOCK_TRADE_FIELDS = list(FIELDS["H0STCNT0"])
+    STOCK_ORDERBOOK_FIELDS = list(FIELDS["H0STASP0"])
+    INDEX_FIELDS = list(FIELDS["H0UPCNT0"])
+    PROGRAM_TRADE_FIELDS = list(FIELDS["H0STPGM0"])
+    MEMBER_TRADE_FIELDS = list(FIELDS["H0STMBC0"])
+    INDEX_EXPECTED_FIELDS = list(FIELDS["H0UPANC0"])
+    STOCK_EXPECTED_FIELDS = list(FIELDS["H0UNANC0"])
+    MARKET_OPERATION_NXT_FIELDS = list(FIELDS["H0NXMKO0"])
+    PROGRAM_TRADE_NXT_FIELDS = list(FIELDS["H0NXPGM0"])
 
     # KRX 야간선물 체결 필드 (H0MFCNT0) [실시간-064]
     NIGHT_FUTURES_TRADE_FIELDS = [
@@ -423,48 +229,20 @@ class RealtimeDataParser:
         "total_bidp_rsqn_icdc",
     ]
 
-    # NXT 프로그램매매 필드 (H0NXPGM0)
-    PROGRAM_TRADE_NXT_FIELDS = [
-        "mksc_shrn_iscd",
-        "stck_cntg_hour",
-        "seln_cnqn",
-        "seln_tr_pbmn",
-        "shnu_cnqn",
-        "shnu_tr_pbmn",
-        "ntby_cnqn",
-        "ntby_tr_pbmn",
-        "seln_rsqn",
-        "shnu_rsqn",
-        "whol_ntby_qty",
-    ]
-
     @classmethod
     def parse(cls, sub_type: SubscriptionType, values: List[str]) -> Dict[str, Any]:
         """실시간 데이터 파싱 - sub_type에 맞는 필드 매핑 적용"""
         ST = SubscriptionType
 
         field_map = {
-            ST.STOCK_TRADE: cls.STOCK_TRADE_FIELDS,
-            ST.STOCK_ASK_BID: cls.STOCK_ORDERBOOK_FIELDS,
-            ST.STOCK_EXPECTED: cls.STOCK_EXPECTED_FIELDS,
-            ST.INDEX: cls.INDEX_FIELDS,
-            ST.INDEX_EXPECTED: cls.INDEX_EXPECTED_FIELDS,
-            ST.PROGRAM_TRADE: cls.PROGRAM_TRADE_FIELDS,
-            ST.MEMBER_TRADE: cls.MEMBER_TRADE_FIELDS,
-            ST.STOCK_TRADE_NXT: cls.STOCK_TRADE_FIELDS,
-            ST.STOCK_ASK_BID_NXT: cls.STOCK_ORDERBOOK_FIELDS,
-            ST.STOCK_EXPECTED_NXT: cls.STOCK_EXPECTED_FIELDS,
-            ST.PROGRAM_TRADE_NXT: cls.PROGRAM_TRADE_NXT_FIELDS,
-            ST.MARKET_OPERATION_NXT: cls.MARKET_OPERATION_NXT_FIELDS,
-            ST.MEMBER_TRADE_NXT: cls.MEMBER_TRADE_FIELDS,
-            # KRX 야간선물/옵션
+            # KRX 야간선물/옵션 (선물·옵션은 공식 레이아웃 정비 범위 밖)
             ST.NIGHT_FUTURES_TRADE: cls.NIGHT_FUTURES_TRADE_FIELDS,
             ST.NIGHT_FUTURES_ASK_BID: cls.NIGHT_FUTURES_ORDERBOOK_FIELDS,
             ST.NIGHT_OPTION_TRADE: cls.NIGHT_OPTION_TRADE_FIELDS,
             ST.NIGHT_OPTION_ASK_BID: cls.NIGHT_OPTION_ORDERBOOK_FIELDS,
         }
 
-        fields = field_map.get(sub_type)
+        fields = FIELDS.get(sub_type.value) or field_map.get(sub_type)
         if not fields:
             return {f"field_{i}": v for i, v in enumerate(values)}
 
@@ -473,6 +251,18 @@ class RealtimeDataParser:
             if i < len(values):
                 result[field_name] = cls._convert_value(values[i], field_name)
         return result
+
+    _STRING_SUFFIXES = (
+        "_hour",
+        "_time",
+        "_date",
+        "_dt",
+        "_ymd",
+        "_hms",
+        "_id",
+        "_code",
+        "_iscd",
+    )
 
     @classmethod
     def _convert_value(cls, value: str, field: str) -> Any:
@@ -521,7 +311,39 @@ class RealtimeDataParser:
             "spead",
             "mxpr",
             "llam",
+            # ETF NAV / 장내채권 / ELW
+            "nav",
+            "ert",
+            "ytm",
+            "drtn",
+            "cnvx",
+            "unpr",
+            # 해외주식 (HDFS*)
+            "last",
+            "open",
+            "high",
+            "low",
+            "diff",
+            "pbid",
+            "pask",
+            "vbid",
+            "vask",
+            "evol",
+            "tvol",
+            "tamt",
+            "bvol",
+            "avol",
+            "bdvl",
+            "advl",
+            "dbid",
+            "dask",
+            "mamt",
+            "strn",
         ]
+
+        # 시각·일자·코드·ID는 숫자처럼 보여도 문자열이다 ("093015" 앞자리 0 보존).
+        if field.endswith(cls._STRING_SUFFIXES):
+            return value
 
         for keyword in numeric_keywords:
             if keyword in field:
@@ -717,7 +539,11 @@ class WSAgentWithStore:
         def create_store_handler(sub_type):
             def handler(data: Any, metadata: Dict):
                 if isinstance(data, list):
-                    code = data[0] if data else metadata.get("tr_key", "")
+                    if sub_type.value in KEYLESS_TR_IDS:
+                        # 첫 컬럼이 키가 아닌 피드: WSAgent가 특정한 구독 키 (없으면 저장 안 함)
+                        code = metadata.get("tr_key", "")
+                    else:
+                        code = data[0] if data else metadata.get("tr_key", "")
                     parsed = RealtimeDataParser.parse(sub_type, data)
                 else:
                     code = metadata.get("tr_key", "")

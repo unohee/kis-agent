@@ -32,21 +32,29 @@ class TestSubscriptionType:
 
     def test_index_subscription_types(self):
         """지수 구독 타입 확인"""
-        assert SubscriptionType.INDEX.value == "H0UPCNT0"     # 수정: H0IF1000 → H0UPCNT0 (공식 TR_ID)
+        assert (
+            SubscriptionType.INDEX.value == "H0UPCNT0"
+        )  # 수정: H0IF1000 → H0UPCNT0 (공식 TR_ID)
         assert SubscriptionType.INDEX_EXPECTED.value == "H0UPANC0"
 
     def test_program_member_subscription_types(self):
         """프로그램매매/회원사 구독 타입 확인"""
         assert SubscriptionType.PROGRAM_TRADE.value == "H0STPGM0"  # KRX
-        assert SubscriptionType.MEMBER_TRADE.value == "H0STMBC0"   # 수정: H0MBCNT0 → H0STMBC0 (공식 TR_ID)
+        assert (
+            SubscriptionType.MEMBER_TRADE.value == "H0STMBC0"
+        )  # 수정: H0MBCNT0 → H0STMBC0 (공식 TR_ID)
 
     def test_futures_options_subscription_types(self):
         """지수선물/옵션, 상품선물, 주식선물/옵션 구독 타입 확인"""
         # 지수선물/옵션
         assert SubscriptionType.INDEX_FUTURES_TRADE.value == "H0IFCNT0"
         assert SubscriptionType.INDEX_FUTURES_ASK_BID.value == "H0IFASP0"
-        assert SubscriptionType.INDEX_OPTION_TRADE.value == "H0IOCNT0"    # 수정: H0OPCNT0 → H0IOCNT0
-        assert SubscriptionType.INDEX_OPTION_ASK_BID.value == "H0IOASP0"  # 수정: H0OPASP0 → H0IOASP0
+        assert (
+            SubscriptionType.INDEX_OPTION_TRADE.value == "H0IOCNT0"
+        )  # 수정: H0OPCNT0 → H0IOCNT0
+        assert (
+            SubscriptionType.INDEX_OPTION_ASK_BID.value == "H0IOASP0"
+        )  # 수정: H0OPASP0 → H0IOASP0
         # 상품선물
         assert SubscriptionType.COMMODITY_FUTURES_TRADE.value == "H0CFCNT0"
         assert SubscriptionType.COMMODITY_FUTURES_ASK_BID.value == "H0CFASP0"
@@ -98,7 +106,7 @@ class TestWSAgentConvenienceMethods:
         assert "H0STASP0_005930" in sub_ids
         assert "H0UNANC0_005930" in sub_ids
         assert "H0STPGM0_005930" in sub_ids  # PROGRAM_TRADE (KRX)
-        assert "H0STMBC0_005930" in sub_ids   # 수정: H0MBCNT0 → H0STMBC0
+        assert "H0STMBC0_005930" in sub_ids  # 수정: H0MBCNT0 → H0STMBC0
 
     def test_subscribe_stocks(self):
         """여러 종목 구독"""
@@ -150,7 +158,7 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_member_trading(["005930", "000660"])
 
         assert len(sub_ids) == 2
-        assert "H0STMBC0_005930" in sub_ids   # 수정: H0MBCNT0 → H0STMBC0
+        assert "H0STMBC0_005930" in sub_ids  # 수정: H0MBCNT0 → H0STMBC0
         assert "H0STMBC0_000660" in sub_ids
 
     def test_subscribe_futures(self):
@@ -159,7 +167,7 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_futures("101S6000", with_orderbook=True)
 
         assert len(sub_ids) == 2
-        assert "H0IFCNT0_101S6000" in sub_ids   # subscribe_futures → 지수선물 (수정)
+        assert "H0IFCNT0_101S6000" in sub_ids  # subscribe_futures → 지수선물 (수정)
         assert "H0IFASP0_101S6000" in sub_ids
 
     def test_subscribe_options(self):
@@ -168,7 +176,9 @@ class TestWSAgentConvenienceMethods:
         sub_ids = agent.subscribe_options("201S6C300", with_orderbook=True)
 
         assert len(sub_ids) == 2
-        assert "H0IOCNT0_201S6C300" in sub_ids   # subscribe_options → 지수옵션 (수정: H0OPCNT0 → H0IOCNT0)
+        assert (
+            "H0IOCNT0_201S6C300" in sub_ids
+        )  # subscribe_options → 지수옵션 (수정: H0OPCNT0 → H0IOCNT0)
         assert "H0IOASP0_201S6C300" in sub_ids
 
     def test_unsubscribe_stock(self):
@@ -220,99 +230,117 @@ class TestRealtimeDataParser:
         assert result["prdy_vrss"] == 500
         assert result["prdy_ctrt"] == 0.72
 
-    def test_parse_index(self):
-        """지수 데이터 파싱"""
-        values = [
-            "093000",  # bsop_hour
-            "2650.50",  # bstp_nmix_prpr
-            "15.30",  # bstp_nmix_prdy_vrss
-            "2",  # prdy_vrss_sign
-            "0.58",  # bstp_nmix_prdy_ctrt
-        ]
+    @staticmethod
+    def _frame(tr_id, **values):
+        """Build a value list in the official column order of ``tr_id``."""
+        from kis_agent.websocket.ws_fields import FIELDS
 
+        return [str(values.get(name, "")) for name in FIELDS[tr_id]]
+
+    def test_parse_index(self):
+        """국내지수 실시간체결 (H0UPCNT0): 첫 컬럼은 업종코드"""
+        values = self._frame(
+            "H0UPCNT0",
+            bstp_cls_code="0001",
+            bsop_hour="093000",
+            prpr_nmix="2650.50",
+            prdy_vrss_sign="2",
+            bstp_nmix_prdy_vrss="15.30",
+            prdy_ctrt="0.58",
+        )
         result = RealtimeDataParser.parse_index(values)
 
+        assert result["bstp_cls_code"] == "0001"
         assert result["bsop_hour"] == "093000"
-        assert result["bstp_nmix_prpr"] == 2650.50
+        assert result["prpr_nmix"] == 2650.50
         assert result["bstp_nmix_prdy_vrss"] == 15.30
-        assert result["prdy_vrss_sign"] == 2  # 숫자로 변환됨
-        assert result["bstp_nmix_prdy_ctrt"] == 0.58
+        assert result["prdy_vrss_sign"] == 2
+        assert result["prdy_ctrt"] == 0.58
+        assert len(result) == 30
 
     def test_parse_program_trade(self):
-        """프로그램매매 데이터 파싱"""
-        values = [
-            "005930",  # mksc_shrn_iscd
-            "093000",  # bsop_hour
-            "10000",  # seln_cntg_qty
-            "700000000",  # seln_cntg_amt
-            "15000",  # shnu_cntg_qty
-            "1050000000",  # shnu_cntg_amt
-        ]
-
+        """프로그램매매 (H0STPGM0)"""
+        values = self._frame(
+            "H0STPGM0",
+            mksc_shrn_iscd="005930",
+            stck_cntg_hour="093000",
+            seln_cnqn="10000",
+            shnu_cnqn="15000",
+            ntby_cnqn="5000",
+        )
         result = RealtimeDataParser.parse_program_trade(values)
 
         assert result["mksc_shrn_iscd"] == "005930"
-        assert result["seln_cntg_qty"] == 10000
-        assert result["shnu_cntg_qty"] == 15000
+        assert result["stck_cntg_hour"] == "093000"
+        assert result["seln_cnqn"] == 10000
+        assert result["shnu_cnqn"] == 15000
+        assert result["ntby_cnqn"] == 5000
 
     def test_parse_member_trade(self):
-        """회원사 매매동향 데이터 파싱"""
-        values = [
-            "005930",  # mksc_shrn_iscd
-            "093000",  # bsop_hour
-            "5000",  # glob_ntby_qty
-            "350000000",  # glob_ntby_tr_pbmn
-        ]
-
+        """회원사 (H0STMBC0): 78 컬럼, 매도 회원사명부터 시작"""
+        values = self._frame(
+            "H0STMBC0",
+            mksc_shrn_iscd="005930",
+            seln2_mbcr_name1="모건스탠리",
+            glob_ntby_qty="5000",
+        )
         result = RealtimeDataParser.parse_member_trade(values)
 
+        assert len(values) == 78
         assert result["mksc_shrn_iscd"] == "005930"
+        assert result["seln2_mbcr_name1"] == "모건스탠리"
         assert result["glob_ntby_qty"] == 5000
-        assert result["glob_ntby_tr_pbmn"] == 350000000
 
     def test_parse_stock_expected(self):
-        """종목 예상체결 데이터 파싱"""
-        values = [
-            "005930",  # mksc_shrn_iscd
-            "090000",  # bsop_hour
-            "70500",  # antc_cnpr
-            "500",  # antc_cntg_vrss
-            "2",  # antc_cntg_vrss_sign
-            "0.71",  # antc_cntg_prdy_ctrt
-        ]
-
+        """예상체결 (H0UNANC0, 통합)"""
+        values = self._frame(
+            "H0UNANC0",
+            mksc_shrn_iscd="005930",
+            stck_cntg_hour="085959",
+            stck_prpr="70500",
+            prdy_vrss="500",
+        )
         result = RealtimeDataParser.parse_stock_expected(values)
 
         assert result["mksc_shrn_iscd"] == "005930"
-        assert result["antc_cnpr"] == 70500
-        assert result["antc_cntg_vrss"] == 500
+        assert result["stck_cntg_hour"] == "085959"
+        assert result["stck_prpr"] == 70500
+        assert result["prdy_vrss"] == 500
 
     def test_parse_index_expected(self):
-        """지수 예상체결 데이터 파싱"""
-        values = [
-            "090000",  # bsop_hour
-            "2630.00",  # bstp_nmix_sdpr
-            "2645.50",  # bstp_nmix_antc_cnpr
-            "15.50",  # bstp_nmix_antc_cntg_vrss
-            "2",  # antc_cntg_vrss_sign
-        ]
-
+        """지수 예상체결 (H0UPANC0)"""
+        values = self._frame(
+            "H0UPANC0",
+            bstp_cls_code="0001",
+            bsop_hour="085900",
+            prpr_nmix="2645.50",
+            bstp_nmix_prdy_vrss="15.50",
+        )
         result = RealtimeDataParser.parse_index_expected(values)
 
-        assert result["bsop_hour"] == "090000"
-        assert result["bstp_nmix_antc_cnpr"] == 2645.50
-        assert result["bstp_nmix_antc_cntg_vrss"] == 15.50
+        assert result["bstp_cls_code"] == "0001"
+        assert result["bsop_hour"] == "085900"
+        assert result["prpr_nmix"] == 2645.50
+        assert result["bstp_nmix_prdy_vrss"] == 15.50
 
     def test_parse_unknown_type(self):
-        """알 수 없는 타입 파싱 (필드 인덱스 사용)"""
+        """레이아웃이 없는 타입은 field_N 키로 반환 (해외선물은 범위 밖)"""
         values = ["value1", "value2", "value3"]
 
-        result = RealtimeDataParser.parse(SubscriptionType.OVERSEAS_STOCK, values)
+        result = RealtimeDataParser.parse(SubscriptionType.OVERSEAS_FUTURES, values)
 
-        # 필드 매핑이 없으면 인덱스 기반
         assert result["field_0"] == "value1"
         assert result["field_1"] == "value2"
         assert result["field_2"] == "value3"
+
+    def test_parse_overseas_trade_starts_with_rsym(self):
+        """해외주식 체결 (HDFSCNT0): 첫 컬럼은 실시간종목코드 RSYM (공식 문서)"""
+        values = self._frame("HDFSCNT0", rsym="DNASAAPL", symb="AAPL", last="190.25")
+        result = RealtimeDataParser.parse(SubscriptionType.OVERSEAS_STOCK, values)
+
+        assert result["rsym"] == "DNASAAPL"
+        assert result["symb"] == "AAPL"
+        assert result["last"] == 190.25
 
 
 class TestRealtimeDataStore:

@@ -1,31 +1,4 @@
 {
  "_comment": "Known deviations still to be fixed. --check fails only on findings not listed here. Shrink this file as fixes land; never add to it to silence a new finding.",
- "known": [
-  "coverage-ws|-||H0BICNT0",
-  "coverage-ws|-||H0BJASP0",
-  "coverage-ws|-||H0BJCNT0",
-  "coverage-ws|-||H0EWANC0",
-  "coverage-ws|-||H0EWASP0",
-  "coverage-ws|-||H0EWCNT0",
-  "coverage-ws|-||H0STANC0",
-  "coverage-ws|-||H0STMKO0",
-  "coverage-ws|-||H0STNAV0",
-  "coverage-ws|-||H0UNASP0",
-  "coverage-ws|-||H0UNCNT0",
-  "coverage-ws|-||H0UNMBC0",
-  "coverage-ws|-||H0UNMKO0",
-  "coverage-ws|-||H0UNPGM0",
-  "coverage-ws|-||H0UPPGM0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0NXANC0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0NXCNT0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0NXMBC0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0STMBC0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0STPGM0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0UNANC0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0UPANC0",
-  "ws-columns|kis_agent/websocket/ws_helpers.py||H0UPCNT0",
-  "ws-missing-tail|kis_agent/websocket/ws_helpers.py||H0NXASP0",
-  "ws-missing-tail|kis_agent/websocket/ws_helpers.py||H0STASP0",
-  "ws-missing-tail|kis_agent/websocket/ws_helpers.py||H0STCNT0"
- ]
+ "known": []
 }

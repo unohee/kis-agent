@@ -136,6 +136,42 @@
   `daytime_modify_order`, `daytime_cancel_order`, 지정가만, 실전 전용).
 - `kis query elw|bond ...`로 CLI에서 직접 호출할 수 있다.
 
+### 🔌 실시간 (WebSocket) — **파싱 결과 키 변경 포함**
+
+- 수신 경로 결함 수정:
+  - 암호화 여부를 프레임 첫 칸으로 판단한다. 이전에는 세 번째 칸(데이터 건수 "001")을
+    플래그로 읽어 **체결통보(H0STCNI0/H0GSCNI0 등)가 한 번도 복호화되지 않았다**. 복호화
+    키는 구독 성공 응답에서 받아 두며, 키가 없는 암호화 프레임은 버리고 경고한다.
+  - 데이터 건수가 2 이상인 프레임을 레코드별로 나눠 각각 핸들러에 전달한다
+    (이전: 첫 레코드만 처리하고 나머지를 붙인 채 전달).
+  - 서버 PINGPONG을 원문 그대로 pong으로 회신한다 (공식 샘플과 동일).
+  - 첫 컬럼이 종목코드가 아닌 통합 장운영정보(H0UNMKO0)는 TR 기준으로 구독을 찾는다.
+  - 구독은 접속키당 최대 41건 (`MAX_SUBSCRIPTIONS`). 42번째 `subscribe()`는 `ValueError`.
+- 필드 레이아웃을 공식 문서 기준 `kis_agent/websocket/ws_fields.py`로 일원화했다
+  (선물·옵션 제외). **다음 피드의 파싱 결과 키가 바뀐다** — 이전 목록이 0번 컬럼부터
+  어긋나 있었다: 지수(H0UPCNT0)·지수 예상체결(H0UPANC0) 30컬럼, 회원사
+  (H0STMBC0/H0NXMBC0) 78컬럼, 예상체결(H0UNANC0/H0NXANC0), 프로그램매매(H0STPGM0).
+  체결(H0STCNT0 등)에는 `market_cls_code`, 호가에는 중간가 컬럼이 추가되고 NXT/통합
+  호가는 각자의 레이아웃(65/66컬럼)을 쓴다. 체결통보·시간외·해외(RSYM부터)는
+  이전에 `field_N`으로만 나오던 것이 이름으로 나온다.
+- 시각·일자·코드·ID 필드(`*_hour`, `*_id` 등)는 숫자로 바꾸지 않는다
+  (이전: "090015" → 90015로 앞자리 0 손실).
+- 신규 피드 15종: 통합 체결/호가(H0UNCNT0/H0UNASP0), KRX 예상체결(H0STANC0),
+  장운영정보 KRX/통합(H0STMKO0/H0UNMKO0), 통합 프로그램매매·회원사(H0UNPGM0/H0UNMBC0),
+  지수 프로그램매매(H0UPPGM0), ELW 체결/호가/예상체결(H0EWCNT0/H0EWASP0/H0EWANC0),
+  ETF NAV(H0STNAV0), 채권 체결/호가/지수(H0BJCNT0/H0BJASP0/H0BICNT0). 모두 실전 전용.
+  편의 메서드: `subscribe_stock_total`, `subscribe_expected`, `subscribe_market_operation`,
+  `subscribe_program_trading_total`, `subscribe_member_trading_total`,
+  `subscribe_index_program_trading`, `subscribe_elw`, `subscribe_etf_nav`,
+  `subscribe_bond`, `subscribe_bond_index`, `subscribe_overseas_asia_orderbook`.
+- `subscribe_market_operation_nxt(code)`: 공식 문서대로 종목코드로 구독한다
+  (이전: "NXT" 고정 키). 종목코드가 없으면 `ValueError`.
+- `subscribe_overseas_stock(..., exchange=, paid=)`: 거래소를 주면 공식 키
+  `D`/`R` + 시장구분 + 종목코드(예: `DNASAAPL`)를 만든다. 생략하면 이전처럼 그대로 쓴다.
+- 대조 도구는 실시간 컬럼도 워크북 실시간 시트를 기준으로 비교한다 (샘플은 워크북 이후
+  꼬리 컬럼만 추가된 경우에 한해 우선). 레이아웃 재생성:
+  `python scripts/spec_conformance/gen_ws_fields.py`.
+
 ### ✨ 인증
 
 - `KISClient.revoke_token()`: 접근토큰폐기(P) `/oauth2/revokeP`. 성공하면 메모리·파일

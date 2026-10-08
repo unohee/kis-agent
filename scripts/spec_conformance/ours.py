@@ -535,6 +535,23 @@ def load_ws_field_lists(source: str) -> Tuple[Dict[str, List[str]], Dict[str, st
     return lists, mapping
 
 
+def load_ws_layouts(source: str) -> Dict[str, List[str]]:
+    """TR_ID -> columns from ws_fields.py's ``_LAYOUTS`` dict of space-separated strings."""
+    tree = ast.parse(source)
+    out: Dict[str, List[str]] = {}
+    for n in ast.walk(tree):
+        target = None
+        if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
+            target, value = n.target.id, n.value
+        elif isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name):
+            target, value = n.targets[0].id, n.value
+        if target == "_LAYOUTS" and isinstance(value, ast.Dict):
+            for k, v in zip(value.keys, value.values):
+                if isinstance(k, ast.Constant) and isinstance(v, ast.Constant):
+                    out[str(k.value)] = str(v.value).lower().split()
+    return out
+
+
 def load_ws(repo: str) -> Dict[str, Dict[str, object]]:
     """TR_ID -> {"member": name, "fields": list|None} for the supported WSAgent path."""
     base = os.path.join(repo, "kis_agent", "websocket")
@@ -542,11 +559,18 @@ def load_ws(repo: str) -> Dict[str, Dict[str, object]]:
         types = load_ws_types(fh.read())
     with open(os.path.join(base, "ws_helpers.py"), encoding="utf-8") as fh:
         lists, mapping = load_ws_field_lists(fh.read())
+    layouts: Dict[str, List[str]] = {}
+    fields_path = os.path.join(base, "ws_fields.py")
+    if os.path.exists(fields_path):
+        with open(fields_path, encoding="utf-8") as fh:
+            layouts = load_ws_layouts(fh.read())
     out: Dict[str, Dict[str, object]] = {}
     for member, tr in types.items():
         list_name = mapping.get(member)
         entry = out.setdefault(tr, {"members": [], "fields": None})
         entry["members"].append(member)
-        if list_name and entry["fields"] is None:
+        if tr in layouts:
+            entry["fields"] = layouts[tr]
+        elif list_name and entry["fields"] is None:
             entry["fields"] = lists.get(list_name)
     return out

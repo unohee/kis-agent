@@ -402,6 +402,81 @@ def load_ws_samples(
     return out
 
 
+def parse_ws_sheet(rows: List[tuple]) -> Dict[str, object]:
+    """Extract TR_IDs and the ordered Response Body columns from one realtime sheet.
+
+    A sheet is realtime when its URL is ``/tryitout/<TR_ID>``; the URL also names
+    the TR. The "API 통신방식" and "실전 TR_ID" cells are not trusted: the
+    2025-12-12 workbook labels some realtime sheets REST (H0UNMKO0, H0NXMKO0),
+    one REST sheet WEBSOCKET (FHPST04320000), and gives H0BJASP0's sheet the
+    TR_ID H0BJCNT0.
+    """
+    url = ""
+    paper: List[str] = []
+    columns: List[str] = []
+    in_body = False
+    for raw in rows:
+        r = list(raw) + [None] * 8
+        head = str(r[0]).strip() if r[0] is not None else ""
+        if head == "URL 명":
+            url = str(r[1]).strip()
+        elif head == "모의 TR_ID":
+            paper = [t for t in tr_tokens(r[1]) if TR_ID_RE.match(t)]
+        if head == "Response Body":
+            in_body = True
+        elif head:
+            in_body = False
+        if in_body and r[1]:
+            columns.append(str(r[1]).strip().lower())
+    tr = url[len("/tryitout/") :] if url.startswith("/tryitout/") else ""
+    real = [tr] if TR_ID_RE.match(tr) else []
+    return {"websocket": bool(real), "real": real, "paper": paper, "columns": columns}
+
+
+def load_workbook_ws(path: str) -> Dict[str, Dict[str, object]]:
+    """Realtime column lists from the workbook's realtime sheets, keyed by TR_ID."""
+    import warnings
+
+    import openpyxl
+
+    warnings.filterwarnings("ignore", module="openpyxl")
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out: Dict[str, Dict[str, object]] = {}
+    for name in wb.sheetnames[1:]:
+        parsed = parse_ws_sheet(list(wb[name].iter_rows(values_only=True)))
+        if not parsed["websocket"] or not parsed["columns"]:
+            continue
+        for tr in list(parsed["real"]) + list(parsed["paper"]):
+            out.setdefault(tr, {"file": f"workbook:{name}", "columns": parsed["columns"]})
+    return out
+
+
+def merge_ws_columns(
+    workbook: Dict[str, Dict[str, object]],
+    samples: Dict[str, Dict[str, object]],
+    workbook_day: str,
+    sample_dates: Dict[str, str],
+) -> Dict[str, Dict[str, object]]:
+    """Official realtime columns: workbook first, newer samples only extend the tail.
+
+    KIS appends columns to live feeds (e.g. market_cls_code, 2026) and updates the
+    samples first, so a sample committed after the workbook whose columns start
+    with the workbook's columns wins. Otherwise the workbook wins: several
+    samples omit the leading RSYM column of overseas feeds (pandas read_csv turns
+    the extra first value into the index) or list response-header keys as columns.
+    """
+    out = dict(samples)
+    for tr, wb_entry in workbook.items():
+        smp = samples.get(tr)
+        if smp:
+            newer = sample_dates.get(str(smp["file"]), "") > workbook_day > ""
+            cols, wcols = list(smp["columns"]), list(wb_entry["columns"])
+            if newer and len(cols) > len(wcols) and cols[: len(wcols)] == wcols:
+                continue
+        out[tr] = wb_entry
+    return out
+
+
 def describe_api(path: str, url: str, include_response: bool = False) -> List[str]:
     """Human-readable field table for one URL, straight from the workbook sheets."""
     import warnings

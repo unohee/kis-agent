@@ -143,11 +143,11 @@ class TestWSAgentNXTSubscription:
 
     def test_subscribe_market_operation_nxt(self, ws_agent):
         """subscribe_market_operation_nxt 메서드 테스트"""
-        ws_agent.subscribe_market_operation_nxt()
+        ws_agent.subscribe_market_operation_nxt("005930")
 
         subscriptions = ws_agent.subscriptions
-        # 장운영정보는 종목코드 "NXT" 사용
-        assert f"{SubscriptionType.MARKET_OPERATION_NXT.value}_NXT" in subscriptions
+        # 공식 문서: 장운영정보(NXT) 구독 키는 종목코드
+        assert f"{SubscriptionType.MARKET_OPERATION_NXT.value}_005930" in subscriptions
 
     def test_subscribe_program_trading_nxt(self, ws_agent):
         """subscribe_program_trading_nxt 메서드 테스트"""

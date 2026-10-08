@@ -16,6 +16,7 @@ from ..core.constants import WS_MOCK_URL, WS_REAL_URL
 from ..core.tr_mapping import resolve_tr_id
 from .ws_helpers import RealtimeDataParser, RealtimeDataStore, WSAgentWithStore
 from .ws_subscriptions import WSSubscriptionMixin
+from .ws_types import KEYLESS_TR_IDS as _KEYLESS_TR_IDS
 from .ws_types import Subscription, SubscriptionType
 
 logger = logging.getLogger(__name__)
@@ -57,16 +58,8 @@ def _is_after_market_close(has_night_session: bool = False) -> bool:
     return current_time > MARKET_CLOSE_TIME
 
 
-# 체결통보 TR_ID (실전 + 모의). 체결통보 메시지는 AES256으로 암호화되어 오므로
-# 최초 구독 응답에서 key/iv를 받아 보관해야 한다.
-_NOTICE_TR_IDS = {
-    "H0STCNI0",  # 국내주식 체결통보 (실전)
-    "H0STCNI9",  # 국내주식 체결통보 (모의)
-    "H0IFCNI0",  # 선물옵션 체결통보 (실전)
-    "H0IFCNI9",  # 선물옵션 체결통보 (모의)
-    "H0GSCNI0",  # 해외주식 체결통보 (실전)
-    "H0GSCNI9",  # 해외주식 체결통보 (모의)
-}
+# KIS 실시간 등록 한도: 1개 appkey(접속키)당 최대 41건.
+MAX_SUBSCRIPTIONS = 41
 
 # 장 마감 후에도 연결을 허용해야 하는 SubscriptionType TR_ID 목록
 # (야간선물/옵션, 해외주식/선물 — 24h 또는 야간 세션이 존재하는 상품)
@@ -253,7 +246,8 @@ class WSAgent(WSSubscriptionMixin):
             str: 구독 ID ("{sub_type.value}_{key}" 형식)
 
         Raises:
-            ValueError: sub_type이나 key가 유효하지 않은 경우
+            ValueError: sub_type이나 key가 유효하지 않거나, 구독이 이미
+                ``MAX_SUBSCRIPTIONS``(41)건인 경우
 
         Example:
             >>> agent.subscribe(SubscriptionType.STOCK_TRADE, "005930",
@@ -278,6 +272,12 @@ class WSAgent(WSSubscriptionMixin):
         if sub_id in self.subscriptions:
             logger.warning(f"이미 구독 중: {sub_id}")
             return sub_id
+
+        if len(self.subscriptions) >= MAX_SUBSCRIPTIONS:
+            raise ValueError(
+                f"실시간 구독은 접속키당 최대 {MAX_SUBSCRIPTIONS}건입니다 "
+                f"(현재 {len(self.subscriptions)}건). 기존 구독을 해제한 뒤 추가하세요: {sub_id}"
+            )
 
         subscription = Subscription(
             sub_type=sub_type, key=key, handler=handler, metadata=metadata
@@ -597,8 +597,36 @@ class WSAgent(WSSubscriptionMixin):
 
         return results
 
+    def _parse_frame(self, data: str) -> Optional[tuple]:
+        """실시간 데이터 프레임을 (tr_id, 레코드 목록)으로 분해한다.
+
+        프레임 형식: ``암호화여부|TR_ID|데이터건수|값^값^...``. 데이터건수가 2 이상이면
+        값들이 레코드 순서대로 이어 붙어 있으므로 건수로 균등 분할한다. 암호화된
+        프레임(첫 칸 "1")은 구독 응답에서 받은 AES key/iv로 복호화하며, 키가 없으면
+        복호화할 수 없으므로 버린다.
+
+        Returns:
+            (tr_id, [values, ...]) 또는 형식이 맞지 않으면 None
+        """
+        parts = data.split("|", 3)
+        if len(parts) < 4:
+            return None
+        encrypted, tr_id, count_text, payload = parts
+        if encrypted == "1":
+            keys = self.aes_keys.get(tr_id)
+            if not keys:
+                logger.warning(f"복호화 키 없음 - 암호화 프레임 무시: {tr_id}")
+                return None
+            payload = self._decrypt_aes(keys[0], keys[1], payload)
+        values = payload.split("^")
+        count = int(count_text) if count_text.isdigit() else 1
+        if count > 1 and len(values) % count == 0:
+            size = len(values) // count
+            return tr_id, [values[i * size : (i + 1) * size] for i in range(count)]
+        return tr_id, [values]
+
     def _parse_message(self, data: str, json_data: Optional[dict] = None) -> tuple:
-        """메시지 파싱.
+        """메시지 파싱 (다건 프레임은 첫 레코드만 반환 — 전체는 ``_parse_frame``).
 
         Args:
             data: 원본 raw 메시지.
@@ -617,34 +645,30 @@ class WSAgent(WSSubscriptionMixin):
 
             tr_id = header.get("tr_id")
             tr_key = header.get("tr_key")
-
-            # AES 키 저장 (체결통보는 암호화되어 오므로 실전/모의 양쪽 TR 모두 필요)
-            if tr_id in _NOTICE_TR_IDS:
-                output = body.get("output", {})
-                if "key" in output and "iv" in output:
-                    self.aes_keys[tr_id] = (output["key"], output["iv"])
-
+            self._remember_aes_key(tr_id, body)
             return tr_id, tr_key, json_data
 
-        elif data and data[0] in ("0", "1"):
-            # 바이너리 메시지
-            parts = data.split("|")
-            if len(parts) >= 4:
-                tr_id = parts[1]
-                encrypted = parts[2]
-
-                # 암호화된 메시지 처리
-                if encrypted == "1" and tr_id in self.aes_keys:
-                    key, iv = self.aes_keys[tr_id]
-                    decrypted = self._decrypt_aes(key, iv, parts[3])
-                    values = decrypted.split("^")
-                else:
-                    values = parts[3].split("^")
-
-                tr_key = values[0] if values else None
-                return tr_id, tr_key, values
+        if data and data[0] in ("0", "1"):
+            frame = self._parse_frame(data)
+            if frame:
+                tr_id, records = frame
+                values = records[0]
+                return tr_id, self._frame_key(tr_id, values), values
 
         return None, None, None
+
+    @staticmethod
+    def _frame_key(tr_id: str, values: List[str]) -> Optional[str]:
+        """레코드의 구독 키 (첫 컬럼). 키가 없는 피드는 None."""
+        if tr_id in _KEYLESS_TR_IDS or not values:
+            return None
+        return values[0]
+
+    def _remember_aes_key(self, tr_id: Optional[str], body: dict) -> None:
+        """구독 응답의 AES key/iv를 보관한다 (암호화 프레임 복호화용)."""
+        output = body.get("output") if isinstance(body, dict) else None
+        if tr_id and isinstance(output, dict) and "key" in output and "iv" in output:
+            self.aes_keys[tr_id] = (output["key"], output["iv"])
 
     def _decrypt_aes(self, key: str, iv: str, cipher_text: str) -> str:
         """AES256 복호화"""
@@ -673,6 +697,8 @@ class WSAgent(WSSubscriptionMixin):
         tr_key = header.get("tr_key", "")
         msg1 = body.get("msg1", "")
         rt_cd = body.get("rt_cd", "")
+        # 암호화 피드(체결통보 등)의 복호화 키는 구독 성공 응답에만 실려 온다.
+        self._remember_aes_key(tr_id, body)
 
         # 구독 응답 메시지 확인
         if not msg1:
@@ -717,10 +743,6 @@ class WSAgent(WSSubscriptionMixin):
             self.stats["messages_received"] += 1
             self.stats["last_message_time"] = datetime.now()
 
-            # PINGPONG 메시지는 무시
-            if "PINGPONG" in data:
-                return
-
             # JSON 메시지인 경우 한 번만 파싱하고 구독 응답 먼저 확인.
             # 일반 데이터 처리를 위한 _parse_message에도 같은 json_data를 넘겨
             # 이중 파싱을 막는다.
@@ -728,63 +750,98 @@ class WSAgent(WSSubscriptionMixin):
             if data.startswith("{"):
                 try:
                     preparsed_json = json.loads(data)
-                    if self._handle_subscription_response(preparsed_json):
-                        return  # 구독 응답 메시지는 여기서 처리 완료
                 except json.JSONDecodeError:
                     preparsed_json = None
-
-            tr_id, tr_key, parsed_data = self._parse_message(data, preparsed_json)
-
-            if not tr_id:
+                if preparsed_json is not None:
+                    tr_id = preparsed_json.get("header", {}).get("tr_id")
+                    if tr_id == "PINGPONG":
+                        # KIS 서버 heartbeat: 받은 원문을 그대로 돌려줘야 세션이 유지된다.
+                        await self._echo_pingpong(data)
+                        return
+                    if self._handle_subscription_response(preparsed_json):
+                        return  # 구독 응답 메시지는 여기서 처리 완료
+            elif "PINGPONG" in data:
                 return
 
-            # 구독 ID 생성
-            sub_id = f"{tr_id}_{tr_key}" if tr_key else tr_id
+            if data and data[0] in ("0", "1"):
+                frame = self._parse_frame(data)
+                if not frame:
+                    return
+                tr_id, records = frame
+                for values in records:
+                    await self._dispatch(tr_id, self._frame_key(tr_id, values), values)
+                return
 
-            # 해당 구독 찾기
-            subscription = self.subscriptions.get(sub_id)
-
-            # 타입별 핸들러 실행
-            try:
-                sub_type = SubscriptionType(tr_id)
-
-                # 개별 핸들러 실행
-                if subscription and subscription.handler:
-                    await self._call_handler(
-                        subscription.handler, parsed_data, subscription.metadata
-                    )
-
-                # 타입별 핸들러 실행
-                if sub_type in self.type_handlers:
-                    for handler in self.type_handlers[sub_type]:
-                        await self._call_handler(
-                            handler,
-                            parsed_data,
-                            subscription.metadata if subscription else {},
-                        )
-
-                # 기본 핸들러 실행
-                if self.default_handler:
-                    await self._call_handler(
-                        self.default_handler,
-                        parsed_data,
-                        {"tr_id": tr_id, "tr_key": tr_key},
-                    )
-
-                self.stats["messages_processed"] += 1
-
-            except ValueError:
-                # 알 수 없는 tr_id
-                if self.default_handler:
-                    await self._call_handler(
-                        self.default_handler,
-                        parsed_data,
-                        {"tr_id": tr_id, "tr_key": tr_key},
-                    )
+            tr_id, tr_key, parsed_data = self._parse_message(data, preparsed_json)
+            if tr_id:
+                await self._dispatch(tr_id, tr_key, parsed_data)
 
         except Exception as e:
             logger.error(f"메시지 처리 오류: {e}")
             self.stats["errors"] += 1
+
+    async def _echo_pingpong(self, data: str) -> None:
+        """PINGPONG 원문을 pong 프레임으로 회신한다 (공식 샘플과 동일)."""
+        if self.ws is None or self._ws_closed():
+            return
+        try:
+            await self.ws.pong(data)
+        except Exception as e:
+            logger.debug(f"PINGPONG 회신 실패: {e}")
+
+    def _find_subscription(self, tr_id: str, tr_key: Optional[str]):
+        """프레임에 해당하는 구독. 키 없는 피드는 같은 TR 구독이 하나일 때만 특정된다."""
+        if tr_key:
+            return self.subscriptions.get(f"{tr_id}_{tr_key}")
+        if tr_id in _KEYLESS_TR_IDS:
+            matches = [
+                sub
+                for sub in self.subscriptions.values()
+                if sub.sub_type.value == tr_id
+            ]
+            if len(matches) == 1:
+                return matches[0]
+        return None
+
+    async def _dispatch(self, tr_id: str, tr_key: Optional[str], parsed_data: Any):
+        """레코드 하나를 개별/타입별/기본 핸들러로 전달한다."""
+        subscription = self._find_subscription(tr_id, tr_key)
+        if tr_key is None and subscription is not None:
+            tr_key = subscription.key
+        if subscription is not None:
+            metadata = subscription.metadata
+            if tr_id in _KEYLESS_TR_IDS:
+                metadata = {"tr_key": tr_key, **subscription.metadata}
+        else:
+            metadata = {}
+
+        try:
+            sub_type = SubscriptionType(tr_id)
+        except ValueError:
+            # 알 수 없는 tr_id
+            if self.default_handler:
+                await self._call_handler(
+                    self.default_handler,
+                    parsed_data,
+                    {"tr_id": tr_id, "tr_key": tr_key},
+                )
+            return
+
+        # 개별 핸들러 실행
+        if subscription and subscription.handler:
+            await self._call_handler(subscription.handler, parsed_data, metadata)
+
+        # 타입별 핸들러 실행
+        for handler in self.type_handlers.get(sub_type, ()):
+            await self._call_handler(handler, parsed_data, metadata)
+
+        # 기본 핸들러 실행
+        if self.default_handler:
+            await self._call_handler(
+                self.default_handler, parsed_data, {"tr_id": tr_id, "tr_key": tr_key}
+            )
+
+        self.stats["messages_processed"] += 1
 
     async def _call_handler(self, handler: Callable, data: Any, metadata: Dict):
         """핸들러 호출.
