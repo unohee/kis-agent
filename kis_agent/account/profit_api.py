@@ -11,6 +11,7 @@ import pandas as pd
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
+from ..core.tr_mapping import PaperTradingNotSupportedError
 
 
 class AccountProfitAPI(BaseAPI):
@@ -43,8 +44,16 @@ class AccountProfitAPI(BaseAPI):
         page_callback: Optional[
             Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
         ] = None,
+        excg_id_dvsn_cd: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """일별주문체결조회. pagination=True로 연속조회(100건+)."""
+        """일별주문체결조회. pagination=True로 연속조회(100건+).
+
+        Args:
+            excg_id_dvsn_cd: 거래소ID구분코드 (KRX/NXT/SOR/ALL). 명세상 필수 필드다.
+                None이면 실전투자는 "ALL"(대체거래소 체결 포함), 모의투자는 KRX만
+                제공되므로 "KRX"를 보낸다.
+        """
+        excg_id_dvsn_cd = self._resolve_excg_id_dvsn_cd(excg_id_dvsn_cd)
         if pagination:
             return self._inquire_daily_ccld_pagination(
                 start_date=start_date,
@@ -56,6 +65,7 @@ class AccountProfitAPI(BaseAPI):
                 inqr_dvsn_3=inqr_dvsn_3,
                 max_pages=max_pages,
                 page_callback=page_callback,
+                excg_id_dvsn_cd=excg_id_dvsn_cd,
             )
 
         try:
@@ -83,6 +93,7 @@ class AccountProfitAPI(BaseAPI):
                     "ODNO": "",
                     "INQR_DVSN_3": "00",
                     "INQR_DVSN_1": "",
+                    "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,
                     "CTX_AREA_FK100": "",
                     "CTX_AREA_NK100": "",
                 },
@@ -91,6 +102,12 @@ class AccountProfitAPI(BaseAPI):
         except Exception as e:
             logging.error(f"일별주문체결 조회 실패: {e}")
             return None
+
+    def _resolve_excg_id_dvsn_cd(self, excg_id_dvsn_cd: Optional[str]) -> str:
+        """EXCG_ID_DVSN_CD 기본값: 실전 ALL(전체 거래소), 모의 KRX(모의는 KRX만 제공)."""
+        if excg_id_dvsn_cd:
+            return excg_id_dvsn_cd
+        return "ALL" if getattr(self.client, "is_real", True) else "KRX"
 
     def _inquire_daily_ccld_pagination(
         self,
@@ -105,8 +122,10 @@ class AccountProfitAPI(BaseAPI):
         page_callback: Optional[
             Callable[[int, List[Dict[str, Any]], Dict[str, Any]], None]
         ] = None,
+        excg_id_dvsn_cd: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """내부 헬퍼: 연속조회키로 페이지네이션."""
+        excg_id_dvsn_cd = self._resolve_excg_id_dvsn_cd(excg_id_dvsn_cd)
         all_data = []
         ctx_area_fk100 = ""
         ctx_area_nk100 = ""
@@ -141,6 +160,7 @@ class AccountProfitAPI(BaseAPI):
                         "ODNO": "",
                         "INQR_DVSN_3": inqr_dvsn_3,
                         "INQR_DVSN_1": "",
+                        "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,
                         "CTX_AREA_FK100": ctx_area_fk100,
                         "CTX_AREA_NK100": ctx_area_nk100,
                     },
@@ -377,24 +397,45 @@ class AccountProfitAPI(BaseAPI):
         )
 
     def inquire_period_rights(
-        self, start_date: str, end_date: str
+        self,
+        start_date: str,
+        end_date: str,
+        pdno: str = "",
+        rght_type_cd: str = "",
+        prdt_type_cd: str = "",
+        inqr_dvsn: str = "03",
     ) -> Optional[pd.DataFrame]:
-        """기간별계좌권리현황조회 - 배당, 증자 등 권리 현황 조회."""
+        """기간별계좌권리현황조회 - 배당, 증자 등 권리 현황 조회.
+
+        Args:
+            start_date: 조회시작일자 (YYYYMMDD) -> INQR_STRT_DT
+            end_date: 조회종료일자 (YYYYMMDD) -> INQR_END_DT
+            pdno: 상품번호 (공란: 전체)
+            rght_type_cd: 권리유형코드 (명세: 공란)
+            prdt_type_cd: 상품유형코드 (명세: 공란)
+            inqr_dvsn: 조회구분 (명세: "03" 입력)
+
+        Note:
+            구 구현은 STRT_DT/END_DT 등 명세에 없는 키를 보냈다. 명세상 필수인
+            CUST_RNCNO25/HMID는 공란으로 보낸다. 모의투자는 지원하지 않는다.
+        """
         try:
             res = self._make_request_dict(
                 endpoint="/uapi/domestic-stock/v1/trading/period-rights",
                 tr_id="CTRGA011R",
                 params={
+                    "INQR_DVSN": inqr_dvsn,
+                    "CUST_RNCNO25": "",
+                    "HMID": "",
                     "CANO": self.account["CANO"],
                     "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                    "STRT_DT": start_date,
-                    "END_DT": end_date,
-                    "STND_DT": "",
-                    "KST_STCK_CNTP_CD": "",
-                    "PDNO": "",
-                    "MRGN_DVSN": "",
-                    "CTX_AREA_FK100": "",
+                    "INQR_STRT_DT": start_date,
+                    "INQR_END_DT": end_date,
+                    "RGHT_TYPE_CD": rght_type_cd,
+                    "PDNO": pdno,
+                    "PRDT_TYPE_CD": prdt_type_cd,
                     "CTX_AREA_NK100": "",
+                    "CTX_AREA_FK100": "",
                 },
             )
             if res and "output1" in res:
@@ -404,6 +445,8 @@ class AccountProfitAPI(BaseAPI):
                 df["msg1"] = res.get("msg1", "")
                 return df
             return None
+        except PaperTradingNotSupportedError:
+            raise
         except Exception as e:
             logging.error(f"기간별권리현황 조회 실패: {e}")
             return None

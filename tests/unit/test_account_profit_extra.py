@@ -79,6 +79,7 @@ def test_daily_ccld_pagination_combines_pages_deduplicates_and_calls_callback():
 
 def test_daily_ccld_single_request_and_profit_dict_wrappers():
     api = _api()
+    api.client = MagicMock()
     api._make_request_dict.return_value = {"rt_cd": "0"}
     assert api.inquire_daily_ccld("20240101", "20240131", pdno="005930") == {"rt_cd": "0"}
     assert api._make_request_dict.call_args.kwargs["tr_id"] == "CTSC9215R"
@@ -109,10 +110,10 @@ def test_pagination_handles_initial_error_empty_page_and_missing_keys():
 
 def test_daily_ccld_exception_and_later_page_failure_return_expected_values():
     api = _api()
+    api.client = MagicMock()
     api._make_request_dict.side_effect = RuntimeError("offline")
     assert api.inquire_daily_ccld("20250101", "20250131") is None
 
-    api.client = MagicMock()
     page = [{"ord_dt": "20250101", "odno": str(index), "pdno": "005930"} for index in range(100)]
     api.client.make_request.side_effect = [
         {"rt_cd": "0", "msg1": "계속", "output1": page, "ctx_area_fk100": "fk"},

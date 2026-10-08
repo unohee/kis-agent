@@ -216,55 +216,55 @@ class InquirePsblSellResponse(BaseResponse):
 
 
 # ============================================================
-# get_total_asset() - 총자산평가 조회
+# get_total_asset() - 투자계좌자산현황조회 (inquire-account-balance, CTRP6548R)
 # ============================================================
 
 
 class GetTotalAssetOutput1(TypedDict, total=False):
-    """총자산평가 계좌 요약 정보"""
+    """자산 구분(주식/펀드/채권/해외주식 등)별 현황. output1은 이 항목의 배열이다."""
 
-    dnca_tot_amt: str  # 예수금총액
-    nxdy_excc_amt: str  # 익일정산금액
-    prvs_rcdl_excc_amt: str  # 가수도정산금액
-    cma_evlu_amt: str  # CMA평가금액
-    bfdy_buy_amt: str  # 전일매수금액
-    thdt_buy_amt: str  # 금일매수금액
-    nxdy_auto_rdpt_amt: str  # 익일자동상환금액
-    bfdy_sll_amt: str  # 전일매도금액
-    thdt_sll_amt: str  # 금일매도금액
-    d2_auto_rdpt_amt: str  # D+2자동상환금액
-    bfdy_tlex_amt: str  # 전일제비용금액
-    thdt_tlex_amt: str  # 금일제비용금액
-    tot_loan_amt: str  # 총대출금액
-    scts_evlu_amt: str  # 유가평가금액
-    tot_evlu_amt: str  # 총평가금액 (Total Evaluation Amount)
-    nass_amt: str  # 순자산금액 (Net Asset Amount)
-    fncg_gld_auto_rdpt_yn: str  # 융자금자동상환여부
-    pchs_amt_smtl_amt: str  # 매입금액합계금액
-    evlu_amt_smtl_amt: str  # 평가금액합계금액 (Evaluation Amount Sum Total Amount)
-    evlu_pfls_smtl_amt: (
-        str  # 평가손익합계금액 (Evaluation Profit/Loss Sum Total Amount)
-    )
-    tot_stln_slng_chgs: str  # 총대주매각대금
-    bfdy_tot_asst_evlu_amt: str  # 전일총자산평가금액
-    asst_icdc_amt: str  # 자산증감액 (Asset Increase/Decrease Amount)
-    asst_icdc_erng_rt: str  # 자산증감수익률 (%)
+    pchs_amt: str  # 매입금액
+    evlu_amt: str  # 평가금액
+    evlu_pfls_amt: str  # 평가손익금액
+    crdt_lnd_amt: str  # 신용대출금액
+    real_nass_amt: str  # 실제순자산금액
+    whol_weit_rt: str  # 전체비중율
 
 
 class GetTotalAssetOutput2(TypedDict, total=False):
-    """총자산평가 상세 정보"""
+    """총자산 요약 정보"""
 
-    tot_dncl_amt: str  # 총예수금액 (Total Deposit and Cash Amount)
-    nxdy_excc_amt: str  # 익일정산금액
-    tlex_amt: str  # 제비용금액 (Tax/Levy Amount)
-    rlzt_pfls: str  # 실현손익 (Realized Profit/Loss)
-    unrlzt_pfls: str  # 미실현손익 (Unrealized Profit/Loss)
+    pchs_amt_smtl: str  # 매입금액합계 (유가매입금액)
+    nass_tot_amt: str  # 순자산총금액
+    loan_amt_smtl: str  # 대출금액합계
+    evlu_pfls_amt_smtl: str  # 평가손익금액합계
+    evlu_amt_smtl: str  # 평가금액합계 (유가평가금액)
+    tot_asst_amt: str  # 총자산금액
+    tot_lnda_tot_ulst_lnda: str  # 총대출금액총융자대출금액
+    cma_auto_loan_amt: str  # CMA자동대출금액
+    tot_mgln_amt: str  # 총담보대출금액
+    stln_evlu_amt: str  # 대주평가금액
+    crdt_fncg_amt: str  # 신용융자금액
+    ocl_apl_loan_amt: str  # OCL_APL대출금액
+    pldg_stup_amt: str  # 질권설정금액
+    frcr_evlu_tota: str  # 외화평가총액
+    tot_dncl_amt: str  # 총예수금액
+    cma_evlu_amt: str  # CMA평가금액
+    dncl_amt: str  # 예수금액
+    tot_sbst_amt: str  # 총대용금액
+    thdt_rcvb_amt: str  # 당일미수금액
+    ovrs_stck_evlu_amt1: str  # 해외주식평가금액1
+    ovrs_bond_evlu_amt: str  # 해외채권평가금액
+    mmf_cma_mgge_loan_amt: str  # MMFCMA담보대출금액
+    sbsc_dncl_amt: str  # 청약예수금액
+    pbst_sbsc_fnds_loan_use_amt: str  # 공모주청약자금대출사용금액
+    etpr_crdt_grnt_loan_amt: str  # 기업신용공여대출금액
 
 
 class GetTotalAssetResponse(BaseResponse):
-    """총자산평가 조회 응답"""
+    """투자계좌자산현황조회 응답 (모의투자 미지원)"""
 
-    output1: GetTotalAssetOutput1
+    output1: List[GetTotalAssetOutput1]
     output2: GetTotalAssetOutput2
 
 

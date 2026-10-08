@@ -125,9 +125,18 @@ class AccountAPI(BaseAPI):
         """매도가능수량 조회."""
         return self._balance_api.inquire_psbl_sell(pdno)
 
-    def inquire_intgr_margin(self) -> Optional[Dict[str, Any]]:
+    def inquire_intgr_margin(
+        self,
+        cma_evlu_amt_icld_yn: str = "N",
+        wcrc_frcr_dvsn_cd: str = "01",
+        fwex_ctrt_frcr_dvsn_cd: str = "01",
+    ) -> Optional[Dict[str, Any]]:
         """주식통합증거금 현황 조회."""
-        return self._balance_api.inquire_intgr_margin()
+        return self._balance_api.inquire_intgr_margin(
+            cma_evlu_amt_icld_yn=cma_evlu_amt_icld_yn,
+            wcrc_frcr_dvsn_cd=wcrc_frcr_dvsn_cd,
+            fwex_ctrt_frcr_dvsn_cd=fwex_ctrt_frcr_dvsn_cd,
+        )
 
     def inquire_psbl_order(
         self, price: int, pdno: str = "", ord_dvsn: str = "01"
@@ -237,8 +246,9 @@ class AccountAPI(BaseAPI):
         inqr_dvsn_3: str = "00",
         max_pages: int = 100,
         page_callback=None,
+        excg_id_dvsn_cd: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """일별주문체결조회."""
+        """일별주문체결조회. excg_id_dvsn_cd: KRX/NXT/SOR/ALL (None=실전 ALL, 모의 KRX)."""
         return self._profit_api.inquire_daily_ccld(
             start_date,
             end_date,
@@ -250,6 +260,7 @@ class AccountAPI(BaseAPI):
             inqr_dvsn_3,
             max_pages,
             page_callback,
+            excg_id_dvsn_cd=excg_id_dvsn_cd,
         )
 
     def inquire_period_trade_profit(
@@ -306,9 +317,24 @@ class AccountAPI(BaseAPI):
             start_date, end_date, sort_dvsn, inqr_dvsn, cblc_dvsn
         )
 
-    def inquire_period_rights(self, start_date: str, end_date: str):
+    def inquire_period_rights(
+        self,
+        start_date: str,
+        end_date: str,
+        pdno: str = "",
+        rght_type_cd: str = "",
+        prdt_type_cd: str = "",
+        inqr_dvsn: str = "03",
+    ):
         """기간별계좌권리현황조회."""
-        return self._profit_api.inquire_period_rights(start_date, end_date)
+        return self._profit_api.inquire_period_rights(
+            start_date,
+            end_date,
+            pdno=pdno,
+            rght_type_cd=rght_type_cd,
+            prdt_type_cd=prdt_type_cd,
+            inqr_dvsn=inqr_dvsn,
+        )
 
 
 # Expose facade class for flat import

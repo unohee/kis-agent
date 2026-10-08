@@ -106,69 +106,75 @@ class AccountAPI:
         """
         매매 가능한 현금을 조회합니다.
 
+        공식 매수가능조회(inquire-psbl-order, TTTC8908R)를 종목·단가 공란으로
+        호출해 매수 수량 없이 주문가능금액만 조회한다. 이전 구현이 호출하던
+        ``inquire-available-amount``는 공식 명세에 없는 URL이다.
+
         Returns:
             Optional[Dict[str, Any]]: API 응답 데이터
-                - 성공 시: rt_cd와 cash 필드를 포함한 응답 데이터
+                - 성공 시: rt_cd와 output(ord_psbl_cash 등)을 포함한 응답 데이터
                 - 실패 시: 에러 정보를 포함한 응답 데이터
                 - 정산 시간: 정산 시간 안내 메시지를 포함한 응답 데이터
 
         Note:
+            응답 필드가 바뀌었다. 주문가능현금은 ``output.ord_psbl_cash``다.
             정산 시간(23:30~01:00 등)에는 계좌 관련 API가 일시적으로 차단될 수 있습니다.
 
         Example:
             >>> api.get_cash_available()
         """
         res = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-available-amount",
-            tr_id="TTTC8901R",
+            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
+            tr_id="TTTC8908R",
             params={
                 "CANO": self.account["CANO"],
                 "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                "CASH_CLO_CD": "10",
-                "TR_MKET_CD": "0",
+                "PDNO": "",
+                "ORD_UNPR": "",
+                "ORD_DVSN": "00",
+                "CMA_EVLU_AMT_ICLD_YN": "Y",
+                "OVRS_ICLD_YN": "N",
             },
         )
-        # 새벽 정산 시간(404/JSONDecodeError) 안내 메시지 추가
-        if res is not None and (
-            res.get("rt_cd") == "JSON_DECODE_ERROR" or res.get("status_code") == 404
-        ):
-            return {
-                "rt_cd": res.get("rt_cd", ""),
-                "msg1": res.get("msg1", ""),
-                "정산안내": (
-                    "정산 시간(23:30~01:00 등)에는 계좌 관련 API가 "
-                    "일시적으로 차단될 수 있습니다. 잠시 후 다시 시도해 주세요."
-                ),
-            }
-        return res
+        return self._settlement_notice(res)
 
     def get_total_asset(self) -> Optional[Dict[str, Any]]:
         """
         현금과 주식을 포함한 총 자산을 평가합니다.
 
+        공식 투자계좌자산현황조회(inquire-account-balance, CTRP6548R)로 조회한다.
+        이전 구현이 호출하던 ``inquire-account-summary``는 공식 명세에 없는 URL이다.
+        모의투자는 이 API를 지원하지 않는다(PaperTradingNotSupportedError).
+
         Returns:
             Optional[Dict[str, Any]]: API 응답 데이터
-                - 성공 시: 계좌 요약 정보를 포함한 응답 데이터
+                - 성공 시: output1(자산 구분별 현황)과 output2(총자산 요약,
+                  ``tot_asst_amt``/``nass_tot_amt`` 등)를 포함한 응답 데이터
                 - 실패 시: 에러 정보를 포함한 응답 데이터
                 - 정산 시간: 정산 시간 안내 메시지를 포함한 응답 데이터
 
         Note:
+            응답 필드가 바뀌었다(kis_agent.responses.account 참고).
             정산 시간(23:30~01:00 등)에는 계좌 관련 API가 일시적으로 차단될 수 있습니다.
 
         Example:
             >>> api.get_total_asset()
         """
         res = self.client.make_request(
-            endpoint="/uapi/domestic-stock/v1/trading/inquire-account-summary",
-            tr_id="TTTC8522R",
+            endpoint="/uapi/domestic-stock/v1/trading/inquire-account-balance",
+            tr_id="CTRP6548R",
             params={
                 "CANO": self.account["CANO"],
                 "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                "INQR_DVSN": "02",  # 01: 잔고 기준, 02: 평가 기준
-                "UNPR_DVSN": "01",  # 01: 현재가 기준
+                "INQR_DVSN_1": "",
+                "BSPR_BF_DT_APLY_YN": "",
             },
         )
-        # 새벽 정산 시간(404/JSONDecodeError) 안내 메시지 추가
+        return self._settlement_notice(res)
+
+    @staticmethod
+    def _settlement_notice(res: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """새벽 정산 시간(404/JSONDecodeError)이면 안내 메시지 응답으로 바꾼다."""
         if res is not None and (
             res.get("rt_cd") == "JSON_DECODE_ERROR" or res.get("status_code") == 404
         ):
