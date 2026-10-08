@@ -133,9 +133,20 @@ class TestAccountBalanceAPI(unittest.TestCase):
 
         # Then
         self.assertEqual(result, mock_response)
-        call_args = self.mock_client.make_request.call_args
-        self.assertEqual(call_args[1]["tr_id"], "TTTC8901R")
-        self.assertEqual(call_args[1]["params"]["CANO"], "12345678")
+        # 공식 매수가능조회(inquire-psbl-order)를 종목/단가 공란으로 호출한다.
+        self.mock_client.make_request.assert_called_once_with(
+            endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
+            tr_id="TTTC8908R",
+            params={
+                "CANO": "12345678",
+                "ACNT_PRDT_CD": "01",
+                "PDNO": "",
+                "ORD_UNPR": "",
+                "ORD_DVSN": "00",
+                "CMA_EVLU_AMT_ICLD_YN": "Y",
+                "OVRS_ICLD_YN": "N",
+            },
+        )
 
     def test_get_cash_available_settlement_time_json_decode_error(self):
         """현금 조회 - 정산 시간 JSON 디코드 에러"""
@@ -207,10 +218,17 @@ class TestAccountBalanceAPI(unittest.TestCase):
 
         # Then
         self.assertEqual(result, mock_response)
-        call_args = self.mock_client.make_request.call_args
-        self.assertEqual(call_args[1]["tr_id"], "TTTC8522R")
-        self.assertEqual(call_args[1]["params"]["INQR_DVSN"], "02")
-        self.assertEqual(call_args[1]["params"]["UNPR_DVSN"], "01")
+        # 공식 투자계좌자산현황조회(inquire-account-balance)로 조회한다.
+        self.mock_client.make_request.assert_called_once_with(
+            endpoint="/uapi/domestic-stock/v1/trading/inquire-account-balance",
+            tr_id="CTRP6548R",
+            params={
+                "CANO": "12345678",
+                "ACNT_PRDT_CD": "01",
+                "INQR_DVSN_1": "",
+                "BSPR_BF_DT_APLY_YN": "",
+            },
+        )
 
     def test_get_total_asset_settlement_time_json_decode_error(self):
         """총 자산 조회 - 정산 시간 JSON 디코드 에러"""
