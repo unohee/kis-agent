@@ -100,37 +100,15 @@ class AccountBalanceQueryAPI(BaseAPI):
         return res
 
     def get_account_order_quantity(self, code: str) -> Optional[Dict]:
-        """종목별 주문가능수량 조회. output.max_buy_qty/nrcvb_buy_qty 반환.
+        """종목별 주문가능수량 조회 — 보유 종목의 매도가능수량. output.ord_psbl_qty 반환.
 
-        공식 매수가능조회(inquire-psbl-order, TTTC8908R)로 조회한다. 이전 구현이
-        호출하던 ``inquire-account-order-quantity``는 공식 명세에 없는 URL이다.
-        명세 권고에 따라 시장가(ORD_DVSN=01, ORD_UNPR 공란)로 조회해 증거금율이
-        반영된 전량매수 가능수량을 얻는다.
-
-        Note:
-            응답 필드가 바뀌었다. 구 응답에 있던 ``output.ord_psbl_qty``는 매수가능
-            조회에 없으며, 미수 미사용 시 ``output.nrcvb_buy_qty``, 미수 사용 시
-            ``output.max_buy_qty``를 확인한다.
+        공식 매도가능수량조회(inquire-psbl-sell, TTTC8408R)로 조회하며
+        ``inquire_psbl_sell(code)``와 같다. 이전 구현이 호출하던
+        ``inquire-account-order-quantity``는 공식 명세에 없는 URL이었다. 이전 TR
+        (잔고조회 TTTC8434R)과 약속한 반환 필드 ``ord_psbl_qty``가 모두 보유 종목의
+        매도가능수량을 가리킨다. 매수가능수량은 ``inquire_psbl_order()``를 쓴다.
         """
-        try:
-            return self._make_request_dict(
-                endpoint="/uapi/domestic-stock/v1/trading/inquire-psbl-order",
-                tr_id="TTTC8908R",
-                params={
-                    "CANO": self.account["CANO"],
-                    "ACNT_PRDT_CD": self.account["ACNT_PRDT_CD"],
-                    "PDNO": code,
-                    "ORD_UNPR": "",
-                    "ORD_DVSN": "01",
-                    "CMA_EVLU_AMT_ICLD_YN": "Y",
-                    "OVRS_ICLD_YN": "N",
-                },
-            )
-        except PaperTradingNotSupportedError:
-            raise
-        except Exception as e:
-            logging.error(f"계좌별 주문 수량 조회 실패: {e}")
-            return None
+        return self.inquire_psbl_sell(code)
 
     def get_possible_order_amount(self) -> Optional[Dict]:
         """주문가능금액 조회. output.ord_psbl_amt 반환."""

@@ -39,24 +39,15 @@ def _sent(client, index=-1):
 # ----- balance query -----
 
 
-def test_account_order_quantity_uses_official_psbl_order_api():
+def test_account_order_quantity_is_the_sellable_quantity():
     client = _client()
     _balance(client).get_account_order_quantity("005930")
     assert _sent(client) == {
-        "endpoint": BASE + "inquire-psbl-order",
-        "tr_id": "TTTC8908R",
-        "params": {
-            "CANO": "12345678",
-            "ACNT_PRDT_CD": "01",
-            "PDNO": "005930",
-            "ORD_UNPR": "",
-            "ORD_DVSN": "01",
-            "CMA_EVLU_AMT_ICLD_YN": "Y",
-            "OVRS_ICLD_YN": "N",
-        },
+        "endpoint": BASE + "inquire-psbl-sell",
+        "tr_id": "TTTC8408R",
+        "params": {"CANO": "12345678", "ACNT_PRDT_CD": "01", "PDNO": "005930"},
         "method": "GET",
     }
-
 
 def test_psbl_sell_sends_only_spec_fields():
     client = _client()

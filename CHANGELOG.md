@@ -63,6 +63,22 @@
 - 옛 TR 교체: 정정취소가능주문조회 `TTTC0084R`, 프로그램매매 일별 `FHPPG04650201`,
   `FHPPG04600001` (KIS가 "구TR은 사전고지 없이 막힐 수 있다"고 안내).
 
+### 🔧 국내 계좌 조회
+
+- `inquire_daily_ccld`(`kis trades`): 필수 `EXCG_ID_DVSN_CD`를 보낸다. 기본값은 실전
+  `ALL`(NXT 체결 포함), 모의 `KRX`(모의는 KRX만 제공). `excg_id_dvsn_cd`로 지정 가능.
+- `inquire_intgr_margin`: 필수 `CMA_EVLU_AMT_ICLD_YN`/`WCRC_FRCR_DVSN_CD`/
+  `FWEX_CTRT_FRCR_DVSN_CD`를 보내고(인자 추가), 명세에 없는 `LOAN_DT`를 뺐다.
+- `inquire_psbl_sell`, `inquire_credit_psamount`: 명세에 없는 키 제거.
+- `inquire_period_rights`: 명세 필드(`INQR_STRT_DT`/`INQR_END_DT`/`INQR_DVSN` 등)로
+  재작성. `pdno`/`rght_type_cd`/`prdt_type_cd`/`inqr_dvsn` 인자 추가.
+- 문서에 없는 경로를 부르던 메서드를 공식 API로 재지정 (**응답 필드 변경**):
+  - `get_cash_available` → 매수가능조회(`output.ord_psbl_cash`)
+  - `get_total_asset` → 투자계좌자산현황조회 CTRP6548R(`output2.tot_asst_amt` 등, 모의 미지원)
+  - `get_account_order_quantity` → 매도가능수량조회(`output.ord_psbl_qty`, `inquire_psbl_sell`과 동일)
+- 모의투자 미지원 API를 부르는 계좌 조회 메서드가 `PaperTradingNotSupportedError`를
+  삼키지 않고 다시 던진다 (이전: 에러 로그 후 `None`).
+
 ### 🗑️ 폐기 (`NotImplementedError` + `DeprecationWarning`, 다음 메이저에서 제거)
 
 - `profit_asset_index`, `save_condition`, `delete_condition`: KIS에 대응 API가 없다.
