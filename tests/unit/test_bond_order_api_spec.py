@@ -258,7 +258,7 @@ def test_modify_all_remaining(wire):
         contact_phone="010",
     )
     _, body = _one(sent, "order-rvsecncl")
-    assert body["ORD_QTY2"] == "0"
+    assert body["ORD_QTY2"] == ""
     assert body["BOND_ORD_UNPR"] == "10461.5"
     assert body["QTY_ALL_ORD_YN"] == "Y"
     assert body["RVSE_CNCL_DVSN_CD"] == "01"
@@ -267,7 +267,7 @@ def test_modify_all_remaining(wire):
 
 def test_cancel_partial_sends_zero_price(wire):
     api, sent = wire()
-    api.modify_cancel_bond_order("cancel", CODE, 15402, quantity=4, price=999)
+    api.modify_cancel_bond_order("cancel", CODE, 15402, quantity=4)
     tr_id, body = _one(sent, "order-rvsecncl")
     assert tr_id == "TTTC0953U"
     assert body["RVSE_CNCL_DVSN_CD"] == "02"
@@ -282,7 +282,7 @@ def test_cancel_all_remaining(wire):
     api.modify_cancel_bond_order("cancel", CODE, "0000015402", all_remaining=True)
     _, body = _one(sent, "order-rvsecncl")
     assert body["RVSE_CNCL_DVSN_CD"] == "02"
-    assert body["ORD_QTY2"] == "0"
+    assert body["ORD_QTY2"] == ""
     assert body["QTY_ALL_ORD_YN"] == "Y"
 
 
@@ -299,6 +299,7 @@ def test_cancel_all_remaining(wire):
         ({"quantity": None}, "quantity를 지정"),
         ({"quantity": 0}, "주문수량"),
         ({"price": None}, "price가 필요"),
+        ({"action": "cancel", "price": 999}, "취소"),
         ({"price": 0}, "주문단가"),
     ],
 )

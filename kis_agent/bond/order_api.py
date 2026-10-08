@@ -225,8 +225,9 @@ class BondOrderAPI(BaseAPI):
             code: 채권종목코드 (12자리)
             orgn_odno: 원주문번호
             quantity: 주문수량. ``all_remaining=True`` 이면 지정하지 않는다
-                (잔량전부, QTY_ALL_ORD_YN="Y", ORD_QTY2="0" 전송).
-            price: 정정 주문단가 (정정 시 필수). 취소 시에는 무시되어 "0"으로 전송.
+                (잔량전부, QTY_ALL_ORD_YN="Y", ORD_QTY2는 워크북대로 공백 전송).
+            price: 정정 주문단가 (정정 시 필수). 취소 시에는 지정하면 ValueError
+                (BOND_ORD_UNPR는 필수 필드지만 워크북에 취소 값 규정이 없어 "0"을 보낸다).
             all_remaining: 잔량 전부 정정/취소 여부
             contact_phone: 연락전화번호 (CTAC_TLNO, 선택)
         Returns:
@@ -251,7 +252,7 @@ class BondOrderAPI(BaseAPI):
                 raise ValueError(
                     "all_remaining=True 이면 quantity를 지정할 수 없습니다"
                 )
-            qty = "0"
+            qty = ""
         else:
             if quantity is None:
                 raise ValueError(
@@ -263,6 +264,8 @@ class BondOrderAPI(BaseAPI):
                 raise ValueError("정정에는 price가 필요합니다")
             unit_price = _price(price)
         else:
+            if price is not None:
+                raise ValueError("취소(cancel)에는 price를 지정할 수 없습니다")
             unit_price = "0"
         params = {
             "CANO": self.account["CANO"],
