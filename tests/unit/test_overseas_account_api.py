@@ -322,16 +322,19 @@ class TestOverseasAccountAPIForeignMargin(unittest.TestCase):
         self.assertEqual(result, expected_result)
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["tr_id"], "TTTC2101R")
-        self.assertEqual(call_args.kwargs["params"]["CRCY_CD"], "")
+        self.assertEqual(
+            call_args.kwargs["params"], {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
+        )
 
     def test_get_foreign_margin_usd(self):
-        """USD 외화증거금 조회"""
+        """통화 필터는 공식 API에 없으므로 전송하지 않고 경고한다"""
         self.api._make_request_dict = Mock(return_value={"rt_cd": "0"})
 
-        self.api.get_foreign_margin(crcy_cd="USD")
+        with self.assertWarns(DeprecationWarning):
+            self.api.get_foreign_margin(crcy_cd="USD")
 
         call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["params"]["CRCY_CD"], "USD")
+        self.assertNotIn("CRCY_CD", call_args.kwargs["params"])
 
 
 class TestOverseasAccountAPINoAccount(unittest.TestCase):

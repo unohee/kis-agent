@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
+from ._compat import warn_ignored, warn_renamed
 
 
 class OverseasPriceAPI(BaseAPI):
@@ -258,6 +259,7 @@ class OverseasPriceAPI(BaseAPI):
         nrec: str = "120",
         fill: str = "",
         keyb: str = "",
+        next_flag: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 분봉 조회
@@ -271,7 +273,10 @@ class OverseasPriceAPI(BaseAPI):
             pinc (str): 전일포함여부 ("0": 당일만, "1": 전일포함)
             nrec (str): 조회건수 (최대 120)
             fill (str): 빈값채움여부 (미사용, 빈값)
-            keyb (str): 연속조회키 (다음 페이지 조회 시)
+            keyb (str): 연속조회키 (다음 페이지 조회 시). 이전 조회 결과의 마지막 분봉을
+                이용해 1분(또는 n분) 전 시각을 YYYYMMDDHHMMSS로 입력
+            next_flag (str, optional): 다음여부 ("": 처음 조회, "1": 다음 조회).
+                생략하면 keyb가 있을 때 "1", 없으면 "". 다음 조회 시 pinc는 "1"로 줘야 함
 
         Returns:
             Optional[Dict]: 분봉 데이터
@@ -301,6 +306,7 @@ class OverseasPriceAPI(BaseAPI):
             "SYMB": symb.upper(),
             "NMIN": nmin,
             "PINC": pinc,
+            "NEXT": next_flag if next_flag is not None else ("1" if keyb else ""),
             "NREC": nrec,
             "FILL": fill,
             "KEYB": keyb,
@@ -416,15 +422,19 @@ class OverseasPriceAPI(BaseAPI):
         self,
         excd: str,
         symb: str,
+        tday: str = "1",
+        keyb: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 체결정보 조회
+        해외주식 체결추이 조회
 
         해외주식의 최근 체결 내역을 조회합니다.
 
         Args:
             excd (str): 거래소 코드
             symb (str): 종목코드
+            tday (str): 당일전일구분 ("1": 당일, "0": 전일). 기본 당일
+            keyb (str): NEXT KEY BUFF (공식 문서상 공백)
 
         Returns:
             Optional[Dict]: 체결 정보
@@ -446,8 +456,10 @@ class OverseasPriceAPI(BaseAPI):
         self._validate_exchange(excd)
 
         params = {
-            "AUTH": "",
             "EXCD": excd.upper(),
+            "AUTH": "",
+            "KEYB": keyb,
+            "TDAY": tday,
             "SYMB": symb.upper(),
         }
 
@@ -513,45 +525,85 @@ class OverseasPriceAPI(BaseAPI):
         nrec: str = "20",
         ctx_area_fk: str = "",
         ctx_area_nk: str = "",
+        info_gb: str = "",
+        class_cd: str = "",
+        nation_cd: str = "",
+        exchange_cd: str = "",
+        data_dt: str = "",
+        data_tm: str = "",
+        cts: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
         해외뉴스종합(제목) 조회
 
-        해외주식 관련 뉴스 제목을 조회합니다.
+        해외주식 관련 뉴스 제목을 조회합니다. 모든 필터는 공백이면 전체입니다.
+        이 API는 tr_cont 연속조회가 불가하며 ``cts``(다음키)로 이어 조회합니다.
 
         Args:
-            excd (str): 거래소 코드 (공백 시 전체)
+            excd (str): 사용하지 않음. 공식 API는 거래소를 ``exchange_cd``로 받는데
+                코드 체계가 다르다(NAS 등과 같다고 보장할 수 없음)고 보아 자동 변환하지
+                않습니다. 값을 주면 DeprecationWarning.
             symb (str): 종목코드 (공백 시 전체)
-            news_gb (str): 뉴스구분 (공백 시 전체)
-            bymd (str): 기준일자 (YYYYMMDD)
-            nrec (str): 조회건수 (기본 20)
-            ctx_area_fk (str): 연속조회키 (FK)
-            ctx_area_nk (str): 연속조회키 (NK)
+            news_gb (str): ``info_gb``의 옛 이름. ``info_gb``가 비어 있으면 그 값으로
+                사용하며 DeprecationWarning.
+            bymd (str): ``data_dt``의 옛 이름. ``data_dt``가 비어 있으면 그 값으로
+                사용하며 DeprecationWarning.
+            nrec (str): 사용하지 않음. 기본값("20")이 아니면 DeprecationWarning.
+            ctx_area_fk (str): 사용하지 않음. 값을 주면 DeprecationWarning.
+            ctx_area_nk (str): 사용하지 않음 (``cts`` 사용). 값을 주면 DeprecationWarning.
+            info_gb (str): 뉴스구분 (공백 시 전체)
+            class_cd (str): 중분류 (공백 시 전체)
+            nation_cd (str): 국가코드 (공백 시 전체, CN: 중국, HK: 홍콩, US: 미국)
+            exchange_cd (str): 거래소코드 (공백 시 전체)
+            data_dt (str): 조회일자 (공백 시 전체, 특정일자는 YYYYMMDD)
+            data_tm (str): 조회시간 (공백 시 전체, 특정시간은 HHMMSS)
+            cts (str): 다음키 (처음 조회는 공백)
 
         Returns:
             Optional[Dict]: 뉴스 제목 리스트
-                - output:
-                    - data_dt: 등록일자
-                    - data_tm: 등록시간
-                    - news_sn: 뉴스순번
-                    - natn_cd: 국가코드
-                    - news_gb: 뉴스구분
-                    - news_titl: 뉴스제목
+                - outblock1:
+                    - info_gb: 뉴스구분
+                    - news_key: 뉴스키
+                    - data_dt: 조회일자
+                    - data_tm: 조회시간
+                    - class_cd: 중분류
+                    - class_name: 중분류명
+                    - source: 자료원
+                    - nation_cd: 국가코드
+                    - exchange_cd: 거래소코드
+                    - symb: 종목코드
+                    - symb_name: 종목명
+                    - title: 제목
 
         Example:
-            >>> news = agent.overseas.get_news_title(excd="NAS", symb="AAPL")
-            >>> for n in news['output'][:5]:
-            ...     print(f"{n['data_dt']} {n['data_tm']}: {n['news_titl']}")
+            >>> news = agent.overseas.get_news_title(symb="AAPL")
+            >>> for n in news['outblock1'][:5]:
+            ...     print(f"{n['data_dt']} {n['data_tm']}: {n['title']}")
         """
+        if excd:
+            warn_ignored("get_news_title", "excd", "거래소 필터는 exchange_cd를 쓰세요")
+        if nrec != "20":
+            warn_ignored("get_news_title", "nrec")
+        if ctx_area_fk:
+            warn_ignored("get_news_title", "ctx_area_fk")
+        if ctx_area_nk:
+            warn_ignored("get_news_title", "ctx_area_nk", "다음키는 cts를 쓰세요")
+        if news_gb and not info_gb:
+            warn_renamed("get_news_title", "news_gb", "info_gb")
+            info_gb = news_gb
+        if bymd and not data_dt:
+            warn_renamed("get_news_title", "bymd", "data_dt")
+            data_dt = bymd
+
         params = {
-            "AUTH": "",
-            "EXCD": excd.upper() if excd else "",
+            "INFO_GB": info_gb,
+            "CLASS_CD": class_cd,
+            "NATION_CD": nation_cd,
+            "EXCHANGE_CD": exchange_cd,
             "SYMB": symb.upper() if symb else "",
-            "NEWS_GB": news_gb,
-            "BYMD": bymd,
-            "NREC": nrec,
-            "CTX_AREA_FK": ctx_area_fk,
-            "CTX_AREA_NK": ctx_area_nk,
+            "DATA_DT": data_dt,
+            "DATA_TM": data_tm,
+            "CTS": cts,
         }
 
         return self._make_request_dict(
@@ -568,35 +620,51 @@ class OverseasPriceAPI(BaseAPI):
         symb: str = "",
         iscd_cond: str = "0",
         co_yn: str = "N",
+        icod: str = "",
+        vol_rang: str = "0",
+        keyb: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
-        해외주식 업종/테마 조회
+        해외주식 업종별시세 조회
 
-        해외주식의 업종 및 테마 정보를 조회합니다.
+        해외주식의 업종별 시세를 조회합니다. 업종코드(``icod``)는 필수 항목이며
+        해외주식 업종코드별조회(HHDFS76370100)로 확인합니다. 이 라이브러리에는 아직
+        그 조회 래퍼가 없으므로 코드를 직접 넘겨야 합니다.
 
         Args:
             excd (str): 거래소 코드
-            symb (str): 종목코드 (공백 시 전체 업종)
-            iscd_cond (str): 종목조건 ("0": 전체)
-            co_yn (str): 기업여부 ("N": 전체, "Y": 기업만)
+            symb (str): 사용하지 않음. 값을 주면 DeprecationWarning.
+            iscd_cond (str): 사용하지 않음. 기본값("0")이 아니면 DeprecationWarning.
+            co_yn (str): 사용하지 않음. 기본값("N")이 아니면 DeprecationWarning.
+            icod (str): 업종코드
+            vol_rang (str): 거래량조건 ("0": 전체, "1": 1백주이상, "2": 1천주이상,
+                "3": 1만주이상, "4": 10만주이상, "5": 100만주이상, "6": 1000만주이상)
+            keyb (str): NEXT KEY BUFF (공식 문서상 공백)
 
         Returns:
-            Optional[Dict]: 업종/테마 정보
-                - output1: 요약 정보
-                - output2: 상세 리스트
+            Optional[Dict]: 업종별시세
+                - output1: 요약 정보 (zdiv, stat, crec, trec, nrec)
+                - output2: 종목 리스트 (rsym, excd, symb, name, last, sign, diff,
+                  rate, tvol, vask, pask, pbid, vbid, seqn, ename, e_ordyn)
 
         Example:
-            >>> theme = agent.overseas.get_industry_theme("NAS")
+            >>> theme = agent.overseas.get_industry_theme("NAS", icod="<업종코드>")
             >>> print(theme['output2'])
         """
         self._validate_exchange(excd)
+        if symb:
+            warn_ignored("get_industry_theme", "symb")
+        if iscd_cond != "0":
+            warn_ignored("get_industry_theme", "iscd_cond")
+        if co_yn != "N":
+            warn_ignored("get_industry_theme", "co_yn")
 
         params = {
+            "KEYB": keyb,
             "AUTH": "",
             "EXCD": excd.upper(),
-            "SYMB": symb.upper() if symb else "",
-            "ISCD_COND": iscd_cond,
-            "CO_YN": co_yn,
+            "ICOD": icod,
+            "VOL_RANG": vol_rang,
         }
 
         return self._make_request_dict(

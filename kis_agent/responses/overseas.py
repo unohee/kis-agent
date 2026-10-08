@@ -307,20 +307,26 @@ class OverseasHolidayResponse(BaseResponse, total=False):
 
 
 class OverseasNewsOutput(TypedDict, total=False):
-    """해외뉴스종합 output 필드"""
+    """해외뉴스종합 outblock1 항목 (공식 문서 해외뉴스종합(제목))"""
 
-    data_dt: str  # 등록일자 (Data Date)
-    data_tm: str  # 등록시간 (Data Time)
-    news_sn: str  # 뉴스순번 (News Serial Number)
-    natn_cd: str  # 국가코드 (Nation Code)
-    news_gb: str  # 뉴스구분 (News Category)
-    news_titl: str  # 뉴스제목 (News Title)
+    info_gb: str  # 뉴스구분
+    news_key: str  # 뉴스키
+    data_dt: str  # 조회일자
+    data_tm: str  # 조회시간
+    class_cd: str  # 중분류
+    class_name: str  # 중분류명
+    source: str  # 자료원
+    nation_cd: str  # 국가코드
+    exchange_cd: str  # 거래소코드
+    symb: str  # 종목코드
+    symb_name: str  # 종목명
+    title: str  # 제목
 
 
 class OverseasNewsResponse(BaseResponse, total=False):
     """해외뉴스종합 응답"""
 
-    output: List[OverseasNewsOutput]
+    outblock1: List[OverseasNewsOutput]
 
 
 # ============================================================
@@ -329,16 +335,34 @@ class OverseasNewsResponse(BaseResponse, total=False):
 
 
 class OverseasIndustryThemeOutput1(TypedDict, total=False):
-    """해외주식 업종/테마 output1 - 요약 정보"""
+    """해외주식 업종별시세 output1 - 요약 정보"""
 
-    rsym: str  # 실시간조회종목코드
     zdiv: str  # 소수점자리수
+    stat: str  # 거래상태
+    crec: str  # 현재조회종목수
+    trec: str  # 전체조회종목수
+    nrec: str  # Record Count
 
 
 class OverseasIndustryThemeOutput2(TypedDict, total=False):
-    """해외주식 업종/테마 output2 - 상세 리스트"""
+    """해외주식 업종별시세 output2 - 종목 리스트"""
 
-    pass  # API 문서에 따라 추후 상세 정의
+    rsym: str  # 실시간조회심볼
+    excd: str  # 거래소코드
+    symb: str  # 종목코드
+    name: str  # 종목명
+    last: str  # 현재가
+    sign: str  # 기호
+    diff: str  # 대비
+    rate: str  # 등락율
+    tvol: str  # 거래량
+    vask: str  # 매도잔량
+    pask: str  # 매도호가
+    pbid: str  # 매수호가
+    vbid: str  # 매수잔량
+    seqn: str  # 순위
+    ename: str  # 영문종목명
+    e_ordyn: str  # 매매가능
 
 
 class OverseasIndustryThemeResponse(BaseResponse, total=False):
@@ -409,16 +433,33 @@ class OverseasOrderHistoryOutput(TypedDict, total=False):
     ft_ord_unpr3: str  # FT주문단가 (FT Order Unit Price)
     ft_ccld_qty: str  # FT체결수량 (FT Concluded Quantity)
     ft_ccld_unpr3: str  # FT체결단가 (FT Concluded Unit Price)
+    ft_ccld_amt3: str  # FT체결금액 (FT Concluded Amount)
     nccs_qty: str  # 미체결수량 (Non-Concluded Quantity)
+    rvse_cncl_dvsn_name: str  # 정정취소구분명 (Revise/Cancel Division Name)
+    prcs_stat_name: str  # 처리상태명 (Process Status Name)
+    rjct_rson: str  # 거부사유 (Reject Reason)
+    rjct_rson_name: str  # 거부사유명 (Reject Reason Name)
     ord_tmd: str  # 주문시각 (Order Time)
+    tr_mket_name: str  # 거래시장명 (Trade Market Name)
+    tr_natn: str  # 거래국가 (Trade Nation)
+    tr_natn_name: str  # 거래국가명 (Trade Nation Name)
     tr_crcy_cd: str  # 거래통화코드 (Trade Currency Code)
     ovrs_excg_cd: str  # 해외거래소코드 (Overseas Exchange Code)
+    dmst_ord_dt: str  # 국내주문일자 (Domestic Order Date)
+    thco_ord_tmd: str  # 당사주문시각 (Our Company Order Time)
+    loan_type_cd: str  # 대출유형코드 (Loan Type Code)
+    loan_dt: str  # 대출일자 (Loan Date)
+    mdia_dvsn_name: str  # 매체구분명 (Media Division Name)
+    usa_amk_exts_rqst_yn: str  # 미국 애프터마켓 연장 신청 여부
+    splt_buy_attr_name: str  # 분할매수속성명 (Split Buy Attribute Name)
 
 
 class OverseasOrderHistoryResponse(BaseResponse, total=False):
     """해외주식 주문체결내역 응답"""
 
     output: List[OverseasOrderHistoryOutput]
+    ctx_area_fk200: str  # 연속조회검색조건200
+    ctx_area_nk200: str  # 연속조회키200
 
 
 # ============================================================
@@ -545,32 +586,45 @@ class OverseasPeriodProfitResponse(BaseResponse, total=False):
 
 
 # ============================================================
-# get_reserve_order_list() - 해외주식 예약주문내역 조회 (TTTT3039R)
+# get_reserve_order_list() - 해외주식 예약주문내역 조회 (TTTT3039R / TTTS3014R)
 # ============================================================
 
 
 class OverseasReserveOrderOutput(TypedDict, total=False):
-    """해외주식 예약주문내역 output 항목"""
+    """해외주식 예약주문내역 output 항목 (TTTT3039R / TTTS3014R)"""
 
-    rsvn_ord_seq: str  # 예약주문순번 (Reserve Order Sequence)
-    rsvn_ord_dt: str  # 예약주문일자 (Reserve Order Date)
+    cncl_yn: str  # 취소여부 (Cancel Yn)
     rsvn_ord_rcit_dt: str  # 예약주문접수일자 (Reserve Order Receipt Date)
-    ord_dvsn_cd: str  # 주문구분코드 (Order Division Code)
+    ovrs_rsvn_odno: str  # 해외예약주문번호 (Overseas Reserve Order Number)
+    ord_dt: str  # 주문일자 (Order Date)
+    ord_gno_brno: str  # 주문채번지점번호 (Order Generation Branch Number)
+    odno: str  # 주문번호 (Order Number)
     sll_buy_dvsn_cd: str  # 매도매수구분코드 (Sell/Buy Division Code)
+    sll_buy_dvsn_name: str  # 매도매수구분명 (Sell/Buy Division Name)
+    ovrs_rsvn_ord_stat_cd: str  # 해외예약주문상태코드 (Reserve Order Status Code)
+    ovrs_rsvn_ord_stat_cd_name: str  # 해외예약주문상태코드명
     pdno: str  # 상품번호 (Product Number)
+    prdt_type_cd: str  # 상품유형코드 (Product Type Code)
     prdt_name: str  # 상품명 (Product Name)
-    rsvn_ord_qty: str  # 예약주문수량 (Reserve Order Quantity)
-    rsvn_ord_pric: str  # 예약주문가격 (Reserve Order Price)
-    rsvn_ord_rcit_pric: str  # 예약주문접수가격 (Reserve Order Receipt Price)
-    rsvn_ord_stat_cd: str  # 예약주문상태코드 (Reserve Order Status Code)
+    ord_rcit_tmd: str  # 주문접수시각 (Order Receipt Time)
+    ord_fwdg_tmd: str  # 주문전송시각 (Order Forwarding Time)
+    tr_dvsn_name: str  # 거래구분명 (Trade Division Name)
     ovrs_excg_cd: str  # 해외거래소코드 (Overseas Exchange Code)
-    tr_crcy_cd: str  # 거래통화코드 (Trade Currency Code)
+    tr_mket_name: str  # 거래시장명 (Trade Market Name)
+    ord_stfno: str  # 주문직원번호 (Order Staff Number)
+    ft_ord_qty: str  # FT주문수량 (FT Order Quantity)
+    ft_ord_unpr3: str  # FT주문단가 (FT Order Unit Price)
+    ft_ccld_qty: str  # FT체결수량 (FT Concluded Quantity)
+    nprc_rson_text: str  # 미처리사유내용 (Unprocessed Reason Text)
+    splt_buy_attr_name: str  # 분할매수속성명 (Split Buy Attribute Name)
 
 
 class OverseasReserveOrderResponse(BaseResponse, total=False):
     """해외주식 예약주문내역 응답"""
 
     output: List[OverseasReserveOrderOutput]
+    ctx_area_fk200: str  # 연속조회검색조건200
+    ctx_area_nk200: str  # 연속조회키200
 
 
 # ============================================================
@@ -579,15 +633,19 @@ class OverseasReserveOrderResponse(BaseResponse, total=False):
 
 
 class OverseasForeignMarginOutput(TypedDict, total=False):
-    """해외주식 외화증거금 output 항목"""
+    """해외주식 외화증거금 output 항목 (통화별 행)"""
 
+    natn_name: str  # 국가명 (Nation Name)
     crcy_cd: str  # 통화코드 (Currency Code)
-    crcy_cd_name: str  # 통화코드명 (Currency Code Name)
-    frst_bltn_exrt: str  # 최초고시환율 (First Bulletin Exchange Rate)
-    frcr_dncl_amt: str  # 외화예수금액 (Foreign Currency Deposit Amount)
-    frcr_evlu_amt: str  # 외화평가금액 (Foreign Currency Eval Amount)
-    frcr_use_psbl_amt: str  # 외화사용가능금액 (Foreign Currency Usable Amount)
-    frcr_ord_psbl_amt: str  # 외화주문가능금액 (Foreign Currency Order Possible Amount)
+    frcr_dncl_amt1: str  # 외화예수금액 (Foreign Currency Deposit Amount)
+    ustl_buy_amt: str  # 미결제매수금액 (Unsettled Buy Amount)
+    ustl_sll_amt: str  # 미결제매도금액 (Unsettled Sell Amount)
+    frcr_rcvb_amt: str  # 외화미수금액 (Foreign Currency Receivable Amount)
+    frcr_mgn_amt: str  # 외화증거금액 (Foreign Currency Margin Amount)
+    frcr_gnrl_ord_psbl_amt: str  # 외화일반주문가능금액
+    frcr_ord_psbl_amt1: str  # 외화주문가능금액 (원화주문가능환산금액)
+    itgr_ord_psbl_amt: str  # 통합주문가능금액 (Integrated Order Possible Amount)
+    bass_exrt: str  # 기준환율 (Base Exchange Rate)
 
 
 class OverseasForeignMarginResponse(BaseResponse, total=False):
