@@ -10,6 +10,7 @@ from ..core.base_api import BaseAPI
 from ..core.client import KISClient
 from .balance_query_api import AccountBalanceQueryAPI
 from .order_api import AccountOrderAPI
+from .pension_api import AccountPensionAPI
 from .profit_api import AccountProfitAPI
 
 
@@ -43,6 +44,9 @@ class AccountAPI(BaseAPI):
             client, account_info, enable_cache, cache_config, _from_agent=True
         )
         self._profit_api = AccountProfitAPI(
+            client, account_info, enable_cache, cache_config, _from_agent=True
+        )
+        self._pension_api = AccountPensionAPI(
             client, account_info, enable_cache, cache_config, _from_agent=True
         )
 
@@ -88,6 +92,11 @@ class AccountAPI(BaseAPI):
 
         if name in self._delegate_methods:
             return getattr(self._delegate_methods[name], name)
+
+        # 퇴직연금 API는 공개 메서드 전체를 위임한다
+        pension_api = self.__dict__.get("_pension_api")
+        if pension_api is not None and hasattr(pension_api, name):
+            return getattr(pension_api, name)
 
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"

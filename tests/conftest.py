@@ -78,6 +78,8 @@ def patch_all_apis():
             "OverseasStockAPI",
             "Futures",
             "OverseasFutures",
+            "ElwAPI",
+            "BondAPI",
         ]
 
         for api_name in api_classes:

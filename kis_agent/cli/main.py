@@ -1138,6 +1138,8 @@ def cmd_query(args):
         "overseas": agent.overseas_api,
         "futures": agent.futures_api,
         "overseas_futures": agent.overseas_futures_api,
+        "elw": agent.elw_api,
+        "bond": agent.bond_api,
         "agent": agent,
     }
     target = targets.get(domain)
@@ -1353,7 +1355,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser(
         "query", help="API 직접 호출 (kis query stock get_stock_price code=005930)"
     )
-    p.add_argument("domain", help="도메인 (stock, account, overseas, futures, agent)")
+    p.add_argument(
+        "domain",
+        help="도메인 (stock, account, overseas, futures, overseas_futures, elw, bond, agent)",
+    )
     p.add_argument("method", help="메서드명")
     p.add_argument("args", nargs="*", help="인자 (key=value)")
     p.add_argument("--pretty", action="store_true", help="사람 읽기용 포맷")

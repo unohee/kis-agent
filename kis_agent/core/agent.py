@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 import pandas as pd
 
 from ..account.api import AccountAPI
+from ..bond import BondAPI
+from ..elw import ElwAPI
 from ..futures import Futures
 from ..overseas import OverseasStockAPI
 from ..overseas_futures import OverseasFutures
@@ -367,6 +369,8 @@ class Agent(
         self.overseas_futures_api = OverseasFutures(
             self.client, self.account_info, _from_agent=True
         )
+        self.elw_api = ElwAPI(self.client, self.account_info, _from_agent=True)
+        self.bond_api = BondAPI(self.client, self.account_info, _from_agent=True)
 
         # 종목 마스터 사전 로드 (캐시 있으면 즉시 반환, 없으면 백그라운드 다운로드)
         self._preload_masters()
@@ -521,6 +525,24 @@ class Agent(
             >>> print(f"주문번호: {result['output']['odno']}")
         """
         return self.overseas_futures_api
+
+    @property
+    def elw(self) -> ElwAPI:
+        """ELW(주식워런트증권) 시세·순위 API 파사드.
+
+        Example:
+            >>> agent.elw.get_elw_price("57JA70")  # doctest: +SKIP
+        """
+        return self.elw_api
+
+    @property
+    def bond(self) -> BondAPI:
+        """장내채권 시세·주문/계좌 API 파사드 (모의투자 미지원).
+
+        Example:
+            >>> agent.bond.get_bond_price("KR103502GA34")  # doctest: +SKIP
+        """
+        return self.bond_api
 
     def websocket(
         self,

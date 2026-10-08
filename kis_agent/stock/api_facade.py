@@ -12,9 +12,15 @@ from typing import Any, Dict, List, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
+from .analysis_api import StockAnalysisAPI
+from .chart_api import StockChartAPI
+from .etf_api import StockEtfAPI
+from .finance_api import StockFinanceAPI
 from .investor_api import StockInvestorAPI
+from .ksdinfo_api import StockKsdInfoAPI
 from .market_api import StockMarketAPI
 from .price_api import StockPriceAPI
+from .ranking_api import StockRankingAPI
 
 
 class StockAPI(BaseAPI):
@@ -58,6 +64,14 @@ class StockAPI(BaseAPI):
         self.investor_api = StockInvestorAPI(
             client, account_info, _from_agent=_from_agent
         )
+        # 공식 스펙 대조로 추가된 메뉴별 API (동적 위임 전용). 직접 사용 경고는
+        # Facade가 이미 한 번 냈으므로 하위 API는 내부 생성으로 표시한다.
+        self.ranking_api = StockRankingAPI(client, account_info, _from_agent=True)
+        self.analysis_api = StockAnalysisAPI(client, account_info, _from_agent=True)
+        self.finance_api = StockFinanceAPI(client, account_info, _from_agent=True)
+        self.ksdinfo_api = StockKsdInfoAPI(client, account_info, _from_agent=True)
+        self.etf_api = StockEtfAPI(client, account_info, _from_agent=True)
+        self.chart_api = StockChartAPI(client, account_info, _from_agent=True)
 
     # ===== 시세 관련 메서드 (StockPriceAPI 위임) =====
 
@@ -832,6 +846,24 @@ class StockAPI(BaseAPI):
             fid_div_cls_code,
         )
 
+    def _delegates(self) -> tuple:
+        """동적 위임 순서. 앞쪽 하위 API의 같은 이름 메서드가 우선한다."""
+        return tuple(
+            api
+            for api in (
+                self.__dict__.get("price_api"),
+                self.__dict__.get("market_api"),
+                self.__dict__.get("investor_api"),
+                self.__dict__.get("ranking_api"),
+                self.__dict__.get("analysis_api"),
+                self.__dict__.get("finance_api"),
+                self.__dict__.get("ksdinfo_api"),
+                self.__dict__.get("etf_api"),
+                self.__dict__.get("chart_api"),
+            )
+            if api is not None
+        )
+
     def __getattr__(self, name: str) -> Any:
         """하위 모듈로 동적 위임
 
@@ -839,7 +871,7 @@ class StockAPI(BaseAPI):
         Agent에서 Facade를 통해 호출 시 AttributeError가 발생한다. 이를 방지하기 위해
         존재하는 하위 API로 자동 위임한다.
         """
-        for api in (self.price_api, self.market_api, self.investor_api):
+        for api in self._delegates():
             if hasattr(api, name):
                 return getattr(api, name)
         raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
