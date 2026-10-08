@@ -187,6 +187,15 @@
   꼬리 컬럼만 추가된 경우에 한해 우선). 레이아웃 재생성:
   `python scripts/spec_conformance/gen_ws_fields.py`.
 
+### 🔒 CodeQL 감사 (2026-10-08) 반영
+
+- `verbose=True`일 때 요청 헤더 로그에 접근토큰과 앱키/시크릿이 평문으로 남던 문제.
+  이제 `authorization`/`appkey`/`appsecret`/`approval_key`는 `***`로 가린다.
+- (deprecated) `KisWebSocket.update_holdings_loop`가 `AccountAPI(auth=...)`로 생성해
+  TypeError로 죽던 문제.
+- `auth()`/`changeTREnv()`에 알 수 없는 `svr`을 주면 `UnboundLocalError` 대신
+  `ValueError`를 낸다.
+
 ### ✨ 인증
 
 - `KISClient.revoke_token()`: 접근토큰폐기(P) `/oauth2/revokeP`. 성공하면 메모리·파일

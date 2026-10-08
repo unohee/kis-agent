@@ -34,6 +34,18 @@ logger = logging.getLogger(__name__)
 # 글로벌 rate limit 변수들 제거됨 - 인스턴스별 관리로 변경
 
 
+# 로그에 남기면 안 되는 헤더 (접근토큰, 앱키/시크릿, 웹소켓 접속키).
+_SENSITIVE_HEADERS = {"authorization", "appkey", "appsecret", "approval_key"}
+
+
+def _redact_headers(headers: Dict[str, Any]) -> Dict[str, Any]:
+    """Copy of ``headers`` with credential values masked for logging."""
+    return {
+        k: ("***" if str(k).lower() in _SENSITIVE_HEADERS else v)
+        for k, v in headers.items()
+    }
+
+
 class KISClient:
     """
     한국투자증권 OpenAPI 클라이언트
@@ -397,7 +409,7 @@ class KISClient:
 
         if self.verbose:
             logger.debug(f"요청 URL: {url}")
-            logger.debug(f"요청 헤더: {headers}")
+            logger.debug(f"요청 헤더: {_redact_headers(headers)}")
             logger.debug(f"요청 파라미터: {params}")
 
         # 상태를 바꾸는 요청은 절대 재전송하지 않는다 (STO-1729).

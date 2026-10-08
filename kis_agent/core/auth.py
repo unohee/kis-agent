@@ -365,6 +365,8 @@ def changeTREnv(
     cfg = {}
 
     global _isPaper
+    if svr not in ("prod", "vps"):
+        raise ValueError(f"svr은 'prod'(실전) 또는 'vps'(모의)여야 합니다: {svr!r}")
     if svr == "prod":  # 실전투자
         ak1 = "my_app"  # 실전투자용 앱키
         ak2 = "my_sec"  # 실전투자용 앱시크리트
@@ -447,6 +449,8 @@ def auth(
     if product is None:
         product = _cfg.get("my_prod", "")
     # API 키는 config 매개변수로 전달되어야 합니다.
+    if svr not in ("prod", "vps"):
+        raise ValueError(f"svr은 'prod'(실전) 또는 'vps'(모의)여야 합니다: {svr!r}")
     if svr == "prod":  # 실전투자
         ak1 = "my_app"  # 앱키 (실전투자용)
         ak2 = "my_sec"  # 앱시크리트 (실전투자용)

@@ -16,6 +16,7 @@ from kis_agent.websocket.client import KisWebSocket
 def _ws(tmp_path):
     ws = object.__new__(KisWebSocket)
     ws.client = MagicMock()
+    ws.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
     ws.approval_key = "approval"
     ws.stock_codes = ["005930"]
     ws.trade_history = {"005930": []}

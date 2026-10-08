@@ -626,7 +626,7 @@ class KisWebSocket:
     async def update_holdings_loop(self):
         from ..account.api import AccountAPI
 
-        account_api = AccountAPI(client=self.client, auth=self.auth)
+        account_api = AccountAPI(client=self.client, account_info=self.account_info)
         while True:
             try:
                 holdings = account_api.get_account_balance()["output1"]
