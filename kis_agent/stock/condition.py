@@ -21,6 +21,7 @@
 """
 
 import logging
+import warnings
 from typing import Any, Dict, List, Optional
 
 from ..core.base_api import BaseAPI
@@ -124,71 +125,101 @@ class ConditionAPI(BaseAPI):
             logging.error(f"조건검색 중 오류 발생: {e}")
             return None
 
-    def get_condition_list(self) -> Optional[Dict[str, Any]]:
-        """조건검색 목록 조회 - rt_cd 메타데이터가 포함된 응답 반환"""
+    def get_condition_list(
+        self, user_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """종목조건검색 목록조회 [국내주식-038] (HHKST03900300)
+
+        HTS(eFriend Plus)에 저장한 조건검색식 목록을 돌려준다. 이전 버전은 문서에
+        없는 ``inquire-condition`` 경로를 호출했다.
+
+        Args:
+            user_id: HTS 사용자 ID (필수)
+
+        Returns:
+            rt_cd 메타데이터가 포함된 응답 (output2: 조건식 목록, seq 포함)
+
+        Raises:
+            ValueError: user_id가 없는 경우
+        """
+        if not user_id:
+            raise ValueError(
+                "조건검색 목록조회에는 HTS 사용자 ID(user_id)가 필요합니다"
+            )
         try:
             return self._make_request_dict(
-                endpoint="/uapi/domestic-stock/v1/quotations/inquire-condition",
-                tr_id="FHKST03010000",
-                params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
-                    "FID_COND_SCR_DIV_CODE": "20171",
-                },
+                endpoint="/uapi/domestic-stock/v1/quotations/psearch-title",
+                tr_id="HHKST03900300",
+                params={"user_id": user_id},
             )
         except Exception as e:
             logging.error(f"조건검색 목록 조회 실패: {e}")
             return None
 
-    def get_condition_result(self, condition_id: str) -> Optional[Dict[str, Any]]:
-        """조건검색 결과 조회 - rt_cd 메타데이터가 포함된 응답 반환"""
+    def get_condition_result(
+        self, condition_id: str, user_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """종목조건검색조회 [국내주식-039] (HHKST03900400)
+
+        Args:
+            condition_id: 조건식 일련번호 (목록조회 결과의 ``seq``)
+            user_id: HTS 사용자 ID (필수)
+
+        Returns:
+            rt_cd 메타데이터가 포함된 응답 (output2: 조건 충족 종목)
+
+        Raises:
+            ValueError: user_id가 없는 경우
+        """
+        if not user_id:
+            raise ValueError("종목조건검색조회에는 HTS 사용자 ID(user_id)가 필요합니다")
         try:
             return self._make_request_dict(
-                endpoint="/uapi/domestic-stock/v1/quotations/inquire-condition-result",
-                tr_id="FHKST03010100",
-                params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
-                    "FID_COND_SCR_DIV_CODE": "20171",
-                    "FID_COND_ID": condition_id,
-                },
+                endpoint=API_ENDPOINTS["CONDITIONED_STOCK"],
+                tr_id="HHKST03900400",
+                params={"user_id": user_id, "seq": str(condition_id)},
             )
         except Exception as e:
             logging.error(f"조건검색 결과 조회 실패: {e}")
             return None
 
+    @staticmethod
+    def _unsupported(name: str) -> None:
+        warnings.warn(
+            f"{name}는 KIS에 대응 API가 없어 폐기되었습니다",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        raise NotImplementedError(
+            f"KIS OpenAPI는 조건검색식 {name.split('_')[0]} 기능을 제공하지 않습니다. "
+            "조건식은 HTS(eFriend Plus)에서 관리하세요."
+        )
+
     def save_condition(
         self, condition_name: str, condition_data: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        """조건검색 저장 - rt_cd 메타데이터가 포함된 응답 반환"""
-        try:
-            return self._make_request_dict(
-                endpoint="/uapi/domestic-stock/v1/quotations/save-condition",
-                tr_id="FHKST03010200",
-                params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
-                    "FID_COND_SCR_DIV_CODE": "20171",
-                    "FID_COND_NAME": condition_name,
-                    "FID_COND_DATA": condition_data,
-                },
-            )
-        except Exception as e:
-            logging.error(f"조건검색 저장 실패: {e}")
-            return None
+        """조건검색 저장 — 지원하지 않음.
+
+        .. deprecated:: 2.0.0
+            KIS OpenAPI에 조건식 저장 API가 없다 (``save-condition``은 문서에 없는
+            경로). 다음 메이저 버전에서 제거된다.
+
+        Raises:
+            NotImplementedError: 항상
+        """
+        self._unsupported("save_condition")
 
     def delete_condition(self, condition_id: str) -> Optional[Dict[str, Any]]:
-        """조건검색 삭제 - rt_cd 메타데이터가 포함된 응답 반환"""
-        try:
-            return self._make_request_dict(
-                endpoint="/uapi/domestic-stock/v1/quotations/delete-condition",
-                tr_id="FHKST03010300",
-                params={
-                    "FID_COND_MRKT_DIV_CODE": "J",
-                    "FID_COND_SCR_DIV_CODE": "20171",
-                    "FID_COND_ID": condition_id,
-                },
-            )
-        except Exception as e:
-            logging.error(f"조건검색 삭제 실패: {e}")
-            return None
+        """조건검색 삭제 — 지원하지 않음.
+
+        .. deprecated:: 2.0.0
+            KIS OpenAPI에 조건식 삭제 API가 없다 (``delete-condition``은 문서에 없는
+            경로). 다음 메이저 버전에서 제거된다.
+
+        Raises:
+            NotImplementedError: 항상
+        """
+        self._unsupported("delete_condition")
 
 
 def get_condition_stocks_dict(agent) -> Dict[str, List[Dict]]:

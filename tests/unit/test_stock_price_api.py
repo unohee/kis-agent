@@ -603,29 +603,7 @@ class TestStockPriceAPIAdditionalMethods(unittest.TestCase):
 
         self.assertEqual(result, expected_response)
 
-    def test_profit_asset_index(self):
-        """자산/수익지수 조회"""
-        expected_response = {"rt_cd": "0", "output": []}
-        self.mock_client.make_request.return_value = expected_response
 
-        result = self.api.profit_asset_index("1001")
-
-        self.assertEqual(result, expected_response)
-        call_args = self.mock_client.make_request.call_args
-        params = call_args[1]["params"]
-        self.assertEqual(params["FID_INPUT_ISCD"], "1001")
-
-    def test_intstock_multprice(self):
-        """복수종목 현재가 조회"""
-        expected_response = {"rt_cd": "0", "output": []}
-        self.mock_client.make_request.return_value = expected_response
-
-        result = self.api.intstock_multprice("005930,000660,035420")
-
-        self.assertEqual(result, expected_response)
-        call_args = self.mock_client.make_request.call_args
-        params = call_args[1]["params"]
-        self.assertEqual(params["FID_INPUT_ISCD"], "005930,000660,035420")
 
     def test_foreign_institution_total(self):
         """외국인/기관 종합 매매동향 조회"""

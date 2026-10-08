@@ -619,10 +619,13 @@ class Agent(
             ...     print(f"{stock['hts_kor_isnm']}: {stock['prdy_ctrt']}%")
         """
         try:
-            return self.stock_api.get_market_fluctuation()
+            response = self.stock_api.get_market_fluctuation()
         except Exception as e:
             logging.error(f"상승률 상위 종목 조회 실패: {e}")
             return []
+        if not response or response.get("rt_cd") != "0":
+            return []
+        return list(response.get("output") or [])
 
     # ===== 새로 추가된 계좌 관련 API 메서드 (2025-01-08) =====
 

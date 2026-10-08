@@ -96,24 +96,33 @@ class StockInvestorAPI(BaseAPI):
         )
 
     def get_member_transaction(
-        self, code: str, mem_code: str, market: str = "J"
+        self,
+        code: str,
+        mem_code: str,
+        market: str = "J",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        특정 거래원의 매매 내역 조회 (rt_cd 메타데이터 포함)
+        특정 거래원(회원사)의 종목 매매동향 조회 (rt_cd 메타데이터 포함)
+
+        회원사 종목매매동향 API(FHPST04540000)를 쓴다. 이전 버전은 회원사 코드를
+        받지 않는 '주식현재가 회원사' API에 존재하지 않는 필드를 붙여 보냈다.
 
         Args:
             code: 종목코드 (6자리)
-            mem_code: 거래원 코드
+            mem_code: 거래원(회원사) 코드
             market: 시장구분 (J: KRX, NX: NXT 대체거래소, UN: 통합)
+            start_date: 조회 시작일 YYYYMMDD (기본: 오늘)
+            end_date: 조회 종료일 YYYYMMDD (기본: start_date)
         """
-        return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_MEMBER"],
-            tr_id="FHKST01010600",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": code,
-                "FID_INPUT_MEM_CODE": mem_code,
-            },
+        start = start_date or datetime.now().strftime("%Y%m%d")
+        return self.get_member_trading_daily(
+            code,
+            start,
+            end_date or start,
+            member_code=mem_code,
+            fid_cond_mrkt_div_code=market,
         )
 
     def get_frgnmem_pchs_trend(self, code: str) -> Optional[Dict[str, Any]]:
@@ -379,18 +388,22 @@ class StockInvestorAPI(BaseAPI):
         )
 
     def get_investor_program_trade_today(
-        self, mrkt_div_cls_code: str = "1"
+        self, mrkt_div_cls_code: str = "1", exch_div_cls_code: str = "J"
     ) -> Optional[Dict[str, Any]]:
         """
         프로그램매매 투자자매매동향(당일) 조회
 
         Args:
             mrkt_div_cls_code: 시장구분코드 (1: 코스피, 4: 코스닥)
+            exch_div_cls_code: 거래소구분코드 (J: KRX, NX: NXT, UN: 통합)
 
         Returns:
             Optional[Dict[str, Any]]: 프로그램매매 투자자매매동향 데이터
         """
-        params = {"MRKT_DIV_CLS_CODE": mrkt_div_cls_code}
+        params = {
+            "EXCH_DIV_CLS_CODE": exch_div_cls_code,
+            "MRKT_DIV_CLS_CODE": mrkt_div_cls_code,
+        }
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INVESTOR_PROGRAM_TRADE_TODAY"],
             tr_id="HHPPG046600C1",

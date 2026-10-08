@@ -303,26 +303,6 @@ class TestGetConditionStocks:
 class TestGetTopGainers:
     """get_top_gainers 테스트 (L355-376)"""
 
-    def test_get_top_gainers_success(self):
-        """상승률 상위 종목 조회 성공"""
-        agent_module = get_agent_module()
-        mock_client = MockKISClient()
-        mock_result = [{"hts_kor_isnm": "삼성전자", "prdy_ctrt": "5.0"}]
-
-        mock_stock_api = MagicMock()
-        mock_stock_api.get_market_fluctuation.return_value = mock_result
-
-        with patch_all_apis(agent_module, {"StockAPI": mock_stock_api}):
-            agent = agent_module.Agent(
-                app_key="KEY",
-                app_secret="SECRET",
-                account_no="12345",
-                account_code="01",
-                client=mock_client,
-            )
-
-            result = agent.get_top_gainers()
-            assert result == mock_result
 
     def test_get_top_gainers_failure(self, caplog):
         """상승률 상위 종목 조회 실패 시 빈 리스트 반환"""

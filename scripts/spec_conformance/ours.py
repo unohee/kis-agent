@@ -94,6 +94,14 @@ class _Resolver:
         self.endpoints = endpoints
         self.module_dicts: Dict[str, ast.Dict] = {}
         self.module_strs: Dict[str, str] = {}
+        # method name -> dict literal it returns (request-parameter builders)
+        self.method_returns: Dict[str, ast.Dict] = {}
+        for fn in ast.walk(tree):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.Return) and isinstance(node.value, ast.Dict):
+                        self.method_returns.setdefault(fn.name, node.value)
+                        break
         for n in ast.walk(tree):
             if isinstance(n, (ast.Assign, ast.AnnAssign)):
                 targets = n.targets if isinstance(n, ast.Assign) else [n.target]
@@ -321,6 +329,10 @@ class _Resolver:
                     True,
                     {"CANO": False, "ACNT_PRDT_CD": False},
                 )
+            # self._xxx_params(...) returning a dict literal defined in this module
+            if isinstance(f, ast.Attribute) and f.attr in self.method_returns:
+                keys, ok, literal = self.dict_keys(self.method_returns[f.attr], None)
+                return keys, ok, {k: False for k in literal}
         return keys, False, literal
 
 

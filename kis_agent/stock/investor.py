@@ -138,17 +138,19 @@ class InvestorPositionAnalyzer(ExceptionHandler):
         if date is None:
             date = datetime.now().strftime("%Y%m%d")
 
-        # API 호출
+        # 시장별 투자자매매동향(일별) FHPTJ04040000. 업종코드는 시장에 맞춘다
+        # (코스피 0001, 코스닥 1001). 이전 버전은 존재하지 않는 TR을 보냈다.
+        sector = "1001" if market == "KSQ" else "0001"
         response = self.client.make_request(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market",
-            tr_id="FHKST01010800",
+            tr_id="FHPTJ04040000",
             params={
                 "FID_COND_MRKT_DIV_CODE": "U",
-                "FID_INPUT_ISCD": "0001",  # 코스피
+                "FID_INPUT_ISCD": sector,
                 "FID_INPUT_DATE_1": date,
                 "FID_INPUT_ISCD_1": market,
                 "FID_INPUT_DATE_2": date,
-                "FID_INPUT_ISCD_2": "0001",
+                "FID_INPUT_ISCD_2": sector,
             },
         )
 

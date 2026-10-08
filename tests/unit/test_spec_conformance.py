@@ -234,6 +234,20 @@ class TestExtractCallSites:
         )
         assert site.tr_ids == {"TTTT1002U", "TTTS1002U"}
 
+    def test_param_builder_method_is_resolved(self):
+        (site,) = _sites(
+            """
+            class A:
+                @staticmethod
+                def _rank_params(code):
+                    return {"FID_INPUT_ISCD": code, "FID_COND_SCR_DIV_CODE": "20170"}
+                def rank(self):
+                    return self._make_request_dict(endpoint="/r", tr_id="FHPST01700000", params=self._rank_params("0000"))
+            """
+        )
+        assert site.keys == {"FID_INPUT_ISCD", "FID_COND_SCR_DIV_CODE"}
+        assert site.keys_resolved
+
     def test_positional_make_request_and_defaults(self):
         (site,) = _sites("""
             def f(self, method="POST"):

@@ -9,7 +9,7 @@ Stock Price API - 주식 시세 조회 전용 모듈
 지수/선물 관련 API는 StockIndexAPI(index_api.py)에서 상속
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from ..core.client import API_ENDPOINTS
 from .index_api import StockIndexAPI
@@ -219,7 +219,6 @@ class StockPriceAPI(StockIndexAPI):
             endpoint=API_ENDPOINTS["INQUIRE_TIME_DAILYCHARTPRICE"],
             tr_id="FHKST03010230",
             params={
-                "FID_ETC_CLS_CODE": "",
                 "FID_COND_MRKT_DIV_CODE": market,
                 "FID_INPUT_ISCD": code,
                 "FID_INPUT_HOUR_1": hour,
@@ -772,83 +771,106 @@ class StockPriceAPI(StockIndexAPI):
 
     def market_time(self, market: str = "J") -> Optional[Dict]:
         """
-        국내주식 시장영업시간 조회
+        국내선물 영업일조회 (KIS 문서상 ``market-time`` URL의 실제 기능)
+
+        KIS 공식 문서에서 이 URL은 '국내선물 영업일조회'(HHMCM000002C0)이며 요청
+        파라미터가 없다. 이전 버전은 존재하지 않는 TR(FHKST01550000)과 파라미터를
+        보냈다. 주식 휴장일은 ``is_holiday()``(국내휴장일조회)를 쓴다.
 
         Args:
-            market: 시장구분 (J: KRX, NX: NXT 대체거래소)
+            market: 사용하지 않음 (하위 호환용)
 
         Returns:
-            시장영업시간 데이터 (개장시간, 폐장시간, 휴장일 등)
+            영업일 데이터 (모의투자 미지원)
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["MARKET_TIME"],
-            tr_id="FHKST01550000",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": "0000",
-            },
+            tr_id="HHMCM000002C0",
+            params={},
         )
 
     def market_value(self, code: str, market: str = "J") -> Optional[Dict]:
         """
-        국내주식 종목별 시가총액 조회
+        국내주식 종목별 시가총액 조회 — 주식현재가 시세 응답으로 제공
+
+        KIS에는 종목별 시가총액 전용 API가 없다 (이전 버전이 호출하던
+        ``quotations/market-value``는 문서에 없는 경로다). 시가총액은 주식현재가
+        시세(FHKST01010100)의 ``output.hts_avls``(억원)와 ``output.lstn_stcn``
+        (상장주수)로 제공되므로 그 응답을 그대로 돌려준다. 시가총액 *순위*는
+        ``ranking/market-value`` API에 해당한다.
 
         Args:
             code: 종목코드 (6자리)
-            market: 시장구분 (J:KRX, NX:NXT)
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합)
 
         Returns:
-            종목별 시가총액 데이터
+            주식현재가 시세 응답 (output.hts_avls: HTS 시가총액)
         """
-        return self._make_request_dict(
-            endpoint=API_ENDPOINTS["MARKET_VALUE"],
-            tr_id="FHKST70300200",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": code,
-            },
-        )
+        return self.get_stock_price(code, market)
 
     def profit_asset_index(
         self, index_code: str = "0001", market: str = "U"
     ) -> Optional[Dict]:
         """
-        국내주식 자산/수익지수 조회
+        국내주식 자산/수익지수 조회 — 지원하지 않음.
 
-        Args:
-            index_code: 지수코드 (0001:코스피, 1001:코스닥)
-            market: 시장구분 (U:업종)
+        .. deprecated:: 2.0.0
+            KIS 공식 문서에 업종별 자산/수익지수 API가 없다. 이전 버전이 호출하던
+            ``quotations/profit-asset-index``(FHKUP03500400)는 존재하지 않는 경로다.
+            종목별 수익자산지표 *순위*는 ``ranking/profit-asset-index``
+            (FHPST01730000) API에 해당한다. 다음 메이저 버전에서 제거된다.
 
-        Returns:
-            자산/수익지수 데이터
+        Raises:
+            NotImplementedError: 항상
         """
-        return self._make_request_dict(
-            endpoint=API_ENDPOINTS["PROFIT_ASSET_INDEX"],
-            tr_id="FHKUP03500400",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": index_code,
-            },
+        import warnings
+
+        warnings.warn(
+            "profit_asset_index는 KIS에 대응 API가 없어 폐기되었습니다",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise NotImplementedError(
+            "KIS에 업종 자산/수익지수 API가 없습니다. "
+            "수익자산지표 순위는 ranking/profit-asset-index(FHPST01730000)를 사용하세요."
         )
 
-    def intstock_multprice(self, codes: str, market: str = "J") -> Optional[Dict]:
+    def intstock_multprice(
+        self, codes: Union[str, List[str]], market: str = "J"
+    ) -> Optional[Dict]:
         """
-        국내주식 복수종목 현재가 조회
+        관심종목(멀티종목) 시세조회 [국내주식-205]
+
+        KIS는 종목마다 번호가 붙은 시장/종목 슬롯(1~30)을 받는다. 이전 버전은
+        존재하지 않는 TR(FHKST662300C0)에 쉼표로 이은 문자열을 보냈다.
 
         Args:
-            codes: 종목코드 (복수 종목은 ','로 구분, 최대 50종목)
-            market: 시장구분 (J:KRX, NX:NXT)
+            codes: 종목코드. 쉼표로 구분한 문자열 또는 리스트 (최대 30종목)
+            market: 시장구분 (J:KRX, NX:NXT, UN:통합), 모든 종목에 적용
 
         Returns:
             복수종목 현재가 데이터
+
+        Raises:
+            ValueError: 종목이 없거나 30개를 넘는 경우
         """
+        if isinstance(codes, str):
+            code_list = [c.strip() for c in codes.split(",") if c.strip()]
+        else:
+            code_list = [str(c).strip() for c in codes if str(c).strip()]
+        if not code_list or len(code_list) > 30:
+            raise ValueError(
+                f"intstock_multprice는 종목 1~30개를 받습니다 (받은 개수: {len(code_list)})"
+            )
+        params: Dict[str, str] = {}
+        for slot in range(1, 31):
+            has_code = slot <= len(code_list)
+            params[f"FID_COND_MRKT_DIV_CODE_{slot}"] = market if has_code else ""
+            params[f"FID_INPUT_ISCD_{slot}"] = code_list[slot - 1] if has_code else ""
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INTSTOCK_MULTPRICE"],
-            tr_id="FHKST662300C0",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_INPUT_ISCD": codes,
-            },
+            tr_id="FHKST11300006",
+            params=params,
         )
 
     def foreign_institution_total(

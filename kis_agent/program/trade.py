@@ -72,26 +72,25 @@ class ProgramTradeAPI(BaseAPI):
         self, code: str, ref_date: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
-        종목별 프로그램매매추이(체결)를 조회합니다. ref_date가 없으면 당일 시간별, 있으면 해당일의 데이터를 조회합니다.
+        종목별 프로그램매매추이를 조회합니다.
+
+        ``ref_date``가 없으면 당일 체결 추이(FHPPG04650101), 있으면 해당일까지의
+        일별 추이(FHPPG04650201, ``get_program_trade_daily_summary``)를 조회한다.
+        체결 API에는 날짜 필드가 없다 (이전 버전은 날짜를 붙여 보냈다).
 
         Args:
             code (str): 종목 코드 (예: "005930")
-            ref_date (Optional[str]): 기준 일자 (YYYYMMDD 형식, 기본값: 현재 일자)
+            ref_date (Optional[str]): 기준 일자 (YYYYMMDD 형식)
 
         Returns:
             Optional[Dict[str, Any]]: rt_cd 메타데이터가 포함된 API 응답 데이터
         """
+        if ref_date:
+            return self.get_program_trade_daily_summary(code, ref_date)
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": code,
         }
-        if ref_date:
-            params["FID_INPUT_DATE_1"] = ref_date
-        else:
-            # ref_date가 없으면 당일 시간별 추이를 위해 날짜 파라미터를 보내지 않거나,
-            # API 명세에 따라 오늘 날짜를 명시해야 할 수 있습니다.
-            # 현재 구현은 ref_date가 있을 때만 날짜를 추가합니다.
-            pass
 
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["PROGRAM_TRADE_BY_STOCK"],

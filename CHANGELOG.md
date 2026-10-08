@@ -36,6 +36,38 @@
   `sll_buy_dvsn_cd`가 필수다. 예약주문조회 결과의 `rsvn_ord_orgno`/`rsvn_ord_ord_dt`를
   넘기면 함께 보낸다.
 
+### 🔧 국내주식 조회 — 엉뚱한 API를 부르던 메서드 수정
+
+- `get_market_fluctuation` / `get_market_rankings` / `get_volume_power`가 호가·투자자
+  URL에 순위 파라미터를 보내 **항상 실패**했다. 각각 등락률 순위(FHPST01700000),
+  거래량순위(FHPST01710000), 체결강도 상위(FHPST01680000)를 호출한다 (반환은 기존처럼
+  Dict). `Agent.get_top_gainers()`는 문서대로 순위 리스트를 돌려준다.
+- `get_time_index_chart_price`: 업종 분봉조회 TR(FHKUP03500200)과 봉 간격(초)으로
+  호출한다. 기존 기간 코드 "1"~"7"은 1/3/5/10/15/30/60분으로 변환된다.
+- `market_time`: 이 URL은 KIS 문서상 *국내선물 영업일조회*(HHMCM000002C0, 파라미터
+  없음)다. 주식 휴장일은 `is_holiday()`를 쓴다.
+- `market_value(code)`: 문서에 없는 경로 대신 주식현재가 시세를 돌려준다
+  (`output.hts_avls` = 시가총액).
+- `intstock_multprice`: 공식 TR(FHKST11300006)과 번호 슬롯(1~30) 형식으로 보낸다.
+  리스트도 받으며, 30종목 초과는 `ValueError`.
+- `get_member_transaction`: 회원사 코드를 받는 회원사 종목매매동향(FHPST04540000)으로
+  조회한다 (`start_date`/`end_date` 추가, 기본 오늘).
+- `get_investor_program_trade_today`: 필수 `EXCH_DIV_CLS_CODE` 추가
+  (`exch_div_cls_code="J"`).
+- `get_program_trade_by_stock(code, ref_date)`: 날짜를 주면 일별 추이 API로 조회한다
+  (체결 API에는 날짜 필드가 없다).
+- 시장별 투자자매매동향(일별) TR을 FHPTJ04040000으로 고치고, 코스닥은 업종코드 1001을
+  쓴다.
+- 조건검색 `get_condition_list(user_id)` / `get_condition_result(seq, user_id)`는 공식
+  `psearch-title` / `psearch-result`를 쓴다 (HTS 사용자 ID 필수).
+- 옛 TR 교체: 정정취소가능주문조회 `TTTC0084R`, 프로그램매매 일별 `FHPPG04650201`,
+  `FHPPG04600001` (KIS가 "구TR은 사전고지 없이 막힐 수 있다"고 안내).
+
+### 🗑️ 폐기 (`NotImplementedError` + `DeprecationWarning`, 다음 메이저에서 제거)
+
+- `profit_asset_index`, `save_condition`, `delete_condition`: KIS에 대응 API가 없다.
+- 어디서도 쓰이지 않던 `kis_agent/stock/api_improved.py` 삭제.
+
 ### 🔧 기타
 
 - 연속조회 공용 지원: 응답 헤더 `tr_cont`를 `_tr_cont`로 노출하고

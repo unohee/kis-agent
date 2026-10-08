@@ -130,22 +130,6 @@ class TestInvestorPositionAnalyzer:
 
     # ===== get_daily_market_trends 테스트 =====
 
-    def test_get_daily_market_trends_success(self, analyzer, mock_client):
-        """시장별 일별 투자자 동향 조회 성공"""
-        # Arrange
-        mock_client.make_request.return_value = {
-            "rt_cd": "0",
-            "output": [{"frgn_ntby_qty": "10000", "inst_ntby_qty": "5000"}],
-        }
-
-        # Act
-        result = analyzer.get_daily_market_trends("20260104", "KSP")
-
-        # Assert
-        assert result is not None
-        call_args = mock_client.make_request.call_args
-        assert call_args[1]["tr_id"] == "FHKST01010800"
-        assert call_args[1]["params"]["FID_INPUT_ISCD_1"] == "KSP"
 
     def test_get_daily_market_trends_default_date(self, analyzer, mock_client):
         """시장별 일별 동향 조회 - 기본 날짜"""

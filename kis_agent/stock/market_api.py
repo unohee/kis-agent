@@ -19,99 +19,160 @@ from ..core.tr_mapping import PaperTradingNotSupportedError
 class StockMarketAPI(BaseAPI):
     """주식 시장 정보 조회 전용 API 클래스"""
 
+    @staticmethod
+    def _fluctuation_params(
+        market_code: str,
+        input_iscd: str,
+        count: str = "50",
+        price_min: str = "0",
+        price_max: str = "1000000",
+        volume_min: str = "100000",
+        target_cls_code: str = "0",
+        target_exls_cls_code: str = "0",
+        div_cls_code: str = "0",
+        rate_min: str = "-30",
+        rate_max: str = "30",
+    ) -> Dict[str, str]:
+        """등락률 순위(FHPST01700000) 요청 파라미터."""
+        return {
+            "fid_cond_mrkt_div_code": market_code,
+            "fid_cond_scr_div_code": "20170",
+            "fid_input_iscd": input_iscd,
+            "fid_rank_sort_cls_code": "0",
+            "fid_input_cnt_1": count,
+            "fid_prc_cls_code": "0",
+            "fid_input_price_1": price_min,
+            "fid_input_price_2": price_max,
+            "fid_vol_cnt": volume_min,
+            "fid_trgt_cls_code": target_cls_code,
+            "fid_trgt_exls_cls_code": target_exls_cls_code,
+            "fid_div_cls_code": div_cls_code,
+            "fid_rsfl_rate1": rate_min,
+            "fid_rsfl_rate2": rate_max,
+        }
+
+    @staticmethod
+    def _volume_rank_params(
+        market_code: str,
+        input_iscd: str,
+        blng_cls_code: str = "0",
+        price_min: str = "0",
+        price_max: str = "1000000",
+        volume_min: str = "100000",
+        target_cls_code: str = "111111111",
+        target_exls_cls_code: str = "0000000000",
+        div_cls_code: str = "0",
+    ) -> Dict[str, str]:
+        """거래량순위(FHPST01710000) 요청 파라미터."""
+        return {
+            "FID_COND_MRKT_DIV_CODE": market_code,
+            "FID_COND_SCR_DIV_CODE": "20171",
+            "FID_INPUT_ISCD": input_iscd,
+            "FID_DIV_CLS_CODE": div_cls_code,
+            "FID_BLNG_CLS_CODE": blng_cls_code,
+            "FID_TRGT_CLS_CODE": target_cls_code,
+            "FID_TRGT_EXLS_CLS_CODE": target_exls_cls_code,
+            "FID_INPUT_PRICE_1": price_min,
+            "FID_INPUT_PRICE_2": price_max,
+            "FID_VOL_CNT": volume_min,
+            "FID_INPUT_DATE_1": "",
+        }
+
+    @staticmethod
+    def _volume_power_params(
+        input_iscd: str,
+        div_cls_code: str = "0",
+        price_min: str = "",
+        price_max: str = "",
+        volume_min: str = "",
+        target_cls_code: str = "0",
+        target_exls_cls_code: str = "0",
+    ) -> Dict[str, str]:
+        """체결강도 상위(FHPST01680000) 요청 파라미터. 시장은 J만 지원."""
+        return {
+            "fid_cond_mrkt_div_code": "J",
+            "fid_cond_scr_div_code": "20168",
+            "fid_input_iscd": input_iscd,
+            "fid_div_cls_code": div_cls_code,
+            "fid_input_price_1": price_min,
+            "fid_input_price_2": price_max,
+            "fid_vol_cnt": volume_min,
+            "fid_trgt_cls_code": target_cls_code,
+            "fid_trgt_exls_cls_code": target_exls_cls_code,
+        }
+
     def get_market_fluctuation(self, market: str = "J") -> Optional[Dict[str, Any]]:
-        """시장 변동성 정보 조회
+        """등락률 순위 조회 (상승률순, 전체 종목) — rt_cd 메타데이터 포함 Dict
+
+        이전 버전은 호가 예상체결 URL에 회원사 TR(FHKST01010600)을 보내 항상
+        실패했다. 이제 국내주식 등락률 순위 API(FHPST01700000)를 호출한다.
+        DataFrame이 필요하면 ``get_fluctuation_rank()``를 쓴다.
 
         Args:
-            market: 시장구분 (J: KRX, NX: NXT 대체거래소, UN: 통합)
+            market: 조건 시장 분류 코드 (기본 "J")
 
         Returns:
-            Optional[Dict[str, Any]]: 시장 변동성 정보를 포함한 응답 데이터
-                - rt_cd: 응답 코드 ("0": 성공)
-                - msg1: 응답 메시지
-                - output: 시장 변동성 데이터
+            Optional[Dict[str, Any]]: 등락률 순위 응답 (output: 순위 리스트)
 
         Example:
-            >>> market_api = StockMarketAPI(client)
-            >>> fluctuation = market_api.get_market_fluctuation()  # KRX
-            >>> fluctuation_nxt = market_api.get_market_fluctuation(market="NX")  # NXT
+            >>> fluctuation = market_api.get_market_fluctuation()
         """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_ASKING_PRICE_EXP_CCN"],
-            tr_id="FHKST01010600",
-            params={"FID_COND_MRKT_DIV_CODE": market},
+            endpoint=API_ENDPOINTS["FLUCTUATION"],
+            tr_id="FHPST01700000",
+            params=self._fluctuation_params(market, "0000"),
         )
 
     def get_market_rankings(
         self, volume: int = 5000000, market: str = "J"
     ) -> Optional[Dict[str, Any]]:
-        """거래량 기준 종목 순위 조회
+        """거래량 순위 조회 — rt_cd 메타데이터 포함 Dict
+
+        이전 버전은 '주식현재가 투자자' URL에 순위 파라미터를 보냈다. 이제
+        거래량순위 API(FHPST01710000)를 호출한다. DataFrame이 필요하면
+        ``get_volume_rank()``를 쓴다.
 
         Args:
             volume (int, optional): 최소 거래량 기준. Defaults to 5000000.
-            market: 시장구분 (J: KRX, NX: NXT 대체거래소, UN: 통합)
+            market: 조건 시장 분류 코드 (J: KRX, NX: NXT)
 
         Returns:
-            Optional[Dict[str, Any]]: 종목 순위 정보를 포함한 응답 데이터
-                - rt_cd: 응답 코드 ("0": 성공)
-                - msg1: 응답 메시지
-                - output: 순위 데이터 리스트
+            Optional[Dict[str, Any]]: 거래량 순위 응답 (output: 순위 리스트)
 
         Example:
-            >>> market_api = StockMarketAPI(client)
-            >>> rankings = market_api.get_market_rankings(volume=10000000)  # KRX
-            >>> rankings_nxt = market_api.get_market_rankings(market="NX")  # NXT
+            >>> rankings = market_api.get_market_rankings(volume=10000000)
         """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_INVESTOR"],
-            tr_id="FHKST01010900",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_COND_SCR_DIV_CODE": "20171",
-                "FID_INPUT_ISCD": "0000",
-                "FID_RANK_SORT_CLS_CODE": "0",
-                "FID_INPUT_CNT_1": "50",
-                "FID_PRC_CLS_CODE": "1",
-                "FID_INPUT_PRICE_1": "",
-                "FID_INPUT_PRICE_2": "",
-                "FID_VOL_CNT": str(volume),
-            },
+            endpoint=API_ENDPOINTS["VOLUME_RANK"],
+            tr_id="FHPST01710000",
+            params=self._volume_rank_params(market, "0000", volume_min=str(volume)),
         )
 
     def get_volume_power(
         self, volume: int = 0, market: str = "J"
     ) -> Optional[Dict[str, Any]]:
-        """체결강도 순위 조회
+        """체결강도 순위 조회 — rt_cd 메타데이터 포함 Dict
+
+        이전 버전은 '주식현재가 투자자' URL에 순위 파라미터를 보냈다. 이제
+        체결강도 상위 API(FHPST01680000)를 호출한다. 이 API는 KRX(J)만 지원하므로
+        ``market``은 무시된다. DataFrame이 필요하면 ``get_volume_power_rank()``.
 
         Args:
-            volume (int, optional): 최소 거래량 기준. Defaults to 0.
-            market: 시장구분 (J: KRX, NX: NXT 대체거래소, UN: 통합)
+            volume (int, optional): 최소 거래량 기준 (0이면 전체). Defaults to 0.
+            market: 하위 호환용 (사용하지 않음)
 
         Returns:
-            Optional[Dict[str, Any]]: 체결강도 순위 정보를 포함한 응답 데이터
-                - rt_cd: 응답 코드 ("0": 성공)
-                - msg1: 응답 메시지
-                - output: 체결강도 데이터 리스트
+            Optional[Dict[str, Any]]: 체결강도 순위 응답 (output: 순위 리스트)
 
         Example:
-            >>> market_api = StockMarketAPI(client)
-            >>> power = market_api.get_volume_power()  # KRX
-            >>> power_nxt = market_api.get_volume_power(market="NX")  # NXT
+            >>> power = market_api.get_volume_power()
         """
         return self._make_request_dict(
-            endpoint=API_ENDPOINTS["INQUIRE_INVESTOR"],
-            tr_id="FHKST01010900",
-            params={
-                "FID_COND_MRKT_DIV_CODE": market,
-                "FID_COND_SCR_DIV_CODE": "20171",
-                "FID_INPUT_ISCD": "0000",
-                "FID_RANK_SORT_CLS_CODE": "0",
-                "FID_INPUT_CNT_1": "50",
-                "FID_PRC_CLS_CODE": "1",
-                "FID_INPUT_PRICE_1": "",
-                "FID_INPUT_PRICE_2": "",
-                "FID_VOL_CNT": str(volume),
-            },
+            endpoint=API_ENDPOINTS["VOLUME_POWER"],
+            tr_id="FHPST01680000",
+            params=self._volume_power_params(
+                "0000", volume_min=str(volume) if volume else ""
+            ),
         )
 
     def get_stock_info(
@@ -196,22 +257,19 @@ class StockMarketAPI(BaseAPI):
         market_code = market_code_map.get(market.upper(), "J")
         input_iscd = market_iscd_map.get(market.upper(), "0000")
 
-        params = {
-            "fid_cond_mrkt_div_code": market_code,
-            "fid_cond_scr_div_code": "20170",
-            "fid_input_iscd": input_iscd,
-            "fid_rank_sort_cls_code": "0",
-            "fid_input_cnt_1": count,
-            "fid_prc_cls_code": "0",
-            "fid_input_price_1": price_min,
-            "fid_input_price_2": price_max,
-            "fid_vol_cnt": volume_min,
-            "fid_trgt_cls_code": target_cls_code,
-            "fid_trgt_exls_cls_code": target_exls_cls_code,
-            "fid_div_cls_code": div_cls_code,
-            "fid_rsfl_rate1": rate_min,
-            "fid_rsfl_rate2": rate_max,
-        }
+        params = self._fluctuation_params(
+            market_code,
+            input_iscd,
+            count,
+            price_min,
+            price_max,
+            volume_min,
+            target_cls_code,
+            target_exls_cls_code,
+            div_cls_code,
+            rate_min,
+            rate_max,
+        )
 
         response = self._make_request_dict(
             endpoint=API_ENDPOINTS["FLUCTUATION"], tr_id="FHPST01700000", params=params
@@ -275,19 +333,17 @@ class StockMarketAPI(BaseAPI):
         market_code = market_code_map.get(market.upper(), "J")
         input_iscd = market_iscd_map.get(market.upper(), "0000")
 
-        params = {
-            "FID_COND_MRKT_DIV_CODE": market_code,
-            "FID_COND_SCR_DIV_CODE": "20171",
-            "FID_INPUT_ISCD": input_iscd,
-            "FID_DIV_CLS_CODE": div_cls_code,
-            "FID_BLNG_CLS_CODE": blng_cls_code,
-            "FID_TRGT_CLS_CODE": target_cls_code,
-            "FID_TRGT_EXLS_CLS_CODE": target_exls_cls_code,
-            "FID_INPUT_PRICE_1": price_min,
-            "FID_INPUT_PRICE_2": price_max,
-            "FID_VOL_CNT": volume_min,
-            "FID_INPUT_DATE_1": "",
-        }
+        params = self._volume_rank_params(
+            market_code,
+            input_iscd,
+            blng_cls_code,
+            price_min,
+            price_max,
+            volume_min,
+            target_cls_code,
+            target_exls_cls_code,
+            div_cls_code,
+        )
 
         response = self._make_request_dict(
             endpoint=API_ENDPOINTS["VOLUME_RANK"], tr_id="FHPST01710000", params=params
@@ -328,9 +384,6 @@ class StockMarketAPI(BaseAPI):
             >>> # 코스닥 체결강도 상위
             >>> df = market_api.get_volume_power_rank(market="KOSDAQ")
         """
-        # 시장 코드는 항상 J (체결강도 API는 J만 지원)
-        market_code = "J"
-
         # input_iscd 매핑 (시장별 필터링)
         market_iscd_map = {
             "ALL": "0000",  # 전체
@@ -341,17 +394,15 @@ class StockMarketAPI(BaseAPI):
 
         input_iscd = market_iscd_map.get(market.upper(), "0000")
 
-        params = {
-            "fid_cond_mrkt_div_code": market_code,
-            "fid_cond_scr_div_code": "20168",
-            "fid_input_iscd": input_iscd,
-            "fid_div_cls_code": div_cls_code,
-            "fid_input_price_1": price_min,
-            "fid_input_price_2": price_max,
-            "fid_vol_cnt": volume_min,
-            "fid_trgt_cls_code": target_cls_code,
-            "fid_trgt_exls_cls_code": target_exls_cls_code,
-        }
+        params = self._volume_power_params(
+            input_iscd,
+            div_cls_code,
+            price_min,
+            price_max,
+            volume_min,
+            target_cls_code,
+            target_exls_cls_code,
+        )
 
         response = self._make_request_dict(
             endpoint=API_ENDPOINTS["VOLUME_POWER"], tr_id="FHPST01680000", params=params

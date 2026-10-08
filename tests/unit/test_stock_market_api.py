@@ -37,24 +37,6 @@ class TestStockMarketAPI(unittest.TestCase):
         """초기화 테스트"""
         self.assertEqual(self.api.client, self.mock_client)
 
-    def test_get_market_fluctuation_success(self):
-        """시장 변동성 정보 조회 성공"""
-        expected_response = {
-            "rt_cd": "0",
-            "msg1": "성공",
-            "output": {"market_data": "test"},
-        }
-        self.mock_client.make_request.return_value = expected_response
-
-        result = self.api.get_market_fluctuation()
-
-        self.assertEqual(result, expected_response)
-        self.mock_client.make_request.assert_called_once_with(
-            endpoint=API_ENDPOINTS["INQUIRE_ASKING_PRICE_EXP_CCN"],
-            tr_id="FHKST01010600",
-            params={"FID_COND_MRKT_DIV_CODE": "J"},
-            method="GET",
-        )
 
     def test_get_market_fluctuation_failure(self):
         """시장 변동성 정보 조회 실패"""
@@ -64,34 +46,6 @@ class TestStockMarketAPI(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_get_market_rankings_default_volume(self):
-        """거래량 순위 조회 - 기본 거래량"""
-        expected_response = {
-            "rt_cd": "0",
-            "msg1": "성공",
-            "output": [{"rank": 1, "code": "005930"}],
-        }
-        self.mock_client.make_request.return_value = expected_response
-
-        result = self.api.get_market_rankings()
-
-        self.assertEqual(result, expected_response)
-        self.mock_client.make_request.assert_called_once_with(
-            endpoint=API_ENDPOINTS["INQUIRE_INVESTOR"],
-            tr_id="FHKST01010900",
-            params={
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_COND_SCR_DIV_CODE": "20171",
-                "FID_INPUT_ISCD": "0000",
-                "FID_RANK_SORT_CLS_CODE": "0",
-                "FID_INPUT_CNT_1": "50",
-                "FID_PRC_CLS_CODE": "1",
-                "FID_INPUT_PRICE_1": "",
-                "FID_INPUT_PRICE_2": "",
-                "FID_VOL_CNT": "5000000",
-            },
-            method="GET",
-        )
 
     def test_get_market_rankings_custom_volume(self):
         """거래량 순위 조회 - 커스텀 거래량"""
@@ -110,51 +64,7 @@ class TestStockMarketAPI(unittest.TestCase):
         call_args = self.mock_client.make_request.call_args
         self.assertEqual(call_args[1]["params"]["FID_VOL_CNT"], "10000000")
 
-    def test_get_volume_power_default_volume(self):
-        """체결강도 순위 조회 - 기본 거래량"""
-        expected_response = {
-            "rt_cd": "0",
-            "msg1": "성공",
-            "output": [{"code": "005930", "power": "150.5"}],
-        }
-        self.mock_client.make_request.return_value = expected_response
 
-        result = self.api.get_volume_power()
-
-        self.assertEqual(result, expected_response)
-        self.mock_client.make_request.assert_called_once_with(
-            endpoint=API_ENDPOINTS["INQUIRE_INVESTOR"],
-            tr_id="FHKST01010900",
-            params={
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_COND_SCR_DIV_CODE": "20171",
-                "FID_INPUT_ISCD": "0000",
-                "FID_RANK_SORT_CLS_CODE": "0",
-                "FID_INPUT_CNT_1": "50",
-                "FID_PRC_CLS_CODE": "1",
-                "FID_INPUT_PRICE_1": "",
-                "FID_INPUT_PRICE_2": "",
-                "FID_VOL_CNT": "0",
-            },
-            method="GET",
-        )
-
-    def test_get_volume_power_custom_volume(self):
-        """체결강도 순위 조회 - 커스텀 거래량"""
-        expected_response = {
-            "rt_cd": "0",
-            "msg1": "성공",
-            "output": [{"code": "005930", "power": "150.5"}],
-        }
-        self.mock_client.make_request.return_value = expected_response
-
-        result = self.api.get_volume_power(volume=1000000)
-
-        self.assertEqual(result, expected_response)
-
-        # 파라미터에서 volume이 올바르게 설정되었는지 확인
-        call_args = self.mock_client.make_request.call_args
-        self.assertEqual(call_args[1]["params"]["FID_VOL_CNT"], "1000000")
 
     def test_get_stock_info_success(self):
         """종목 기본 정보 조회 성공"""

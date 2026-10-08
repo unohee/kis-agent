@@ -363,6 +363,17 @@ class StockAPI(BaseAPI):
             input_iscd, start_date, end_date, period_div_code, market_div_code
         )
 
+    # get_time_index_chart_price의 기존 기간 코드 -> KIS 봉 간격(초)
+    _INDEX_CHART_SECONDS = {
+        "1": "60",
+        "2": "180",
+        "3": "300",
+        "4": "600",
+        "5": "900",
+        "6": "1800",
+        "7": "3600",
+    }
+
     def get_time_index_chart_price(
         self,
         index_code: str = "0001",
@@ -375,14 +386,8 @@ class StockAPI(BaseAPI):
 
         Args:
             index_code (str): 업종코드 (예: "0001"=KOSPI종합, "0013"=전기전자, "1001"=KOSDAQ)
-            period_div (str): 기간구분
-                - "1": 1분봉
-                - "2": 3분봉
-                - "3": 5분봉
-                - "4": 10분봉 (일봉 데이터 30일 반환)
-                - "5": 15분봉
-                - "6": 30분봉
-                - "7": 60분봉
+            period_div (str): 봉 간격. "1"~"7"(1/3/5/10/15/30/60분) 코드 또는
+                초 단위 문자열("30", "60", "600", "3600")
 
         Returns:
             Dict containing:
@@ -399,16 +404,18 @@ class StockAPI(BaseAPI):
             >>> stock_api.get_time_index_chart_price("0001", "4")  # KOSPI 일봉 30일
             >>> stock_api.get_time_index_chart_price("0013", "4")  # 전기전자 일봉 30일
         """
+        # KIS 업종 분봉조회(FHKUP03500200)는 기간 코드가 아니라 봉 간격(초)을 받는다.
+        # 이전 버전은 다른 API의 TR(FHKUP03500100)과 존재하지 않는 기간 코드를 보냈다.
+        interval = self._INDEX_CHART_SECONDS.get(period_div, period_div)
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice",
-            tr_id="FHKUP03500100",
+            tr_id="FHKUP03500200",
             params={
-                "fid_cond_mrkt_div_code": "U",
-                "fid_input_iscd": index_code,
-                "fid_input_date_1": "",
-                "fid_input_date_2": "",
-                "fid_period_div_code": period_div,
-                "fid_pw_data_incu_yn": "Y",  # 과거 데이터 포함 (장외 시간에도 조회 가능)
+                "FID_COND_MRKT_DIV_CODE": "U",
+                "FID_ETC_CLS_CODE": "0",
+                "FID_INPUT_ISCD": index_code,
+                "FID_INPUT_HOUR_1": interval,
+                "FID_PW_DATA_INCU_YN": "Y",  # 과거 데이터 포함 (장외 시간에도 조회 가능)
             },
         )
 

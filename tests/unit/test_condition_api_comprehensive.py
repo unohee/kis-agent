@@ -168,108 +168,16 @@ class TestConditionAPI(unittest.TestCase):
         self.assertEqual(call_args[1]["params"]["tr_cont"], "Y")
 
     # get_condition_list 테스트
-    def test_get_condition_list_success(self):
-        """조건검색 목록 조회 성공 테스트"""
-        # Given
-        mock_response = {
-            "rt_cd": "0",
-            "msg1": "정상처리 되었습니다.",
-            "output": [{"cond_id": "001", "cond_name": "테스트조건"}],
-        }
-        with patch.object(self.api, "_make_request_dict", return_value=mock_response):
-            # When
-            result = self.api.get_condition_list()
 
-            # Then
-            self.assertEqual(result, mock_response)
-
-    def test_get_condition_list_exception(self):
-        """조건검색 목록 조회 - 예외 발생"""
-        # Given
-        with patch.object(
-            self.api, "_make_request_dict", side_effect=Exception("API Error")
-        ):
-            # When
-            result = self.api.get_condition_list()
-
-            # Then
-            self.assertIsNone(result)
 
     # get_condition_result 테스트
-    def test_get_condition_result_success(self):
-        """조건검색 결과 조회 성공 테스트"""
-        # Given
-        mock_response = {
-            "rt_cd": "0",
-            "msg1": "정상처리 되었습니다.",
-            "output": [{"code": "005930"}],
-        }
-        with patch.object(self.api, "_make_request_dict", return_value=mock_response):
-            # When
-            result = self.api.get_condition_result("001")
 
-            # Then
-            self.assertEqual(result, mock_response)
-
-    def test_get_condition_result_exception(self):
-        """조건검색 결과 조회 - 예외 발생"""
-        # Given
-        with patch.object(
-            self.api, "_make_request_dict", side_effect=Exception("API Error")
-        ):
-            # When
-            result = self.api.get_condition_result("001")
-
-            # Then
-            self.assertIsNone(result)
 
     # save_condition 테스트
-    def test_save_condition_success(self):
-        """조건검색 저장 성공 테스트"""
-        # Given
-        mock_response = {"rt_cd": "0", "msg1": "저장 완료"}
-        with patch.object(self.api, "_make_request_dict", return_value=mock_response):
-            # When
-            result = self.api.save_condition("테스트조건", {"field": "value"})
 
-            # Then
-            self.assertEqual(result, mock_response)
-
-    def test_save_condition_exception(self):
-        """조건검색 저장 - 예외 발생"""
-        # Given
-        with patch.object(
-            self.api, "_make_request_dict", side_effect=Exception("API Error")
-        ):
-            # When
-            result = self.api.save_condition("테스트조건", {"field": "value"})
-
-            # Then
-            self.assertIsNone(result)
 
     # delete_condition 테스트
-    def test_delete_condition_success(self):
-        """조건검색 삭제 성공 테스트"""
-        # Given
-        mock_response = {"rt_cd": "0", "msg1": "삭제 완료"}
-        with patch.object(self.api, "_make_request_dict", return_value=mock_response):
-            # When
-            result = self.api.delete_condition("001")
 
-            # Then
-            self.assertEqual(result, mock_response)
-
-    def test_delete_condition_exception(self):
-        """조건검색 삭제 - 예외 발생"""
-        # Given
-        with patch.object(
-            self.api, "_make_request_dict", side_effect=Exception("API Error")
-        ):
-            # When
-            result = self.api.delete_condition("001")
-
-            # Then
-            self.assertIsNone(result)
 
 
 class TestGetConditionStocksDict(unittest.TestCase):

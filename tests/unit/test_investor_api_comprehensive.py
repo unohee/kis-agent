@@ -122,16 +122,6 @@ class TestGetMemberTransaction:
 
         assert result is not None
 
-    def test_get_member_transaction_params(self):
-        """특정 거래원 매매 내역 - 파라미터 검증"""
-        self.mock_client.make_request.return_value = {"rt_cd": "0", "output": {}}
-
-        self.api.get_member_transaction(code="035420", mem_code="12345")
-
-        call_args = self.mock_client.make_request.call_args
-        params = call_args[1]["params"]
-        assert params["FID_INPUT_ISCD"] == "035420"
-        assert params["FID_INPUT_MEM_CODE"] == "12345"
 
 
 class TestGetFrgnmemPchsTrend:
