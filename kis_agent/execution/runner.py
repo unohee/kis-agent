@@ -566,7 +566,11 @@ def run_vwap(
     duration = timedelta(minutes=duration_minutes)
 
     if profile is None:
-        profile = fetch_volume_profile(agent, code=code, days=profile_days)
+        # Profile the sessions before the execution starts, not before the wall clock:
+        # a scheduled or replayed run must not depend on the day it is invoked.
+        profile = fetch_volume_profile(
+            agent, code=code, days=profile_days, end_date=begin
+        )
 
     weights = profile.bucket_weights(begin, duration, slices)
     fallback_note: Optional[str] = None
