@@ -371,7 +371,7 @@ def changeTREnv(
         ak1 = "my_app"  # 실전투자용 앱키
         ak2 = "my_sec"  # 실전투자용 앱시크리트
         _isPaper = False
-    elif svr == "vps":  # 모의투자
+    else:  # 모의투자 (svr == "vps", 위에서 검증)
         ak1 = "paper_app"  # 모의투자용 앱키
         ak2 = "paper_sec"  # 모의투자용 앱시크리트
         _isPaper = True
@@ -454,7 +454,7 @@ def auth(
     if svr == "prod":  # 실전투자
         ak1 = "my_app"  # 앱키 (실전투자용)
         ak2 = "my_sec"  # 앱시크리트 (실전투자용)
-    elif svr == "vps":  # 모의투자
+    else:  # 모의투자 (svr == "vps", 위에서 검증)
         ak1 = "paper_app"  # 앱키 (모의투자용)
         ak2 = "paper_sec"  # 앱시크리트 (모의투자용)
 
