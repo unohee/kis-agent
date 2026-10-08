@@ -31,9 +31,9 @@ class StockPriceAPI(StockIndexAPI):
             per, pbr, acml_vol(거래량) 등. 상세: StockPriceOutput TypedDict 참조
 
         Example:
-            >>> price = agent.stock.get_stock_price("005930")
+            >>> price = agent.get_stock_price("005930")
             >>> print(price['output']['stck_prpr'])  # 현재가
-            >>> price_nxt = agent.stock.get_stock_price("005930", market="NX")  # NXT
+            >>> price_nxt = agent.get_stock_price("005930", market="NX")  # NXT
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_PRICE"],
@@ -61,8 +61,8 @@ class StockPriceAPI(StockIndexAPI):
             DailyPriceResponse: output[] 리스트 (최대 30개) - 일자별 OHLCV
 
         Example:
-            >>> daily = agent.stock.inquire_daily_price("005930", period="D")
-            >>> daily_nxt = agent.stock.inquire_daily_price("005930", market="NX")
+            >>> daily = agent.inquire_daily_price("005930", period="D")
+            >>> daily_nxt = agent.inquire_daily_price("005930", market="NX")
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_DAILY_PRICE"],
@@ -175,8 +175,8 @@ class StockPriceAPI(StockIndexAPI):
                 - output.stck_prpr: 주식 현재가
 
         Example:
-            >>> orderbook = agent.stock.get_orderbook("005930")
-            >>> orderbook_nxt = agent.stock.get_orderbook("005930", market="NX")
+            >>> orderbook = agent.get_orderbook("005930")
+            >>> orderbook_nxt = agent.get_orderbook("005930", market="NX")
         """
         return self._make_request_dict(
             endpoint=API_ENDPOINTS["INQUIRE_ASKING_PRICE_EXP_CCN"],
@@ -1088,8 +1088,8 @@ class StockPriceAPI(StockIndexAPI):
                     - lblt_rate: 부채비율 (%)
 
         Example:
-            >>> financial = agent.stock.get_stock_financial("005930")
-            >>> financial_nxt = agent.stock.get_stock_financial("005930", market="NX")
+            >>> financial = agent.get_stock_financial("005930")
+            >>> financial_nxt = agent.get_stock_financial("005930", market="NX")
 
         Note:
             - 분기별 데이터를 배열로 반환 (최신 순)
@@ -1130,7 +1130,7 @@ class StockPriceAPI(StockIndexAPI):
                     - 기타 기본 정보
 
         Example:
-            >>> basic = agent.stock.get_stock_basic("005930")
+            >>> basic = agent.get_stock_basic("005930")
             >>> if basic and basic.get('rt_cd') == '0':
             ...     print(f"상장주식수: {basic['output']['lstg_stqt']}")
             ...     print(f"시가총액: {basic['output']['hts_avls']}")
@@ -1170,8 +1170,8 @@ class StockPriceAPI(StockIndexAPI):
                     - 기타 회원사 매매 정보
 
         Example:
-            >>> member = agent.stock.get_stock_member("005930")
-            >>> member_nxt = agent.stock.get_stock_member("005930", market="NX")
+            >>> member = agent.get_stock_member("005930")
+            >>> member_nxt = agent.get_stock_member("005930", market="NX")
 
         Note:
             - API 응답이 불안정할 수 있어 재시도 로직 포함

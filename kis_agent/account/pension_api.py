@@ -37,7 +37,7 @@ class AccountPensionAPI(BaseAPI):
             output: dnca_tota(예수금총액), nxdy_excc_amt(익일정산액),
             nxdy_sttl_amt(익일결제금액), nx2_day_sttl_amt(2익일결제금액)
         Example:
-            >>> agent.account.get_pension_deposit()
+            >>> agent.get_pension_deposit()
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/pension/inquire-deposit",
@@ -74,7 +74,7 @@ class AccountPensionAPI(BaseAPI):
             output[]: odno(주문번호), pdno, prdt_name, sll_buy_dvsn_cd, ord_unpr,
             ord_qty, tot_ccld_qty, nccs_qty(미체결수량), ord_tmd(주문시각)
         Example:
-            >>> agent.account.get_pension_daily_ccld(ccld_nccs_dvsn="02")
+            >>> agent.get_pension_daily_ccld(ccld_nccs_dvsn="02")
         """
         return self._paginate(
             endpoint="/uapi/domestic-stock/v1/trading/pension/inquire-daily-ccld",
@@ -114,7 +114,7 @@ class AccountPensionAPI(BaseAPI):
             output: ord_psbl_cash(주문가능현금), ruse_psbl_amt, psbl_qty_calc_unpr,
             max_buy_amt(최대매수금액), max_buy_qty(최대매수수량)
         Example:
-            >>> agent.account.get_pension_psbl_order("069500", 30800, "00")
+            >>> agent.get_pension_psbl_order("069500", 30800, "00")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order",
@@ -146,7 +146,7 @@ class AccountPensionAPI(BaseAPI):
             output2: 합계 (pchs_amt_smtl_amt, evlu_amt_smtl_amt, evlu_pfls_smtl_amt,
             pftrt)
         Example:
-            >>> agent.account.get_pension_present_balance()
+            >>> agent.get_pension_present_balance()
         """
         return self._paginate(
             endpoint="/uapi/domestic-stock/v1/trading/pension/inquire-present-balance",
@@ -183,7 +183,7 @@ class AccountPensionAPI(BaseAPI):
             prpr, evlu_amt, evlu_pfls_amt, evlu_erng_rt)
             output2: 계좌 요약 (dnca_tot_amt, nxdy_excc_amt, scts_evlu_amt, tot_evlu_amt)
         Example:
-            >>> agent.account.get_pension_balance()
+            >>> agent.get_pension_balance()
         """
         return self._paginate(
             endpoint="/uapi/domestic-stock/v1/trading/pension/inquire-balance",

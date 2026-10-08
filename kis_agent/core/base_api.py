@@ -66,7 +66,7 @@ class BaseAPI(ExceptionHandler):
             >>> price = agent.get_stock_price("005930")
 
             잘못된 사용법 (경고 발생):
-            >>> from kis_agent.stock.price_api import StockPriceAPI
+            >>> from kis_agent.price_api import StockPriceAPI
             >>> api = StockPriceAPI(client)  # DirectAPIUsageWarning 발생
         """
         ExceptionHandler.__init__(self)

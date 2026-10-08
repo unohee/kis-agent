@@ -43,7 +43,7 @@ class StockChartAPI(BaseAPI):
             stck_prpr, stck_oprc, stck_hgpr, stck_lwpr, cntg_vol, acml_tr_pbmn
 
         Example:
-            >>> agent.stock.get_today_minute_chart("005930", "100000")
+            >>> agent.get_today_minute_chart("005930", "100000")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
@@ -81,7 +81,7 @@ class StockChartAPI(BaseAPI):
             prdy_ctrt, sdpr_vrss_prpr_rate(기준가 대비 비율), cntg_vol
 
         Example:
-            >>> agent.stock.get_exp_closing_price(sort="1")
+            >>> agent.get_exp_closing_price(sort="1")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/exp-closing-price",
@@ -112,7 +112,7 @@ class StockChartAPI(BaseAPI):
             output2[]: stck_cntg_hour, stck_prpr, askp, bidp, acml_vol, cntg_vol
 
         Example:
-            >>> agent.stock.get_overtime_conclusion_by_time("005930")
+            >>> agent.get_overtime_conclusion_by_time("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/inquire-time-overtimeconclusion",

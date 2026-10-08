@@ -34,7 +34,7 @@ class StockEtfAPI(BaseAPI):
             trc_errt(추적오차율), etf_ntas_ttam(순자산총액), acml_vol(누적거래량)
 
         Example:
-            >>> agent.stock.get_etf_price("069500")
+            >>> agent.get_etf_price("069500")
         """
         return self._make_request_dict(
             endpoint="/uapi/etfetn/v1/quotations/inquire-price",
@@ -59,7 +59,7 @@ class StockEtfAPI(BaseAPI):
             etf_cnfg_issu_rlim(구성종목비중), etf_vltn_amt(평가금액)
 
         Example:
-            >>> agent.stock.get_etf_component_stock_price("069500")
+            >>> agent.get_etf_component_stock_price("069500")
         """
         return self._make_request_dict(
             endpoint="/uapi/etfetn/v1/quotations/inquire-component-stock-price",
@@ -86,7 +86,7 @@ class StockEtfAPI(BaseAPI):
             output1: stck_prpr, prdy_vrss, acml_vol 등 시세; output2: nav, nav_prdy_vrss(ctrt), prdy_clpr_nav, oprc/hprc/lprc_nav
 
         Example:
-            >>> agent.stock.get_etf_nav_comparison_trend("069500")
+            >>> agent.get_etf_nav_comparison_trend("069500")
         """
         return self._make_request_dict(
             endpoint="/uapi/etfetn/v1/quotations/nav-comparison-trend",
@@ -115,7 +115,7 @@ class StockEtfAPI(BaseAPI):
             output[]: stck_bsop_date, stck_clpr(종가), nav, dprt(괴리율), nav_vrss_prpr(NAV 대비 현재가)
 
         Example:
-            >>> agent.stock.get_etf_nav_comparison_daily_trend("069500")
+            >>> agent.get_etf_nav_comparison_daily_trend("069500")
         """
         today = _today()
         return self._make_request_dict(
@@ -145,7 +145,7 @@ class StockEtfAPI(BaseAPI):
             output[]: bsop_hour(시각), stck_prpr, nav, dprt(괴리율), nav_vrss_prpr, cntg_vol
 
         Example:
-            >>> agent.stock.get_etf_nav_comparison_time_trend("069500", 180)
+            >>> agent.get_etf_nav_comparison_time_trend("069500", 180)
         """
         return self._make_request_dict(
             endpoint="/uapi/etfetn/v1/quotations/nav-comparison-time-trend",

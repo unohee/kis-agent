@@ -182,14 +182,14 @@ rights = agent.account_api.inquire_period_rights("20260101", "20260331")
 
 ## 퇴직연금 (2.0.0)
 
-퇴직연금 계좌(상품코드 29) 조회는 `agent.account`에서 호출합니다. 실전투자 전용입니다.
+퇴직연금 계좌(상품코드 29) 조회는 `agent`에서 바로 호출합니다. 실전투자 전용입니다.
 
 | 메서드 | 설명 |
 |:---|:---|
-| `agent.account.get_pension_balance()` | 퇴직연금 잔고조회 [국내주식-036] |
-| `agent.account.get_pension_daily_ccld()` | 퇴직연금 미체결내역 [국내주식-033] |
-| `agent.account.get_pension_deposit()` | 퇴직연금 예수금조회 [국내주식-035] |
-| `agent.account.get_pension_present_balance()` | 퇴직연금 체결기준잔고 [국내주식-032] |
-| `agent.account.get_pension_psbl_order(pdno)` | 퇴직연금 매수가능조회 [국내주식-034] |
+| `agent.get_pension_balance()` | 퇴직연금 잔고조회 [국내주식-036] |
+| `agent.get_pension_daily_ccld()` | 퇴직연금 미체결내역 [국내주식-033] |
+| `agent.get_pension_deposit()` | 퇴직연금 예수금조회 [국내주식-035] |
+| `agent.get_pension_present_balance()` | 퇴직연금 체결기준잔고 [국내주식-032] |
+| `agent.get_pension_psbl_order(pdno)` | 퇴직연금 매수가능조회 [국내주식-034] |
 
 `get_pension_daily_ccld(include_nxt=True)`는 NXT·SOR 체결까지 포함하는 TR(TTTC2210R)을 씁니다.

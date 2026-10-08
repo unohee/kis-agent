@@ -10,9 +10,15 @@
 ## 빠른 예제
 
 ```python
+import os
 from kis_agent import Agent
 
-agent = Agent()
+agent = Agent(
+    app_key=os.environ["KIS_APP_KEY"],
+    app_secret=os.environ["KIS_APP_SECRET"],
+    account_no=os.environ["KIS_ACCOUNT_NO"],
+    account_code=os.environ.get("KIS_ACCOUNT_CODE", "01"),
+)
 
 # 기초자산별 ELW 시세
 price = agent.elw.get_elw_udrl_asset_price("005930")
@@ -70,4 +76,4 @@ ws.subscribe_elw("57LA24", with_orderbook=True, with_expected=True)
 # ['H0EWCNT0_57LA24', 'H0EWASP0_57LA24', 'H0EWANC0_57LA24']
 ```
 
-`agent.stock.inquire_elw_price(code)`(ELW 현재가, `domestic-stock` 경로)는 기존대로 `agent.stock`에 있습니다.
+`agent.inquire_elw_price(code)`(ELW 현재가, `domestic-stock` 경로)는 기존대로 `agent`에서 호출합니다.

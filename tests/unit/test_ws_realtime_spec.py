@@ -394,3 +394,34 @@ async def test_connect_without_auto_reconnect_still_connects_once(monkeypatch):
 
     assert attempts == [1]  # one attempt, no reconnect
     agent._subscribe_all.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_connect_without_auto_reconnect_gives_up_after_one_failed_attempt(
+    monkeypatch,
+):
+    import kis_agent.websocket.ws_agent as module
+
+    agent = WSAgent("approval", url="ws://example", auto_reconnect=False)
+    attempts = []
+
+    class FailingConnection:
+        async def __aenter__(self):
+            attempts.append(1)
+            raise OSError("did not receive a valid HTTP response")
+
+        async def __aexit__(self, *_args):
+            return False
+
+    sleep = AsyncMock()
+    monkeypatch.setattr(module, "_is_after_market_close", lambda **_kwargs: False)
+    monkeypatch.setattr(
+        module.websockets, "connect", lambda *_a, **_k: FailingConnection()
+    )
+    monkeypatch.setattr(module.asyncio, "sleep", sleep)
+
+    await agent.connect()
+
+    assert attempts == [1]
+    sleep.assert_not_awaited()  # no backoff loop
+    assert not agent.connected

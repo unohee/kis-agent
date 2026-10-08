@@ -37,7 +37,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stac_yymm(결산년월), cras(유동자산), fxas(고정자산), total_aset(자산총계), flow_lblt(유동부채), fix_lblt(고정부채), total_lblt(부채총계), cpfn(자본금), total_cptl(자본총계)
 
         Example:
-            >>> agent.stock.get_balance_sheet("005930")
+            >>> agent.get_balance_sheet("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/finance/balance-sheet",
@@ -65,7 +65,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stac_yymm(결산년월), sale_account(매출액), sale_cost(매출원가), sale_totl_prfi(매출총이익), bsop_prti(영업이익), op_prfi(경상이익), thtr_ntin(당기순이익). 분기 데이터는 연단위 누적합산
 
         Example:
-            >>> agent.stock.get_income_statement("005930")
+            >>> agent.get_income_statement("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/finance/income-statement",
@@ -93,7 +93,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stac_yymm(결산년월), cptl_ntin_rate(총자본순이익율), self_cptl_ntin_inrt(자기자본순이익율), sale_ntin_rate(매출액순이익율), sale_totl_rate(매출액총이익율)
 
         Example:
-            >>> agent.stock.get_profit_ratio("005930")
+            >>> agent.get_profit_ratio("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/finance/profit-ratio",
@@ -121,7 +121,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stac_yymm(결산년월), eva, ebitda, ev_ebitda (payout_rate는 비정상 값이라 무시)
 
         Example:
-            >>> agent.stock.get_other_major_ratios("005930")
+            >>> agent.get_other_major_ratios("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/finance/other-major-ratios",
@@ -149,7 +149,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stac_yymm(결산년월), lblt_rate(부채비율), bram_depn(차입금의존도), crnt_rate(유동비율), quck_rate(당좌비율)
 
         Example:
-            >>> agent.stock.get_stability_ratio("005930")
+            >>> agent.get_stability_ratio("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/finance/stability-ratio",
@@ -177,7 +177,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stac_yymm(결산년월), grs(매출액증가율), bsop_prfi_inrt(영업이익증가율), equt_inrt(자기자본증가율), totl_aset_inrt(총자산증가율)
 
         Example:
-            >>> agent.stock.get_growth_ratio("005930")
+            >>> agent.get_growth_ratio("005930")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/finance/growth-ratio",
@@ -206,7 +206,7 @@ class StockFinanceAPI(BaseAPI):
             prdt_eng_name(영문명), std_pdno(표준상품번호), prdt_clsf_name(분류명)
 
         Example:
-            >>> agent.stock.get_search_info("000660")
+            >>> agent.get_search_info("000660")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/search-info",
@@ -236,7 +236,7 @@ class StockFinanceAPI(BaseAPI):
             mbcr_name(회원사명), hts_goal_prc(목표가), stck_prdy_clpr(전일종가), dprt(괴리율)
 
         Example:
-            >>> agent.stock.get_invest_opinion("005930")
+            >>> agent.get_invest_opinion("005930")
         """
         today = _today()
         return self._make_request_dict(
@@ -276,7 +276,7 @@ class StockFinanceAPI(BaseAPI):
             invt_opnn(투자의견), mbcr_name(회원사명), hts_goal_prc(목표가), dprt(괴리율)
 
         Example:
-            >>> agent.stock.get_invest_opinion_by_sec("J04")
+            >>> agent.get_invest_opinion_by_sec("J04")
         """
         today = _today()
         return self._make_request_dict(
@@ -315,7 +315,7 @@ class StockFinanceAPI(BaseAPI):
             output[]: stck_shrn_iscd(종목코드), hts_kor_isnm(종목명), crdt_rate(신용비율)
 
         Example:
-            >>> agent.stock.get_credit_by_company()
+            >>> agent.get_credit_by_company()
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/credit-by-company",
@@ -353,7 +353,7 @@ class StockFinanceAPI(BaseAPI):
             output2: tot_stup_lmt_qty, brch_lmt_qty, rqst_psbl_qty
 
         Example:
-            >>> agent.stock.get_lendable_by_company("00")
+            >>> agent.get_lendable_by_company("00")
         """
         return self._paginate(
             "/uapi/domestic-stock/v1/quotations/lendable-by-company",
@@ -387,7 +387,7 @@ class StockFinanceAPI(BaseAPI):
             data1~data5); output3: 투자지표(EBITDA·EPS·PER·ROE 등); output4: 결산년월(dt)
 
         Example:
-            >>> agent.stock.get_estimate_perform("265520")
+            >>> agent.get_estimate_perform("265520")
         """
         return self._make_request_dict(
             endpoint="/uapi/domestic-stock/v1/quotations/estimate-perform",

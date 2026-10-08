@@ -195,15 +195,15 @@ class StockIndexAPI(BaseAPI):
 
         Example:
             >>> # KOSPI 일별 시세 조회
-            >>> result = agent.stock.get_index_daily_price("0001")
+            >>> result = agent.get_index_daily_price("0001")
             >>> for day in result['output2']:
             ...     print(day['stck_bsop_date'], day['bstp_nmix_prpr'])
 
             >>> # KOSDAQ 최근 100일 시세
-            >>> result = agent.stock.get_index_daily_price("1001", "20251210")
+            >>> result = agent.get_index_daily_price("1001", "20251210")
 
             >>> # KOSPI200 월별 시세
-            >>> result = agent.stock.get_index_daily_price("2001", period="M")
+            >>> result = agent.get_index_daily_price("2001", period="M")
 
         Note:
             - TR ID: FHPUP02120000
@@ -321,7 +321,7 @@ class StockIndexAPI(BaseAPI):
 
         Example:
             >>> # KOSPI200 선물 호가창 조회
-            >>> orderbook = agent.stock.get_future_orderbook("101W09", "F")
+            >>> orderbook = agent.get_future_orderbook("101W09", "F")
             >>> if orderbook and orderbook.get('rt_cd') == '0':
             ...     output1 = orderbook['output1']
             ...     output2 = orderbook['output2']
@@ -329,7 +329,7 @@ class StockIndexAPI(BaseAPI):
             ...     print(f"매수1호가: {output2.get('bidp1')}")
 
             >>> # 옵션 호가창 조회
-            >>> opt_orderbook = agent.stock.get_future_orderbook("201W09370", "O")
+            >>> opt_orderbook = agent.get_future_orderbook("201W09370", "O")
 
         Note:
             - TR ID: FHMIF10010000

@@ -57,7 +57,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date(기준일), sht_cd, isin_name, fix_rate(확정배정율), right_dt(권리락일), list_date(상장일)
 
         Example:
-            >>> agent.stock.get_ksd_bonus_issue("20260101", "20261231")
+            >>> agent.get_ksd_bonus_issue("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -95,7 +95,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, reduce_cap_type(감자구분), reduce_cap_rate(감자배정율), list_dt
 
         Example:
-            >>> agent.stock.get_ksd_cap_dcrs("20260101", "20261231")
+            >>> agent.get_ksd_cap_dcrs("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -135,7 +135,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, divi_kind(배당종류), per_sto_divi_amt(현금배당금), divi_rate(현금배당률), divi_pay_dt(배당금지급일)
 
         Example:
-            >>> agent.stock.get_ksd_dividend("20260101", "20261231")
+            >>> agent.get_ksd_dividend("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -175,7 +175,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, subscr_dt(청약일), subscr_price(공모가), refund_dt, list_dt
 
         Example:
-            >>> agent.stock.get_ksd_forfeit("20260101", "20261231")
+            >>> agent.get_ksd_forfeit("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -213,7 +213,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: list_dt(상장일), sht_cd, isin_name, issue_type(사유), issue_stk_qty(상장주식수), issue_price(발행가)
 
         Example:
-            >>> agent.stock.get_ksd_list_info("20260101", "20261231")
+            >>> agent.get_ksd_list_info("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -251,7 +251,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: sht_cd, isin_name, stk_qty(주식수), depo_date(예치일), depo_reason(사유)
 
         Example:
-            >>> agent.stock.get_ksd_mand_deposit("20260101", "20261231")
+            >>> agent.get_ksd_mand_deposit("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -289,7 +289,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, opp_cust_nm(피합병회사명), cust_nm(합병회사명), merge_type(합병사유), merge_rate(비율), list_dt
 
         Example:
-            >>> agent.stock.get_ksd_merger_split("20260101", "20261231")
+            >>> agent.get_ksd_merger_split("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -329,7 +329,7 @@ class StockKsdInfoAPI(BaseAPI):
             output[]: record_date, sht_cd, isin_name, fix_rate(확정배정율), disc_rate(할인율), fix_price(발행예정가), sub_term(청약기간), list_date
 
         Example:
-            >>> agent.stock.get_ksd_paidin_capin("20260101", "20261231")
+            >>> agent.get_ksd_paidin_capin("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -368,7 +368,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, fix_subscr_pri(공모가), subscr_dt(청약기간), pay_dt, refund_dt, list_dt, lead_mgr(주간사)
 
         Example:
-            >>> agent.stock.get_ksd_pub_offer("20260101", "20261231")
+            >>> agent.get_ksd_pub_offer("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -406,7 +406,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, buy_req_rcpt_term(매수청구접수시한), buy_req_price(매수청구가격), buy_amt_pay_dt, get_meet_dt(주총일)
 
         Example:
-            >>> agent.stock.get_ksd_purreq("20260101", "20261231")
+            >>> agent.get_ksd_purreq("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -446,7 +446,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, inter_bf_face_amt(변경전액면가), inter_af_face_amt(변경후액면가), td_stop_dt, list_dt
 
         Example:
-            >>> agent.stock.get_ksd_rev_split("20260101", "20261231")
+            >>> agent.get_ksd_rev_split("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(
@@ -485,7 +485,7 @@ class StockKsdInfoAPI(BaseAPI):
             output1[]: record_date, sht_cd, isin_name, gen_meet_dt(주총일자), gen_meet_type(주총사유), agenda(주총의안), vote_tot_qty(의결권주식총수)
 
         Example:
-            >>> agent.stock.get_ksd_sharehld_meet("20260101", "20261231")
+            >>> agent.get_ksd_sharehld_meet("20260101", "20261231")
         """
         fd, td = _range(from_date, to_date)
         return self._paginate(

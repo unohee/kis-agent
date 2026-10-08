@@ -59,8 +59,8 @@ class StockInvestorAPI(BaseAPI):
                 - output.orgn_seln_vol: 기관 매도 거래량
 
         Example:
-            >>> investor = agent.stock.get_stock_investor("005930")
-            >>> investor_nxt = agent.stock.get_stock_investor("005930", market="NX")
+            >>> investor = agent.get_stock_investor("005930")
+            >>> investor_nxt = agent.get_stock_investor("005930", market="NX")
         """
         params = {
             "FID_COND_MRKT_DIV_CODE": market,
@@ -498,7 +498,7 @@ class StockInvestorAPI(BaseAPI):
 
         Example:
             >>> # 삼성전자 2025년 1월~6월 전체 회원사 매매동향
-            >>> data = agent.stock.get_member_trading_daily(
+            >>> data = agent.get_member_trading_daily(
             ...     code="005930",
             ...     start_date="20250101",
             ...     end_date="20250624"
