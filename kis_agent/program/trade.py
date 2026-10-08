@@ -174,5 +174,38 @@ class ProgramTradeAPI(BaseAPI):
             },
         )
 
+    def get_comp_program_trade_today(
+        self,
+        market_cls: str = "K",
+        market: str = "J",
+    ) -> Optional[Dict[str, Any]]:
+        """프로그램매매 종합현황(시간) [국내주식-114]
+
+        프로그램매매 종합현황(시간) (``/uapi/domestic-stock/v1/quotations/comp-program-trade-today``, TR FHPPG04600101). 모의투자 미지원.
+
+        Args:
+            market_cls: 시장 구분 (K: 코스피, Q: 코스닥)
+            market: 시장 분류 (J: KRX, NX: NXT, UN: 통합)
+
+        Returns:
+            output1[]: bsop_hour(시간), arbt_smtn_ntby_tr_pbmn(차익 순매수 거래대금),
+            nabt_smtn_ntby_tr_pbmn(비차익 순매수 거래대금), whol_smtn_ntby_tr_pbmn(전체 순매수 거래대금)
+
+        Example:
+            >>> agent.get_comp_program_trade_today("K")
+        """
+        return self._make_request_dict(
+            endpoint="/uapi/domestic-stock/v1/quotations/comp-program-trade-today",
+            tr_id="FHPPG04600101",
+            params={
+                "FID_COND_MRKT_DIV_CODE": market,
+                "FID_MRKT_CLS_CODE": market_cls,
+                "FID_SCTN_CLS_CODE": "",
+                "FID_INPUT_ISCD": "",
+                "FID_COND_MRKT_DIV_CODE1": "",
+                "FID_INPUT_HOUR_1": "",
+            },
+        )
+
 
 ProgramTrade = ProgramTradeAPI
