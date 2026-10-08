@@ -9,6 +9,8 @@ from typing import Any, Dict, Optional
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
+from ..core.tr_mapping import PaperTradingNotSupportedError
+from ._compat import warn_ignored, warn_renamed
 
 
 class OverseasRankingAPI(BaseAPI):
@@ -86,6 +88,8 @@ class OverseasRankingAPI(BaseAPI):
         excd: str,
         nday: str = "0",
         vol_rang: str = "0",
+        prc1: str = "",
+        prc2: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 거래량순위 [해외주식-043]
@@ -96,6 +100,8 @@ class OverseasRankingAPI(BaseAPI):
             excd (str): 거래소 코드 (NAS, NYS, AMS, HKS, SHS, SZS, TSE, HSX, HNX)
             nday (str): N일자값 ("0": 당일, "1": 2일, ... "9": 1년)
             vol_rang (str): 거래량조건 ("0": 전체, "1": 100주이상, ...)
+            prc1 (str): 현재가 필터범위 시작 (가격 ~, 공백: 하한 없음)
+            prc2 (str): 현재가 필터범위 끝 (~ 가격, 공백: 상한 없음)
 
         Returns:
             Optional[Dict]: 거래량 순위 데이터
@@ -120,6 +126,8 @@ class OverseasRankingAPI(BaseAPI):
                 "VOL_RANG": vol_rang,
                 "AUTH": "",
                 "KEYB": "",
+                "PRC1": prc1,
+                "PRC2": prc2,
             }
 
             return self._make_request_dict(
@@ -129,6 +137,8 @@ class OverseasRankingAPI(BaseAPI):
                 use_cache=True,
                 cache_ttl=30,  # 순위 데이터는 30초 캐시
             )
+        except PaperTradingNotSupportedError:
+            raise
         except Exception as e:
             logging.error(f"해외주식 거래량순위 조회 실패: {e}")
             return None
@@ -138,6 +148,8 @@ class OverseasRankingAPI(BaseAPI):
         excd: str,
         nday: str = "0",
         vol_rang: str = "0",
+        prc1: str = "",
+        prc2: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 거래대금순위 [해외주식-044]
@@ -146,8 +158,10 @@ class OverseasRankingAPI(BaseAPI):
 
         Args:
             excd (str): 거래소 코드
-            nday (str): N일자값
+            nday (str): N일자값 ("0": 당일, "1": 2일, ... "9": 1년)
             vol_rang (str): 거래량조건
+            prc1 (str): 현재가 필터범위 시작 (가격 ~, 공백: 하한 없음)
+            prc2 (str): 현재가 필터범위 끝 (~ 가격, 공백: 상한 없음)
 
         Returns:
             Optional[Dict]: 거래대금 순위 데이터
@@ -169,6 +183,8 @@ class OverseasRankingAPI(BaseAPI):
                 "VOL_RANG": vol_rang,
                 "AUTH": "",
                 "KEYB": "",
+                "PRC1": prc1,
+                "PRC2": prc2,
             }
 
             return self._make_request_dict(
@@ -178,6 +194,8 @@ class OverseasRankingAPI(BaseAPI):
                 use_cache=True,
                 cache_ttl=30,
             )
+        except PaperTradingNotSupportedError:
+            raise
         except Exception as e:
             logging.error(f"해외주식 거래대금순위 조회 실패: {e}")
             return None
@@ -287,7 +305,8 @@ class OverseasRankingAPI(BaseAPI):
 
         Args:
             excd (str): 거래소 코드
-            nday (str): N일자값
+            nday (str): 사용하지 않음. 공식 API에 없는 필드라 전송하지 않습니다.
+                기본값("0")이 아니면 DeprecationWarning.
             vol_rang (str): 거래량조건
 
         Returns:
@@ -304,10 +323,11 @@ class OverseasRankingAPI(BaseAPI):
             >>> for item in result['output2'][:10]:
             ...     print(f"{item['name']}: ${item['mcap']}")
         """
+        if nday != "0":
+            warn_ignored("market_cap_ranking", "nday")
         try:
             params = {
                 "EXCD": excd.upper(),
-                "NDAY": nday,
                 "VOL_RANG": vol_rang,
                 "AUTH": "",
                 "KEYB": "",
@@ -320,6 +340,8 @@ class OverseasRankingAPI(BaseAPI):
                 use_cache=True,
                 cache_ttl=60,  # 시가총액 순위는 1분 캐시
             )
+        except PaperTradingNotSupportedError:
+            raise
         except Exception as e:
             logging.error(f"해외주식 시가총액순위 조회 실패: {e}")
             return None
@@ -386,6 +408,7 @@ class OverseasRankingAPI(BaseAPI):
         nday: str = "0",
         gubn: str = "0",
         vol_rang: str = "0",
+        minx: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 가격급등락 [해외주식-038]
@@ -394,25 +417,43 @@ class OverseasRankingAPI(BaseAPI):
 
         Args:
             excd (str): 거래소 코드
-            nday (str): N일자값
+            nday (str): ``minx``의 옛 이름. ``minx``를 주지 않았고 기본값("0")이 아니면
+                그 값을 ``minx``로 쓰며 DeprecationWarning. 이 API는 일자(N일)가 아니라
+                N분전 콤보값을 받는다.
             gubn (str): 급등/급락 구분
-                - "0": 급등 (기본값)
-                - "1": 급락
+                - "0": 급락 (기본값)
+                - "1": 급등
             vol_rang (str): 거래량조건
+            minx (str, optional): N분전 콤보값 ("0": 1분전, "1": 2분전, "2": 3분전,
+                "3": 5분전, "4": 10분전, "5": 15분전, "6": 20분전, "7": 30분전,
+                "8": 60분전, "9": 120분전). 생략하면 "0"
+
+        Note:
+            전송하는 필드명은 ``MINX``다. 2025-12-12 공식 문서(xlsx)에는 ``MIXN``으로
+            적혀 있으나, KIS가 2026-03-16 공식 샘플(open-trading-api 34fbae1,
+            "Fix typo for MINX")을 ``MINX``로 정정했다.
 
         Returns:
             Optional[Dict]: 가격급등락 데이터
                 - output2: 종목별 리스트
 
         Example:
-            >>> # 나스닥 급등 종목
-            >>> result = agent.overseas.price_fluctuation_ranking("NAS", gubn="0")
+            >>> # 나스닥 급등 종목 (10분 전 대비)
+            >>> result = agent.overseas.price_fluctuation_ranking("NAS", gubn="1", minx="4")
         """
+        if minx is None:
+            minx = nday
+            if nday != "0":
+                warn_renamed("price_fluctuation_ranking", "nday", "minx")
+        elif nday != "0":
+            warn_ignored(
+                "price_fluctuation_ranking", "nday", "minx가 함께 주어져 minx를 씁니다"
+            )
         try:
             params = {
                 "EXCD": excd.upper(),
-                "NDAY": nday,
                 "GUBN": gubn,
+                "MINX": minx,
                 "VOL_RANG": vol_rang,
                 "AUTH": "",
                 "KEYB": "",
@@ -425,6 +466,8 @@ class OverseasRankingAPI(BaseAPI):
                 use_cache=True,
                 cache_ttl=30,
             )
+        except PaperTradingNotSupportedError:
+            raise
         except Exception as e:
             logging.error(f"해외주식 가격급등락 조회 실패: {e}")
             return None
@@ -435,6 +478,7 @@ class OverseasRankingAPI(BaseAPI):
         nday: str = "0",
         gubn: str = "1",
         vol_rang: str = "0",
+        gubn2: str = "0",
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 신고/신저가 [해외주식-042]
@@ -443,11 +487,20 @@ class OverseasRankingAPI(BaseAPI):
 
         Args:
             excd (str): 거래소 코드
-            nday (str): N일자값
+            nday (str): N일자값 ("0": 5일, "1": 10일, "2": 20일, "3": 30일,
+                "4": 60일, "5": 120일, "6": 52주, "7": 1년). 다른 순위 API와 값 체계가 다름
             gubn (str): 신고/신저 구분
                 - "0": 신저가
                 - "1": 신고가 (기본값)
             vol_rang (str): 거래량조건
+            gubn2 (str): 일시돌파/돌파 구분
+                - "0": 일시돌파 (기본값)
+                - "1": 돌파유지
+
+        Note:
+            공식 샘플(2026-03-16 개정)은 NDAY 대신 MINX를 보내지만, MINX는 가격급등락의
+            N분전 값을 복사한 것으로 보이고 이 API 설명(5일~1년)과 맞지 않아 2025-12-12
+            공식 문서(xlsx)대로 NDAY를 보냅니다.
 
         Returns:
             Optional[Dict]: 신고/신저가 데이터
@@ -467,6 +520,7 @@ class OverseasRankingAPI(BaseAPI):
                 "EXCD": excd.upper(),
                 "NDAY": nday,
                 "GUBN": gubn,
+                "GUBN2": gubn2,
                 "VOL_RANG": vol_rang,
                 "AUTH": "",
                 "KEYB": "",
@@ -479,6 +533,8 @@ class OverseasRankingAPI(BaseAPI):
                 use_cache=True,
                 cache_ttl=60,  # 신고/신저가는 1분 캐시
             )
+        except PaperTradingNotSupportedError:
+            raise
         except Exception as e:
             logging.error(f"해외주식 신고/신저가 조회 실패: {e}")
             return None

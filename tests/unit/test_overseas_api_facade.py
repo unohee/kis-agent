@@ -127,7 +127,7 @@ class TestOverseasStockAPIDelegation(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
         self.api.price_api.get_minute_price.assert_called_once_with(
-            "NAS", "AAPL", "5", "0", "100"
+            "NAS", "AAPL", "5", "0", "100", keyb="", next_flag=None
         )
 
     def test_get_orderbook_delegation(self):
@@ -158,7 +158,9 @@ class TestOverseasStockAPIDelegation(unittest.TestCase):
         result = self.api.get_ccnl("NAS", "AAPL")
 
         self.assertEqual(result, expected_result)
-        self.api.price_api.get_ccnl.assert_called_once_with("NAS", "AAPL")
+        self.api.price_api.get_ccnl.assert_called_once_with(
+            "NAS", "AAPL", tday="1", keyb=""
+        )
 
     def test_get_holiday_delegation(self):
         """get_holiday 메서드 위임 테스트"""
@@ -174,7 +176,7 @@ class TestOverseasStockAPIDelegation(unittest.TestCase):
         """get_news_title 메서드 위임 테스트"""
         expected_result = {
             "rt_cd": "0",
-            "output": [{"news_titl": "Apple announces..."}],
+            "outblock1": [{"title": "Apple announces..."}],
         }
         self.api.price_api.get_news_title = Mock(return_value=expected_result)
 
@@ -182,7 +184,16 @@ class TestOverseasStockAPIDelegation(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
         self.api.price_api.get_news_title.assert_called_once_with(
-            excd="NAS", symb="AAPL", nrec="10"
+            excd="NAS",
+            symb="AAPL",
+            nrec="10",
+            info_gb="",
+            class_cd="",
+            nation_cd="",
+            exchange_cd="",
+            data_dt="",
+            data_tm="",
+            cts="",
         )
 
 

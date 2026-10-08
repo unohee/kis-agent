@@ -101,15 +101,15 @@ def test_overseas_industry_theme_builds_expected_request():
     api = object.__new__(OverseasPriceAPI)
     api._make_request_dict = MagicMock(return_value={"rt_cd": "0"})
 
-    result = api.get_industry_theme("nas", "aapl", "1", "Y")
+    result = api.get_industry_theme("nas", icod="010", vol_rang="2", keyb="k")
 
     assert result == {"rt_cd": "0"}
     assert api._make_request_dict.call_args.kwargs["params"] == {
+        "KEYB": "k",
         "AUTH": "",
         "EXCD": "NAS",
-        "SYMB": "AAPL",
-        "ISCD_COND": "1",
-        "CO_YN": "Y",
+        "ICOD": "010",
+        "VOL_RANG": "2",
     }
 
 

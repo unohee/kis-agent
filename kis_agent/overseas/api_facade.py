@@ -149,6 +149,8 @@ class OverseasStockAPI(BaseAPI):
         nmin: str = "1",
         pinc: str = "0",
         nrec: str = "120",
+        keyb: str = "",
+        next_flag: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """해외주식 분봉 조회
 
@@ -156,10 +158,20 @@ class OverseasStockAPI(BaseAPI):
             excd: 거래소 코드
             symb: 종목코드
             nmin: 분봉 간격 ("1": 1분, "5": 5분, "30": 30분, "60": 60분)
-            pinc: 전일포함여부 ("0": 당일만, "1": 전일포함)
+            pinc: 전일포함여부 ("0": 당일만, "1": 전일포함). 다음 조회 시 "1"
             nrec: 조회건수 (최대 120)
+            keyb: 연속조회키 (YYYYMMDDHHMMSS, 처음 조회는 공백)
+            next_flag: 다음여부 ("": 처음, "1": 다음). 생략하면 keyb 유무로 결정
         """
-        return self.price_api.get_minute_price(excd, symb, nmin, pinc, nrec)
+        return self.price_api.get_minute_price(
+            excd,
+            symb,
+            nmin,
+            pinc,
+            nrec,
+            keyb=keyb,
+            next_flag=next_flag,
+        )
 
     def get_orderbook(
         self,
@@ -186,9 +198,18 @@ class OverseasStockAPI(BaseAPI):
         self,
         excd: str,
         symb: str,
+        tday: str = "1",
+        keyb: str = "",
     ) -> Optional[Dict[str, Any]]:
-        """해외주식 체결정보 조회"""
-        return self.price_api.get_ccnl(excd, symb)
+        """해외주식 체결추이 조회
+
+        Args:
+            excd: 거래소 코드
+            symb: 종목코드
+            tday: 당일전일구분 ("1": 당일, "0": 전일)
+            keyb: NEXT KEY BUFF (공백)
+        """
+        return self.price_api.get_ccnl(excd, symb, tday=tday, keyb=keyb)
 
     def get_holiday(
         self,
@@ -206,23 +227,61 @@ class OverseasStockAPI(BaseAPI):
         excd: str = "",
         symb: str = "",
         nrec: str = "20",
+        info_gb: str = "",
+        class_cd: str = "",
+        nation_cd: str = "",
+        exchange_cd: str = "",
+        data_dt: str = "",
+        data_tm: str = "",
+        cts: str = "",
     ) -> Optional[Dict[str, Any]]:
         """해외뉴스종합(제목) 조회
 
         Args:
-            excd: 거래소 코드 (공백 시 전체)
+            excd: 사용하지 않음 (값을 주면 DeprecationWarning, exchange_cd 사용)
             symb: 종목코드 (공백 시 전체)
-            nrec: 조회건수 (기본 20)
+            nrec: 사용하지 않음 (기본값 "20"이 아니면 DeprecationWarning)
+            info_gb: 뉴스구분 (공백 시 전체)
+            class_cd: 중분류 (공백 시 전체)
+            nation_cd: 국가코드 (공백 시 전체, CN/HK/US)
+            exchange_cd: 거래소코드 (공백 시 전체)
+            data_dt: 조회일자 (공백 시 전체, YYYYMMDD)
+            data_tm: 조회시간 (공백 시 전체, HHMMSS)
+            cts: 다음키 (처음 조회는 공백)
         """
-        return self.price_api.get_news_title(excd=excd, symb=symb, nrec=nrec)
+        return self.price_api.get_news_title(
+            excd=excd,
+            symb=symb,
+            nrec=nrec,
+            info_gb=info_gb,
+            class_cd=class_cd,
+            nation_cd=nation_cd,
+            exchange_cd=exchange_cd,
+            data_dt=data_dt,
+            data_tm=data_tm,
+            cts=cts,
+        )
 
     def get_industry_theme(
         self,
         excd: str,
         symb: str = "",
+        icod: str = "",
+        vol_rang: str = "0",
+        keyb: str = "",
     ) -> Optional[Dict[str, Any]]:
-        """해외주식 업종/테마 조회"""
-        return self.price_api.get_industry_theme(excd, symb)
+        """해외주식 업종별시세 조회
+
+        Args:
+            excd: 거래소 코드
+            symb: 사용하지 않음 (값을 주면 DeprecationWarning)
+            icod: 업종코드 (필수. 업종코드별조회 HHDFS76370100으로 확인)
+            vol_rang: 거래량조건 ("0": 전체, "1": 1백주이상, ... "6": 1000만주이상)
+            keyb: NEXT KEY BUFF (공백)
+        """
+        return self.price_api.get_industry_theme(
+            excd, symb, icod=icod, vol_rang=vol_rang, keyb=keyb
+        )
 
     def search_symbol(
         self,
@@ -264,6 +323,11 @@ class OverseasStockAPI(BaseAPI):
         sort_sqn: str = "DS",
         cont_fk200: str = "",
         cont_nk200: str = "",
+        pdno: str = "",
+        ord_strt_dt: str = "",
+        ord_end_dt: str = "",
+        sll_buy_dvsn: str = "00",
+        ccld_nccs_dvsn: str = "00",
     ) -> Optional[Dict[str, Any]]:
         """해외주식 주문체결내역 조회
 
@@ -272,12 +336,25 @@ class OverseasStockAPI(BaseAPI):
             sort_sqn: 정렬순서 (DS: 정순, AS: 역순)
             cont_fk200: 연속조회검색조건200
             cont_nk200: 연속조회키200
+            pdno: 종목코드 (공백: 전종목)
+            ord_strt_dt: 주문시작일자 YYYYMMDD, 현지시각 (공백: 당일)
+            ord_end_dt: 주문종료일자 YYYYMMDD, 현지시각 (공백: 당일)
+            sll_buy_dvsn: 매도매수구분 (00: 전체, 01: 매도, 02: 매수)
+            ccld_nccs_dvsn: 체결미체결구분 (00: 전체, 01: 체결, 02: 미체결)
 
         Returns:
             주문체결내역 Dict
         """
         return self.account_api.get_order_history(
-            ovrs_excg_cd, sort_sqn, cont_fk200, cont_nk200
+            ovrs_excg_cd,
+            sort_sqn,
+            cont_fk200,
+            cont_nk200,
+            pdno=pdno,
+            ord_strt_dt=ord_strt_dt,
+            ord_end_dt=ord_end_dt,
+            sll_buy_dvsn=sll_buy_dvsn,
+            ccld_nccs_dvsn=ccld_nccs_dvsn,
         )
 
     def get_unfilled_orders(
@@ -388,20 +465,38 @@ class OverseasStockAPI(BaseAPI):
         sort_sqn: str = "DS",
         ctx_area_fk200: str = "",
         ctx_area_nk200: str = "",
+        inqr_strt_dt: str = "",
+        inqr_end_dt: str = "",
+        inqr_dvsn_cd: str = "00",
+        prdt_type_cd: str = "",
+        nat_dv: str = "",
     ) -> Optional[Dict[str, Any]]:
         """해외주식 예약주문내역 조회
 
         Args:
-            ovrs_excg_cd: 거래소 코드 (공백: 전체)
-            sort_sqn: 정렬순서 (DS: 정순, AS: 역순)
-            ctx_area_fk200: 연속조회검색조건
-            ctx_area_nk200: 연속조회키
+            ovrs_excg_cd: 거래소 코드 (공백: 해당 TR의 전체 거래소)
+            sort_sqn: 사용하지 않음 (기본값 "DS"가 아니면 DeprecationWarning)
+            ctx_area_fk200: 연속조회검색조건200
+            ctx_area_nk200: 연속조회키200
+            inqr_strt_dt: 조회시작일자 YYYYMMDD (공백: 7일 전)
+            inqr_end_dt: 조회종료일자 YYYYMMDD (공백: 당일)
+            inqr_dvsn_cd: 조회구분 (00: 전체, 01: 일반해외주식, 02: 미니스탁)
+            prdt_type_cd: 상품유형코드 (공백: 해당 TR의 전체)
+            nat_dv: 시장 구분 ("us" 또는 "asia", 공백이면 거래소로 판단)
 
         Returns:
             예약주문 내역 Dict
         """
         return self.account_api.get_reserve_order_list(
-            ovrs_excg_cd, sort_sqn, ctx_area_fk200, ctx_area_nk200
+            ovrs_excg_cd,
+            sort_sqn,
+            ctx_area_fk200,
+            ctx_area_nk200,
+            inqr_strt_dt=inqr_strt_dt,
+            inqr_end_dt=inqr_end_dt,
+            inqr_dvsn_cd=inqr_dvsn_cd,
+            prdt_type_cd=prdt_type_cd,
+            nat_dv=nat_dv,
         )
 
     def get_foreign_margin(
@@ -411,7 +506,8 @@ class OverseasStockAPI(BaseAPI):
         """해외주식 외화증거금 조회
 
         Args:
-            crcy_cd: 통화코드 (공백: 전체, USD/HKD/CNY/JPY/VND)
+            crcy_cd: 사용하지 않음 (값을 주면 DeprecationWarning).
+                공식 API는 통화별 행을 모두 반환하므로 응답에서 직접 고른다
 
         Returns:
             외화증거금 정보 Dict
@@ -621,6 +717,8 @@ class OverseasStockAPI(BaseAPI):
         excd: str,
         nday: str = "0",
         vol_rang: str = "0",
+        prc1: str = "",
+        prc2: str = "",
     ) -> Optional[Dict[str, Any]]:
         """해외주식 거래량순위 [해외주식-043]
 
@@ -628,20 +726,36 @@ class OverseasStockAPI(BaseAPI):
             excd: 거래소 코드 (NAS, NYS, AMS, HKS 등)
             nday: N일자값 ("0": 당일, "1": 2일, ...)
             vol_rang: 거래량조건 ("0": 전체, "1": 100주이상, ...)
+            prc1: 현재가 필터범위 시작 (공백: 하한 없음)
+            prc2: 현재가 필터범위 끝 (공백: 상한 없음)
 
         Returns:
             거래량 순위 데이터 Dict
         """
-        return self.ranking_api.trade_volume_ranking(excd, nday, vol_rang)
+        return self.ranking_api.trade_volume_ranking(
+            excd, nday, vol_rang, prc1=prc1, prc2=prc2
+        )
 
     def trade_amount_ranking(
         self,
         excd: str,
         nday: str = "0",
         vol_rang: str = "0",
+        prc1: str = "",
+        prc2: str = "",
     ) -> Optional[Dict[str, Any]]:
-        """해외주식 거래대금순위 [해외주식-044]"""
-        return self.ranking_api.trade_amount_ranking(excd, nday, vol_rang)
+        """해외주식 거래대금순위 [해외주식-044]
+
+        Args:
+            excd: 거래소 코드
+            nday: N일자값
+            vol_rang: 거래량조건
+            prc1: 현재가 필터범위 시작 (공백: 하한 없음)
+            prc2: 현재가 필터범위 끝 (공백: 상한 없음)
+        """
+        return self.ranking_api.trade_amount_ranking(
+            excd, nday, vol_rang, prc1=prc1, prc2=prc2
+        )
 
     def trade_growth_ranking(
         self,
@@ -667,7 +781,10 @@ class OverseasStockAPI(BaseAPI):
         nday: str = "0",
         vol_rang: str = "0",
     ) -> Optional[Dict[str, Any]]:
-        """해외주식 시가총액순위 [해외주식-047]"""
+        """해외주식 시가총액순위 [해외주식-047]
+
+        nday는 사용하지 않는다 (기본값 "0"이 아니면 DeprecationWarning).
+        """
         return self.ranking_api.market_cap_ranking(excd, nday, vol_rang)
 
     def price_change_ranking(
@@ -693,16 +810,20 @@ class OverseasStockAPI(BaseAPI):
         nday: str = "0",
         gubn: str = "0",
         vol_rang: str = "0",
+        minx: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """해외주식 가격급등락 [해외주식-038]
 
         Args:
             excd: 거래소 코드
-            nday: N일자값
-            gubn: 급등/급락 구분 ("0": 급등, "1": 급락)
+            nday: minx의 옛 이름 (기본값 "0"이 아니면 DeprecationWarning)
+            gubn: 급등/급락 구분 ("0": 급락, "1": 급등)
             vol_rang: 거래량조건
+            minx: N분전 콤보값 ("0": 1분전, ... "9": 120분전). 생략하면 "0"
         """
-        return self.ranking_api.price_fluctuation_ranking(excd, nday, gubn, vol_rang)
+        return self.ranking_api.price_fluctuation_ranking(
+            excd, nday, gubn, vol_rang, minx=minx
+        )
 
     def new_high_low_ranking(
         self,
@@ -710,16 +831,21 @@ class OverseasStockAPI(BaseAPI):
         nday: str = "0",
         gubn: str = "1",
         vol_rang: str = "0",
+        gubn2: str = "0",
     ) -> Optional[Dict[str, Any]]:
         """해외주식 신고/신저가 [해외주식-042]
 
         Args:
             excd: 거래소 코드
-            nday: N일자값
+            nday: N일자값 ("0": 5일, "1": 10일, "2": 20일, "3": 30일, "4": 60일,
+                "5": 120일, "6": 52주, "7": 1년)
             gubn: 신고/신저 구분 ("0": 신저가, "1": 신고가)
             vol_rang: 거래량조건
+            gubn2: 일시돌파/돌파 구분 ("0": 일시돌파, "1": 돌파유지)
         """
-        return self.ranking_api.new_high_low_ranking(excd, nday, gubn, vol_rang)
+        return self.ranking_api.new_high_low_ranking(
+            excd, nday, gubn, vol_rang, gubn2=gubn2
+        )
 
     def volume_power_ranking(
         self,

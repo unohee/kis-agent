@@ -4,10 +4,43 @@
 OverseasAccountAPI는 해외주식 잔고, 체결내역, 미체결, 매수가능금액 등을 조회합니다.
 """
 
-from typing import Any, Dict, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Tuple
+
+import pytz
 
 from ..core.base_api import BaseAPI
 from ..core.client import KISClient
+from ._compat import warn_ignored
+
+# 거래소 현지 기준일을 맞추기 위한 시간대 (미국 현지일은 KST보다 하루 늦다).
+_KST = pytz.timezone("Asia/Seoul")
+_NEW_YORK = pytz.timezone("America/New_York")
+
+# 예약주문조회: 미국(TTTT3039R)과 그 외 아시아 거래소(TTTS3014R)는 TR_ID가 다르다.
+_ASIA_EXCHANGES = ("SEHK", "SHAA", "SZAA", "TKSE", "HASE", "VNSE")
+
+
+def _utc_now() -> datetime:
+    """현재 시각(UTC). 테스트에서 고정값으로 바꿀 수 있도록 분리했다."""
+    return datetime.now(pytz.utc)
+
+
+def _local_date_range() -> Tuple[str, str]:
+    """지원 거래소의 '오늘'을 모두 포함하는 (시작일, 종료일)을 YYYYMMDD로 반환한다.
+
+    KIS 주문 조회의 일자는 현지시각 기준이다. KST 오전에는 미국 현지일이 KST보다
+    하루 늦으므로 KST 날짜만 쓰면 미국 당일 주문이 빠진다. 서울과 뉴욕의 현지 날짜
+    중 이른 쪽을 시작일, 늦은 쪽을 종료일로 쓴다.
+    """
+    now = _utc_now()
+    dates = sorted(
+        {
+            now.astimezone(_KST).strftime("%Y%m%d"),
+            now.astimezone(_NEW_YORK).strftime("%Y%m%d"),
+        }
+    )
+    return dates[0], dates[-1]
 
 
 class OverseasAccountAPI(BaseAPI):
@@ -58,6 +91,16 @@ class OverseasAccountAPI(BaseAPI):
             "CANO": self.account.get("CANO", ""),
             "ACNT_PRDT_CD": self.account.get("ACNT_PRDT_CD", "01"),
         }
+
+    def _all_filter(self, value: str) -> str:
+        """'전체' 필터값을 환경에 맞게 변환한다.
+
+        실전투자는 전체를 ``"%"``로, 모의투자는 ``""``만 허용한다
+        (주문체결내역 PDNO/OVRS_EXCG_CD). 호출자는 둘 중 무엇을 줘도 된다.
+        """
+        if getattr(self.client, "is_real", True):
+            return value or "%"
+        return "" if value in ("", "%") else value
 
     def get_balance(
         self,
@@ -124,17 +167,32 @@ class OverseasAccountAPI(BaseAPI):
         sort_sqn: str = "DS",
         cont_fk200: str = "",
         cont_nk200: str = "",
+        pdno: str = "",
+        ord_strt_dt: str = "",
+        ord_end_dt: str = "",
+        sll_buy_dvsn: str = "00",
+        ccld_nccs_dvsn: str = "00",
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 주문체결내역 조회
 
-        당일 해외주식 주문 및 체결 내역을 조회합니다.
+        기간 내 해외주식 주문 및 체결 내역을 조회합니다. 기간을 주지 않으면 당일
+        (서울과 뉴욕의 현지 날짜를 모두 포함)을 조회합니다.
 
         Args:
-            ovrs_excg_cd (str): 거래소 코드 (공백: 전체)
+            ovrs_excg_cd (str): 거래소 코드 (공백: 전체. 실전은 "%", 모의는 ""로 자동 변환)
             sort_sqn (str): 정렬순서 (DS: 정순, AS: 역순)
             cont_fk200 (str): 연속조회검색조건200
             cont_nk200 (str): 연속조회키200
+            pdno (str): 종목코드 (공백: 전종목. 실전은 "%", 모의는 ""로 자동 변환)
+            ord_strt_dt (str): 주문시작일자 YYYYMMDD, 현지시각 기준 (공백: 당일)
+            ord_end_dt (str): 주문종료일자 YYYYMMDD, 현지시각 기준 (공백: 당일)
+            sll_buy_dvsn (str): 매도매수구분 (00: 전체, 01: 매도, 02: 매수)
+            ccld_nccs_dvsn (str): 체결미체결구분 (00: 전체, 01: 체결, 02: 미체결)
+
+        모의투자는 sll_buy_dvsn, ccld_nccs_dvsn 모두 "00"만 지원하고 정렬순서도
+        무시됩니다. ORD_DT, ORD_GNO_BRNO, ODNO는 공식 문서에서 빈 값만 허용하므로
+        항상 ""로 전송합니다(주문번호로 검색할 수 없음).
 
         Returns:
             Optional[Dict]: 체결내역
@@ -152,7 +210,10 @@ class OverseasAccountAPI(BaseAPI):
                     - ft_ord_unpr3: FT주문단가
                     - ft_ccld_qty: FT체결수량
                     - ft_ccld_unpr3: FT체결단가
+                    - ft_ccld_amt3: FT체결금액
                     - nccs_qty: 미체결수량
+                    - prcs_stat_name: 처리상태명
+                    - rjct_rson_name: 거부사유명
                     - ord_tmd: 주문시각
                     - tr_crcy_cd: 거래통화코드
 
@@ -162,13 +223,22 @@ class OverseasAccountAPI(BaseAPI):
             ...     print(f"{order['prdt_name']}: {order['ft_ccld_qty']}주 체결")
         """
         account_params = self._get_account_params()
+        default_strt, default_end = _local_date_range()
 
         params = {
             **account_params,
-            "OVRS_EXCG_CD": ovrs_excg_cd,
+            "PDNO": self._all_filter(pdno.upper()),
+            "ORD_STRT_DT": ord_strt_dt or default_strt,
+            "ORD_END_DT": ord_end_dt or default_end,
+            "SLL_BUY_DVSN": sll_buy_dvsn,
+            "CCLD_NCCS_DVSN": ccld_nccs_dvsn,
+            "OVRS_EXCG_CD": self._all_filter(ovrs_excg_cd),
             "SORT_SQN": sort_sqn,
-            "CTX_AREA_FK200": cont_fk200,
+            "ORD_DT": "",
+            "ORD_GNO_BRNO": "",
+            "ODNO": "",
             "CTX_AREA_NK200": cont_nk200,
+            "CTX_AREA_FK200": cont_fk200,
         }
 
         return self._make_request_dict(
@@ -420,52 +490,86 @@ class OverseasAccountAPI(BaseAPI):
         sort_sqn: str = "DS",
         ctx_area_fk200: str = "",
         ctx_area_nk200: str = "",
+        inqr_strt_dt: str = "",
+        inqr_end_dt: str = "",
+        inqr_dvsn_cd: str = "00",
+        prdt_type_cd: str = "",
+        nat_dv: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
         해외주식 예약주문내역 조회
 
-        예약된 해외주식 주문 내역을 조회합니다.
+        예약된 해외주식 주문 내역을 조회합니다. 미국은 TTTT3039R, 홍콩·중국·일본·
+        베트남은 TTTS3014R로 TR_ID가 갈립니다. ``ovrs_excg_cd``가 아시아 거래소
+        (SEHK/SHAA/SZAA/TKSE/HASE/VNSE)이거나 ``nat_dv="asia"``이면 TTTS3014R,
+        그 외에는 TTTT3039R을 사용합니다. 모의투자는 지원하지 않습니다.
 
         Args:
-            ovrs_excg_cd (str): 거래소 코드 (공백: 전체)
-            sort_sqn (str): 정렬순서 (DS: 정순, AS: 역순)
-            ctx_area_fk200 (str): 연속조회검색조건
-            ctx_area_nk200 (str): 연속조회키
+            ovrs_excg_cd (str): 거래소 코드 (공백: 해당 TR의 전체 거래소)
+            sort_sqn (str): 사용하지 않음. 공식 문서에 없는 필드라 전송하지 않습니다.
+                기본값("DS")이 아니면 DeprecationWarning.
+            ctx_area_fk200 (str): 연속조회검색조건200
+            ctx_area_nk200 (str): 연속조회키200
+            inqr_strt_dt (str): 조회시작일자 YYYYMMDD (공백: 7일 전)
+            inqr_end_dt (str): 조회종료일자 YYYYMMDD (공백: 당일, 서울·뉴욕 현지일 중 늦은 쪽)
+            inqr_dvsn_cd (str): 조회구분 (00: 전체, 01: 일반해외주식, 02: 미니스탁)
+            prdt_type_cd (str): 상품유형코드 (공백: 해당 TR의 전체. 512: 나스닥,
+                513: 뉴욕, 529: 아멕스, 515: 일본, 501: 홍콩, 543: 홍콩CNY,
+                558: 홍콩USD, 507: 하노이, 508: 호치민, 551: 상해A, 552: 심천A)
+            nat_dv (str): 시장 구분 ("us" 또는 "asia"). 공백이면 거래소로 판단하고,
+                거래소도 비어 있으면 미국
+
+        Raises:
+            ValueError: ``nat_dv``가 "", "us", "asia"가 아닌 경우
 
         Returns:
             Optional[Dict]: 예약주문 내역
                 - output:
-                    - rsvn_ord_seq: 예약주문순번
-                    - rsvn_ord_dt: 예약주문일자
                     - rsvn_ord_rcit_dt: 예약주문접수일자
-                    - ord_dvsn_cd: 주문구분코드
-                    - sll_buy_dvsn_cd: 매도매수구분
+                    - ovrs_rsvn_odno: 해외예약주문번호
+                    - ord_dt: 주문일자
+                    - odno: 주문번호
+                    - sll_buy_dvsn_cd: 매도매수구분코드
+                    - sll_buy_dvsn_name: 매도매수구분명
+                    - ovrs_rsvn_ord_stat_cd: 해외예약주문상태코드
                     - pdno: 상품번호
                     - prdt_name: 상품명
-                    - rsvn_ord_qty: 예약주문수량
-                    - rsvn_ord_pric: 예약주문가격
-                    - rsvn_ord_rcit_pric: 예약주문접수가격
-                    - rsvn_ord_stat_cd: 예약주문상태코드
+                    - ft_ord_qty: FT주문수량
+                    - ft_ord_unpr3: FT주문단가
                     - ovrs_excg_cd: 해외거래소코드
 
         Example:
             >>> reserves = agent.overseas.get_reserve_order_list()
             >>> for order in reserves['output']:
-            ...     print(f"{order['prdt_name']}: {order['rsvn_ord_qty']}주 예약")
+            ...     print(f"{order['prdt_name']}: {order['ft_ord_qty']}주 예약")
         """
+        if sort_sqn != "DS":
+            warn_ignored("get_reserve_order_list", "sort_sqn")
+        if nat_dv not in ("", "us", "asia"):
+            raise ValueError(f"nat_dv는 'us' 또는 'asia'여야 합니다: {nat_dv}")
+
         account_params = self._get_account_params()
+        exchange = ovrs_excg_cd.upper()
+        is_asia = nat_dv == "asia" or (nat_dv == "" and exchange in _ASIA_EXCHANGES)
+        inqr_end_dt = inqr_end_dt or _local_date_range()[1]
+        if not inqr_strt_dt:
+            end_day = datetime.strptime(inqr_end_dt, "%Y%m%d")
+            inqr_strt_dt = (end_day - timedelta(days=7)).strftime("%Y%m%d")
 
         params = {
             **account_params,
-            "OVRS_EXCG_CD": ovrs_excg_cd,
-            "SORT_SQN": sort_sqn,
+            "INQR_STRT_DT": inqr_strt_dt,
+            "INQR_END_DT": inqr_end_dt,
+            "INQR_DVSN_CD": inqr_dvsn_cd,
+            "OVRS_EXCG_CD": exchange,
+            "PRDT_TYPE_CD": prdt_type_cd,
             "CTX_AREA_FK200": ctx_area_fk200,
             "CTX_AREA_NK200": ctx_area_nk200,
         }
 
         return self._make_request_dict(
             endpoint="/uapi/overseas-stock/v1/trading/order-resv-list",
-            tr_id="TTTT3039R",
+            tr_id="TTTS3014R" if is_asia else "TTTT3039R",
             params=params,
             use_cache=False,
         )
@@ -477,32 +581,42 @@ class OverseasAccountAPI(BaseAPI):
         """
         해외주식 외화증거금 조회
 
-        해외주식 거래를 위한 외화 증거금 현황을 조회합니다.
+        해외주식 거래를 위한 외화 증거금 현황을 조회합니다. 통화별 행이 모두 반환되며
+        공식 API에는 통화 필터가 없습니다. 모의투자는 지원하지 않습니다.
 
         Args:
-            crcy_cd (str): 통화코드 (공백: 전체, USD/HKD/CNY/JPY/VND)
+            crcy_cd (str): 사용하지 않음. 공식 문서에 없는 필드라 전송하지 않습니다.
+                값을 주면 DeprecationWarning. 필요하면 응답 ``output``에서
+                ``crcy_cd``로 직접 고르세요.
 
         Returns:
-            Optional[Dict]: 외화증거금 정보
+            Optional[Dict]: 외화증거금 정보 (통화별 행 리스트)
                 - output:
+                    - natn_name: 국가명
                     - crcy_cd: 통화코드
-                    - crcy_cd_name: 통화코드명
-                    - frst_bltn_exrt: 최초고시환율
-                    - frcr_dncl_amt: 외화예수금액
-                    - frcr_evlu_amt: 외화평가금액
-                    - frcr_use_psbl_amt: 외화사용가능금액
-                    - frcr_ord_psbl_amt: 외화주문가능금액
+                    - frcr_dncl_amt1: 외화예수금액
+                    - ustl_buy_amt: 미결제매수금액
+                    - ustl_sll_amt: 미결제매도금액
+                    - frcr_rcvb_amt: 외화미수금액
+                    - frcr_mgn_amt: 외화증거금액
+                    - frcr_gnrl_ord_psbl_amt: 외화일반주문가능금액
+                    - frcr_ord_psbl_amt1: 외화주문가능금액 (원화주문가능환산금액)
+                    - itgr_ord_psbl_amt: 통합주문가능금액
+                    - bass_exrt: 기준환율
 
         Example:
-            >>> margin = agent.overseas.get_foreign_margin(crcy_cd="USD")
-            >>> print(f"USD 주문가능금액: ${margin['output']['frcr_ord_psbl_amt']}")
+            >>> margin = agent.overseas.get_foreign_margin()
+            >>> for row in margin['output']:
+            ...     if row['crcy_cd'] == 'USD':
+            ...         print(f"USD 주문가능금액: ${row['frcr_ord_psbl_amt1']}")
         """
-        account_params = self._get_account_params()
-
-        params = {
-            **account_params,
-            "CRCY_CD": crcy_cd,
-        }
+        if crcy_cd:
+            warn_ignored(
+                "get_foreign_margin",
+                "crcy_cd",
+                "응답 output에서 crcy_cd로 직접 고르세요",
+            )
+        params = self._get_account_params()
 
         return self._make_request_dict(
             endpoint="/uapi/overseas-stock/v1/trading/foreign-margin",

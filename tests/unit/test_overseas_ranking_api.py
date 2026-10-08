@@ -266,23 +266,23 @@ class TestPriceFluctuationRanking(unittest.TestCase):
         self.api = OverseasRankingAPI(client=self.mock_client)
 
     def test_price_fluctuation_surge(self):
-        """급등 종목 조회"""
-        self.api._make_request_dict = Mock(return_value={"rt_cd": "0"})
-
-        self.api.price_fluctuation_ranking("NAS", gubn="0")
-
-        call_args = self.api._make_request_dict.call_args
-        self.assertEqual(call_args.kwargs["params"]["GUBN"], "0")
-        self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76260000")
-
-    def test_price_fluctuation_plunge(self):
-        """급락 종목 조회"""
+        """급등 종목 조회 (공식 문서: GUBN 1=급등)"""
         self.api._make_request_dict = Mock(return_value={"rt_cd": "0"})
 
         self.api.price_fluctuation_ranking("NAS", gubn="1")
 
         call_args = self.api._make_request_dict.call_args
         self.assertEqual(call_args.kwargs["params"]["GUBN"], "1")
+        self.assertEqual(call_args.kwargs["tr_id"], "HHDFS76260000")
+
+    def test_price_fluctuation_plunge(self):
+        """급락 종목 조회 (공식 문서: GUBN 0=급락, 기본값)"""
+        self.api._make_request_dict = Mock(return_value={"rt_cd": "0"})
+
+        self.api.price_fluctuation_ranking("NAS", gubn="0")
+
+        call_args = self.api._make_request_dict.call_args
+        self.assertEqual(call_args.kwargs["params"]["GUBN"], "0")
 
     def test_price_fluctuation_ranking_exception(self):
         """가격급등락 조회 - 예외 발생 시 None 반환"""
