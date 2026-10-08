@@ -11,12 +11,15 @@ from kis_agent.websocket.client import KisWebSocket
 
 @pytest.fixture
 def agent():
-    """Agent fixture - 실제 설정을 사용"""
-    try:
-        env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
-        return Agent(env_path=env_path)
-    except Exception as e:
-        pytest.skip(f"Agent 초기화 실패: {e}")
+    """네트워크 없이 만든 Agent (client는 Mock).
+
+    이전 fixture는 v1.8.0에서 제거된 ``Agent(env_path=...)``를 호출해 항상
+    skip됐다 — 이 파일의 테스트가 한 번도 실행되지 않았다.
+    """
+    agent = object.__new__(Agent)
+    agent.client = MagicMock()
+    agent.account_info = {"CANO": "12345678", "ACNT_PRDT_CD": "01"}
+    return agent
 
 
 def test_websocket_creation(agent):
