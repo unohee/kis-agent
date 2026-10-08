@@ -336,6 +336,8 @@ kis query stock get_stock_price code=005930
 kis query account get_account_balance
 kis query overseas get_price excd=NAS symb=AAPL
 kis query futures get_price code=101S03
+kis query elw get_elw_volume_rank
+kis query bond get_bond_price code=KR6095572D81
 kis query agent get_stock_investor ticker=005930
 ```
 

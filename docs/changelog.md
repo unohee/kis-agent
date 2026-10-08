@@ -2,7 +2,24 @@
 
 전체 변경 이력은 [GitHub Releases](https://github.com/unohee/kis-agent/releases)를 참고하세요.
 
-## Unreleased
+## v2.0.0 (2026-10-08)
+
+!!! warning "Breaking change — 공식 명세 전수 대조"
+    선물·옵션을 제외한 모든 API를 한국투자증권 공식 명세(워크북 + open-trading-api)에 맞췄습니다.
+    해외주식 주문 TR_ID, 일부 계좌 조회 응답 필드, 실시간 파싱 필드명이 바뀌었습니다.
+    상세 목록은 저장소의 `CHANGELOG.md` [2.0.0] 절을 보세요.
+
+### 신규 API
+- 공식 REST API 117개 + 접근토큰 폐기: 국내주식 순위·시세분석·재무·예탁원 일정·ETF/ETN,
+  [ELW](api/elw.md), [장내채권](api/bond.md)(주문 포함), 퇴직연금, 해외주식 조건검색·미국 주간거래 주문 등.
+- 실시간 피드 15종: 통합 체결/호가, 장운영정보, ELW, ETF NAV, 채권 등. [웹소켓](api/websocket.md)
+
+### 수정
+- 체결통보가 복호화되지 않던 문제, 다건 프레임의 첫 레코드만 처리하던 문제, PINGPONG 미회신.
+- 해외주식 주문·예약주문 TR_ID, 국내 예약주문 정정/취소, 다수 조회 API의 필수 파라미터.
+
+## 1.10.0 (미배포, 2.0.0에 포함)
+
 
 ### 비동기 인증 (NEW)
 - **feat(async)**: `Agent.create_async()` / `KISClient.create_async()` / `client.refresh_token_async()` / `auth_async()` / `reAuth_async()`. 생성자의 동기 토큰 발급이 이벤트 루프를 막던 문제 해결. [가이드](advanced/async.md)

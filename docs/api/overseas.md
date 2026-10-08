@@ -115,9 +115,13 @@ agent.overseas.reserve_order(
     sll_buy_dvsn_cd="02", qty=10, price=150.00
 )
 
-# 예약주문 정정/취소
-agent.overseas.modify_reserve_order(rsvn_ord_seq="001", qty=15, price=155.00)
-agent.overseas.cancel_reserve_order(rsvn_ord_seq="001")
+# 예약주문 취소 (예약주문번호, 예약주문접수일자). 아시아 거래소는 종목·수량·단가도 필요.
+# 예약주문 정정 API는 공식 문서에 없어 modify_reserve_order는 NotImplementedError — 취소 후 재접수.
+agent.overseas.cancel_reserve_order("0030008244", "20260408", ovrs_excg_cd="NASD")
+
+# 미국 주간거래 (지정가만, 실전 전용)
+agent.overseas.daytime_buy_order("NASD", "AAPL", 10, 185.00)
+agent.overseas.daytime_cancel_order("NASD", "AAPL", "0001234567", 10)
 ```
 
 !!! note "거래소 코드 주의"
@@ -199,7 +203,11 @@ info = agent.overseas.get_exchange_info("NAS")
 | `get_buyable_amount(excd)` | 매수가능금액 |
 | `get_period_profit(...)` | 기간손익 |
 | `get_reserve_order_list()` | 예약주문 내역 |
-| `get_foreign_margin(crcy_cd)` | 외화증거금 |
+| `get_foreign_margin()` | 해외증거금 통화별 조회 |
+| `get_algo_ordno(trad_dt)` | 알고리즘 주문번호 조회 |
+| `get_inquire_algo_ccnl(...)` | 알고리즘 주문 체결내역 |
+| `get_inquire_paymt_stdr_balance(...)` | 결제기준 잔고 |
+| `get_inquire_period_trans(...)` | 일별 거래내역 |
 
 ### 주문
 
@@ -209,7 +217,11 @@ info = agent.overseas.get_exchange_info("NAS")
 | `sell_order(excd, pdno, qty, price)` | 매도 |
 | `modify_order(excd, pdno, orgn_odno, qty, price)` | 정정 |
 | `cancel_order(excd, pdno, orgn_odno, qty)` | 취소 |
-| `reserve_order(...)` | 예약주문 |
+| `reserve_order(excd, pdno, sll_buy_dvsn_cd, qty, price)` | 예약주문 |
+| `cancel_reserve_order(ovrs_rsvn_odno, rsvn_ord_rcit_dt)` | 예약주문 취소 |
+| `daytime_buy_order` / `daytime_sell_order(excd, pdno, qty, price)` | 미국 주간거래 매수/매도 |
+| `daytime_modify_order(excd, pdno, orgn_odno, qty, price)` | 미국 주간거래 정정 |
+| `daytime_cancel_order(excd, pdno, orgn_odno, qty)` | 미국 주간거래 취소 |
 
 ### 랭킹
 
@@ -221,3 +233,17 @@ info = agent.overseas.get_exchange_info("NAS")
 | `price_change_ranking(excd, gubn)` | 상승/하락률 순위 |
 | `new_high_low_ranking(excd, gubn)` | 신고/신저가 |
 | `volume_surge_ranking(excd)` | 거래량 급증 |
+
+### 시세·분석 (2.0.0 추가)
+
+| 메서드 | 설명 |
+|:---|:---|
+| `get_inquire_search(excd, ...)` | 조건검색 (가격·등락률·시총 등 범위는 `(시작, 끝)` 튜플) |
+| `get_inquire_time_indexchartprice(...)` | 해외지수 분봉 |
+| `get_industry_price(...)` | 업종별 시세 |
+| `get_inquire_daily_chartprice(...)` | 종목·지수·환율 기간별 시세 |
+| `get_period_rights(...)` | 기간별 권리 조회 |
+| `get_colable_by_company(...)` | 당사 해외주식 담보대출 가능 종목 |
+| `get_brknews_title(...)` | 해외 속보 (제목) |
+| `get_rights_by_ice(...)` | ICE 권리 조회 |
+

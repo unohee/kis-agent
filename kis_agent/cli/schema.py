@@ -23,7 +23,8 @@ SCHEMA_SDL = '''\
 # kis trades                          당일 체결내역
 # kis trades --from -7d               최근 7일 체결
 # kis trades --from -30d --profit     기간별 실현손익
-# kis query <domain> <method> [args]  API 직접 호출
+# kis query <domain> <method> [args]  API 직접 호출 (stock, account, overseas, futures,
+#                                     overseas_futures, elw, bond, agent)
 # kis schema [type]                   스키마 출력
 
 type Stock {

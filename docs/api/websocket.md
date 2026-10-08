@@ -99,7 +99,7 @@ async def advanced():
     # 구독 추가
     ws.subscribe(SubscriptionType.STOCK_TRADE, "005930")
     ws.subscribe(SubscriptionType.INDEX, "0001")
-    ws.subscribe(SubscriptionType.FUTURES_TRADE, "101S03")
+    ws.subscribe(SubscriptionType.INDEX_FUTURES_TRADE, "101S03")
     ws.subscribe(SubscriptionType.NIGHT_FUTURES_TRADE, "101W09")
 
     # 핸들러 등록
@@ -136,14 +136,42 @@ from kis_agent.websocket import WSAgentWithStore
 
 ws = WSAgentWithStore(approval_key)
 ws.subscribe_stocks(["005930", "000660"])
-ws.subscribe_indices(["0001", "1001"])
-ws.subscribe_futures(["101S03"])
+ws.subscribe_index(["0001", "1001"])
+ws.subscribe_futures("101S03")
 
 await ws.connect()
 
-# 저장된 데이터 접근
-store = ws.get_store()
+# 저장된 데이터 접근 (공식 필드명으로 파싱된 최신값)
+trade = ws.store.get_trade("005930")
 ```
+
+## 구독 규칙과 피드 (2.0.0)
+
+- **구독 한도**: 접속키(appkey)당 최대 41건입니다. 42번째 `subscribe()`는 `ValueError`를 냅니다.
+- **프레임 처리**: 데이터 건수가 2 이상인 프레임은 레코드별로 나눠 핸들러에 전달합니다. 체결통보처럼
+  암호화된 프레임은 구독 응답에서 받은 AES 키로 자동 복호화합니다.
+- **파싱 필드명**: `RealtimeDataParser`와 `WSAgentWithStore`는 공식 문서의 컬럼명(소문자)을 씁니다.
+  TR별 컬럼 목록은 `kis_agent.websocket.ws_fields.FIELDS`에 있습니다.
+- **해외주식 키**: `D`(무료)/`R`(유료·미국 주간) + 시장구분 3자리 + 종목코드입니다 (예: `DNASAAPL`).
+  `subscribe_overseas_stock("AAPL", exchange="NAS")`처럼 거래소를 주면 키를 만들어 줍니다.
+
+| 편의 메서드 | 피드 (TR_ID) |
+|:---|:---|
+| `subscribe_stock_total(codes, with_orderbook=False)` | 통합 체결/호가 (H0UNCNT0/H0UNASP0) |
+| `subscribe_expected(codes, market="TOTAL")` | 예상체결 KRX/NXT/통합 (H0STANC0/H0NXANC0/H0UNANC0) |
+| `subscribe_market_operation(codes, market="KRX")` | 장운영정보 KRX/통합 (H0STMKO0/H0UNMKO0) |
+| `subscribe_market_operation_nxt(code)` | 장운영정보 NXT (H0NXMKO0) |
+| `subscribe_program_trading_total(codes)` | 통합 프로그램매매 (H0UNPGM0) |
+| `subscribe_member_trading_total(codes)` | 통합 회원사 (H0UNMBC0) |
+| `subscribe_index_program_trading(codes="0001")` | 지수 프로그램매매 (H0UPPGM0) |
+| `subscribe_elw(code, with_orderbook, with_expected)` | ELW 체결/호가/예상체결 (H0EWCNT0/H0EWASP0/H0EWANC0) |
+| `subscribe_etf_nav(codes)` | ETF NAV 추이 (H0STNAV0) |
+| `subscribe_bond(code, with_orderbook)` / `subscribe_bond_index(codes)` | 채권 체결/호가/지수 (H0BJCNT0/H0BJASP0/H0BICNT0) |
+| `subscribe_overseas_stock(code, exchange=, paid=)` | 해외 체결/호가 (HDFSCNT0/HDFSASP0) |
+| `subscribe_overseas_asia_orderbook(code, exchange)` | 아시아 지연호가 (HDFSASP1) |
+
+통합 장운영정보(H0UNMKO0) 프레임에는 종목코드가 없습니다. 같은 TR을 한 종목만 구독하면 그 구독의 핸들러가
+호출되고, 여러 종목을 구독하면 `register_handler`로 등록한 타입별 핸들러만 호출됩니다.
 
 ## WSAgent 생성자 옵션
 

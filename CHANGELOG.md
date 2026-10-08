@@ -2,10 +2,23 @@
 
 모든 주목할 만한 변경사항이 이 파일에 문서화됩니다.
 
-## [Unreleased]
+## [2.0.0] - 2026-10-08
 
-공식 KIS 스펙(워크북 + `open-trading-api` 샘플) 대조로 찾은 결함 수정. 대조 도구는
-`scripts/spec_conformance/check.py`.
+공식 KIS 스펙(워크북 2025-12-12 + `open-trading-api` 샘플) 전수 대조. 선물·옵션을 제외한
+모든 REST/실시간 API를 공식 명세에 맞추고, 미구현 API를 전부 래핑했다. 대조 도구는
+`scripts/spec_conformance/check.py` (`--strict`가 0건으로 통과).
+
+1.10.0으로 준비됐다가 배포되지 않은 변경(아래 [1.10.0] 절)도 이 버전에 포함된다.
+
+**업그레이드 전 확인할 비호환 변경**
+- 해외주식 주문 TR_ID가 거래소별로 바뀌고, 예약주문 정정은 `NotImplementedError`.
+- 응답 필드가 바뀐 메서드: `get_cash_available`, `get_total_asset`,
+  `get_account_order_quantity`, 해외 `get_news_title`/`get_foreign_margin`.
+- 실시간 파싱 결과 키가 바뀐 피드: 지수·지수 예상체결·회원사·예상체결·프로그램매매
+  (이전 키는 컬럼이 어긋나 있었다). `subscribe_market_operation_nxt`는 종목코드가 필요하다.
+- 모의투자 미지원 API가 `None` 대신 `PaperTradingNotSupportedError`를 던지는 메서드가 늘었다.
+- 문서에 없는 경로를 쓰던 메서드 일부는 `DeprecationWarning`과 함께 예외를 던진다
+  (아래 "폐기" 절).
 
 ### 🛡️ 해외주식 주문 — **호출자 영향 확인 필수**
 
@@ -186,7 +199,7 @@
 - VWAP 거래량 프로파일을 실행 시작 시각 기준으로 조회한다 (지정한 `start`가 있으면
   그 이전 거래일).
 
-## [1.10.0] - 2026-08-28
+## [1.10.0] - 미배포 (2.0.0에 포함)
 
 ### 📢 집행 결과 계약 정직화 (STO-1731) — **호출자(LLM 포함) 영향 확인 필수**
 

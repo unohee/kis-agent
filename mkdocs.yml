@@ -74,6 +74,9 @@ nav:
       - CLI 사용법: cli/usage.md
   - Python API:
       - 국내 주식: api/stock.md
+      - ETF/ETN: api/etf.md
+      - ELW: api/elw.md
+      - 장내채권: api/bond.md
       - 해외 주식: api/overseas.md
       - 선물/옵션: api/futures.md
       - 계좌 관리: api/account.md
