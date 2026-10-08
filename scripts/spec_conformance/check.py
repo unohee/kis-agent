@@ -125,6 +125,8 @@ class Allowlist:
                 continue
             if "where" in e and not f.where.startswith(e["where"]):
                 continue
+            if "where_contains" in e and e["where_contains"] not in f.where:
+                continue
             if "detail_contains" in e and e["detail_contains"] not in f.detail:
                 continue
             return True

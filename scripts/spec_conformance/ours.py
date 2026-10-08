@@ -165,6 +165,14 @@ class _Resolver:
                     for v in table.values:
                         out |= self.strings(v, func, depth + 1)
                     return out
+            # helper(TABLE, key, ...) selecting from a dict table: every value it can yield
+            for a in expr.args:
+                table = self._dict_for(a, func)
+                if table is not None:
+                    out = set()
+                    for v in table.values:
+                        out |= self.strings(v, func, depth + 1)
+                    return out
             return {UNRESOLVED}
         if (
             isinstance(expr, ast.Attribute)

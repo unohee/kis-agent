@@ -97,6 +97,8 @@ def parse_api_sheet(rows: List[tuple]) -> Dict[str, object]:
     section = None
     req: Set[str] = set()
     opt: Set[str] = set()
+    tr_real: Set[str] = set()
+    tr_paper: Set[str] = set()
     for raw in rows:
         r = list(raw) + [None] * 8
         if r[0] == "URL 명":
@@ -104,12 +106,18 @@ def parse_api_sheet(rows: List[tuple]) -> Dict[str, object]:
             continue
         if r[0] and str(r[0]).startswith(("Request", "Response")):
             section = str(r[0])
+        if r[1] == "tr_id" and section and "Header" in section and r[6]:
+            # Per-market TR_IDs live only in this description, e.g.
+            # "[실전투자] TTTT1004U : 미국 ... [모의투자] VTTT1004U : ..."
+            real_part, _, paper_part = str(r[6]).partition("[모의투자]")
+            tr_real.update(t for t in tr_tokens(real_part) if t.isupper())
+            tr_paper.update(tr_tokens(paper_part))
         if not section or not section.startswith("Request") or "Header" in section:
             continue
         element, required = r[1], r[4]
         if element and required in ("Y", "N") and r[0] != "구분":
             (req if required == "Y" else opt).add(str(element).strip())
-    return {"url": url, "required": req, "optional": opt}
+    return {"url": url, "required": req, "optional": opt, "tr_real": tr_real, "tr_paper": tr_paper}
 
 
 def load_workbook_apis(path: str) -> Dict[str, SpecApi]:
@@ -151,6 +159,8 @@ def load_workbook_apis(path: str) -> Dict[str, SpecApi]:
         url = parsed["url"]
         if url in apis:
             _merge_fields(apis[url], parsed["required"], parsed["optional"])
+            apis[url].real_trs.update(parsed["tr_real"])
+            apis[url].paper_trs.update(parsed["tr_paper"])
     return apis
 
 

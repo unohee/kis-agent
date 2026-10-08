@@ -1,27 +1,102 @@
 {
   "_comment": "Intended deviations from the official KIS contract. Every entry needs a reason.",
   "urls": [
-    {"glob": "/uapi/domestic-futureoption/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."},
-    {"glob": "/uapi/overseas-futureoption/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."}
+    {
+      "glob": "/uapi/domestic-futureoption/*",
+      "reason": "Futures/options are out of scope (user decision 2026-10-08)."
+    },
+    {
+      "glob": "/uapi/overseas-futureoption/*",
+      "reason": "Futures/options are out of scope (user decision 2026-10-08)."
+    }
   ],
   "paths": [
-    {"glob": "kis_agent/futures/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."},
-    {"glob": "kis_agent/overseas_futures/*", "reason": "Futures/options are out of scope (user decision 2026-10-08)."}
+    {
+      "glob": "kis_agent/futures/*",
+      "reason": "Futures/options are out of scope (user decision 2026-10-08)."
+    },
+    {
+      "glob": "kis_agent/overseas_futures/*",
+      "reason": "Futures/options are out of scope (user decision 2026-10-08)."
+    }
   ],
   "ws_trs": [
-    {"glob": "H0IF*", "reason": "Index futures realtime, out of scope."},
-    {"glob": "H0IO*", "reason": "Index options realtime, out of scope."},
-    {"glob": "H0CF*", "reason": "Commodity futures realtime, out of scope."},
-    {"glob": "H0ZF*", "reason": "Stock futures realtime, out of scope."},
-    {"glob": "H0ZO*", "reason": "Stock options realtime, out of scope."},
-    {"glob": "H0MF*", "reason": "Night futures realtime, out of scope."},
-    {"glob": "H0EU*", "reason": "Night options realtime, out of scope."},
-    {"glob": "HDFF*", "reason": "Overseas futures realtime, out of scope."}
+    {
+      "glob": "H0IF*",
+      "reason": "Index futures realtime, out of scope."
+    },
+    {
+      "glob": "H0IO*",
+      "reason": "Index options realtime, out of scope."
+    },
+    {
+      "glob": "H0CF*",
+      "reason": "Commodity futures realtime, out of scope."
+    },
+    {
+      "glob": "H0ZF*",
+      "reason": "Stock futures realtime, out of scope."
+    },
+    {
+      "glob": "H0ZO*",
+      "reason": "Stock options realtime, out of scope."
+    },
+    {
+      "glob": "H0MF*",
+      "reason": "Night futures realtime, out of scope."
+    },
+    {
+      "glob": "H0EU*",
+      "reason": "Night options realtime, out of scope."
+    },
+    {
+      "glob": "HDFF*",
+      "reason": "Overseas futures realtime, out of scope."
+    }
   ],
   "implemented_outside_make_request": [
-    {"url": "/oauth2/tokenP", "needle": "/oauth2/tokenP", "reason": "Token issuance lives in core/auth.py and bypasses make_request."},
-    {"url": "/oauth2/Approval", "needle": "/oauth2/Approval", "reason": "WS approval key: KISClient.get_ws_approval_key."},
-    {"url": "/uapi/hashkey", "needle": "/uapi/hashkey", "reason": "Optional hashkey: core/auth.set_order_hash_key."}
+    {
+      "url": "/oauth2/tokenP",
+      "needle": "/oauth2/tokenP",
+      "reason": "Token issuance lives in core/auth.py and bypasses make_request."
+    },
+    {
+      "url": "/oauth2/Approval",
+      "needle": "/oauth2/Approval",
+      "reason": "WS approval key: KISClient.get_ws_approval_key."
+    },
+    {
+      "url": "/uapi/hashkey",
+      "needle": "/uapi/hashkey",
+      "reason": "Optional hashkey: core/auth.set_order_hash_key."
+    }
   ],
-  "findings": []
+  "findings": [
+    {
+      "rule": "missing-required",
+      "url": "/uapi/overseas-stock/v1/trading/order-resv",
+      "where": "kis_agent/overseas/order_api.py",
+      "detail_contains": "missing=['PRDT_TYPE_CD', 'RVSE_CNCL_DVSN_CD']",
+      "reason": "Workbook marks these Y but describes both as 'tr_id가 TTTS3013U인 경우만 사용'; the US branch (TTTT3014U/TTTT3016U) omits them, as the official sample does."
+    },
+    {
+      "rule": "missing-required",
+      "url": "/uapi/overseas-stock/v1/trading/order-resv-ccnl",
+      "detail_contains": "RSYN_ORD_RCIT_DT",
+      "reason": "Workbook field name RSYN_ORD_RCIT_DT is a typo; the official sample sends RSVN_ORD_RCIT_DT, matching the order-resv output field."
+    },
+    {
+      "rule": "unknown-key",
+      "url": "/uapi/overseas-stock/v1/trading/order-resv-ccnl",
+      "detail_contains": "RSVN_ORD_RCIT_DT",
+      "reason": "See the RSYN_ORD_RCIT_DT entry: the sample's spelling is used."
+    },
+    {
+      "rule": "missing-required",
+      "url": "/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
+      "reason": "Cancel (CTSC0009U) sends only the reservation identifiers; the official sample adds order fields only when given.",
+      "where_contains": "[is_modify=False]",
+      "where": "kis_agent/account/order_api.py"
+    }
+  ]
 }

@@ -63,7 +63,15 @@ class TestParseApiSheet:
         rows = [
             ("URL 명", "/uapi/a"),
             ("구분", "Element", "한글명", "Type", "Required"),
-            ("Request Header", "tr_id", "", "string", "Y"),
+            (
+                "Request Header",
+                "tr_id",
+                "",
+                "string",
+                "Y",
+                "13",
+                "[실전투자]\nTTTT1004U : 미국\nTTTS1003U : 홍콩\n[모의투자]\nVTTT1004U : 미국",
+            ),
             ("Request Body", "CANO", "", "string", "Y"),
             (None, "EXCG_ID_DVSN_CD", "", "string", "N"),
             ("Response Body", "rt_cd", "", "string", "Y"),
@@ -73,6 +81,8 @@ class TestParseApiSheet:
             "url": "/uapi/a",
             "required": {"CANO"},
             "optional": {"EXCG_ID_DVSN_CD"},
+            "tr_real": {"TTTT1004U", "TTTS1003U"},
+            "tr_paper": {"VTTT1004U"},
         }
 
     def test_merge_intersects_required(self):
@@ -209,6 +219,18 @@ class TestExtractCallSites:
         assert site.keys == {"CANO", "ACNT_PRDT_CD", "OVRS_EXCG_CD"}
         assert site.keys_resolved
         assert site.methods == {"POST"}
+
+    def test_helper_call_over_dict_table_yields_all_values(self):
+        (site,) = _sites(
+            """
+            class A:
+                _BUY = {"NASD": "TTTT1002U", "SEHK": "TTTS1002U"}
+                def buy(self, excd):
+                    tr_id = self._pick(self._BUY, excd)
+                    return self._make_request_dict(endpoint="/o", tr_id=tr_id, params={"A": 1})
+            """
+        )
+        assert site.tr_ids == {"TTTT1002U", "TTTS1002U"}
 
     def test_positional_make_request_and_defaults(self):
         (site,) = _sites("""
@@ -432,7 +454,8 @@ class TestAllowlistBaselineAndReport:
                             "url": "/u",
                             "where": "kis_agent/y.py",
                             "detail_contains": "FOO",
-                        }
+                        },
+                        {"rule": "missing-required", "where_contains": "[cancel=True]"},
                     ],
                 }
             ),
@@ -458,6 +481,9 @@ class TestAllowlistBaselineAndReport:
         )
         assert not allow.finding_allowed(
             F("missing-required", "kis_agent/y.py:3", "/u", "FOO")
+        )
+        assert allow.finding_allowed(
+            F("missing-required", "kis_agent/y.py:3 [cancel=True]", "/u", "")
         )
         assert check.Allowlist.load(str(tmp_path / "absent.json")).findings == []
 
