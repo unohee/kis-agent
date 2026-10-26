@@ -1,6 +1,6 @@
 """Tool orchestration and planning for meta-queries"""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..server import server
 
@@ -357,7 +357,7 @@ async def plan_query_execution(query: str) -> Dict[str, Any]:
 
 @server.tool()
 async def suggest_tool_combination(
-    goal: str, available_data: List[str] = None
+    goal: str, available_data: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """목표 달성을 위한 도구 조합 제안
 
